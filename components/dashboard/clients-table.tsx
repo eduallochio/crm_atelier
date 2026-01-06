@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Pencil, Trash2, Phone, Mail, MapPin } from 'lucide-react'
+import { Pencil, Trash2, Phone, Mail, MapPin, FileText, MessageCircle } from 'lucide-react'
 import type { Client } from '@/lib/validations/client'
 import { useDeleteClient } from '@/hooks/use-clients'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +22,10 @@ import {
 interface ClientsTableProps {
   clients: Client[]
   onEdit: (client: Client) => void
+  onViewOrders?: (client: Client) => void
 }
 
-export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
+export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const deleteClient = useDeleteClient()
 
@@ -32,6 +34,26 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
       await deleteClient.mutateAsync(deleteId)
       setDeleteId(null)
     }
+  }
+
+  const handleWhatsApp = (client: Client) => {
+    if (!client.telefone) {
+      toast.error('Cliente não possui telefone cadastrado')
+      return
+    }
+
+    // Remover caracteres especiais do telefone
+    const telefone = client.telefone.replace(/\D/g, '')
+    const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`
+    
+    // Criar mensagem
+    const mensagem = encodeURIComponent(
+      `Olá ${client.nome}!\n\n` +
+      `Como você está? Estou entrando em contato para...`
+    )
+    
+    // Abrir WhatsApp Web
+    window.open(`https://wa.me/${telefoneFormatado}?text=${mensagem}`, '_blank')
   }
 
   if (clients.length === 0) {
@@ -114,6 +136,49 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {(client.logradouro && client.cidade) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const endereco = [
+                              client.logradouro,
+                              client.numero,
+                              client.bairro,
+                              client.cidade,
+                              client.estado,
+                              client.cep
+                            ].filter(Boolean).join(', ')
+                            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`
+                            window.open(url, '_blank')
+                          }}
+                          title="Abrir no Google Maps"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <MapPin className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {client.telefone && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleWhatsApp(client)}
+                          title="Enviar mensagem no WhatsApp"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onViewOrders && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onViewOrders(client)}
+                          title="Ver histórico de ordens"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

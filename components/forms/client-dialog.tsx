@@ -44,6 +44,8 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
       nome: '',
       telefone: '',
       email: '',
+      data_nascimento: '',
+      observacoes: '',
       cep: '',
       logradouro: '',
       numero: '',
@@ -64,6 +66,8 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
           nome: client.nome,
           telefone: client.telefone || '',
           email: client.email || '',
+          data_nascimento: client.data_nascimento || '',
+          observacoes: client.observacoes || '',
           cep: client.cep || '',
           logradouro: client.logradouro || '',
           numero: client.numero || '',
@@ -77,6 +81,8 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
           nome: '',
           telefone: '',
           email: '',
+          data_nascimento: '',
+          observacoes: '',
           cep: '',
           logradouro: '',
           numero: '',
@@ -185,6 +191,33 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+            <Input
+              id="data_nascimento"
+              type="date"
+              {...register('data_nascimento')}
+              disabled={isLoading}
+            />
+            {errors.data_nascimento && (
+              <p className="text-sm text-red-500">{errors.data_nascimento.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="observacoes">Observações</Label>
+            <textarea
+              id="observacoes"
+              placeholder="Notas e observações sobre o cliente..."
+              {...register('observacoes')}
+              disabled={isLoading}
+              className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            {errors.observacoes && (
+              <p className="text-sm text-red-500">{errors.observacoes.message}</p>
             )}
           </div>
 
