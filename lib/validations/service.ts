@@ -6,7 +6,7 @@ export const serviceSchema = z.object({
   preco: z.string().min(1, 'Preço é obrigatório'),
   categoria: z.string().optional(),
   tempo_estimado: z.string().optional(),
-  ativo: z.boolean().default(true),
+  ativo: z.boolean(),
 })
 
 export type ServiceInput = z.infer<typeof serviceSchema>

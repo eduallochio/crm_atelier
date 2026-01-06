@@ -75,7 +75,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
     }
   }, [open, service, reset])
 
-  const onSubmit = async (data: ServiceInput) => {
+  const onSubmit = async (data: ServiceInput): Promise<void> => {
     if (isEditing) {
       await updateService.mutateAsync({ id: service.id, input: data })
     } else {
@@ -102,7 +102,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Serviço' : 'Novo Serviço'}
