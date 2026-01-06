@@ -29,6 +29,20 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
   const updateService = useUpdateService()
   const isEditing = !!service
 
+  // Categorias predefinidas comuns
+  const commonCategories = [
+    'Costura',
+    'Ajuste',
+    'Reforma',
+    'Conserto',
+    'Customização',
+    'Barra',
+    'Zíper',
+    'Botões',
+    'Bordado',
+    'Aplicação',
+  ]
+
   const {
     register,
     handleSubmit,
@@ -44,6 +58,12 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
       preco: '',
       categoria: '',
       tempo_estimado: '',
+      materiais: '',
+      custo_materiais: '',
+      observacoes_tecnicas: '',
+      nivel_dificuldade: '',
+      tempo_minimo: '',
+      tempo_maximo: '',
       ativo: true,
     },
   })
@@ -60,6 +80,12 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
           preco: service.preco.toFixed(2).replace('.', ','),
           categoria: service.categoria || '',
           tempo_estimado: service.tempo_estimado || '',
+          materiais: service.materiais || '',
+          custo_materiais: service.custo_materiais ? service.custo_materiais.toFixed(2).replace('.', ',') : '',
+          observacoes_tecnicas: service.observacoes_tecnicas || '',
+          nivel_dificuldade: service.nivel_dificuldade || '',
+          tempo_minimo: service.tempo_minimo || '',
+          tempo_maximo: service.tempo_maximo || '',
           ativo: service.ativo,
         })
       } else {
@@ -69,6 +95,12 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
           preco: '',
           categoria: '',
           tempo_estimado: '',
+          materiais: '',
+          custo_materiais: '',
+          observacoes_tecnicas: '',
+          nivel_dificuldade: '',
+          tempo_minimo: '',
+          tempo_maximo: '',
           ativo: true,
         })
       }
@@ -178,12 +210,109 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
 
           <div className="space-y-2">
             <Label htmlFor="categoria">Categoria</Label>
-            <Input
+            <select
               id="categoria"
-              placeholder="Ex: Ajustes, Customização"
               {...register('categoria')}
               disabled={isLoading}
-            />
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Selecione uma categoria</option>
+              {commonCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              Ou digite uma nova categoria no campo acima
+            </p>
+          </div>
+
+          {/* Materiais e Insumos */}
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="font-medium text-sm text-gray-700">Materiais e Custo</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="materiais">Materiais Necessários</Label>
+              <Textarea
+                id="materiais"
+                placeholder="Liste os materiais necessários para este serviço..."
+                {...register('materiais')}
+                disabled={isLoading}
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="custo_materiais">Custo dos Materiais (R$)</Label>
+              <Input
+                id="custo_materiais"
+                placeholder="0,00"
+                {...register('custo_materiais')}
+                disabled={isLoading}
+                onChange={(e) => {
+                  const valorFormatado = formatarMoeda(e.target.value)
+                  e.target.value = valorFormatado
+                  register('custo_materiais').onChange(e)
+                }}
+              />
+              <p className="text-xs text-gray-500">
+                Margem de lucro: {watch('preco') && watch('custo_materiais') 
+                  ? `R$ ${(parseFloat(watch('preco').replace(',', '.')) - parseFloat(watch('custo_materiais').replace(',', '.') || '0')).toFixed(2)}`
+                  : 'R$ 0,00'}
+              </p>
+            </div>
+          </div>
+
+          {/* Observações Técnicas */}
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="font-medium text-sm text-gray-700">Detalhes Técnicos</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="observacoes_tecnicas">Observações Técnicas</Label>
+              <Textarea
+                id="observacoes_tecnicas"
+                placeholder="Instruções especiais, cuidados, técnicas recomendadas..."
+                {...register('observacoes_tecnicas')}
+                disabled={isLoading}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="nivel_dificuldade">Dificuldade</Label>
+                <select
+                  id="nivel_dificuldade"
+                  {...register('nivel_dificuldade')}
+                  disabled={isLoading}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Selecione</option>
+                  <option value="facil">Fácil</option>
+                  <option value="medio">Médio</option>
+                  <option value="dificil">Difícil</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tempo_minimo">Tempo Min.</Label>
+                <Input
+                  id="tempo_minimo"
+                  placeholder="Ex: 1h"
+                  {...register('tempo_minimo')}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tempo_maximo">Tempo Max.</Label>
+                <Input
+                  id="tempo_maximo"
+                  placeholder="Ex: 3h"
+                  {...register('tempo_maximo')}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center justify-between border-t pt-4">

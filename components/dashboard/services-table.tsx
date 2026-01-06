@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, DollarSign, Clock, Tag } from 'lucide-react'
+import { Pencil, Trash2, DollarSign, Clock, Tag, Copy, History } from 'lucide-react'
 import type { Service } from '@/lib/validations/service'
 import { useDeleteService, useToggleServiceStatus } from '@/hooks/use-services'
 import { Button } from '@/components/ui/button'
@@ -16,14 +16,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { ServicePriceHistory } from './service-price-history'
 
 interface ServicesTableProps {
   services: Service[]
   onEdit: (service: Service) => void
+  onDuplicate: (service: Service) => void
 }
 
-export function ServicesTable({ services, onEdit }: ServicesTableProps) {
+export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [historyService, setHistoryService] = useState<Service | null>(null)
   const deleteService = useDeleteService()
   const toggleStatus = useToggleServiceStatus()
 
@@ -115,6 +118,14 @@ export function ServicesTable({ services, onEdit }: ServicesTableProps) {
                         maximumFractionDigits: 2,
                       })}
                     </div>
+                    <button
+                      onClick={() => setHistoryService(service)}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1"
+                      title="Ver histórico de preços"
+                    >
+                      <History className="h-3 w-3" />
+                      Histórico
+                    </button>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -130,6 +141,14 @@ export function ServicesTable({ services, onEdit }: ServicesTableProps) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDuplicate(service)}
+                        title="Duplicar serviço"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -174,6 +193,15 @@ export function ServicesTable({ services, onEdit }: ServicesTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {historyService && (
+        <ServicePriceHistory
+          serviceId={historyService.id}
+          serviceName={historyService.nome}
+          open={!!historyService}
+          onOpenChange={(open) => !open && setHistoryService(null)}
+        />
+      )}
     </>
   )
 }

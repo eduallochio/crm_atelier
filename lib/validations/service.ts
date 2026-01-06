@@ -6,6 +6,12 @@ export const serviceSchema = z.object({
   preco: z.string().min(1, 'Preço é obrigatório'),
   categoria: z.string().optional(),
   tempo_estimado: z.string().optional(),
+  materiais: z.string().optional(),
+  custo_materiais: z.string().optional(),
+  observacoes_tecnicas: z.string().optional(),
+  nivel_dificuldade: z.enum(['facil', 'medio', 'dificil', '']).optional(),
+  tempo_minimo: z.string().optional(),
+  tempo_maximo: z.string().optional(),
   ativo: z.boolean(),
 })
 
@@ -19,6 +25,13 @@ export interface Service {
   preco: number
   categoria: string | null
   tempo_estimado: string | null
+  materiais: string | null
+  custo_materiais: number | null
+  observacoes_tecnicas: string | null
+  nivel_dificuldade: string | null
+  tempo_minimo: string | null
+  tempo_maximo: string | null
+  imagens: string[] | null
   ativo: boolean
   created_at: string
 }
