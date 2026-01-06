@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Filter, Calendar as CalendarIcon, Printer, Eye } from 'lucide-react'
+import { Plus, Search, Eye } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,8 +11,6 @@ import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { OrderTimeline } from '@/components/dashboard/order-timeline'
 import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
 import type { ServiceOrder } from '@/lib/validations/service-order'
-import { generateThermalPDF } from '@/lib/utils/thermal-printer'
-import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -201,7 +199,7 @@ export default function OrdensServicoPage() {
 
       {/* Dialog de Visualizar Ordem */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-200 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>

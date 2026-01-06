@@ -90,7 +90,7 @@ export function OrderPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto z-[100]">
+      <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto z-100">
         <DialogHeader>
           <DialogTitle>Preview da Ordem de Serviço</DialogTitle>
           <DialogDescription>

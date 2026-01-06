@@ -93,7 +93,7 @@ export function OrderTimeline({ orderId }: OrderTimelineProps) {
             <div className="space-y-4">
               {timeline.map((item) => (
                 <div key={item.id} className="flex gap-3 border-b pb-4 last:border-0">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     {item.type === 'note' ? (
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                         <MessageSquare className="h-4 w-4 text-blue-600" />
