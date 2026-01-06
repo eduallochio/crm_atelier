@@ -220,6 +220,3 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - [Shadcn UI](https://ui.shadcn.com)
 - [ViaCEP](https://viacep.com.br)
 
----
-
-⭐ Se este projeto te ajudou, considere dar uma estrela!
