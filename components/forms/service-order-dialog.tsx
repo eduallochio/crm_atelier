@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { serviceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput } from '@/lib/validations/service-order'
+import { serviceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
 import { useCreateServiceOrder } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
 import { useServices } from '@/hooks/use-services'
-import { generateOrderPDF } from '@/lib/utils/pdf-generator'
 import { generateThermalPDF } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
 import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
@@ -22,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, DollarSign, Eye } from 'lucide-react'
+import { Plus, Trash2, Eye } from 'lucide-react'
 
 interface ServiceOrderDialogProps {
   open: boolean
@@ -35,7 +34,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [quantidade, setQuantidade] = useState(1)
   const [gerarPDF, setGerarPDF] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
-  const [previewData, setPreviewData] = useState<any>(null)
+  const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
 
   const createOrder = useCreateServiceOrder()
   const { data: clients = [] } = useClients()
@@ -50,8 +49,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     reset,
     setValue,
     watch,
-  } = useForm({
-    resolver: zodResolver(serviceOrderSchema) as any,
+  } = useForm<ServiceOrderInput>({
+    resolver: zodResolver(serviceOrderSchema) as Resolver<ServiceOrderInput>,
     defaultValues: {
       client_id: '',
       status: 'pendente' as const,
@@ -110,7 +109,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
     const updatedItems = [...items, newItem]
     setItems(updatedItems)
-    setValue('items', updatedItems as any)
+    setValue('items', updatedItems)
     setSelectedServiceId('')
     setQuantidade(1)
   }
@@ -118,7 +117,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const removeItem = (index: number) => {
     const updatedItems = items.filter((_, i) => i !== index)
     setItems(updatedItems)
-    setValue('items', updatedItems as any)
+    setValue('items', updatedItems)
   }
 
   const total = items.reduce((sum, item) => sum + item.valor_total, 0)
@@ -221,7 +220,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             .single()
           
           if (completeOrder) {
-            generateThermalPDF(completeOrder as any)
+            generateThermalPDF(completeOrder as ServiceOrder)
             toast.success('Ordem criada e PDF gerado com sucesso!')
           }
         } catch (error) {
@@ -242,7 +241,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-175 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
           <DialogDescription>

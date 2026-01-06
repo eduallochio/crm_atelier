@@ -4,17 +4,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, DollarSign, Package, Activity } from 'lucide-react'
 
+interface Order {
+  id: string
+  status: string
+  data_abertura: string
+  data_conclusao?: string
+  valor_total: number
+  items?: { service_id: string }[]
+}
+
+interface Service {
+  id: string
+  nome: string
+}
+
 interface DashboardChartsProps {
-  ordersData: any[]
-  servicesData: any[]
+  ordersData: Order[]
+  servicesData: Service[]
+}
+
+interface ServiceSold {
+  nome: string
+  quantidade: number
+}
+
+interface MonthlyData {
+  mes: string
+  total: number
+  concluidas: number
+}
+
+interface CompletionRate {
+  mes: string
+  taxa: number
 }
 
 export function DashboardCharts({ ordersData, servicesData }: DashboardChartsProps) {
   // Dados mensais de faturamento
-  const monthlyRevenue = ordersData.reduce((acc: any, order: any) => {
+  const monthlyRevenue = ordersData.reduce((acc: { mes: string; valor: number }[], order: Order) => {
     if (order.status === 'concluido') {
       const month = new Date(order.data_conclusao || order.data_abertura).toLocaleDateString('pt-BR', { month: 'short' })
-      const existing = acc.find((item: any) => item.mes === month)
+      const existing = acc.find((item: { mes: string; valor: number }) => item.mes === month)
       
       if (existing) {
         existing.valor += order.valor_total
@@ -26,16 +56,16 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
   }, [])
 
   // Serviços mais vendidos
-  const servicesSold = servicesData
-    .map((service: any) => ({
+  const servicesSold: ServiceSold[] = servicesData
+    .map((service: Service) => ({
       nome: service.nome,
-      quantidade: ordersData.reduce((count: number, order: any) => {
-        const itemCount = order.items?.filter((item: any) => item.service_id === service.id).length || 0
+      quantidade: ordersData.reduce((count: number, order: Order) => {
+        const itemCount = order.items?.filter((item) => item.service_id === service.id).length || 0
         return count + itemCount
       }, 0)
     }))
-    .filter((s: any) => s.quantidade > 0)
-    .sort((a: any, b: any) => b.quantidade - a.quantidade)
+    .filter((s) => s.quantidade > 0)
+    .sort((a, b) => b.quantidade - a.quantidade)
     .slice(0, 5)
 
   // Status das ordens (para gráfico de pizza)
@@ -47,9 +77,9 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
   ].filter(s => s.value > 0)
 
   // Taxa de conclusão mensal
-  const completionRate = ordersData.reduce((acc: any, order: any) => {
+  const completionRate: CompletionRate[] = ordersData.reduce((acc: MonthlyData[], order: Order) => {
     const month = new Date(order.data_abertura).toLocaleDateString('pt-BR', { month: 'short' })
-    const existing = acc.find((item: any) => item.mes === month)
+    const existing = acc.find((item) => item.mes === month)
     
     if (existing) {
       existing.total += 1
@@ -62,7 +92,7 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
       })
     }
     return acc
-  }, []).map((item: any) => ({
+  }, []).map((item) => ({
     mes: item.mes,
     taxa: item.total > 0 ? Math.round((item.concluidas / item.total) * 100) : 0
   }))
@@ -85,7 +115,7 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
                 <XAxis dataKey="mes" />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                  formatter={(value: number | undefined) => value !== undefined ? `R$ ${value.toFixed(2)}` : 'N/A'}
                   labelStyle={{ color: '#000' }}
                 />
                 <Bar dataKey="valor" fill="#10b981" name="Faturamento" />
@@ -178,7 +208,7 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `${value}%`} />
+                <Tooltip formatter={(value: number | undefined) => value !== undefined ? `${value}%` : 'N/A'} />
                 <Legend />
                 <Line 
                   type="monotone" 
