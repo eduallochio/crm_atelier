@@ -188,6 +188,42 @@ export function useUpdateServiceOrder() {
       // Atualizar data de conclusão se status for concluído
       if (input.status === 'concluido') {
         updateData.data_conclusao = new Date().toISOString()
+        
+        // Buscar dados da ordem para criar conta a receber
+        const { data: order, error: fetchError } = await supabase
+          .from('org_service_orders')
+          .select('*, client:org_clients!client_id(nome)')
+          .eq('id', id)
+          .single()
+
+        if (fetchError) throw fetchError
+
+        // Verificar se já existe uma conta a receber para esta ordem
+        const { data: existingReceivable } = await supabase
+          .from('org_receivables')
+          .select('id')
+          .eq('service_order_id', id)
+          .maybeSingle()
+
+        // Criar conta a receber se não existir e há saldo a receber
+        const saldoRestante = (order.valor_total || 0) - (order.valor_pago || 0)
+        if (!existingReceivable && saldoRestante > 0) {
+          const dataVencimento = new Date()
+          dataVencimento.setDate(dataVencimento.getDate() + 7) // 7 dias após conclusão
+
+          await supabase
+            .from('org_receivables')
+            .insert({
+              organization_id: order.organization_id,
+              service_order_id: id,
+              client_id: order.client_id,
+              descricao: `OS #${order.numero} - ${order.client?.nome || 'Cliente'}`,
+              valor: saldoRestante,
+              data_vencimento: dataVencimento.toISOString().split('T')[0],
+              status: 'pendente',
+              observacoes: 'Gerado automaticamente na conclusão da ordem de serviço',
+            })
+        }
       }
 
       const { data, error } = await supabase
@@ -202,6 +238,7 @@ export function useUpdateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['receivables'] })
       toast.success('Ordem de serviço atualizada com sucesso!')
     },
     onError: (error: Error) => {

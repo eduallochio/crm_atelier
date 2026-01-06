@@ -1,14 +1,295 @@
+'use client'
+
+import { useState } from 'react'
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet,
+  AlertCircle,
+  Calendar,
+  Receipt,
+  CreditCard,
+  ArrowUpCircle,
+  ArrowDownCircle,
+} from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { Button } from '@/components/ui/button'
+import { useFinancialStats } from '@/hooks/use-financial-stats'
 
 export default function FinanceiroPage() {
+  const [dateFilter, setDateFilter] = useState<'7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'>('thisMonth')
+  const { data: stats, isLoading } = useFinancialStats()
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <Header 
+          title="Financeiro"
+          description="Controle financeiro do ateliê"
+        />
+        <div className="p-6 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+            <p className="mt-4 text-gray-500">Carregando dados financeiros...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <Header 
         title="Financeiro"
         description="Controle financeiro do ateliê"
       />
-      <div className="p-4 sm:p-6 lg:p-8">
-        <p className="text-gray-500">Módulo financeiro em desenvolvimento...</p>
+      
+      <div className="p-6 space-y-6">
+        {/* Filtros de Período */}
+        <div className="bg-white rounded-lg border p-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-700">Período:</span>
+            <Button
+              variant={dateFilter === '7days' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateFilter('7days')}
+            >
+              Últimos 7 dias
+            </Button>
+            <Button
+              variant={dateFilter === '30days' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateFilter('30days')}
+            >
+              Últimos 30 dias
+            </Button>
+            <Button
+              variant={dateFilter === 'thisMonth' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateFilter('thisMonth')}
+            >
+              Este mês
+            </Button>
+            <Button
+              variant={dateFilter === 'lastMonth' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateFilter('lastMonth')}
+            >
+              Mês passado
+            </Button>
+            <Button
+              variant={dateFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateFilter('all')}
+            >
+              Tudo
+            </Button>
+          </div>
+        </div>
+        
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Saldo Atual */}
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">Saldo Atual</span>
+              <div className={`p-2 rounded-lg ${
+                (stats?.saldoAtual || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'
+              }`}>
+                <Wallet className={`h-5 w-5 ${
+                  (stats?.saldoAtual || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                }`} />
+              </div>
+            </div>
+            <p className={`text-2xl font-bold ${
+              (stats?.saldoAtual || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatCurrency(stats?.saldoAtual || 0)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Receitas - Despesas
+            </p>
+          </div>
+
+          {/* Total a Receber */}
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">A Receber</span>
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <ArrowUpCircle className="h-5 w-5 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-blue-600">
+              {formatCurrency(stats?.totalAReceber || 0)}
+            </p>
+            {(stats?.receitasAtrasadas || 0) > 0 && (
+              <p className="text-xs text-red-500 mt-1">
+                {formatCurrency(stats?.receitasAtrasadas || 0)} atrasado
+              </p>
+            )}
+          </div>
+
+          {/* Total a Pagar */}
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">A Pagar</span>
+              <div className="p-2 bg-orange-50 rounded-lg">
+                <ArrowDownCircle className="h-5 w-5 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-orange-600">
+              {formatCurrency(stats?.totalAPagar || 0)}
+            </p>
+            {(stats?.despesasAtrasadas || 0) > 0 && (
+              <p className="text-xs text-red-500 mt-1">
+                {formatCurrency(stats?.despesasAtrasadas || 0)} atrasado
+              </p>
+            )}
+          </div>
+
+          {/* Saldo do Mês */}
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">Saldo do Mês</span>
+              <div className={`p-2 rounded-lg ${
+                (stats?.saldoMes || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'
+              }`}>
+                <Calendar className={`h-5 w-5 ${
+                  (stats?.saldoMes || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                }`} />
+              </div>
+            </div>
+            <p className={`text-2xl font-bold ${
+              (stats?.saldoMes || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatCurrency(stats?.saldoMes || 0)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Entradas: {formatCurrency(stats?.entradasMes || 0)}
+            </p>
+          </div>
+        </div>
+
+        {/* Alertas */}
+        {((stats?.recebiveisVencendo || 0) > 0 || (stats?.pagaveisVencendo || 0) > 0) && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-yellow-900">Contas Vencendo nos Próximos 7 Dias</h3>
+                <div className="mt-2 space-y-1 text-sm text-yellow-800">
+                  {(stats?.recebiveisVencendo || 0) > 0 && (
+                    <p>• {stats?.recebiveisVencendo} conta(s) a receber</p>
+                  )}
+                  {(stats?.pagaveisVencendo || 0) > 0 && (
+                    <p>• {stats?.pagaveisVencendo} conta(s) a pagar</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Gráfico de Fluxo de Caixa */}
+        <div className="bg-white rounded-lg border p-6">
+          <h3 className="text-lg font-semibold mb-4">Fluxo de Caixa (Últimos 6 Meses)</h3>
+          <div className="space-y-3">
+            {stats?.fluxoCaixa?.map((item, index) => (
+              <div key={index} className="flex items-center gap-4">
+                <div className="w-20 text-sm text-gray-600 font-medium">
+                  {item.mes}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                      <div 
+                        className="absolute left-0 top-0 h-full bg-green-500 transition-all"
+                        style={{ width: `${Math.min((item.entradas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700">
+                        {formatCurrency(item.entradas)}
+                      </span>
+                    </div>
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                      <div 
+                        className="absolute left-0 top-0 h-full bg-red-500 transition-all"
+                        style={{ width: `${Math.min((item.saidas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700">
+                        {formatCurrency(item.saidas)}
+                      </span>
+                    </div>
+                    <TrendingDown className="h-4 w-4 text-red-600" />
+                  </div>
+                </div>
+                <div className={`w-24 text-right text-sm font-semibold ${
+                  item.saldo >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatCurrency(item.saldo)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Ações Rápidas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a
+            href="/financeiro/receber"
+            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                <Receipt className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Contas a Receber</h4>
+                <p className="text-sm text-gray-500">Gerenciar recebimentos</p>
+              </div>
+            </div>
+          </a>
+
+          <a
+            href="/financeiro/pagar"
+            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
+                <CreditCard className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Contas a Pagar</h4>
+                <p className="text-sm text-gray-500">Gerenciar pagamentos</p>
+              </div>
+            </div>
+          </a>
+
+          <a
+            href="/financeiro/fluxo-caixa"
+            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Fluxo de Caixa</h4>
+                <p className="text-sm text-gray-500">Visualizar transações</p>
+              </div>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
   )
