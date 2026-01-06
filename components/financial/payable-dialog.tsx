@@ -41,7 +41,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
   const createMutation = useCreatePayable()
   const updateMutation = useUpdatePayable()
 
-  const form = useForm<PayableInput>({
+  const form = useForm({
     resolver: zodResolver(payableSchema),
     defaultValues: {
       fornecedor: '',

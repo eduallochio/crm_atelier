@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Calendar, DollarSign, Download, X, ArrowUpDown, ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
+import { Plus, Search, Calendar, DollarSign, X, ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -303,7 +303,7 @@ export default function ReceberPage() {
         </div>
 
         {/* Atalhos Rápidos */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
           <p className="text-sm font-medium text-gray-700 mb-3">Filtros Rápidos:</p>
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -420,8 +420,11 @@ export default function ReceberPage() {
         {/* Tabela */}
         <div className="bg-white rounded-lg border">
           <ReceivablesTable
-            receivables={filteredReceivables || []}
+            receivables={sortedReceivables || []}
             isLoading={isLoading}
+            onSort={handleSort}
+            sortField={sortField}
+            sortOrder={sortOrder}
           />
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Calendar, TrendingUp, TrendingDown, ArrowLeft, Download, X, ArrowUpDown, DollarSign, FileSpreadsheet, FileText } from 'lucide-react'
+import { Plus, Search, Calendar, TrendingUp, TrendingDown, ArrowLeft, X, DollarSign, FileSpreadsheet, FileText } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -297,7 +297,7 @@ export default function FluxoCaixaPage() {
         </div>
 
         {/* Atalhos Rápidos */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
           <p className="text-sm font-medium text-gray-700 mb-3">Filtros Rápidos:</p>
           <div className="flex gap-2 flex-wrap">
             <Button

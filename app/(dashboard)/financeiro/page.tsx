@@ -244,7 +244,7 @@ export default function FinanceiroPage() {
         </div>
 
         {/* Ações Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
             href="/financeiro/receber"
             className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
@@ -286,6 +286,21 @@ export default function FinanceiroPage() {
               <div>
                 <h4 className="font-semibold text-gray-900">Fluxo de Caixa</h4>
                 <p className="text-sm text-gray-500">Visualizar transações</p>
+              </div>
+            </div>
+          </a>
+
+          <a
+            href="/financeiro/caixa"
+            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
+                <Wallet className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Caixa</h4>
+                <p className="text-sm text-gray-500">Controle de caixa</p>
               </div>
             </div>
           </a>

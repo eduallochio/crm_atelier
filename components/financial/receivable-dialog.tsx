@@ -41,13 +41,13 @@ export function ReceivableDialog({ open, onOpenChange, receivable }: ReceivableD
   const createMutation = useCreateReceivable()
   const updateMutation = useUpdateReceivable()
 
-  const form = useForm<ReceivableInput>({
+  const form = useForm({
     resolver: zodResolver(receivableSchema),
     defaultValues: {
       descricao: '',
       valor: '',
       data_vencimento: '',
-      status: 'pendente',
+      status: 'pendente' as const,
       observacoes: '',
     },
   })
