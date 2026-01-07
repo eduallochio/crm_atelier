@@ -25,7 +25,7 @@ const navigation = [
   { name: 'Serviços', href: '/servicos', icon: Scissors },
   { name: 'Ordens de Serviço', href: '/ordens-servico', icon: FileText },
   { name: 'Financeiro', href: '/financeiro', icon: DollarSign },
-  { name: 'Configurações', href: '/profile', icon: Settings },
+  { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 
 export function Sidebar() {
