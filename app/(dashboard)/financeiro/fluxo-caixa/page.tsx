@@ -299,7 +299,7 @@ export default function FluxoCaixaPage() {
         </div>
 
         {/* Atalhos Rápidos */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">
           <p className="text-sm font-medium text-foreground mb-3">Filtros Rápidos:</p>
           <div className="flex gap-2 flex-wrap">
             <Button

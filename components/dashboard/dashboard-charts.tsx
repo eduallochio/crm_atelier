@@ -28,17 +28,6 @@ interface ServiceSold {
   quantidade: number
 }
 
-interface MonthlyData {
-  mes: string
-  total: number
-  concluidas: number
-}
-
-interface CompletionRate {
-  mes: string
-  taxa: number
-}
-
 export function DashboardCharts({ ordersData, servicesData }: DashboardChartsProps) {
   // Dados mensais de faturamento
   const monthlyRevenue = ordersData.reduce((acc: { mes: string; valor: number }[], order: Order) => {
@@ -76,34 +65,13 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
     { name: 'Cancelado', value: ordersData.filter(o => o.status === 'cancelado').length, color: '#ef4444' },
   ].filter(s => s.value > 0)
 
-  // Taxa de conclusão mensal
-  const completionRate: CompletionRate[] = ordersData.reduce((acc: MonthlyData[], order: Order) => {
-    const month = new Date(order.data_abertura).toLocaleDateString('pt-BR', { month: 'short' })
-    const existing = acc.find((item) => item.mes === month)
-    
-    if (existing) {
-      existing.total += 1
-      if (order.status === 'concluido') existing.concluidas += 1
-    } else {
-      acc.push({
-        mes: month,
-        total: 1,
-        concluidas: order.status === 'concluido' ? 1 : 0,
-      })
-    }
-    return acc
-  }, []).map((item) => ({
-    mes: item.mes,
-    taxa: item.total > 0 ? Math.round((item.concluidas / item.total) * 100) : 0
-  }))
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* Faturamento Mensal */}
-      <Card>
+      <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-600" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
             Faturamento Mensal
           </CardTitle>
         </CardHeader>
@@ -111,18 +79,30 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
           {monthlyRevenue.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis 
+                  dataKey="mes" 
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <YAxis 
+                  className="text-xs"
+                  stroke="currentColor"
+                />
                 <Tooltip 
                   formatter={(value: number | undefined) => value !== undefined ? `R$ ${value.toFixed(2)}` : 'N/A'}
-                  labelStyle={{ color: '#000' }}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '0.5rem',
+                    color: 'hsl(var(--foreground))'
+                  }}
                 />
-                <Bar dataKey="valor" fill="#10b981" name="Faturamento" />
+                <Bar dataKey="valor" fill="#10b981" name="Faturamento" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-gray-500 py-12 text-sm">
+            <p className="text-center text-muted-foreground py-12 text-sm">
               Nenhuma ordem concluída ainda
             </p>
           )}
@@ -132,8 +112,8 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
       {/* Serviços Mais Vendidos */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-blue-600" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Serviços Mais Vendidos
           </CardTitle>
         </CardHeader>
@@ -141,15 +121,28 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
           {servicesSold.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={servicesSold} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="nome" type="category" width={150} />
-                <Tooltip />
-                <Bar dataKey="quantidade" fill="#3b82f6" name="Vendidos" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis type="number" className="text-xs" stroke="currentColor" />
+                <YAxis 
+                  dataKey="nome" 
+                  type="category" 
+                  width={120}
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '0.5rem',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                />
+                <Bar dataKey="quantidade" fill="#3b82f6" name="Vendidos" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-gray-500 py-12 text-sm">
+            <p className="text-center text-muted-foreground py-12 text-sm">
               Nenhum serviço vendido ainda
             </p>
           )}
@@ -159,8 +152,8 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
       {/* Distribuição por Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-purple-600" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             Ordens por Status
           </CardTitle>
         </CardHeader>
@@ -174,7 +167,7 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
                   cy="50%"
                   labelLine={false}
                   label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={100}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -182,46 +175,19 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '0.5rem',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-gray-500 py-12 text-sm">
+            <p className="text-center text-muted-foreground py-12 text-sm">
               Nenhuma ordem cadastrada ainda
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Taxa de Conclusão */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-orange-600" />
-            Taxa de Conclusão
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {completionRate.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={completionRate}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip formatter={(value: number | undefined) => value !== undefined ? `${value}%` : 'N/A'} />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="taxa" 
-                  stroke="#f97316" 
-                  strokeWidth={2}
-                  name="Taxa de Conclusão (%)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-gray-500 py-12 text-sm">
-              Dados insuficientes
             </p>
           )}
         </CardContent>
