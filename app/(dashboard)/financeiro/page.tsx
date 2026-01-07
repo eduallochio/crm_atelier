@@ -38,7 +38,7 @@ export default function FinanceiroPage() {
         <div className="p-6 flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-            <p className="mt-4 text-gray-500">Carregando dados financeiros...</p>
+            <p className="mt-4 text-muted-foreground">Carregando dados financeiros...</p>
           </div>
         </div>
       </div>
@@ -54,9 +54,9 @@ export default function FinanceiroPage() {
       
       <div className="p-6 space-y-6">
         {/* Filtros de Período */}
-        <div className="bg-white rounded-lg border p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-700">Período:</span>
+            <span className="text-sm font-medium text-foreground">Período:</span>
             <Button
               variant={dateFilter === '7days' ? 'default' : 'outline'}
               size="sm"
@@ -98,81 +98,81 @@ export default function FinanceiroPage() {
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Saldo Atual */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Saldo Atual</span>
+              <span className="text-sm text-muted-foreground">Saldo Atual</span>
               <div className={`p-2 rounded-lg ${
-                (stats?.saldoAtual || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'
+                (stats?.saldoAtual || 0) >= 0 ? 'bg-green-50 dark:bg-green-950/50' : 'bg-red-50 dark:bg-red-950/50'
               }`}>
                 <Wallet className={`h-5 w-5 ${
-                  (stats?.saldoAtual || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  (stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`} />
               </div>
             </div>
             <p className={`text-2xl font-bold ${
-              (stats?.saldoAtual || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              (stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             }`}>
               {formatCurrency(stats?.saldoAtual || 0)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Receitas - Despesas
             </p>
           </div>
 
           {/* Total a Receber */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">A Receber</span>
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <ArrowUpCircle className="h-5 w-5 text-blue-600" />
+              <span className="text-sm text-muted-foreground">A Receber</span>
+              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                <ArrowUpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(stats?.totalAReceber || 0)}
             </p>
             {(stats?.receitasAtrasadas || 0) > 0 && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                 {formatCurrency(stats?.receitasAtrasadas || 0)} atrasado
               </p>
             )}
           </div>
 
           {/* Total a Pagar */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">A Pagar</span>
-              <div className="p-2 bg-orange-50 rounded-lg">
-                <ArrowDownCircle className="h-5 w-5 text-orange-600" />
+              <span className="text-sm text-muted-foreground">A Pagar</span>
+              <div className="p-2 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
+                <ArrowDownCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-orange-600">
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
               {formatCurrency(stats?.totalAPagar || 0)}
             </p>
             {(stats?.despesasAtrasadas || 0) > 0 && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                 {formatCurrency(stats?.despesasAtrasadas || 0)} atrasado
               </p>
             )}
           </div>
 
           {/* Saldo do Mês */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Saldo do Mês</span>
+              <span className="text-sm text-muted-foreground">Saldo do Mês</span>
               <div className={`p-2 rounded-lg ${
-                (stats?.saldoMes || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'
+                (stats?.saldoMes || 0) >= 0 ? 'bg-green-50 dark:bg-green-950/50' : 'bg-red-50 dark:bg-red-950/50'
               }`}>
                 <Calendar className={`h-5 w-5 ${
-                  (stats?.saldoMes || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  (stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`} />
               </div>
             </div>
             <p className={`text-2xl font-bold ${
-              (stats?.saldoMes || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              (stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             }`}>
               {formatCurrency(stats?.saldoMes || 0)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Entradas: {formatCurrency(stats?.entradasMes || 0)}
             </p>
           </div>
@@ -180,12 +180,12 @@ export default function FinanceiroPage() {
 
         {/* Alertas */}
         {((stats?.recebiveisVencendo || 0) > 0 || (stats?.pagaveisVencendo || 0) > 0) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="bg-yellow-50 dark:bg-yellow-950/50 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-medium text-yellow-900">Contas Vencendo nos Próximos 7 Dias</h3>
-                <div className="mt-2 space-y-1 text-sm text-yellow-800">
+                <h3 className="font-medium text-yellow-900 dark:text-yellow-300">Contas Vencendo nos Próximos 7 Dias</h3>
+                <div className="mt-2 space-y-1 text-sm text-yellow-800 dark:text-yellow-400">
                   {(stats?.recebiveisVencendo || 0) > 0 && (
                     <p>• {stats?.recebiveisVencendo} conta(s) a receber</p>
                   )}
@@ -199,42 +199,42 @@ export default function FinanceiroPage() {
         )}
 
         {/* Gráfico de Fluxo de Caixa */}
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-lg font-semibold mb-4">Fluxo de Caixa (Últimos 6 Meses)</h3>
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Fluxo de Caixa (Últimos 6 Meses)</h3>
           <div className="space-y-3">
             {stats?.fluxoCaixa?.map((item, index) => (
               <div key={index} className="flex items-center gap-4">
-                <div className="w-20 text-sm text-gray-600 font-medium">
+                <div className="w-20 text-sm text-muted-foreground font-medium">
                   {item.mes}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                    <div className="flex-1 bg-muted rounded-full h-6 relative overflow-hidden">
                       <div 
-                        className="absolute left-0 top-0 h-full bg-green-500 transition-all"
+                        className="absolute left-0 top-0 h-full bg-green-500 dark:bg-green-600 transition-all"
                         style={{ width: `${Math.min((item.entradas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
                       />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700">
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-foreground">
                         {formatCurrency(item.entradas)}
                       </span>
                     </div>
-                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                    <div className="flex-1 bg-muted rounded-full h-6 relative overflow-hidden">
                       <div 
-                        className="absolute left-0 top-0 h-full bg-red-500 transition-all"
+                        className="absolute left-0 top-0 h-full bg-red-500 dark:bg-red-600 transition-all"
                         style={{ width: `${Math.min((item.saidas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
                       />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700">
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-foreground">
                         {formatCurrency(item.saidas)}
                       </span>
                     </div>
-                    <TrendingDown className="h-4 w-4 text-red-600" />
+                    <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                   </div>
                 </div>
                 <div className={`w-24 text-right text-sm font-semibold ${
-                  item.saldo >= 0 ? 'text-green-600' : 'text-red-600'
+                  item.saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {formatCurrency(item.saldo)}
                 </div>
@@ -247,60 +247,60 @@ export default function FinanceiroPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
             href="/financeiro/receber"
-            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
-                <Receipt className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-950/70 transition-colors">
+                <Receipt className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Contas a Receber</h4>
-                <p className="text-sm text-gray-500">Gerenciar recebimentos</p>
+                <h4 className="font-semibold text-foreground">Contas a Receber</h4>
+                <p className="text-sm text-muted-foreground">Gerenciar recebimentos</p>
               </div>
             </div>
           </a>
 
           <a
             href="/financeiro/pagar"
-            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
-                <CreditCard className="h-6 w-6 text-orange-600" />
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg group-hover:bg-orange-100 dark:group-hover:bg-orange-950/70 transition-colors">
+                <CreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Contas a Pagar</h4>
-                <p className="text-sm text-gray-500">Gerenciar pagamentos</p>
+                <h4 className="font-semibold text-foreground">Contas a Pagar</h4>
+                <p className="text-sm text-muted-foreground">Gerenciar pagamentos</p>
               </div>
             </div>
           </a>
 
           <a
             href="/financeiro/fluxo-caixa"
-            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-950/70 transition-colors">
+                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Fluxo de Caixa</h4>
-                <p className="text-sm text-gray-500">Visualizar transações</p>
+                <h4 className="font-semibold text-foreground">Fluxo de Caixa</h4>
+                <p className="text-sm text-muted-foreground">Visualizar transações</p>
               </div>
             </div>
           </a>
 
           <a
             href="/financeiro/caixa"
-            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
-                <Wallet className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg group-hover:bg-purple-100 dark:group-hover:bg-purple-950/70 transition-colors">
+                <Wallet className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Caixa</h4>
-                <p className="text-sm text-gray-500">Controle de caixa</p>
+                <h4 className="font-semibold text-foreground">Caixa</h4>
+                <p className="text-sm text-muted-foreground">Controle de caixa</p>
               </div>
             </div>
           </a>

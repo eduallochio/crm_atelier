@@ -105,25 +105,25 @@ export default function OrdensServicoPage() {
       <div className="p-6 space-y-6">
         {/* Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-gray-500">Total</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">Total</p>
+            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
           </div>
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-yellow-600">Pendente</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.pendente}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-yellow-600 dark:text-yellow-500">Pendente</p>
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">{stats.pendente}</p>
           </div>
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-blue-600">Em Andamento</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.em_andamento}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-blue-600 dark:text-blue-400">Em Andamento</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.em_andamento}</p>
           </div>
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-green-600">Concluído</p>
-            <p className="text-2xl font-bold text-green-600">{stats.concluido}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-green-600 dark:text-green-400">Concluído</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.concluido}</p>
           </div>
-          <div className="bg-white border rounded-lg p-4">
-            <p className="text-sm text-red-600">Atrasadas</p>
-            <p className="text-2xl font-bold text-red-600">{stats.atrasadas}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-red-600 dark:text-red-400">Atrasadas</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.atrasadas}</p>
           </div>
         </div>
 
@@ -169,7 +169,7 @@ export default function OrdensServicoPage() {
         </div>
 
         {/* Contador */}
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           {isLoading ? (
             <span>Carregando...</span>
           ) : (
@@ -184,7 +184,7 @@ export default function OrdensServicoPage() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-gray-500">Carregando ordens...</p>
+            <p className="mt-4 text-muted-foreground">Carregando ordens...</p>
           </div>
         ) : (
           <ServiceOrdersTable orders={filteredOrders} onView={handleView} />
@@ -227,18 +227,18 @@ export default function OrdensServicoPage() {
               {/* Informações Básicas */}
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-500">Cliente</p>
-                  <p className="font-medium">{selectedOrder.client?.nome}</p>
+                  <p className="text-sm text-muted-foreground">Cliente</p>
+                  <p className="font-medium text-foreground">{selectedOrder.client?.nome}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Status</p>
-                    <p className="font-medium capitalize">{selectedOrder.status.replace('_', ' ')}</p>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="font-medium text-foreground capitalize">{selectedOrder.status.replace('_', ' ')}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Valor Total</p>
-                    <p className="font-medium text-green-600">
+                    <p className="text-sm text-muted-foreground">Valor Total</p>
+                    <p className="font-medium text-green-600 dark:text-green-400">
                       R$ {selectedOrder.valor_total.toFixed(2)}
                     </p>
                   </div>
@@ -246,29 +246,29 @@ export default function OrdensServicoPage() {
 
                 {selectedOrder.observacoes && (
                   <div>
-                    <p className="text-sm text-gray-500">Observações</p>
-                    <p className="text-sm">{selectedOrder.observacoes}</p>
+                    <p className="text-sm text-muted-foreground">Observações</p>
+                    <p className="text-sm text-foreground">{selectedOrder.observacoes}</p>
                   </div>
                 )}
 
                 {selectedOrder.items && selectedOrder.items.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-500 mb-2">Itens</p>
-                    <div className="border rounded-lg overflow-hidden">
+                    <p className="text-sm text-muted-foreground mb-2">Itens</p>
+                    <div className="border border-border rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-muted/50">
                           <tr>
-                            <th className="px-3 py-2 text-left">Serviço</th>
-                            <th className="px-3 py-2 text-center">Qtd</th>
-                            <th className="px-3 py-2 text-right">Total</th>
+                            <th className="px-3 py-2 text-left text-muted-foreground">Serviço</th>
+                            <th className="px-3 py-2 text-center text-muted-foreground">Qtd</th>
+                            <th className="px-3 py-2 text-right text-muted-foreground">Total</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-border">
                           {selectedOrder.items.map((item) => (
                             <tr key={item.id}>
-                              <td className="px-3 py-2">{item.service_nome}</td>
-                              <td className="px-3 py-2 text-center">{item.quantidade}</td>
-                              <td className="px-3 py-2 text-right">
+                              <td className="px-3 py-2 text-foreground">{item.service_nome}</td>
+                              <td className="px-3 py-2 text-center text-foreground">{item.quantidade}</td>
+                              <td className="px-3 py-2 text-right text-foreground">
                                 R$ {item.valor_total.toFixed(2)}
                               </td>
                             </tr>

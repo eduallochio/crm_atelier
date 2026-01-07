@@ -8,16 +8,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { Loader2, Search, Edit, X } from 'lucide-react'
+import { Loader2, Search, Edit, X, Upload, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { buscarCep, formatarCep } from '@/lib/services/viacep'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
 
 export function OrganizationSettingsForm() {
   const { data: settings, isLoading } = useOrganizationSettings()
   const updateSettings = useUpdateOrganizationSettings()
   const [isLoadingCep, setIsLoadingCep] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const supabase = createClient()
 
   const form = useForm({
     resolver: zodResolver(organizationSettingsSchema),
@@ -31,6 +36,7 @@ export function OrganizationSettingsForm() {
       state: '',
       zip_code: '',
       website: '',
+      logo_url: '',
     },
   })
 
@@ -46,7 +52,9 @@ export function OrganizationSettingsForm() {
         state: settings.state || '',
         zip_code: settings.zip_code || '',
         website: settings.website || '',
+        logo_url: settings.logo_url || '',
       })
+      setLogoPreview(settings.logo_url || null)
     }
   }, [settings, form])
 
@@ -76,9 +84,76 @@ export function OrganizationSettingsForm() {
         state: settings.state || '',
         zip_code: settings.zip_code || '',
         website: settings.website || '',
+        logo_url: settings.logo_url || '',
       })
+      setLogoPreview(settings.logo_url || null)
     }
     setIsEditing(false)
+  }
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida')
+      return
+    }
+
+    // Validar tamanho (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 2MB')
+      return
+    }
+
+    setIsUploadingLogo(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Usuário não autenticado')
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.organization_id) throw new Error('Organização não encontrada')
+
+      // Gerar nome único para o arquivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile.organization_id}/logo-${Date.now()}.${fileExt}`
+
+      // Upload para o Supabase Storage
+      const { error } = await supabase.storage
+        .from('organization-logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
+
+      if (error) throw error
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('organization-logos')
+        .getPublicUrl(fileName)
+
+      // Atualizar preview e form
+      setLogoPreview(publicUrl)
+      form.setValue('logo_url', publicUrl)
+      toast.success('Logo carregado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload do logo')
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null)
+    form.setValue('logo_url', '')
   }
 
   const handleBuscarCep = async () => {
@@ -138,6 +213,74 @@ export function OrganizationSettingsForm() {
         )}
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Logo da Empresa */}
+        <div className="space-y-3 pb-4 border-b">
+          <Label>Logo da Empresa</Label>
+          <div className="flex items-start gap-4">
+            {/* Preview do Logo */}
+            <div className="shrink-0">
+              {logoPreview ? (
+                <div className="relative group">
+                  <Image 
+                    src={logoPreview} 
+                    alt="Logo da Empresa" 
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 object-contain rounded-lg border-2 border-gray-200"
+                  />
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="h-24 w-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                  <Upload className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Upload Button */}
+            <div className="flex-1 space-y-2">
+              <input
+                type="file"
+                id="logo-upload"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+                disabled={!isEditing || isUploadingLogo}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('logo-upload')?.click()}
+                disabled={!isEditing || isUploadingLogo}
+                className="w-full sm:w-auto"
+              >
+                {isUploadingLogo ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    {logoPreview ? 'Alterar Logo' : 'Enviar Logo'}
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-500">
+                Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 2MB
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Empresa *</Label>

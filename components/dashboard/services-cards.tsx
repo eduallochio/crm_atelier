@@ -49,9 +49,9 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
 
   if (services.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg border">
-        <p className="text-gray-500 mb-2">Nenhum serviço cadastrado</p>
-        <p className="text-sm text-gray-400">
+      <div className="text-center py-12 bg-card rounded-lg border border-border">
+        <p className="text-muted-foreground mb-2">Nenhum serviço cadastrado</p>
+        <p className="text-sm text-muted-foreground/70">
           Comece adicionando seu primeiro serviço
         </p>
       </div>
@@ -67,18 +67,18 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
           return (
             <div
               key={service.id}
-              className={`bg-white rounded-lg border p-6 hover:shadow-md transition-shadow ${
+              className={`bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow ${
                 !service.ativo ? 'opacity-60' : ''
               }`}
             >
               {/* Header do Card */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                  <h3 className="font-semibold text-lg text-foreground mb-1">
                     {service.nome}
                   </h3>
                   {service.categoria && (
-                    <div className="flex items-center text-sm text-blue-600 mb-2">
+                    <div className="flex items-center text-sm text-blue-600 dark:text-blue-400 mb-2">
                       <Tag className="h-3 w-3 mr-1" />
                       {service.categoria}
                     </div>
@@ -95,17 +95,17 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
 
               {/* Descrição */}
               {service.descricao && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                   {service.descricao}
                 </p>
               )}
 
               {/* Detalhes */}
-              <div className="space-y-2 mb-4 pb-4 border-b">
+              <div className="space-y-2 mb-4 pb-4 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Preço:</span>
+                  <span className="text-sm text-muted-foreground">Preço:</span>
                   <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center text-lg font-semibold text-green-600">
+                    <div className="flex items-center text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
                       {service.preco.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
@@ -114,7 +114,7 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
                     </div>
                     <button
                       onClick={() => setHistoryService(service)}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                       title="Ver histórico de preços"
                     >
                       <History className="h-3 w-3" />
@@ -125,8 +125,8 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
                 
                 {service.tempo_estimado && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Tempo:</span>
-                    <div className="flex items-center text-sm text-gray-700">
+                    <span className="text-sm text-muted-foreground">Tempo:</span>
+                    <div className="flex items-center text-sm text-foreground">
                       <Clock className="h-3 w-3 mr-1" />
                       {service.tempo_estimado}
                     </div>
@@ -135,8 +135,8 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
 
                 {usage && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Vendas:</span>
-                    <div className="flex items-center text-sm font-medium text-purple-600">
+                    <span className="text-sm text-muted-foreground">Vendas:</span>
+                    <div className="flex items-center text-sm font-medium text-purple-600 dark:text-purple-400">
                       <TrendingUp className="h-3 w-3 mr-1" />
                       {usage.count}x (R$ {usage.revenue.toFixed(2)})
                     </div>
@@ -148,8 +148,8 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
               <div className="mb-4">
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                   service.ativo 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400' 
+                    : 'bg-muted text-muted-foreground'
                 }`}>
                   {service.ativo ? '✓ Ativo' : '✕ Inativo'}
                 </span>
@@ -181,7 +181,7 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
                   variant="ghost"
                   size="sm"
                   onClick={() => setDeleteId(service.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
                   title="Excluir serviço"
                 >
                   <Trash2 className="h-4 w-4" />

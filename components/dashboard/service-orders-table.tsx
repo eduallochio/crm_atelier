@@ -27,10 +27,10 @@ interface ServiceOrdersTableProps {
 }
 
 const statusColors = {
-  pendente: 'bg-yellow-100 text-yellow-800',
-  em_andamento: 'bg-blue-100 text-blue-800',
-  concluido: 'bg-green-100 text-green-800',
-  cancelado: 'bg-red-100 text-red-800',
+  pendente: 'bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-400',
+  em_andamento: 'bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-400',
+  concluido: 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400',
+  cancelado: 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-400',
 }
 
 const statusLabels = {
@@ -182,9 +182,9 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
 
   if (orders.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg border">
-        <p className="text-gray-500 mb-2">Nenhuma ordem de serviço cadastrada</p>
-        <p className="text-sm text-gray-400">
+      <div className="text-center py-12 bg-card rounded-lg border border-border">
+        <p className="text-muted-foreground mb-2">Nenhuma ordem de serviço cadastrada</p>
+        <p className="text-sm text-muted-foreground/70">
           Comece criando sua primeira ordem
         </p>
       </div>
@@ -195,10 +195,10 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     <>
       {/* Bulk Actions Bar */}
       {selectedOrders.size > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between">
+        <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckSquare className="h-5 w-5 text-blue-600" />
-            <span className="font-medium text-blue-900">
+            <CheckSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span className="font-medium text-blue-900 dark:text-blue-300">
               {selectedOrders.size} {selectedOrders.size === 1 ? 'ordem selecionada' : 'ordens selecionadas'}
             </span>
           </div>
@@ -210,7 +210,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   e.target.value = ''
                 }
               }}
-              className="text-sm rounded-md border border-blue-300 bg-white px-3 py-1.5"
+              className="text-sm rounded-md border border-blue-300 dark:border-blue-700 bg-background text-foreground px-3 py-1.5"
             >
               <option value="">Mudar status...</option>
               <option value="pendente">Pendente</option>
@@ -222,7 +222,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               variant="outline"
               size="sm"
               onClick={handleBulkDelete}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
             >
               <Trash2 className="h-4 w-4 mr-1" />
               Excluir
@@ -238,15 +238,15 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
         </div>
       )}
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-left">
                   <button
                     onClick={toggleSelectAll}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     {selectedOrders.size === orders.length ? (
                       <CheckSquare className="h-5 w-5" />
@@ -255,40 +255,40 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                     )}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   #
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Datas
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Valor Total
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {orders.map((order) => {
                 const overdue = isOverdue(order)
                 const daysRemaining = getDaysRemaining(order)
                 
                 return (
-                <tr key={order.id} className={`hover:bg-gray-50 ${overdue ? 'bg-red-50' : ''}`}>
+                <tr key={order.id} className={`hover:bg-accent/50 ${overdue ? 'bg-red-50 dark:bg-red-950/20' : ''}`}>
                   <td className="px-4 py-4">
                     <button
                       onClick={() => toggleSelectOrder(order.id)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       {selectedOrders.has(order.id) ? (
-                        <CheckSquare className="h-5 w-5 text-blue-600" />
+                        <CheckSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       ) : (
                         <Square className="h-5 w-5" />
                       )}
@@ -296,17 +296,17 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <div className="font-mono text-sm font-semibold text-gray-900">
+                      <div className="font-mono text-sm font-semibold text-foreground">
                         #{order.numero.toString().padStart(6, '0')}
                       </div>
                       {overdue && (
-                        <div className="flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 px-2 py-1 rounded-full">
                           <AlertCircle className="h-3 w-3" />
                           ATRASADA
                         </div>
                       )}
                       {!overdue && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3 && order.status !== 'concluido' && order.status !== 'cancelado' && (
-                        <div className="flex items-center gap-1 text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                        <div className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50 px-2 py-1 rounded-full">
                           <Clock className="h-3 w-3" />
                           {daysRemaining === 0 ? 'Hoje' : `${daysRemaining}d`}
                         </div>
@@ -315,13 +315,13 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
+                      <User className="h-4 w-4 text-muted-foreground mr-2" />
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {order.client?.nome || 'Cliente não informado'}
                         </div>
                         {order.client?.telefone && (
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             {order.client.telefone}
                           </div>
                         )}
@@ -343,24 +343,24 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm space-y-1">
-                      <div className="flex items-center text-gray-600">
+                      <div className="flex items-center text-muted-foreground">
                         <Calendar className="h-3 w-3 mr-1" />
                         Abertura: {format(new Date(order.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
                       </div>
                       {order.data_prevista && (
-                        <div className="text-gray-500">
+                        <div className="text-muted-foreground">
                           Previsão: {format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}
                         </div>
                       )}
                       {order.data_conclusao && (
-                        <div className="text-green-600">
+                        <div className="text-green-600 dark:text-green-400">
                           Conclusão: {format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}
                         </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end text-lg font-semibold text-green-600">
+                    <div className="flex items-center justify-end text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
                       {order.valor_total.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
@@ -368,7 +368,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                       })}
                     </div>
                     {order.items && order.items.length > 0 && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {order.items.length} {order.items.length === 1 ? 'item' : 'itens'}
                       </div>
                     )}
@@ -387,7 +387,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           }
                         }}
                         title="Gerar PDF para impressora térmica"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50"
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
@@ -397,7 +397,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           size="icon"
                           onClick={() => handleWhatsAppWithPDF(order)}
                           title="Enviar ordem por WhatsApp"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -408,7 +408,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           size="icon"
                           onClick={() => handleWhatsAppClick(order)}
                           title="Notificar conclusão via WhatsApp"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
                         >
                           <MessageCircle className="h-4 w-4" />
                         </Button>
@@ -424,7 +424,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteId(order.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

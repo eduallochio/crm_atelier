@@ -69,19 +69,19 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
   const SortButton = ({ field, children }: { field: 'descricao' | 'fornecedor' | 'valor' | 'data_vencimento' | 'status', children: React.ReactNode }) => (
     <button
       onClick={() => onSort?.(field)}
-      className="flex items-center gap-1 hover:text-gray-900 transition-colors"
+      className="flex items-center gap-1 hover:text-foreground transition-colors"
     >
       {children}
-      <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-gray-900' : 'text-gray-400'}`} />
+      <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-foreground' : 'text-muted-foreground'}`} />
     </button>
   )
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pendente: 'bg-yellow-100 text-yellow-800',
-      pago: 'bg-green-100 text-green-800',
-      atrasado: 'bg-red-100 text-red-800',
-      cancelado: 'bg-gray-100 text-gray-800',
+      pendente: 'bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-400',
+      pago: 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400',
+      atrasado: 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-400',
+      cancelado: 'bg-muted text-muted-foreground',
     }
     const labels = {
       pendente: 'Pendente',
@@ -100,7 +100,7 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
     return (
       <div className="p-8 text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-        <p className="mt-4 text-gray-500">Carregando contas a pagar...</p>
+        <p className="mt-4 text-muted-foreground">Carregando contas a pagar...</p>
       </div>
     )
   }
@@ -108,7 +108,7 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
   if (payables.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Nenhuma conta a pagar encontrada.</p>
+        <p className="text-muted-foreground">Nenhuma conta a pagar encontrada.</p>
       </div>
     )
   }
@@ -117,59 +117,59 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
     <>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="fornecedor">Fornecedor</SortButton>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="descricao">Descrição</SortButton>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="valor">Valor</SortButton>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="data_vencimento">Vencimento</SortButton>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="status">Status</SortButton>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Pagamento
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Ações
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {payables.map((payable) => (
-              <tr key={payable.id} className="hover:bg-gray-50">
+              <tr key={payable.id} className="hover:bg-accent/50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-foreground">
                     {payable.fornecedor}
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-foreground">
                     {payable.descricao}
                   </div>
                   {payable.observacoes && (
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {payable.observacoes}
                     </div>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-sm font-semibold text-foreground">
                     {formatCurrency(payable.valor)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-foreground">
                     {formatDate(payable.data_vencimento)}
                   </div>
                 </td>
@@ -177,7 +177,7 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
                   {getStatusBadge(payable.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-foreground">
                     {payable.data_pagamento ? formatDate(payable.data_pagamento) : '-'}
                   </div>
                 </td>

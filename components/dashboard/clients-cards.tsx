@@ -79,9 +79,9 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
 
   if (clients.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg border">
-        <p className="text-gray-500 mb-2">Nenhum cliente cadastrado</p>
-        <p className="text-sm text-gray-400">
+      <div className="text-center py-12 bg-card rounded-lg border border-border">
+        <p className="text-muted-foreground mb-2">Nenhum cliente cadastrado</p>
+        <p className="text-sm text-muted-foreground/70">
           Comece adicionando seu primeiro cliente
         </p>
       </div>
@@ -94,43 +94,43 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
         {clients.map((client) => (
           <div
             key={client.id}
-            className="bg-white rounded-lg border p-6 hover:shadow-md transition-shadow"
+            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow"
           >
             {/* Header do Card */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                <h3 className="font-semibold text-lg text-foreground mb-1">
                   {client.nome}
                 </h3>
                 {client.data_nascimento && (
-                  <div className="flex items-center text-sm text-pink-600 mb-2">
+                  <div className="flex items-center text-sm text-pink-600 dark:text-pink-400 mb-2">
                     <Cake className="h-3 w-3 mr-1" />
                     {calculateAge(client.data_nascimento)} anos
                   </div>
                 )}
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Cliente desde {format(new Date(client.data_cadastro), "dd/MM/yyyy", { locale: ptBR })}
                 </p>
               </div>
             </div>
 
             {/* Informações de Contato */}
-            <div className="space-y-2 mb-4 pb-4 border-b">
+            <div className="space-y-2 mb-4 pb-4 border-b border-border">
               {client.telefone && (
-                <div className="flex items-center text-sm text-gray-700">
-                  <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-sm text-foreground">
+                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
                   {client.telefone}
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center text-sm text-gray-700">
-                  <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-sm text-foreground">
+                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                   {client.email}
                 </div>
               )}
               {(client.logradouro || client.cidade) && (
-                <div className="flex items-start text-sm text-gray-700">
-                  <MapPin className="h-4 w-4 mr-2 text-gray-400 mt-0.5" />
+                <div className="flex items-start text-sm text-foreground">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
                   <span className="flex-1">
                     {[
                       client.logradouro,
@@ -143,15 +143,15 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
                 </div>
               )}
               {!client.telefone && !client.email && !client.logradouro && (
-                <p className="text-sm text-gray-400">Sem informações de contato</p>
+                <p className="text-sm text-muted-foreground">Sem informações de contato</p>
               )}
             </div>
 
             {/* Observações */}
             {client.observacoes && (
-              <div className="mb-4 pb-4 border-b">
-                <p className="text-xs text-gray-500 mb-1">Observações:</p>
-                <p className="text-sm text-gray-700 line-clamp-2">
+              <div className="mb-4 pb-4 border-b border-border">
+                <p className="text-xs text-muted-foreground mb-1">Observações:</p>
+                <p className="text-sm text-foreground line-clamp-2">
                   {client.observacoes}
                 </p>
               </div>
@@ -165,7 +165,7 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
                   size="sm"
                   onClick={() => handleMaps(client)}
                   title="Abrir no Google Maps"
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-1"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 flex-1"
                 >
                   <MapPin className="h-4 w-4 mr-1" />
                   Mapa
@@ -177,7 +177,7 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
                   size="sm"
                   onClick={() => handleWhatsApp(client)}
                   title="Enviar mensagem no WhatsApp"
-                  className="text-green-600 hover:text-green-700 hover:bg-green-50 flex-1"
+                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50 flex-1"
                 >
                   <MessageCircle className="h-4 w-4 mr-1" />
                   WhatsApp
@@ -209,7 +209,7 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
                 variant="ghost"
                 size="sm"
                 onClick={() => setDeleteId(client.id)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1"
+                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50 flex-1"
                 title="Excluir cliente"
               >
                 <Trash2 className="h-4 w-4 mr-1" />

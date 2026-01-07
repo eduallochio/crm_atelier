@@ -146,7 +146,7 @@ export default function DashboardPage() {
           {stats.map((stat) => (
             <Card key={stat.name}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.name}
                 </CardTitle>
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
@@ -162,11 +162,11 @@ export default function DashboardPage() {
 
         {/* Plano Info */}
         {profile?.organization?.plan === 'free' && (
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
             <CardHeader>
-              <CardTitle className="text-blue-900">Plano Gratuito</CardTitle>
+              <CardTitle className="text-blue-900 dark:text-blue-400">Plano Gratuito</CardTitle>
             </CardHeader>
-            <CardContent className="text-blue-800 text-sm space-y-2">
+            <CardContent className="text-blue-800 dark:text-blue-300 text-sm space-y-2">
               <p>
                 Você está usando {metrics?.clients_count || 0} de 50 clientes disponíveis.
               </p>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
             <CardTitle>Atividade Recente</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-500 text-sm text-center py-8">
+            <p className="text-muted-foreground text-sm text-center py-8">
               Nenhuma atividade ainda. Comece cadastrando seus primeiros clientes!
             </p>
           </CardContent>

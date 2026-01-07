@@ -193,42 +193,44 @@ export default function ReceberPage() {
       <Header 
         title="Contas a Receber"
         description="Gerenciamento de recebimentos"
-        action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/financeiro')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-            <Button variant="outline" onClick={exportToExcel}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-            <Button variant="outline" onClick={exportToPDF}>
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Conta
-            </Button>
-          </div>
-        }
       />
 
       <div className="p-6 space-y-6">
+        {/* Barra de Ações */}
+        <div className="flex items-center justify-between bg-card rounded-lg border border-border p-4">
+          <Button variant="outline" onClick={() => router.push('/financeiro')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={exportToPDF}>
+              <FileText className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Conta a Receber
+            </Button>
+          </div>
+        </div>
+
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-xl font-bold text-foreground">
                   {formatCurrency(stats.total)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {stats.count} de {stats.totalCount} contas
                 </p>
               </div>
@@ -237,80 +239,80 @@ export default function ReceberPage() {
 
           <button
             onClick={() => setStatusFilter(statusFilter === 'pendente' ? 'all' : 'pendente')}
-            className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
               statusFilter === 'pendente' ? 'ring-2 ring-yellow-500 shadow-md' : ''
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-yellow-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-yellow-600" />
+              <div className="p-2 bg-yellow-50 dark:bg-yellow-950/50 rounded-lg">
+                <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Pendente</p>
-                <p className="text-xl font-bold text-yellow-600">
+                <p className="text-sm text-muted-foreground">Pendente</p>
+                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
                   {formatCurrency(stats.pendente)}
                 </p>
               </div>
             </div>
             {statusFilter === 'pendente' && (
-              <p className="text-xs text-yellow-600 font-medium mt-1">✓ Filtro ativo</p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mt-1">✓ Filtro ativo</p>
             )}
           </button>
 
           <button
             onClick={() => setStatusFilter(statusFilter === 'recebido' ? 'all' : 'recebido')}
-            className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
               statusFilter === 'recebido' ? 'ring-2 ring-green-500 shadow-md' : ''
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+              <div className="p-2 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Recebido</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-sm text-muted-foreground">Recebido</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(stats.recebido)}
                 </p>
               </div>
             </div>
             {statusFilter === 'recebido' && (
-              <p className="text-xs text-green-600 font-medium mt-1">✓ Filtro ativo</p>
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-1">✓ Filtro ativo</p>
             )}
           </button>
 
           <button
             onClick={() => setStatusFilter(statusFilter === 'atrasado' ? 'all' : 'atrasado')}
-            className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
               statusFilter === 'atrasado' ? 'ring-2 ring-red-500 shadow-md' : ''
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-red-600" />
+              <div className="p-2 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                <Calendar className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Atrasado</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-sm text-muted-foreground">Atrasado</p>
+                <p className="text-xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(stats.atrasado)}
                 </p>
               </div>
             </div>
             {statusFilter === 'atrasado' && (
-              <p className="text-xs text-red-600 font-medium mt-1">✓ Filtro ativo</p>
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">✓ Filtro ativo</p>
             )}
           </button>
         </div>
 
         {/* Atalhos Rápidos */}
-        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">Filtros Rápidos:</p>
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">
+          <p className="text-sm font-medium text-foreground mb-3">Filtros Rápidos:</p>
           <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('today')}
-              className="bg-white"
+              className="bg-card"
             >
               Vence Hoje
             </Button>
@@ -318,7 +320,7 @@ export default function ReceberPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('week')}
-              className="bg-white"
+              className="bg-card"
             >
               Próximos 7 Dias
             </Button>
@@ -326,7 +328,7 @@ export default function ReceberPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('month')}
-              className="bg-white"
+              className="bg-card"
             >
               Próximos 30 Dias
             </Button>
@@ -334,7 +336,7 @@ export default function ReceberPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('overdue')}
-              className="bg-white"
+              className="bg-card"
             >
               Em Atraso
             </Button>
@@ -343,7 +345,7 @@ export default function ReceberPage() {
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="bg-white text-red-600 border-red-200 hover:bg-red-50"
+                className="bg-card text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/50"
               >
                 <X className="h-4 w-4 mr-1" />
                 Limpar Filtros
@@ -353,12 +355,12 @@ export default function ReceberPage() {
         </div>
 
         {/* Filtros */}
-        <div className="bg-white rounded-lg border p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por descrição..."
                     value={searchTerm}
@@ -418,7 +420,7 @@ export default function ReceberPage() {
         </div>
 
         {/* Tabela */}
-        <div className="bg-white rounded-lg border">
+        <div className="bg-card rounded-lg border border-border">
           <ReceivablesTable
             receivables={sortedReceivables || []}
             isLoading={isLoading}

@@ -58,9 +58,9 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
 
   if (clients.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg border">
-        <p className="text-gray-500 mb-2">Nenhum cliente cadastrado</p>
-        <p className="text-sm text-gray-400">
+      <div className="text-center py-12 bg-card rounded-lg border border-border">
+        <p className="text-muted-foreground mb-2">Nenhum cliente cadastrado</p>
+        <p className="text-sm text-muted-foreground/70">
           Comece adicionando seu primeiro cliente
         </p>
       </div>
@@ -69,35 +69,35 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
 
   return (
     <>
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Contato
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Cadastro
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {clients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
+                <tr key={client.id} className="hover:bg-accent/50">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-foreground">
                         {client.nome}
                       </div>
                       {(client.logradouro || client.cidade) && (
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                        <div className="flex items-center text-sm text-muted-foreground mt-1">
                           <MapPin className="h-3 w-3 mr-1" />
                           {[
                             client.logradouro,
@@ -113,23 +113,23 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                   <td className="px-6 py-4">
                     <div className="space-y-1">
                       {client.telefone && (
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Phone className="h-3 w-3 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-foreground">
+                          <Phone className="h-3 w-3 mr-2 text-muted-foreground" />
                           {client.telefone}
                         </div>
                       )}
                       {client.email && (
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Mail className="h-3 w-3 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-foreground">
+                          <Mail className="h-3 w-3 mr-2 text-muted-foreground" />
                           {client.email}
                         </div>
                       )}
                       {!client.telefone && !client.email && (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-muted-foreground">
                     {format(new Date(client.data_cadastro), "dd 'de' MMMM 'de' yyyy", {
                       locale: ptBR,
                     })}
@@ -153,7 +153,7 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                             window.open(url, '_blank')
                           }}
                           title="Abrir no Google Maps"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50"
                         >
                           <MapPin className="h-4 w-4" />
                         </Button>
@@ -164,7 +164,7 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                           size="icon"
                           onClick={() => handleWhatsApp(client)}
                           title="Enviar mensagem no WhatsApp"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
                         >
                           <MessageCircle className="h-4 w-4" />
                         </Button>
@@ -190,7 +190,7 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteId(client.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

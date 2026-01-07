@@ -117,74 +117,74 @@ export default function ServicosPage() {
       <div className="p-6 space-y-6">
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Package className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Serviços</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Total Serviços</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.totalServices || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Ativos</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Ativos</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.activeServices || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <XCircle className="h-6 w-6 text-gray-600" />
+              <div className="p-3 bg-muted rounded-lg">
+                <XCircle className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Inativos</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Inativos</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.inactiveServices || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <DollarSign className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
+                <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Preço Médio</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Preço Médio</p>
+                <p className="text-2xl font-bold text-foreground">
                   R$ {stats?.averagePrice.toFixed(2) || '0.00'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-50 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-orange-600" />
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Mais Vendido</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className="text-sm text-muted-foreground">Mais Vendido</p>
+                <p className="text-sm font-semibold text-foreground truncate">
                   {stats?.mostUsedService?.nome || '-'}
                 </p>
                 {stats?.mostUsedService && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {stats.mostUsedService.count}x vendido
                   </p>
                 )}
@@ -211,7 +211,7 @@ export default function ServicosPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="all">📦 Status: Todos</option>
                 <option value="active">✅ Ativos</option>
@@ -221,7 +221,7 @@ export default function ServicosPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="all">🏷️ Categoria: Todas</option>
                 {allCategories.map(cat => (
@@ -232,7 +232,7 @@ export default function ServicosPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="name">🔤 A-Z</option>
                 <option value="price-asc">📈 Preço Menor</option>
@@ -271,7 +271,7 @@ export default function ServicosPage() {
         </div>
 
         {/* Contador */}
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           {isLoading ? (
             <span>Carregando...</span>
           ) : (
@@ -286,7 +286,7 @@ export default function ServicosPage() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-gray-500">Carregando serviços...</p>
+            <p className="mt-4 text-muted-foreground">Carregando serviços...</p>
           </div>
         ) : viewMode === 'list' ? (
           <ServicesTable services={filteredServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />

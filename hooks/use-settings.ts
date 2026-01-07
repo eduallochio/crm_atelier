@@ -406,11 +406,16 @@ export function useUpdateSystemPreferences() {
       const { organization_id, ...data } = input
       const { error } = await supabase
         .from('org_system_preferences')
-        .upsert({
-          organization_id,
-          ...data,
-          updated_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            organization_id,
+            ...data,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'organization_id',
+          }
+        )
 
       if (error) throw error
     },

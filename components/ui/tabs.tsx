@@ -96,7 +96,7 @@ export function TabsContent({ value: contentValue, children, className }: TabsCo
   }
 
   return (
-    <div className={cn('mt-2 pb-8 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', className)}>
+    <div className={cn('mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', className)}>
       {children}
     </div>
   )

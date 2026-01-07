@@ -43,9 +43,9 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
 
   if (services.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg border">
-        <p className="text-gray-500 mb-2">Nenhum serviço cadastrado</p>
-        <p className="text-sm text-gray-400">
+      <div className="text-center py-12 bg-card rounded-lg border border-border">
+        <p className="text-muted-foreground mb-2">Nenhum serviço cadastrado</p>
+        <p className="text-sm text-muted-foreground/70">
           Comece adicionando seu primeiro serviço
         </p>
       </div>
@@ -54,38 +54,38 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
 
   return (
     <>
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Serviço
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Detalhes
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Preço
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {services.map((service) => (
-                <tr key={service.id} className="hover:bg-gray-50">
+                <tr key={service.id} className="hover:bg-accent/50">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-foreground">
                         {service.nome}
                       </div>
                       {service.descricao && (
-                        <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                        <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
                           {service.descricao}
                         </div>
                       )}
@@ -94,24 +94,24 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                   <td className="px-6 py-4">
                     <div className="space-y-1">
                       {service.categoria && (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Tag className="h-3 w-3 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-foreground">
+                          <Tag className="h-3 w-3 mr-2 text-muted-foreground" />
                           {service.categoria}
                         </div>
                       )}
                       {service.tempo_estimado && (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="h-3 w-3 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-foreground">
+                          <Clock className="h-3 w-3 mr-2 text-muted-foreground" />
                           {service.tempo_estimado}
                         </div>
                       )}
                       {!service.categoria && !service.tempo_estimado && (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center text-lg font-semibold text-green-600">
+                    <div className="flex items-center text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
                       {service.preco.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
@@ -120,7 +120,7 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                     </div>
                     <button
                       onClick={() => setHistoryService(service)}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1"
+                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-1"
                       title="Ver histórico de preços"
                     >
                       <History className="h-3 w-3" />
@@ -134,7 +134,7 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                         onCheckedChange={() => handleToggleStatus(service.id, service.ativo)}
                         disabled={toggleStatus.isPending}
                       />
-                      <span className={`text-sm font-medium ${service.ativo ? 'text-green-600' : 'text-gray-400'}`}>
+                      <span className={`text-sm font-medium ${service.ativo ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                         {service.ativo ? 'Ativo' : 'Inativo'}
                       </span>
                     </div>
@@ -160,7 +160,7 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeleteId(service.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

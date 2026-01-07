@@ -195,100 +195,102 @@ export default function FluxoCaixaPage() {
       <Header 
         title="Fluxo de Caixa"
         description="Visualize todas as transações financeiras"
-        action={
+      />
+
+      <div className="p-6 space-y-6">
+        {/* Barra de Ações */}
+        <div className="flex items-center justify-between bg-card rounded-lg border border-border p-4">
+          <Button variant="outline" onClick={() => router.push('/financeiro')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/financeiro')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
             <Button variant="outline" onClick={exportToExcel}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
+              Exportar Excel
             </Button>
             <Button variant="outline" onClick={exportToPDF}>
               <FileText className="h-4 w-4 mr-2" />
-              PDF
+              Exportar PDF
             </Button>
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Transação
             </Button>
           </div>
-        }
-      />
+        </div>
 
-      <div className="p-6 space-y-6">
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
             onClick={() => setTypeFilter(typeFilter === 'entrada' ? 'all' : 'entrada')}
-            className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
               typeFilter === 'entrada' ? 'ring-2 ring-green-500 shadow-md' : ''
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-green-600" />
+              <div className="p-2 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Entradas</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-sm text-muted-foreground">Entradas</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(stats.totalEntradas)}
                 </p>
               </div>
             </div>
             {typeFilter === 'entrada' && (
-              <p className="text-xs text-green-600 font-medium mt-1">✓ Filtro ativo</p>
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-1">✓ Filtro ativo</p>
             )}
           </button>
 
           <button
             onClick={() => setTypeFilter(typeFilter === 'saida' ? 'all' : 'saida')}
-            className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
               typeFilter === 'saida' ? 'ring-2 ring-red-500 shadow-md' : ''
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <TrendingDown className="h-5 w-5 text-red-600" />
+              <div className="p-2 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Saídas</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-sm text-muted-foreground">Saídas</p>
+                <p className="text-xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(stats.totalSaidas)}
                 </p>
               </div>
             </div>
             {typeFilter === 'saida' && (
-              <p className="text-xs text-red-600 font-medium mt-1">✓ Filtro ativo</p>
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">✓ Filtro ativo</p>
             )}
           </button>
 
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg ${stats.saldo >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-                <DollarSign className={`h-5 w-5 ${stats.saldo >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
+              <div className={`p-2 rounded-lg ${stats.saldo >= 0 ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-orange-50 dark:bg-orange-950/50'}`}>
+                <DollarSign className={`h-5 w-5 ${stats.saldo >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Saldo</p>
-                <p className={`text-xl font-bold ${stats.saldo >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                <p className="text-sm text-muted-foreground">Saldo</p>
+                <p className={`text-xl font-bold ${stats.saldo >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
                   {formatCurrency(stats.saldo)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
+                <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Transações</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Transações</p>
+                <p className="text-xl font-bold text-foreground">
                   {stats.count}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   de {stats.totalCount} totais
                 </p>
               </div>
@@ -297,14 +299,14 @@ export default function FluxoCaixaPage() {
         </div>
 
         {/* Atalhos Rápidos */}
-        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">Filtros Rápidos:</p>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">
+          <p className="text-sm font-medium text-foreground mb-3">Filtros Rápidos:</p>
           <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('today')}
-              className="bg-white"
+              className="bg-card"
             >
               Hoje
             </Button>
@@ -312,7 +314,7 @@ export default function FluxoCaixaPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('week')}
-              className="bg-white"
+              className="bg-card"
             >
               Últimos 7 Dias
             </Button>
@@ -320,7 +322,7 @@ export default function FluxoCaixaPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('month')}
-              className="bg-white"
+              className="bg-card"
             >
               Este Mês
             </Button>
@@ -328,7 +330,7 @@ export default function FluxoCaixaPage() {
               variant="outline"
               size="sm"
               onClick={() => setQuickDateFilter('lastMonth')}
-              className="bg-white"
+              className="bg-card"
             >
               Mês Passado
             </Button>
@@ -337,7 +339,7 @@ export default function FluxoCaixaPage() {
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="bg-white text-red-600 border-red-200 hover:bg-red-50"
+                className="bg-card text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/50"
               >
                 <X className="h-4 w-4 mr-1" />
                 Limpar Filtros
@@ -347,12 +349,12 @@ export default function FluxoCaixaPage() {
         </div>
 
         {/* Filtros */}
-        <div className="bg-white rounded-lg border p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por descrição..."
                     value={searchTerm}
@@ -405,7 +407,7 @@ export default function FluxoCaixaPage() {
         </div>
 
         {/* Tabela */}
-        <div className="bg-white rounded-lg border">
+        <div className="bg-card rounded-lg border border-border">
           <TransactionsTable
             transactions={sortedTransactions || []}
             isLoading={isLoading}

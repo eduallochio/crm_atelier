@@ -24,10 +24,10 @@ const typeIcons = {
 }
 
 const typeColors = {
-  entrada: 'text-green-600 bg-green-50',
-  saida: 'text-red-600 bg-red-50',
-  sangria: 'text-orange-600 bg-orange-50',
-  reforco: 'text-purple-600 bg-purple-50',
+  entrada: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50',
+  saida: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50',
+  sangria: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50',
+  reforco: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50',
 }
 
 const typeLabels = {
@@ -64,7 +64,7 @@ export function MovementsTable({ movements, isLoading }: MovementsTableProps) {
     return (
       <div className="p-8 text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-        <p className="mt-4 text-gray-500">Carregando movimentos...</p>
+        <p className="mt-4 text-muted-foreground">Carregando movimentos...</p>
       </div>
     )
   }
@@ -72,7 +72,7 @@ export function MovementsTable({ movements, isLoading }: MovementsTableProps) {
   if (movements.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Nenhum movimento registrado</p>
+        <p className="text-muted-foreground">Nenhum movimento registrado</p>
       </div>
     )
   }
@@ -105,25 +105,25 @@ export function MovementsTable({ movements, isLoading }: MovementsTableProps) {
                 <TableCell>
                   <span className={`font-semibold ${
                     movement.tipo === 'entrada' || movement.tipo === 'reforco' 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
                   }`}>
                     {movement.tipo === 'entrada' || movement.tipo === 'reforco' ? '+' : '-'}
                     {formatCurrency(movement.valor)}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                  <span className="px-2 py-1 bg-muted text-foreground text-xs font-medium rounded-full">
                     {movement.metodo_pagamento_id ? paymentLabels[movement.metodo_pagamento_id] || movement.metodo_pagamento_id : '-'}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     {movement.descricao || '-'}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     {movement.created_at ? formatDateTime(movement.created_at) : '-'}
                   </span>
                 </TableCell>

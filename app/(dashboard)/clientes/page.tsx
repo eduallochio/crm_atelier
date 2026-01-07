@@ -84,70 +84,70 @@ export default function ClientesPage() {
       <div className="p-6 space-y-6">
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Clientes</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Total Clientes</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.totalClients || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-50 rounded-lg">
-                <UserPlus className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <UserPlus className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Novos Este Mês</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Novos Este Mês</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.newThisMonth || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-50 rounded-lg">
-                <ShoppingBag className="h-6 w-6 text-orange-600" />
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
+                <ShoppingBag className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Com Ordens Abertas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Com Ordens Abertas</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.withActiveOrders || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <Phone className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
+                <Phone className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Com Telefone</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Com Telefone</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.withPhone || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-pink-50 rounded-lg">
-                <Cake className="h-6 w-6 text-pink-600" />
+              <div className="p-3 bg-pink-50 dark:bg-pink-950/50 rounded-lg">
+                <Cake className="h-6 w-6 text-pink-600 dark:text-pink-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Aniversários Este Mês</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-muted-foreground">Aniversários Este Mês</p>
+                <p className="text-2xl font-bold text-foreground">
                   {stats?.birthdayThisMonth || 0}
                 </p>
               </div>
@@ -173,7 +173,7 @@ export default function ClientesPage() {
               <select
                 value={filterPhone}
                 onChange={(e) => setFilterPhone(e.target.value as any)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="all">📞 Telefone: Todos</option>
                 <option value="with">✅ Com Telefone</option>
@@ -183,7 +183,7 @@ export default function ClientesPage() {
               <select
                 value={filterEmail}
                 onChange={(e) => setFilterEmail(e.target.value as any)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="all">✉️ Email: Todos</option>
                 <option value="with">✅ Com Email</option>
@@ -193,7 +193,7 @@ export default function ClientesPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
               >
                 <option value="recent">🕐 Mais Recentes</option>
                 <option value="oldest">🕑 Mais Antigos</option>
@@ -231,7 +231,7 @@ export default function ClientesPage() {
         </div>
 
         {/* Contador */}
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           {isLoading ? (
             <span>Carregando...</span>
           ) : (
@@ -246,7 +246,7 @@ export default function ClientesPage() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-gray-500">Carregando clientes...</p>
+            <p className="mt-4 text-muted-foreground">Carregando clientes...</p>
           </div>
         ) : viewMode === 'list' ? (
           <ClientsTable clients={filteredClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />

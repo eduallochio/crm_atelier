@@ -6,13 +6,14 @@ import { OrganizationSettingsForm } from '@/components/settings/organization-set
 import { FinancialSettingsForm } from '@/components/settings/financial-settings-form'
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form'
 import { OrderSettingsForm } from '@/components/settings/order-settings-form'
+import { SystemSettingsForm } from '@/components/settings/system-settings-form'
 import { Building2, DollarSign, Bell, FileText, Settings } from 'lucide-react'
 
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('empresa')
 
   return (
-    <div className="p-8 pb-16 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground mt-2">
@@ -45,67 +46,53 @@ export default function ConfiguracoesPage() {
         </TabsList>
 
         <TabsContent value="empresa">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Informações da Empresa</h2>
-              <p className="text-muted-foreground mb-6">
-                Configure os dados da sua empresa que aparecerão em documentos e relatórios
-              </p>
-            </div>
-            <OrganizationSettingsForm />
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Informações da Empresa</h2>
+            <p className="text-muted-foreground mb-6">
+              Configure os dados da sua empresa que aparecerão em documentos e relatórios
+            </p>
           </div>
+          <OrganizationSettingsForm />
         </TabsContent>
 
         <TabsContent value="financeiro">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Configurações Financeiras</h2>
-              <p className="text-muted-foreground mb-6">
-                Gerencie formas de pagamento, taxas e configurações de caixa
-              </p>
-            </div>
-            <FinancialSettingsForm />
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Configurações Financeiras</h2>
+            <p className="text-muted-foreground mb-6">
+              Gerencie formas de pagamento, taxas e configurações de caixa
+            </p>
           </div>
+          <FinancialSettingsForm />
         </TabsContent>
 
         <TabsContent value="ordens">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Ordens de Serviço</h2>
-              <p className="text-muted-foreground mb-6">
-                Configure numeração, status e campos obrigatórios das ordens de serviço
-              </p>
-            </div>
-            <OrderSettingsForm />
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Ordens de Serviço</h2>
+            <p className="text-muted-foreground mb-6">
+              Configure numeração, status e campos obrigatórios das ordens de serviço
+            </p>
           </div>
+          <OrderSettingsForm />
         </TabsContent>
 
         <TabsContent value="notificacoes">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Notificações</h2>
-              <p className="text-muted-foreground mb-6">
-                Configure lembretes e alertas para manter você informado sobre eventos importantes
-              </p>
-            </div>
-            <NotificationSettingsForm />
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Notificações</h2>
+            <p className="text-muted-foreground mb-6">
+              Configure lembretes e alertas para manter você informado sobre eventos importantes
+            </p>
           </div>
+          <NotificationSettingsForm />
         </TabsContent>
 
         <TabsContent value="sistema">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Preferências do Sistema</h2>
-              <p className="text-muted-foreground mb-6">
-                Personalize a aparência e o comportamento do sistema
-              </p>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                🚧 Em desenvolvimento: Configurações de tema, idioma, fuso horário e outras preferências do sistema estarão disponíveis em breve.
-              </p>
-            </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Preferências do Sistema</h2>
+            <p className="text-muted-foreground mb-6">
+              Personalize a aparência, idioma e formatos do sistema
+            </p>
           </div>
+          <SystemSettingsForm />
         </TabsContent>
       </Tabs>
     </div>

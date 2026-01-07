@@ -30,10 +30,10 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
   const SortButton = ({ field, children }: { field: 'descricao' | 'valor' | 'data' | 'tipo', children: React.ReactNode }) => (
     <button
       onClick={() => onSort?.(field)}
-      className="flex items-center gap-1 hover:text-gray-900 transition-colors"
+      className="flex items-center gap-1 hover:text-foreground transition-colors"
     >
       {children}
-      <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-gray-900' : 'text-gray-400'}`} />
+      <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-foreground' : 'text-muted-foreground'}`} />
     </button>
   )
 
@@ -41,7 +41,7 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
     return (
       <div className="p-8 text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-        <p className="mt-4 text-gray-500">Carregando transações...</p>
+        <p className="mt-4 text-muted-foreground">Carregando transações...</p>
       </div>
     )
   }
@@ -49,7 +49,7 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
   if (transactions.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Nenhuma transação encontrada.</p>
+        <p className="text-muted-foreground">Nenhuma transação encontrada.</p>
       </div>
     )
   }
@@ -57,30 +57,30 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
-        <thead className="bg-gray-50 border-b">
+        <thead className="bg-muted/50 border-b border-border">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               <SortButton field="data">Data</SortButton>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               <SortButton field="tipo">Tipo</SortButton>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               <SortButton field="descricao">Descrição</SortButton>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               <SortButton field="valor">Valor</SortButton>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Registrado em
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-card divide-y divide-border">
           {transactions.map((transaction) => (
-            <tr key={transaction.id} className="hover:bg-gray-50">
+            <tr key={transaction.id} className="hover:bg-accent/50">
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-foreground">
                   {formatDate(transaction.data)}
                 </div>
               </td>
@@ -88,40 +88,40 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
                 <div className="flex items-center gap-2">
                   {transaction.tipo === 'entrada' ? (
                     <>
-                      <div className="p-1 bg-green-50 rounded">
-                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      <div className="p-1 bg-green-50 dark:bg-green-950/50 rounded">
+                        <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                       </div>
-                      <span className="text-sm font-medium text-green-600">Entrada</span>
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Entrada</span>
                     </>
                   ) : (
                     <>
-                      <div className="p-1 bg-red-50 rounded">
-                        <TrendingDown className="h-4 w-4 text-red-600" />
+                      <div className="p-1 bg-red-50 dark:bg-red-950/50 rounded">
+                        <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                       </div>
-                      <span className="text-sm font-medium text-red-600">Saída</span>
+                      <span className="text-sm font-medium text-red-600 dark:text-red-400">Saída</span>
                     </>
                   )}
                 </div>
               </td>
               <td className="px-6 py-4">
-                <div className="text-sm text-gray-900">
+                <div className="text-sm text-foreground">
                   {transaction.descricao}
                 </div>
                 {transaction.observacoes && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {transaction.observacoes}
                   </div>
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className={`text-sm font-semibold ${
-                  transaction.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
+                  transaction.tipo === 'entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {transaction.tipo === 'entrada' ? '+' : '-'} {formatCurrency(transaction.valor)}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted-foreground">
                   {formatDateTime(transaction.created_at)}
                 </div>
               </td>

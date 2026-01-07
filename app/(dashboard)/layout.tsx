@@ -18,13 +18,11 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       
-      <main className="flex-1 overflow-y-auto lg:ml-64">
-        <div className="min-h-full bg-gray-50">
-          {children}
-        </div>
+      <main className="flex-1 overflow-y-auto lg:ml-64 bg-muted/30">
+        {children}
       </main>
     </div>
   )
