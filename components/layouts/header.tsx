@@ -1,8 +1,5 @@
 'use client'
 
-import { User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-
 interface HeaderProps {
   title: string
   description?: string
@@ -22,7 +19,7 @@ export function Header({ title, description, action }: HeaderProps) {
           </div>
           
           {action && (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               {action}
             </div>
           )}
