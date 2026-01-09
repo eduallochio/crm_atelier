@@ -129,12 +129,12 @@ export function GlobalSearch({ clients = [], orders = [], services = [] }: Globa
     <>
       <Button
         variant="outline"
-        className="w-full sm:w-auto justify-start text-muted-foreground"
+        className="w-full justify-start text-muted-foreground text-sm"
         onClick={() => setOpen(true)}
+        size="sm"
       >
-        <Search className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Buscar clientes, ordens, serviços...</span>
-        <span className="sm:hidden">Buscar...</span>
+        <Search className="h-4 w-4 mr-2 shrink-0" />
+        <span className="truncate">Buscar...</span>
         <kbd className="ml-auto hidden sm:inline-flex pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
           <span className="text-xs">⌘</span>K
         </kbd>

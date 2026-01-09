@@ -21,7 +21,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, Eye } from 'lucide-react'
+import { Plus, Trash2, Eye, Check, ChevronsUpDown } from 'lucide-react'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 interface ServiceOrderDialogProps {
   open: boolean
@@ -35,6 +49,10 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [gerarPDF, setGerarPDF] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
+  const [openClientCombo, setOpenClientCombo] = useState(false)
+  const [openServiceCombo, setOpenServiceCombo] = useState(false)
+  const [clientSearchValue, setClientSearchValue] = useState('')
+  const [serviceSearchValue, setServiceSearchValue] = useState('')
 
   const createOrder = useCreateServiceOrder()
   const { data: clients = [] } = useClients()
@@ -85,6 +103,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       setSelectedServiceId('')
       setQuantidade(1)
       setGerarPDF(true)
+      setClientSearchValue('')
+      setServiceSearchValue('')
     }
   }, [open, reset])
 
@@ -255,19 +275,68 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             <Label htmlFor="client_id">
               Cliente <span className="text-red-500">*</span>
             </Label>
-            <select
-              id="client_id"
-              {...register('client_id')}
-              disabled={isLoading}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">Selecione um cliente</option>
-              {clients.map(client => (
-                <option key={client.id} value={client.id}>
-                  {client.nome}
-                </option>
-              ))}
-            </select>
+            <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openClientCombo}
+                  className="w-full justify-between"
+                  disabled={isLoading}
+                >
+                  {watch('client_id')
+                    ? clients.find((client) => client.id === watch('client_id'))?.nome
+                    : "Selecione um cliente..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput
+                    placeholder="Buscar cliente..."
+                    value={clientSearchValue}
+                    onValueChange={setClientSearchValue}
+                  />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {clients
+                        .filter((client) =>
+                          client.nome.toLowerCase().includes(clientSearchValue.toLowerCase()) ||
+                          client.email?.toLowerCase().includes(clientSearchValue.toLowerCase()) ||
+                          client.telefone?.includes(clientSearchValue)
+                        )
+                        .map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={client.id}
+                            onSelect={() => {
+                              setValue('client_id', client.id)
+                              setOpenClientCombo(false)
+                              setClientSearchValue('')
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                watch('client_id') === client.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span>{client.nome}</span>
+                              {(client.email || client.telefone) && (
+                                <span className="text-xs text-muted-foreground">
+                                  {[client.email, client.telefone].filter(Boolean).join(' • ')}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {errors.client_id && (
               <p className="text-sm text-red-500">{errors.client_id.message}</p>
             )}
@@ -306,19 +375,70 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             <h3 className="font-medium text-sm">Serviços</h3>
             
             <div className="flex gap-2">
-              <select
-                value={selectedServiceId}
-                onChange={(e) => setSelectedServiceId(e.target.value)}
-                disabled={isLoading}
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Selecione um serviço</option>
-                {activeServices.map(service => (
-                  <option key={service.id} value={service.id}>
-                    {service.nome} - R$ {service.preco.toFixed(2)}
-                  </option>
-                ))}
-              </select>
+              <Popover open={openServiceCombo} onOpenChange={setOpenServiceCombo}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openServiceCombo}
+                    className="flex-1 justify-between"
+                    disabled={isLoading}
+                  >
+                    {selectedServiceId
+                      ? (() => {
+                          const service = activeServices.find((s) => s.id === selectedServiceId)
+                          return service ? `${service.nome} - R$ ${service.preco.toFixed(2)}` : "Selecione um serviço..."
+                        })()
+                      : "Selecione um serviço..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Buscar serviço..."
+                      value={serviceSearchValue}
+                      onValueChange={setServiceSearchValue}
+                    />
+                    <CommandList>
+                      <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {activeServices
+                          .filter((service) =>
+                            service.nome.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
+                            service.categoria?.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
+                            service.descricao?.toLowerCase().includes(serviceSearchValue.toLowerCase())
+                          )
+                          .map((service) => (
+                            <CommandItem
+                              key={service.id}
+                              value={service.id}
+                              onSelect={() => {
+                                setSelectedServiceId(service.id)
+                                setOpenServiceCombo(false)
+                                setServiceSearchValue('')
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedServiceId === service.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{service.nome}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  R$ {service.preco.toFixed(2)}
+                                  {service.categoria && ` • ${service.categoria}`}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
               <Input
                 type="number"

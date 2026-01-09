@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { logout } from '@/app/(auth)/actions'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from './theme-toggle'
 
 type MenuItem = {
   name: string
@@ -67,8 +68,8 @@ const navigation: NavigationSection[] = [
         icon: DollarSign,
         subitems: [
           { name: 'Caixa', href: '/financeiro', icon: Wallet },
-          { name: 'Contas a Pagar', href: '/financeiro/contas-pagar', icon: TrendingDown },
-          { name: 'Contas a Receber', href: '/financeiro/contas-receber', icon: TrendingUp },
+          { name: 'Contas a Pagar', href: '/financeiro/pagar', icon: TrendingDown },
+          { name: 'Contas a Receber', href: '/financeiro/receber', icon: TrendingUp },
         ],
       },
     ],
@@ -201,7 +202,11 @@ export function Sidebar() {
 
       {/* User Profile Button - Top Right */}
       {userProfile && (
-        <div className="fixed top-4 right-4 z-60">
+        <div className="fixed top-4 right-4 z-60 flex items-center gap-2">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
+          {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}

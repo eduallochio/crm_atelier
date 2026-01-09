@@ -273,31 +273,35 @@ export default function DashboardPage() {
         description="Visão geral do seu ateliê"
       />
 
-      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
         {/* Busca Global e Ações Rápidas */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-          <div className="flex-1 min-w-50">
+        <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-row sm:flex-wrap sm:gap-3">
+          <div className="sm:flex-1 sm:min-w-50">
             <GlobalSearch 
               clients={clients}
               orders={orders}
               services={services}
             />
           </div>
-          <Button 
-            onClick={() => setClientDialogOpen(true)}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <UserPlus className="h-4 w-4" />
-            Novo Cliente
-          </Button>
-          <Button 
-            onClick={() => setOrderDialogOpen(true)}
-            variant="outline"
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Ordem
-          </Button>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+            <Button 
+              onClick={() => setClientDialogOpen(true)}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base"
+              size="sm"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden xs:inline">Novo </span>Cliente
+            </Button>
+            <Button 
+              onClick={() => setOrderDialogOpen(true)}
+              variant="outline"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base"
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden xs:inline">Nova </span>Ordem
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}

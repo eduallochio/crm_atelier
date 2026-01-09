@@ -42,17 +42,17 @@ export function AnimatedStatCard({
       'relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]',
       'border-border/50'
     )}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
           {name}
         </CardTitle>
-        <div className={cn('p-2.5 rounded-lg shadow-sm', iconBg)}>
-          <Icon className="h-4 w-4 text-white" />
+        <div className={cn('p-2 sm:p-2.5 rounded-lg shadow-sm', iconBg)}>
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 sm:space-y-3 px-4 sm:px-6 pb-4 sm:pb-6">
         <div className="flex items-baseline justify-between">
-          <div className={cn('text-3xl font-bold tracking-tight', color)}>
+          <div className={cn('text-2xl sm:text-3xl font-bold tracking-tight', color)}>
             {isMonetary 
               ? typeof value === 'string' ? value : `R$ ${animatedValue.toLocaleString('pt-BR')}`
               : animatedValue.toLocaleString('pt-BR')
@@ -63,16 +63,16 @@ export function AnimatedStatCard({
         {(trend !== undefined && trend !== null) && (
           <div className="flex items-center gap-1">
             {trend === 0 ? (
-              <Minus className={cn('h-4 w-4', trendColor)} />
+              <Minus className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
             ) : trendUp ? (
-              <TrendingUp className={cn('h-4 w-4', trendColor)} />
+              <TrendingUp className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
             ) : (
-              <TrendingDown className={cn('h-4 w-4', trendColor)} />
+              <TrendingDown className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
             )}
-            <span className={cn('text-sm font-medium', trendColor)}>
+            <span className={cn('text-xs sm:text-sm font-medium', trendColor)}>
               {Math.abs(trend)}%
             </span>
-            <span className="text-xs text-muted-foreground ml-1">
+            <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
               vs. mês anterior
             </span>
           </div>
