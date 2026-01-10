@@ -9,6 +9,7 @@ import { registerSchema, type RegisterInput } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { signup } from '../actions'
@@ -17,6 +18,7 @@ export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   
   const {
     register,
@@ -27,6 +29,11 @@ export default function CadastroPage() {
   })
 
   const onSubmit = async (data: RegisterInput) => {
+    if (!acceptedTerms) {
+      toast.error('Você precisa aceitar os Termos de Uso e Política de Privacidade')
+      return
+    }
+
     setIsLoading(true)
     
     const formData = new FormData()
@@ -141,10 +148,43 @@ export default function CadastroPage() {
               )}
             </div>
 
+            {/* Checkbox de Consentimento LGPD */}
+            <div className="flex items-start space-x-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <Checkbox
+                id="terms"
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                disabled={isLoading}
+                className="mt-1"
+              />
+              <Label
+                htmlFor="terms"
+                className="text-sm leading-relaxed cursor-pointer"
+              >
+                Li e aceito a{' '}
+                <Link
+                  href="/privacidade"
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-700 underline font-medium"
+                >
+                  Política de Privacidade
+                </Link>
+                {' '}e os{' '}
+                <Link
+                  href="/termos"
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-700 underline font-medium"
+                >
+                  Termos de Uso
+                </Link>
+                . Autorizo o tratamento dos meus dados conforme a LGPD.
+              </Label>
+            </div>
+
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !acceptedTerms}
             >
               {isLoading ? 'Criando conta...' : 'Criar Conta'}
             </Button>

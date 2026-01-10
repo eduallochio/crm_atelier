@@ -20,6 +20,7 @@ import {
   ChevronRight,
   TrendingDown,
   TrendingUp,
+  Shield,
   LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -257,6 +258,17 @@ export function Sidebar() {
                 >
                   <Settings className="h-4 w-4" />
                   Configurações
+                </Link>
+                <Link
+                  href="/meus-dados"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                >
+                  <Shield className="h-4 w-4" />
+                  Meus Dados (LGPD)
                 </Link>
                 <div className="h-px bg-border my-1" />
                 <button
