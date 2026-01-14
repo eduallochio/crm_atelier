@@ -10,21 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { MoreVertical, Eye, Download } from 'lucide-react'
-
-interface AuditLog {
-  id: string
-  timestamp: string
-  admin: {
-    name: string
-    email: string
-  }
-  action: 'create' | 'update' | 'delete' | 'login' | 'logout' | 'export'
-  resource: string
-  resourceId?: string
-  details: string
-  ip: string
-  userAgent?: string
-}
+import { AuditLog } from '@/types/audit'
 
 interface LogsTableProps {
   logs: AuditLog[]

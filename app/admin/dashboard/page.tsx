@@ -212,7 +212,7 @@ export default function AdminDashboard() {
           value={metrics.cancelledOrganizations.toString()}
           icon={AlertCircle}
           trend={-Math.round(metrics.churnRate)}
-          trendLabel="churn rate"
+          trendLabel="taxa de rotatividade"
           color="red"
         />
       </div>

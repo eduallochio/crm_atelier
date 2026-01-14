@@ -476,7 +476,7 @@ if (!profile || !['admin', 'super_admin', 'support', 'billing'].includes(profile
 **Linha 2 - Métricas Financeiras:**
 - MRR (Monthly Recurring Revenue)
 - Novos Assinantes (este mês)
-- Churn Rate
+- taxa de rotatividade
 - Receita Total
 
 **Gráficos:**

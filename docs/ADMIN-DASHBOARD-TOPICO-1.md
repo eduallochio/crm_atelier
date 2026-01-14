@@ -42,7 +42,7 @@ if (!adminRoles.includes(profile.role)) {
 1. **Total de Organizações** - Com tendência do mês
 2. **Organizações Ativas** - Com tendência da semana
 3. **Em Trial** - Status de trialists
-4. **Canceladas** - Com churn rate
+4. **Canceladas** - Com taxa de rotatividade
 
 #### Linha 2 - Financeiro (4 cards):
 5. **MRR (Receita Recorrente)** - Total de receita mensal
@@ -143,7 +143,7 @@ SELECT
 -- Query adicional: MRR por plano
 SELECT plan FROM organizations WHERE status = 'active'
 
--- Query: Churn rate (últimos 30 dias)
+-- Query: taxa de rotatividade (últimos 30 dias)
 SELECT COUNT(*) FROM organizations 
 WHERE status = 'cancelled' 
 AND updated_at >= NOW() - INTERVAL '30 days'
@@ -263,7 +263,7 @@ Com o dashboard #1 concluído, os próximos tópicos são:
 - Total de Organizações: ~500-1000
 - MRR: R$ 5.000-30.000
 - Taxa de Conversão: 15-30%
-- Churn Rate: 2-5%
+- taxa de rotatividade: 2-5%
 - Crescimento semanal: +5-20%
 
 ---

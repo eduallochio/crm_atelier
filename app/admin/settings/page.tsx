@@ -9,7 +9,7 @@ export default function AdminSettingsPage() {
   // const { admins } = useAdmins()
   // const { settings, updateSettings } = useSystemSettings()
 
-  const admins = []
+  const admins = [ ]
 
   const settings = {
     siteName: 'CRM Ateliê',
