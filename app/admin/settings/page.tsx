@@ -4,12 +4,21 @@ import { SystemSettings } from '@/components/admin/system-settings'
 import { PermissionsManagement } from '@/components/admin/permissions-management'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+interface Admin {
+  id: string
+  name: string
+  email: string
+  role: 'super_admin' | 'admin' | 'support' | 'billing'
+  createdAt: string
+  lastLogin?: string
+}
+
 export default function AdminSettingsPage() {
   // TODO: Substituir por hooks reais:
   // const { admins } = useAdmins()
   // const { settings, updateSettings } = useSystemSettings()
 
-  const admins = [ ]
+  const admins: Admin[] = []
 
   const settings = {
     siteName: 'CRM Ateliê',
