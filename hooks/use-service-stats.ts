@@ -3,10 +3,21 @@
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
+interface ServiceStats {
+  totalServices: number
+  activeServices: number
+  inactiveServices: number
+  averagePrice: number
+  mostUsedService: { id: string; nome: string; count: number; revenue: number } | null
+  neverUsedCount: number
+  categoriesCount: number
+  serviceUsage: Array<{ id: string; nome: string; count: number; revenue: number }>
+}
+
 export function useServiceStats() {
   const supabase = createClient()
 
-  return useQuery({
+  return useQuery<ServiceStats>({
     queryKey: ['service-stats'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
