@@ -83,7 +83,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
           materiais: service.materiais || '',
           custo_materiais: service.custo_materiais ? service.custo_materiais.toFixed(2).replace('.', ',') : '',
           observacoes_tecnicas: service.observacoes_tecnicas || '',
-          nivel_dificuldade: service.nivel_dificuldade || '',
+          nivel_dificuldade: (service.nivel_dificuldade || '') as '' | 'facil' | 'medio' | 'dificil',
           tempo_minimo: service.tempo_minimo || '',
           tempo_maximo: service.tempo_maximo || '',
           ativo: service.ativo,
