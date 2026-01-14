@@ -180,9 +180,10 @@ export async function signup(formData: FormData) {
         }
       }
 
-    } catch (manualError) {
+    } catch (manualError: any) {
       console.error('Manual creation error:', manualError)
-      return { error: 'Erro ao configurar conta. Tente novamente.' }
+      const errorMessage = manualError?.message || manualError?.toString() || 'Erro desconhecido'
+      return { error: `Erro ao configurar conta: ${errorMessage}` }
     }
   }
 
