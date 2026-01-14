@@ -15,6 +15,8 @@ import {
   X,
   Settings,
   FileText,
+  TrendingUp,
+  DollarSign,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -35,14 +37,14 @@ const menuItems = [
     href: '/admin/subscriptions',
   },
   {
-    label: 'Faturamento',
-    icon: BarChart3,
+    label: 'Billing',
+    icon: DollarSign,
     href: '/admin/billing',
   },
   {
-    label: 'Usuários',
-    icon: Users,
-    href: '/admin/users',
+    label: 'Analytics',
+    icon: TrendingUp,
+    href: '/admin/analytics',
   },
   {
     label: 'Logs',

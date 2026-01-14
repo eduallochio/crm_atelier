@@ -49,7 +49,6 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
     formState: { errors },
     reset,
     setValue,
-    watch,
     control,
   } = useForm<ServiceInput>({
     resolver: zodResolver(serviceSchema),
@@ -70,6 +69,8 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
   })
 
   const ativo = useWatch({ control, name: 'ativo' })
+  const preco = useWatch({ control, name: 'preco' })
+  const custoMateriais = useWatch({ control, name: 'custo_materiais' })
 
   // Reset form quando abrir/fechar ou mudar serviço
   useEffect(() => {
@@ -256,8 +257,8 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                 }}
               />
               <p className="text-xs text-gray-500">
-                Margem de lucro: {watch('preco') && watch('custo_materiais') 
-                  ? `R$ ${(parseFloat((watch('preco') || '0').replace(',', '.')) - parseFloat((watch('custo_materiais') || '0').replace(',', '.'))).toFixed(2)}`
+                Margem de lucro: {preco && custoMateriais 
+                  ? `R$ ${(parseFloat((preco || '0').replace(',', '.')) - parseFloat((custoMateriais || '0').replace(',', '.'))).toFixed(2)}`
                   : 'R$ 0,00'}
               </p>
             </div>
