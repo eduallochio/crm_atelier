@@ -62,7 +62,7 @@ export default function ServicosPage() {
   ]
 
   // Extrair categorias únicas dos serviços existentes
-  const existingCategories = [...new Set(services.map(s => s.categoria).filter(Boolean))]
+  const existingCategories = [...new Set(services.map(s => s.categoria).filter((cat): cat is string => Boolean(cat)))]
   const allCategories = [...new Set([...commonCategories, ...existingCategories])].sort()
 
   // Filtrar serviços pela busca
