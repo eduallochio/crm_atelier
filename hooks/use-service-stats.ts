@@ -56,7 +56,7 @@ export function useServiceStats() {
       })
 
       // Encontrar o mais vendido
-      let mostUsedService = null
+      let mostUsedService: { id: string; nome: string; count: number; revenue: number } | null = null
       let maxCount = 0
       serviceUsage.forEach((usage, serviceId) => {
         if (usage.count > maxCount) {
