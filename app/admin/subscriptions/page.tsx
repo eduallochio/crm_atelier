@@ -1,4 +1,4 @@
-import { Header } from '@/components/dashboard/header'
+import { Header } from '@/components/layouts/header'
 import { PlanCard } from '@/components/admin/plan-card'
 import { ConversionFunnel } from '@/components/admin/conversion-funnel'
 import { PlanStatsGrid } from '@/components/admin/plan-stats-grid'
