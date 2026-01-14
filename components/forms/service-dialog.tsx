@@ -256,7 +256,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
               />
               <p className="text-xs text-gray-500">
                 Margem de lucro: {watch('preco') && watch('custo_materiais') 
-                  ? `R$ ${(parseFloat(watch('preco').replace(',', '.')) - parseFloat(watch('custo_materiais').replace(',', '.') || '0')).toFixed(2)}`
+                  ? `R$ ${(parseFloat((watch('preco') || '0').replace(',', '.')) - parseFloat((watch('custo_materiais') || '0').replace(',', '.'))).toFixed(2)}`
                   : 'R$ 0,00'}
               </p>
             </div>
