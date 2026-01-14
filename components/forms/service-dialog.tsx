@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { serviceSchema, type ServiceInput, type Service } from '@/lib/validations/service'
 import { useCreateService, useUpdateService } from '@/hooks/use-services'
@@ -50,6 +50,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
     reset,
     setValue,
     watch,
+    control,
   } = useForm<ServiceInput>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
@@ -68,7 +69,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
     },
   })
 
-  const ativo = watch('ativo')
+  const ativo = useWatch({ control, name: 'ativo' })
 
   // Reset form quando abrir/fechar ou mudar serviço
   useEffect(() => {
