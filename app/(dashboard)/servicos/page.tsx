@@ -34,6 +34,8 @@ export default function ServicosPage() {
     setDialogOpen(true)
   }
 
+  }
+
   const handleDuplicate = (service: Service) => {
     // Criar um novo serviço baseado no existente, mas com nome modificado
     const duplicatedService: Partial<Service> = {
@@ -41,7 +43,6 @@ export default function ServicosPage() {
       id: undefined as any, // Será criado um novo ID
       nome: `${service.nome} (Cópia)`,
       created_at: undefined as any,
-      updated_at: undefined as any,
     }
     
     setSelectedService(duplicatedService as Service)
