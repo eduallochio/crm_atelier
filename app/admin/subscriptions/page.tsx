@@ -2,19 +2,23 @@ import { Header } from '@/components/layouts/header'
 import { PlanCard } from '@/components/admin/plan-card'
 import { ConversionFunnel } from '@/components/admin/conversion-funnel'
 import { PlanStatsGrid } from '@/components/admin/plan-stats-grid'
-import { Package, TrendingUp, Users, DollarSign } from 'lucide-react'
 
 export default function AdminSubscriptionsPage() {
-  // Mock data - em produção viria de hooks
+  // TODO: Substituir por hooks reais:
+  // const { stats } = useSubscriptionStats()
+  // const { plans } = useSubscriptionPlans()
+  // const { conversionData } = useConversionFunnel()
+  // const { movements } = usePlanMovements()
+
   const plans = [
     {
       id: 'free',
       name: 'Free',
       color: 'gray',
-      subscribers: 145,
+      subscribers: 0,
       revenue: 0,
       conversionRate: 0,
-      averageLifetime: '45 dias',
+      averageLifetime: '-',
       features: ['Até 50 clientes', 'Ordens básicas', 'Suporte por email'],
     },
     {
@@ -22,10 +26,10 @@ export default function AdminSubscriptionsPage() {
       name: 'Pro',
       color: 'blue',
       price: 99,
-      subscribers: 38,
-      revenue: 3762,
-      conversionRate: 20.8,
-      averageLifetime: '8 meses',
+      subscribers: 0,
+      revenue: 0,
+      conversionRate: 0,
+      averageLifetime: '-',
       features: ['Clientes ilimitados', 'Ordens avançadas', 'Suporte prioritário', 'Analytics'],
     },
     {
@@ -33,10 +37,10 @@ export default function AdminSubscriptionsPage() {
       name: 'Enterprise',
       color: 'purple',
       price: 299,
-      subscribers: 7,
-      revenue: 2093,
-      conversionRate: 15.4,
-      averageLifetime: '14 meses',
+      subscribers: 0,
+      revenue: 0,
+      conversionRate: 0,
+      averageLifetime: '-',
       features: [
         'Tudo do Pro',
         'Multi-usuários',
@@ -48,45 +52,66 @@ export default function AdminSubscriptionsPage() {
   ]
 
   const conversionData = {
-    trial: 52,
-    free: 145,
-    pro: 38,
-    enterprise: 7,
+    trial: 0,
+    free: 0,
+    pro: 0,
+    enterprise: 0,
   }
 
-  const stats = [
+  const stats: Array<{
+    title: string
+    value: string
+    change: string
+    trend: 'up' | 'down'
+    icon: string
+    color: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'yellow'
+  }> = [
     {
       title: 'Total de Assinantes',
-      value: '190',
-      change: '+12.5%',
-      trend: 'up' as const,
-      icon: Users,
+      value: '0',
+      change: '0%',
+      trend: 'up',
+      icon: 'Users',
       color: 'blue',
     },
     {
       title: 'MRR Total',
-      value: 'R$ 5.855',
-      change: '+8.3%',
-      trend: 'up' as const,
-      icon: DollarSign,
+      value: 'R$ 0',
+      change: '0%',
+      trend: 'up',
+      icon: 'DollarSign',
       color: 'green',
     },
     {
       title: 'Taxa Conversão Free→Pro',
-      value: '20.8%',
-      change: '+2.1%',
-      trend: 'up' as const,
-      icon: TrendingUp,
+      value: '0%',
+      change: '0%',
+      trend: 'up',
+      icon: 'TrendingUp',
       color: 'purple',
     },
     {
       title: 'Lifetime Value Médio',
-      value: 'R$ 1.245',
-      change: '+15.2%',
-      trend: 'up' as const,
-      icon: Package,
+      value: 'R$ 0',
+      change: '0%',
+      trend: 'up',
+      icon: 'Package',
       color: 'orange',
     },
+  ]
+
+  const planTimeData = [
+    { plan: 'Trial', time: '-', percentage: 0 },
+    { plan: 'Free', time: '-', percentage: 0 },
+    { plan: 'Pro', time: '-', percentage: 0 },
+    { plan: 'Enterprise', time: '-', percentage: 0 },
+  ]
+
+  const movements = [
+    { from: 'Free', to: 'Pro', count: 0, type: 'upgrade' },
+    { from: 'Pro', to: 'Enterprise', count: 0, type: 'upgrade' },
+    { from: 'Pro', to: 'Free', count: 0, type: 'downgrade' },
+    { from: 'Enterprise', to: 'Pro', count: 0, type: 'downgrade' },
   ]
 
   return (
@@ -116,42 +141,23 @@ export default function AdminSubscriptionsPage() {
           <div className="bg-card rounded-lg border border-border p-6">
             <h3 className="text-lg font-semibold mb-4">Tempo Médio em Cada Plano</h3>
             <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Trial</span>
-                  <span className="text-sm text-muted-foreground">14 dias</span>
+              {planTimeData.map((item) => (
+                <div key={item.plan}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">{item.plan}</span>
+                    <span className="text-sm text-muted-foreground">{item.time}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        item.plan === 'Enterprise' ? 'bg-purple-500' :
+                        item.plan === 'Pro' ? 'bg-blue-500' : 'bg-gray-500'
+                      }`}
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gray-500 rounded-full" style={{ width: '46%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Free</span>
-                  <span className="text-sm text-muted-foreground">45 dias</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gray-500 rounded-full" style={{ width: '60%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Pro</span>
-                  <span className="text-sm text-muted-foreground">8 meses</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: '85%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Enterprise</span>
-                  <span className="text-sm text-muted-foreground">14 meses</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-500 rounded-full" style={{ width: '100%' }} />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -159,42 +165,37 @@ export default function AdminSubscriptionsPage() {
           <div className="bg-card rounded-lg border border-border p-6">
             <h3 className="text-lg font-semibold mb-4">Movimentação de Planos (Este Mês)</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 bg-green-500 rounded-full" />
-                  <span className="text-sm font-medium">Free → Pro</span>
+              {movements.map((movement, index) => (
+                <div
+                  key={index}
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    movement.type === 'upgrade'
+                      ? 'bg-green-50 dark:bg-green-950/20'
+                      : 'bg-red-50 dark:bg-red-950/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-2 w-2 rounded-full ${
+                        movement.type === 'upgrade' ? 'bg-green-500' : 'bg-red-500'
+                      }`}
+                    />
+                    <span className="text-sm font-medium">
+                      {movement.from} → {movement.to}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-sm font-semibold ${
+                      movement.type === 'upgrade'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {movement.type === 'upgrade' ? '+' : '-'}{movement.count}{' '}
+                    {movement.type === 'upgrade' ? 'upgrades' : 'downgrades'}
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                  +12 upgrades
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 bg-green-500 rounded-full" />
-                  <span className="text-sm font-medium">Pro → Enterprise</span>
-                </div>
-                <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                  +3 upgrades
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 bg-red-500 rounded-full" />
-                  <span className="text-sm font-medium">Pro → Free</span>
-                </div>
-                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                  -2 downgrades
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 bg-red-500 rounded-full" />
-                  <span className="text-sm font-medium">Enterprise → Pro</span>
-                </div>
-                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                  -1 downgrade
-                </span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
