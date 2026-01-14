@@ -34,8 +34,6 @@ export default function ServicosPage() {
     setDialogOpen(true)
   }
 
-  }
-
   const handleDuplicate = (service: Service) => {
     // Criar um novo serviço baseado no existente, mas com nome modificado
     const duplicatedService: Partial<Service> = {
