@@ -333,21 +333,47 @@ export function useCreatePayable() {
         .eq('id', (await supabase.auth.getUser()).data.user?.id)
         .single()
 
-      if (!profile) throw new Error('Perfil não encontrado')
+      if (!profile?.organization_id) {
+        console.error('[CreatePayable] Perfil sem organization_id:', profile)
+        throw new Error('Organização não encontrada no perfil')
+      }
 
       const valorNumerico = parseFloat(input.valor.replace(',', '.'))
+      
+      // Tratar supplier_id: se vazio ou "sem-fornecedor", usar null
+      const supplier_id = input.supplier_id && input.supplier_id !== 'sem-fornecedor' 
+        ? input.supplier_id 
+        : null
+
+      console.log('[CreatePayable] Dados a inserir:', {
+        ...input,
+        supplier_id,
+        valor: valorNumerico,
+        organization_id: profile.organization_id,
+      })
 
       const { data, error } = await supabase
         .from('org_payables')
         .insert({
-          ...input,
+          descricao: input.descricao,
           valor: valorNumerico,
+          data_vencimento: input.data_vencimento,
+          data_pagamento: input.data_pagamento || null,
+          status: input.status,
+          supplier_id,
+          categoria: input.categoria || null,
+          forma_pagamento: input.forma_pagamento || null,
+          observacoes: input.observacoes || null,
           organization_id: profile.organization_id,
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('[CreatePayable] Erro Supabase:', error)
+        throw error
+      }
+      
       return data
     },
     onSuccess: () => {
@@ -355,8 +381,9 @@ export function useCreatePayable() {
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
       toast.success('Conta a pagar criada com sucesso!')
     },
-    onError: () => {
-      toast.error('Erro ao criar conta a pagar')
+    onError: (error: any) => {
+      console.error('[CreatePayable] Erro completo:', error)
+      toast.error(`Erro ao criar conta a pagar: ${error.message || 'Desconhecido'}`)
     },
   })
 }
@@ -366,10 +393,22 @@ export function useUpdatePayable() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<PayableInput> }) => {
-      const updateData: any = { ...input }
+      const updateData: any = {}
       
-      if (input.valor) {
-        updateData.valor = parseFloat(input.valor.replace(',', '.'))
+      if (input.descricao !== undefined) updateData.descricao = input.descricao
+      if (input.valor) updateData.valor = parseFloat(input.valor.replace(',', '.'))
+      if (input.data_vencimento !== undefined) updateData.data_vencimento = input.data_vencimento
+      if (input.data_pagamento !== undefined) updateData.data_pagamento = input.data_pagamento || null
+      if (input.status !== undefined) updateData.status = input.status
+      if (input.categoria !== undefined) updateData.categoria = input.categoria || null
+      if (input.forma_pagamento !== undefined) updateData.forma_pagamento = input.forma_pagamento || null
+      if (input.observacoes !== undefined) updateData.observacoes = input.observacoes || null
+      
+      // Tratar supplier_id
+      if (input.supplier_id !== undefined) {
+        updateData.supplier_id = input.supplier_id && input.supplier_id !== 'sem-fornecedor' 
+          ? input.supplier_id 
+          : null
       }
 
       const { error } = await supabase
