@@ -12,7 +12,7 @@ interface UrgentOrder {
   client: {
     nome: string
   } | null
-  data_entrega: string
+  data_prevista: string
   status: string
   valor_total: number
 }
@@ -141,7 +141,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
       <CardContent>
         <div className="space-y-3">
           {orders.map((order) => {
-            const daysRemaining = calculateDaysRemaining(order.data_entrega)
+            const daysRemaining = calculateDaysRemaining(order.data_prevista)
             const urgencyLevel = getUrgencyLevel(daysRemaining)
             const styles = getUrgencyStyles(urgencyLevel)
 
@@ -176,7 +176,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(order.data_entrega).toLocaleDateString('pt-BR')}
+                          {new Date(order.data_prevista).toLocaleDateString('pt-BR')}
                         </span>
                         <span className="font-medium text-foreground">
                           R$ {order.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

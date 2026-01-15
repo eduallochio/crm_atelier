@@ -136,7 +136,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-125">
+      <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Serviço' : 'Novo Serviço'}

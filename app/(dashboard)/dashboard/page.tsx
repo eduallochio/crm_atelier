@@ -188,12 +188,12 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from('org_service_orders')
-        .select('id, numero, data_entrega, status, valor_total, client:org_clients(nome)')
+        .select('id, numero, data_prevista, status, valor_total, client:org_clients(nome)')
         .eq('organization_id', profile.organization_id)
         .in('status', ['pendente', 'em_andamento'])
-        .not('data_entrega', 'is', null)
-        .lte('data_entrega', sevenDaysFromNow.toISOString())
-        .order('data_entrega', { ascending: true })
+        .not('data_prevista', 'is', null)
+        .lte('data_prevista', sevenDaysFromNow.toISOString())
+        .order('data_prevista', { ascending: true })
         .limit(5)
 
       // Garantir que client seja um objeto, não um array
@@ -328,7 +328,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="text-blue-800 dark:text-blue-300 text-sm space-y-2">
               <p>
-                Você está usando {metrics?.clients_count || 0} de 50 clientes disponíveis.
+                Você cadastrou {metrics?.clients_count || 0} de 50 clientes disponíveis.
               </p>
               <p className="text-xs">
                 Faça upgrade para o plano Enterprise para clientes ilimitados e mais recursos.

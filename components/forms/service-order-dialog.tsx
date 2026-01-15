@@ -156,6 +156,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const isLoading = createOrder.isPending
 
   const onSubmit = async (data: ServiceOrderInput) => {
+    console.log('[ServiceOrder] onSubmit chamado:', data)
+    
     if (items.length === 0) {
       toast.error('Adicione pelo menos um serviço')
       return
@@ -163,6 +165,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
     // Buscar dados do cliente selecionado
     const selectedClient = clients.find(c => c.id === data.client_id)
+    
+    console.log('[ServiceOrder] Cliente selecionado:', selectedClient)
     
     if (!selectedClient) {
       toast.error('Cliente não encontrado')
@@ -207,8 +211,12 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       }))
     }
 
+    console.log('[ServiceOrder] Preview preparado:', previewOrder)
+    
     setPreviewData({ formData: data, previewOrder })
     setShowPreview(true)
+    
+    console.log('[ServiceOrder] showPreview setado para true')
   }
 
   const handleConfirmSave = async () => {

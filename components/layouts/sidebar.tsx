@@ -104,13 +104,31 @@ export function Sidebar() {
     async function loadUserProfile() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user) {
+          console.log('[Sidebar] Nenhum usuário autenticado')
+          return
+        }
 
-        const { data: profile } = await supabase
+        console.log('[Sidebar] Carregando perfil para:', user.email)
+
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, organization_id')
           .eq('id', user.id)
           .single()
+
+        console.log('[Sidebar] Profile data:', profile, 'Error:', profileError)
+
+        if (profileError) {
+          console.error('[Sidebar] Erro ao buscar perfil:', profileError)
+          // Fallback: mostrar dados básicos do auth
+          setUserProfile({
+            name: user.email?.split('@')[0] || 'Usuário',
+            email: user.email || '',
+            organization: 'CRM Atelier',
+          })
+          return
+        }
 
         if (profile?.organization_id) {
           const { data: org } = await supabase
@@ -118,6 +136,8 @@ export function Sidebar() {
             .select('name, logo_url')
             .eq('id', profile.organization_id)
             .single()
+
+          console.log('[Sidebar] Organization data:', org)
 
           setUserProfile({
             name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
@@ -130,9 +150,17 @@ export function Sidebar() {
             name: org?.name || 'CRM Atelier',
             logo_url: org?.logo_url,
           })
+        } else {
+          console.warn('[Sidebar] Perfil sem organization_id')
+          // Mostrar mesmo sem organização
+          setUserProfile({
+            name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
+            email: user.email || '',
+            organization: 'CRM Atelier',
+          })
         }
       } catch (error) {
-        console.error('Erro ao carregar perfil:', error)
+        console.error('[Sidebar] Erro ao carregar perfil:', error)
       }
     }
 
