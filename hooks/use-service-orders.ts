@@ -139,6 +139,7 @@ export function useCreateServiceOrder() {
           data_prevista: input.data_prevista || null,
           observacoes: input.observacoes || null,
           notas_internas: input.notas_internas || null,
+          forma_pagamento: input.forma_pagamento || null,
         })
         .select()
         .single()

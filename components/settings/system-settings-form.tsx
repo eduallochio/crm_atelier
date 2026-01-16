@@ -15,13 +15,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSystemPreferences, useUpdateSystemPreferences } from '@/hooks/use-settings'
-import { Loader2, Moon, Sun, Monitor, Palette } from 'lucide-react'
+import { Loader2, Monitor } from 'lucide-react'
 import { useWatch } from 'react-hook-form'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 const systemSettingsSchema = z.object({
-  theme_mode: z.enum(['light', 'dark', 'auto']),
   language: z.enum(['pt-BR', 'en-US', 'es-ES']),
   timezone: z.string(),
   date_format: z.enum(['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']),
@@ -30,12 +29,6 @@ const systemSettingsSchema = z.object({
 })
 
 type SystemSettings = z.infer<typeof systemSettingsSchema>
-
-const THEME_MODES = [
-  { value: 'light' as const, label: 'Claro', icon: Sun },
-  { value: 'dark' as const, label: 'Escuro', icon: Moon },
-  { value: 'auto' as const, label: 'Automático', icon: Monitor },
-] as const
 
 const LANGUAGES = [
   { value: 'pt-BR' as const, label: 'Português (Brasil)' },
@@ -70,7 +63,6 @@ export function SystemSettingsForm() {
   const form = useForm<SystemSettings>({
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
-      theme_mode: 'auto',
       language: 'pt-BR',
       timezone: 'America/Sao_Paulo',
       date_format: 'dd/MM/yyyy',
@@ -82,7 +74,6 @@ export function SystemSettingsForm() {
   useEffect(() => {
     if (settings) {
       form.reset({
-        theme_mode: settings.theme || 'auto',
         language: settings.language || 'pt-BR',
         timezone: settings.timezone || 'America/Sao_Paulo',
         date_format: settings.date_format || 'dd/MM/yyyy',
@@ -92,7 +83,6 @@ export function SystemSettingsForm() {
     }
   }, [settings, form])
 
-  const themeMode = useWatch({ control: form.control, name: 'theme_mode' })
   const currency = useWatch({ control: form.control, name: 'currency' })
   const language = useWatch({ control: form.control, name: 'language' })
   const timezone = useWatch({ control: form.control, name: 'timezone' })
@@ -108,7 +98,7 @@ export function SystemSettingsForm() {
     try {
       await updateSettings.mutateAsync({
         organization_id: settings.organization_id,
-        theme: data.theme_mode,
+        theme: 'light',
         language: data.language,
         timezone: data.timezone,
         date_format: data.date_format,
@@ -132,47 +122,6 @@ export function SystemSettingsForm() {
   return (
     <Card className="p-6">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Tema e Aparência */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground">Tema e Aparência</h3>
-          </div>
-
-          <div className="space-y-6">
-            {/* Modo de Tema */}
-            <div className="space-y-2">
-              <Label>Modo de Tema</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {THEME_MODES.map((mode) => {
-                  const Icon = mode.icon
-                  const isSelected = themeMode === mode.value
-                  return (
-                    <button
-                      key={mode.value}
-                      type="button"
-                      onClick={() => form.setValue('theme_mode', mode.value, { shouldDirty: true })}
-                      className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all ${
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 dark:border-blue-400'
-                          : 'border-border hover:border-muted-foreground'
-                      }`}
-                    >
-                      <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
-                      <span className={`text-sm font-medium ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-foreground'}`}>
-                        {mode.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Separador */}
-        <div className="border-t border-border" />
-
         {/* Localização */}
         <div>
           <div className="flex items-center gap-2 mb-4">

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Printer, X, MessageCircle } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { generateThermalPreview, generateThermalPDF } from '@/lib/utils/thermal-printer'
+import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import {
   Dialog,
   DialogContent,
@@ -35,12 +36,26 @@ export function OrderPreviewDialog({
   showConfirmButton = false
 }: OrderPreviewDialogProps) {
   const [printing, setPrinting] = useState(false)
+  const { data: paymentMethods = [] } = usePaymentMethods()
+
+  // Converter código da forma de pagamento para nome
+  const getPaymentMethodName = (code: string | null | undefined): string => {
+    if (!code) return ''
+    const method = paymentMethods.find(m => m.code === code)
+    return method?.name || code
+  }
+
+  // Criar ordem com forma de pagamento traduzida
+  const orderWithPaymentName = order ? {
+    ...order,
+    forma_pagamento: getPaymentMethodName(order.forma_pagamento)
+  } : null
 
   const handlePrint = () => {
-    if (!order) return
+    if (!orderWithPaymentName) return
     try {
       setPrinting(true)
-      generateThermalPDF(order, organizationName)
+      generateThermalPDF(orderWithPaymentName, organizationName)
       toast.success('PDF gerado com sucesso!')
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
@@ -51,22 +66,22 @@ export function OrderPreviewDialog({
   }
 
   const handleWhatsApp = () => {
-    if (!order || !order.client?.telefone) {
+    if (!orderWithPaymentName || !orderWithPaymentName.client?.telefone) {
       toast.error('Cliente não possui telefone cadastrado')
       return
     }
 
     try {
       // Gerar o PDF primeiro
-      generateThermalPDF(order, organizationName)
+      generateThermalPDF(orderWithPaymentName, organizationName)
       
       // Formatar telefone (remover caracteres especiais)
-      const phone = order.client.telefone.replace(/\D/g, '')
+      const phone = orderWithPaymentName.client.telefone.replace(/\D/g, '')
       const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`
       
       // Criar mensagem
-      const orderNumber = order.numero.toString().padStart(6, '0')
-      const message = `Olá ${order.client.nome}! Segue sua Ordem de Serviço #${orderNumber}.\n\nPor favor, anexe o PDF que acabou de ser baixado no seu computador.`
+      const orderNumber = orderWithPaymentName.numero.toString().padStart(6, '0')
+      const message = `Olá ${orderWithPaymentName.client.nome}! Segue sua Ordem de Serviço #${orderNumber}.\n\nPor favor, anexe o PDF que acabou de ser baixado no seu computador.`
       
       // Abrir WhatsApp Web
       const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`
@@ -98,12 +113,12 @@ export function OrderPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {order && (
+        {orderWithPaymentName && (
           <>
             <div className="my-4">
               <div 
                 className="overflow-auto"
-                dangerouslySetInnerHTML={{ __html: generateThermalPreview(order, organizationName) }}
+                dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, organizationName) }}
               />
             </div>
 
@@ -130,7 +145,7 @@ export function OrderPreviewDialog({
                   Baixar PDF
                 </Button>
 
-                {order.client?.telefone && (
+                {orderWithPaymentName.client?.telefone && (
                   <Button
                     type="button"
                     variant="outline"

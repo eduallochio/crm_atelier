@@ -112,6 +112,10 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     addKeyValue('Conclusão:', format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR }))
   }
 
+  if (order.forma_pagamento) {
+    addKeyValue('Pagamento:', order.forma_pagamento)
+  }
+
   y += 2
   addLine()
 
@@ -289,6 +293,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           <div>Status: ${statusLabels[order.status]}</div>
           ${order.data_prevista ? `<div>Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
           ${order.data_conclusao ? `<div>Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
+          ${order.forma_pagamento ? `<div>Pagamento: ${order.forma_pagamento}</div>` : '<div style="color: #999;">Pagamento: Não informado</div>'}
         </div>
       </div>
       

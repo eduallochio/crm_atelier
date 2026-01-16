@@ -47,6 +47,7 @@ export function ReceivableDialog({ open, onOpenChange, receivable }: ReceivableD
       descricao: '',
       valor: '',
       data_vencimento: '',
+      data_recebimento: '',
       status: 'pendente' as const,
       observacoes: '',
     },
@@ -58,7 +59,7 @@ export function ReceivableDialog({ open, onOpenChange, receivable }: ReceivableD
         descricao: receivable.descricao,
         valor: receivable.valor.toString(),
         data_vencimento: receivable.data_vencimento,
-        data_recebimento: receivable.data_recebimento || undefined,
+        data_recebimento: receivable.data_recebimento || '',
         status: receivable.status,
         observacoes: receivable.observacoes || '',
       })
@@ -67,6 +68,7 @@ export function ReceivableDialog({ open, onOpenChange, receivable }: ReceivableD
         descricao: '',
         valor: '',
         data_vencimento: '',
+        data_recebimento: '',
         status: 'pendente',
         observacoes: '',
       })

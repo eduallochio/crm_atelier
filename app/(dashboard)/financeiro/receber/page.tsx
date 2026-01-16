@@ -7,6 +7,7 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useReceivables } from '@/hooks/use-financial'
+import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import { ReceivableDialog } from '@/components/financial/receivable-dialog'
 import { ReceivablesTable } from '@/components/financial/receivables-table'
 import * as XLSX from 'xlsx'
@@ -21,12 +22,21 @@ export default function ReceberPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [sortField, setSortField] = useState<SortField>('data_vencimento')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   
   const { data: receivables, isLoading } = useReceivables()
+  const { data: paymentMethods = [] } = usePaymentMethods()
+
+  // Helper para formatar nome da forma de pagamento baseado nas configurações
+  const getPaymentMethodName = (code: string | null | undefined): string => {
+    if (!code) return 'Não informado'
+    const method = paymentMethods.find(m => m.code === code)
+    return method?.name || code
+  }
 
   // Atalhos rápidos de datas
   const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'overdue') => {
@@ -57,6 +67,7 @@ export default function ReceberPage() {
   const clearFilters = () => {
     setSearchTerm('')
     setStatusFilter('all')
+    setPaymentMethodFilter('all')
     setDateFrom('')
     setDateTo('')
   }
@@ -67,6 +78,10 @@ export default function ReceberPage() {
     return receivables.filter(receivable => {
       const matchesSearch = receivable.descricao.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === 'all' || receivable.status === statusFilter
+      const matchesPaymentMethod = paymentMethodFilter === 'all' || 
+        (paymentMethodFilter === 'outros' 
+          ? (!receivable.forma_pagamento || !['pix','dinheiro','cartao_credito','cartao_debito','transferencia','boleto'].includes(receivable.forma_pagamento))
+          : receivable.forma_pagamento === paymentMethodFilter)
       
       let matchesDate = true
       if (dateFrom && dateTo) {
@@ -76,9 +91,9 @@ export default function ReceberPage() {
         matchesDate = vencimento >= from && vencimento <= to
       }
       
-      return matchesSearch && matchesStatus && matchesDate
+      return matchesSearch && matchesStatus && matchesPaymentMethod && matchesDate
     })
-  }, [receivables, searchTerm, statusFilter, dateFrom, dateTo])
+  }, [receivables, searchTerm, statusFilter, paymentMethodFilter, dateFrom, dateTo])
 
   // Ordenação
   const sortedReceivables = useMemo(() => {
@@ -113,14 +128,33 @@ export default function ReceberPage() {
   }
 
   // Estatísticas filtradas
-  const stats = useMemo(() => ({
-    total: filteredReceivables.reduce((sum, r) => sum + (r.valor || 0), 0),
-    pendente: filteredReceivables.filter(r => r.status === 'pendente').reduce((sum, r) => sum + (r.valor || 0), 0),
-    recebido: filteredReceivables.filter(r => r.status === 'recebido').reduce((sum, r) => sum + (r.valor || 0), 0),
-    atrasado: filteredReceivables.filter(r => r.status === 'atrasado').reduce((sum, r) => sum + (r.valor || 0), 0),
-    count: filteredReceivables.length,
-    totalCount: receivables?.length || 0,
-  }), [filteredReceivables, receivables])
+  const stats = useMemo(() => {
+    const recebidos = filteredReceivables.filter(r => r.status === 'recebido')
+    
+    // Calcular totais por forma de pagamento dinamicamente
+    const byPaymentMethod: Record<string, number> = {}
+    paymentMethods.forEach(method => {
+      byPaymentMethod[method.code] = recebidos
+        .filter(r => r.forma_pagamento === method.code)
+        .reduce((sum, r) => sum + (r.valor || 0), 0)
+    })
+    
+    // Calcular "outros" (formas não configuradas)
+    const knownCodes = paymentMethods.map(m => m.code)
+    byPaymentMethod['outros'] = recebidos
+      .filter(r => !r.forma_pagamento || !knownCodes.includes(r.forma_pagamento))
+      .reduce((sum, r) => sum + (r.valor || 0), 0)
+    
+    return {
+      total: filteredReceivables.reduce((sum, r) => sum + (r.valor || 0), 0),
+      pendente: filteredReceivables.filter(r => r.status === 'pendente').reduce((sum, r) => sum + (r.valor || 0), 0),
+      recebido: recebidos.reduce((sum, r) => sum + (r.valor || 0), 0),
+      atrasado: filteredReceivables.filter(r => r.status === 'atrasado').reduce((sum, r) => sum + (r.valor || 0), 0),
+      count: filteredReceivables.length,
+      totalCount: receivables?.length || 0,
+      byPaymentMethod
+    }
+  }, [filteredReceivables, receivables, paymentMethods])
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -136,6 +170,7 @@ export default function ReceberPage() {
       'Valor': r.valor,
       'Vencimento': r.data_vencimento,
       'Status': r.status,
+      'Forma de Pagamento': getPaymentMethodName(r.forma_pagamento),
       'Recebimento': r.data_recebimento || '',
       'Observações': r.observacoes || ''
     }))
@@ -148,6 +183,7 @@ export default function ReceberPage() {
       { wch: 15 }, // Valor
       { wch: 15 }, // Vencimento
       { wch: 12 }, // Status
+      { wch: 18 }, // Forma de Pagamento
       { wch: 15 }, // Recebimento
       { wch: 30 }  // Observações
     ]
@@ -169,19 +205,53 @@ export default function ReceberPage() {
     doc.text(`Total: ${formatCurrency(stats.total)}`, 14, 37)
     doc.text(`Registros: ${stats.count} de ${stats.totalCount}`, 14, 44)
     
+    // Adicionar resumo por forma de pagamento
+    doc.setFontSize(10)
+    doc.text('Resumo por Forma de Pagamento:', 14, 54)
+    let yPos = 60
+    if (stats.byPaymentMethod.pix > 0) {
+      doc.text(`PIX: ${formatCurrency(stats.byPaymentMethod.pix)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.dinheiro > 0) {
+      doc.text(`Dinheiro: ${formatCurrency(stats.byPaymentMethod.dinheiro)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.cartao_credito > 0) {
+      doc.text(`Cartão Crédito: ${formatCurrency(stats.byPaymentMethod.cartao_credito)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.cartao_debito > 0) {
+      doc.text(`Cartão Débito: ${formatCurrency(stats.byPaymentMethod.cartao_debito)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.transferencia > 0) {
+      doc.text(`Transferência: ${formatCurrency(stats.byPaymentMethod.transferencia)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.boleto > 0) {
+      doc.text(`Boleto: ${formatCurrency(stats.byPaymentMethod.boleto)}`, 20, yPos)
+      yPos += 6
+    }
+    if (stats.byPaymentMethod.outros > 0) {
+      doc.text(`Outros: ${formatCurrency(stats.byPaymentMethod.outros)}`, 20, yPos)
+      yPos += 6
+    }
+    
     const tableData = sortedReceivables.map(r => [
       r.descricao,
       formatCurrency(r.valor),
       new Date(r.data_vencimento).toLocaleDateString('pt-BR'),
       r.status,
+      getPaymentMethodName(r.forma_pagamento),
       r.data_recebimento ? new Date(r.data_recebimento).toLocaleDateString('pt-BR') : '-'
     ])
     
     autoTable(doc, {
-      startY: 50,
-      head: [['Descrição', 'Valor', 'Vencimento', 'Status', 'Recebimento']],
+      startY: yPos + 6,
+      head: [['Descrição', 'Valor', 'Vencimento', 'Status', 'Forma Pag.', 'Recebimento']],
       body: tableData,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [59, 130, 246] }
     })
     
@@ -303,6 +373,59 @@ export default function ReceberPage() {
             )}
           </button>
         </div>
+
+        {/* Formas de Pagamento - Valores Recebidos */}
+        {paymentMethods.length > 0 && (
+          <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg border border-purple-200 dark:border-purple-900 p-4">
+            <p className="text-sm font-medium text-foreground mb-3">Valores Recebidos por Forma de Pagamento:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-auto gap-2" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(120px, 1fr))` }}>
+              {paymentMethods.map((method) => {
+                const valor = stats.byPaymentMethod[method.code] || 0
+                if (valor === 0 && !method.enabled) return null
+                
+                return (
+                  <button
+                    key={method.id}
+                    onClick={() => setPaymentMethodFilter(paymentMethodFilter === method.code ? 'all' : method.code)}
+                    className={`bg-card rounded-lg border p-3 text-center transition-all hover:shadow-md ${
+                      paymentMethodFilter === method.code ? 'ring-2 shadow-md' : 'border-border'
+                    }`}
+                    style={{
+                      borderColor: paymentMethodFilter === method.code ? method.color : undefined,
+                      boxShadow: paymentMethodFilter === method.code ? `0 0 0 2px ${method.color}` : undefined
+                    }}
+                  >
+                    <p className="text-xs text-muted-foreground mb-1 truncate">{method.name}</p>
+                    <p 
+                      className="text-sm font-bold"
+                      style={{ color: method.color || '#6b7280' }}
+                    >
+                      {formatCurrency(valor)}
+                    </p>
+                  </button>
+                )
+              })}
+              
+              {/* Botão "Outros" sempre no final */}
+              {stats.byPaymentMethod.outros > 0 && (
+                <button
+                  onClick={() => setPaymentMethodFilter(paymentMethodFilter === 'outros' ? 'all' : 'outros')}
+                  className={`bg-card rounded-lg border p-3 text-center transition-all hover:shadow-md ${
+                    paymentMethodFilter === 'outros' ? 'ring-2 ring-gray-500 shadow-md' : 'border-border'
+                  }`}
+                >
+                  <p className="text-xs text-muted-foreground mb-1">Outros</p>
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                    {formatCurrency(stats.byPaymentMethod.outros)}
+                  </p>
+                </button>
+              )}
+            </div>
+            {paymentMethodFilter !== 'all' && (
+              <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mt-2">✓ Filtro de forma de pagamento ativo</p>
+            )}
+          </div>
+        )}
 
         {/* Atalhos Rápidos */}
         <div className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">

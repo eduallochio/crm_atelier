@@ -7,6 +7,7 @@ import { serviceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput,
 import { useCreateServiceOrder } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
 import { useServices } from '@/hooks/use-services'
+import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import { generateThermalPDF } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
 import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
@@ -57,6 +58,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const createOrder = useCreateServiceOrder()
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useServices()
+  const { data: paymentMethods = [] } = useActivePaymentMethods()
 
   const activeServices = services.filter(s => s.ativo)
 
@@ -73,6 +75,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       client_id: '',
       status: 'pendente' as const,
       data_prevista: undefined,
+      forma_pagamento: undefined,
       observacoes: undefined,
       valor_entrada: 0,
       desconto_valor: 0,
@@ -156,8 +159,6 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const isLoading = createOrder.isPending
 
   const onSubmit = async (data: ServiceOrderInput) => {
-    console.log('[ServiceOrder] onSubmit chamado:', data)
-    
     if (items.length === 0) {
       toast.error('Adicione pelo menos um serviço')
       return
@@ -165,8 +166,6 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
     // Buscar dados do cliente selecionado
     const selectedClient = clients.find(c => c.id === data.client_id)
-    
-    console.log('[ServiceOrder] Cliente selecionado:', selectedClient)
     
     if (!selectedClient) {
       toast.error('Cliente não encontrado')
@@ -190,6 +189,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       data_prevista: data.data_prevista || null,
       data_conclusao: null,
       observacoes: data.observacoes || null,
+      forma_pagamento: data.forma_pagamento || null,
       fotos: null,
       notas_internas: data.notas_internas || null,
       created_at: new Date().toISOString(),
@@ -376,6 +376,29 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                 disabled={isLoading}
               />
             </div>
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="space-y-2">
+            <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
+            <select
+              id="forma_pagamento"
+              {...register('forma_pagamento')}
+              disabled={isLoading}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Selecione...</option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.code}>
+                  {method.name}
+                </option>
+              ))}
+            </select>
+            {paymentMethods.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Configure formas de pagamento em Configurações → Financeiro
+              </p>
+            )}
           </div>
 
           {/* Adicionar Serviços */}

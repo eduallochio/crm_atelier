@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 
 export function NotificationSettingsForm() {
-  const { data: settings, isLoading } = useNotificationSettings()
+  const { data: settings, isLoading, error } = useNotificationSettings()
   const updateSettings = useUpdateNotificationSettings()
 
   const form = useForm({
@@ -246,7 +246,10 @@ export function NotificationSettingsForm() {
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={updateSettings.isPending}>
+          <Button 
+            type="submit" 
+            disabled={updateSettings.isPending || !settings?.organization_id}
+          >
             {updateSettings.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -258,8 +261,10 @@ export function NotificationSettingsForm() {
           </Button>
         </div>
 
-        {updateSettings.isSuccess && (
-          <p className="text-sm text-green-600">Configurações salvas com sucesso!</p>
+        {!settings?.organization_id && !isLoading && (
+          <p className="text-sm text-red-600">
+            Erro: Não foi possível carregar as configurações. Execute o SQL de criação das tabelas.
+          </p>
         )}
       </form>
     </Card>

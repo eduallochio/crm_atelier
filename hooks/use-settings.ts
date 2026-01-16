@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type {
   OrganizationSettings,
   CustomizationSettings,
@@ -232,7 +233,8 @@ export function useNotificationSettings() {
         .eq('organization_id', profile.organization_id)
         .maybeSingle()
 
-      if (error) throw error
+      // Ignorar erro 404 (tabela não encontrada)
+      if (error && error.code !== 'PGRST116') throw error
 
       // Se não existir, retornar valores padrão
       if (!data) {
@@ -277,6 +279,10 @@ export function useUpdateNotificationSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] })
+      toast.success('Configurações de notificações salvas com sucesso!')
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao salvar configurações: ${error.message}`)
     },
   })
 }
@@ -285,45 +291,68 @@ export function useUpdateNotificationSettings() {
 export function useOrderSettings() {
   return useQuery({
     queryKey: ['order-settings'],
+    retry: 1,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
+      try {
+        console.log('[useOrderSettings] Iniciando query...')
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        console.log('[useOrderSettings] User:', user?.id)
+        console.log('[useOrderSettings] Auth error:', authError)
+        if (authError) throw authError
+        if (!user) throw new Error('Usuário não autenticado')
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', user.id)
+          .single()
 
-      if (!profile) throw new Error('Perfil não encontrado')
+        console.log('[useOrderSettings] Profile:', profile)
+        console.log('[useOrderSettings] Profile error:', profileError)
+        if (profileError) throw profileError
+        if (!profile) throw new Error('Perfil não encontrado')
+        if (!profile.organization_id) throw new Error('Organization ID não encontrado no perfil')
 
-      const { data, error } = await supabase
-        .from('org_order_settings')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .maybeSingle()
+        const { data, error } = await supabase
+          .from('org_order_settings')
+          .select('*')
+          .eq('organization_id', profile.organization_id)
+          .maybeSingle()
 
-      if (error) throw error
+        console.log('[useOrderSettings] Data do banco:', data)
+        console.log('[useOrderSettings] Error:', error)
+        
+        // Se erro for 404 ou PGRST116 (not found), ignorar e retornar defaults
+        if (error && error.code !== 'PGRST116') {
+          throw error
+        }
 
-      // Se não existir, retornar valores padrão
-      if (!data) {
-        return {
-          id: '',
-          organization_id: profile.organization_id,
-          order_prefix: 'OS',
-          order_start_number: 1,
-          order_number_format: 'sequential',
-          default_status: 'pendente',
-          require_client: true,
-          require_service: true,
-          require_delivery_date: true,
-          require_payment_method: false,
-          default_delivery_days: 7,
-          updated_at: new Date().toISOString(),
-        } as OrderSettings
+        // Se não existir, retornar valores padrão
+        if (!data) {
+          const defaultSettings = {
+            id: '',
+            organization_id: profile.organization_id,
+            order_prefix: 'OS',
+            order_start_number: 1,
+            order_number_format: 'sequential' as const,
+            default_status: 'pendente',
+            require_client: true,
+            require_service: true,
+            require_delivery_date: true,
+            require_payment_method: false,
+            default_delivery_days: 7,
+            updated_at: new Date().toISOString(),
+          }
+          console.log('[useOrderSettings] Retornando defaults:', defaultSettings)
+          return defaultSettings
+        }
+
+        console.log('[useOrderSettings] Retornando dados do banco:', data)
+        return data as OrderSettings
+      } catch (error) {
+        console.error('[useOrderSettings] ERRO CAPTURADO:', error)
+        throw error
       }
-
-      return data as OrderSettings
     },
   })
 }
@@ -334,19 +363,31 @@ export function useUpdateOrderSettings() {
 
   return useMutation({
     mutationFn: async (input: OrderSettingsInput & { organization_id: string }) => {
+      console.log('[OrderSettings] Tentando salvar:', input)
       const { organization_id, ...data } = input
-      const { error } = await supabase
+      const { data: result, error } = await supabase
         .from('org_order_settings')
         .upsert({
           organization_id,
           ...data,
           updated_at: new Date().toISOString(),
         })
+        .select()
+
+      console.log('[OrderSettings] Resultado:', result)
+      console.log('[OrderSettings] Erro:', error)
 
       if (error) throw error
+      return result
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[OrderSettings] Sucesso! Dados salvos:', data)
       queryClient.invalidateQueries({ queryKey: ['order-settings'] })
+      toast.success('Configurações de ordens salvas com sucesso!')
+    },
+    onError: (error: Error) => {
+      console.error('[OrderSettings] Erro ao salvar:', error)
+      toast.error(`Erro ao salvar configurações: ${error.message}`)
     },
   })
 }

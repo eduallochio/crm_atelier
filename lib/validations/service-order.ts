@@ -12,6 +12,7 @@ export const serviceOrderSchema = z.object({
   client_id: z.string().uuid('Selecione um cliente'),
   status: z.enum(['pendente', 'em_andamento', 'concluido', 'cancelado']),
   data_prevista: z.string().optional(),
+  forma_pagamento: z.string().optional(),
   observacoes: z.string().optional(),
   valor_entrada: z.number().min(0, 'Valor de entrada deve ser positivo').default(0),
   desconto_valor: z.number().min(0, 'Desconto deve ser positivo').default(0),
@@ -70,6 +71,7 @@ export interface ServiceOrder {
   data_abertura: string
   data_prevista: string | null
   data_conclusao: string | null
+  forma_pagamento: string | null
   observacoes: string | null
   fotos: string[] | null
   notas_internas: string | null

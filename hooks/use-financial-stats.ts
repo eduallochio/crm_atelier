@@ -61,17 +61,33 @@ export function useFinancialStats() {
       const ultimoDiaMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0)
 
       const transacoesMesAtual = (transactions as Transaction[])?.filter(t => {
-        const dataTransacao = new Date(t.data)
+        const dataTransacao = new Date(t.data_transacao)
         return dataTransacao >= primeiroDiaMes && dataTransacao <= ultimoDiaMes
       })
 
-      const entradasMes = transacoesMesAtual
-        ?.filter(t => t.tipo === 'entrada')
-        .reduce((sum, t) => sum + t.valor, 0) || 0
+      // Receivables recebidos no mês (ordens concluídas e pagas)
+      const receivablesMes = (receivables as Receivable[])?.filter(r => {
+        if (r.status !== 'recebido' || !r.data_recebimento) return false
+        const dataRecebimento = new Date(r.data_recebimento)
+        return dataRecebimento >= primeiroDiaMes && dataRecebimento <= ultimoDiaMes
+      })
 
-      const saidasMes = transacoesMesAtual
+      // Payables pagos no mês
+      const payablesMes = (payables as Payable[])?.filter(p => {
+        if (p.status !== 'pago' || !p.data_pagamento) return false
+        const dataPagamento = new Date(p.data_pagamento)
+        return dataPagamento >= primeiroDiaMes && dataPagamento <= ultimoDiaMes
+      })
+
+      const entradasMes = (transacoesMesAtual
+        ?.filter(t => t.tipo === 'entrada')
+        .reduce((sum, t) => sum + t.valor, 0) || 0) +
+        (receivablesMes?.reduce((sum, r) => sum + r.valor, 0) || 0)
+
+      const saidasMes = (transacoesMesAtual
         ?.filter(t => t.tipo === 'saida')
-        .reduce((sum, t) => sum + t.valor, 0) || 0
+        .reduce((sum, t) => sum + t.valor, 0) || 0) +
+        (payablesMes?.reduce((sum, p) => sum + p.valor, 0) || 0)
 
       const saldoMes = entradasMes - saidasMes
 
@@ -105,17 +121,33 @@ export function useFinancialStats() {
         const ultimoDia = new Date(data.getFullYear(), data.getMonth() + 1, 0)
 
         const transacoesMes = (transactions as Transaction[])?.filter(t => {
-          const dataTransacao = new Date(t.data)
+          const dataTransacao = new Date(t.data_transacao)
           return dataTransacao >= primeirodia && dataTransacao <= ultimoDia
         })
 
-        const entradas = transacoesMes
-          ?.filter(t => t.tipo === 'entrada')
-          .reduce((sum, t) => sum + t.valor, 0) || 0
+        // Receivables recebidos no mês
+        const receivablesMesFluxo = (receivables as Receivable[])?.filter(r => {
+          if (r.status !== 'recebido' || !r.data_recebimento) return false
+          const dataRecebimento = new Date(r.data_recebimento)
+          return dataRecebimento >= primeirodia && dataRecebimento <= ultimoDia
+        })
 
-        const saidas = transacoesMes
+        // Payables pagos no mês
+        const payablesMesFluxo = (payables as Payable[])?.filter(p => {
+          if (p.status !== 'pago' || !p.data_pagamento) return false
+          const dataPagamento = new Date(p.data_pagamento)
+          return dataPagamento >= primeirodia && dataPagamento <= ultimoDia
+        })
+
+        const entradas = (transacoesMes
+          ?.filter(t => t.tipo === 'entrada')
+          .reduce((sum, t) => sum + t.valor, 0) || 0) +
+          (receivablesMesFluxo?.reduce((sum, r) => sum + r.valor, 0) || 0)
+
+        const saidas = (transacoesMes
           ?.filter(t => t.tipo === 'saida')
-          .reduce((sum, t) => sum + t.valor, 0) || 0
+          .reduce((sum, t) => sum + t.valor, 0) || 0) +
+          (payablesMesFluxo?.reduce((sum, p) => sum + p.valor, 0) || 0)
 
         fluxoCaixa.push({
           mes,
@@ -163,7 +195,15 @@ export function useCashFlow(months: number = 6) {
       const { data: transactions } = await supabase
         .from('org_transactions')
         .select('*')
-        .order('data', { ascending: true })
+        .order('data_transacao', { ascending: true })
+
+      const { data: receivables } = await supabase
+        .from('org_receivables')
+        .select('*')
+
+      const { data: payables } = await supabase
+        .from('org_payables')
+        .select('*')
 
       const fluxoCaixa = []
       
@@ -175,17 +215,33 @@ export function useCashFlow(months: number = 6) {
         const ultimoDia = new Date(data.getFullYear(), data.getMonth() + 1, 0)
 
         const transacoesMes = (transactions as Transaction[])?.filter(t => {
-          const dataTransacao = new Date(t.data)
+          const dataTransacao = new Date(t.data_transacao)
           return dataTransacao >= primeirodia && dataTransacao <= ultimoDia
         })
 
-        const entradas = transacoesMes
-          ?.filter(t => t.tipo === 'entrada')
-          .reduce((sum, t) => sum + t.valor, 0) || 0
+        // Receivables recebidos no mês
+        const receivablesMes = (receivables as Receivable[])?.filter(r => {
+          if (r.status !== 'recebido' || !r.data_recebimento) return false
+          const dataRecebimento = new Date(r.data_recebimento)
+          return dataRecebimento >= primeirodia && dataRecebimento <= ultimoDia
+        })
 
-        const saidas = transacoesMes
+        // Payables pagos no mês
+        const payablesMes = (payables as Payable[])?.filter(p => {
+          if (p.status !== 'pago' || !p.data_pagamento) return false
+          const dataPagamento = new Date(p.data_pagamento)
+          return dataPagamento >= primeirodia && dataPagamento <= ultimoDia
+        })
+
+        const entradas = (transacoesMes
+          ?.filter(t => t.tipo === 'entrada')
+          .reduce((sum, t) => sum + t.valor, 0) || 0) +
+          (receivablesMes?.reduce((sum, r) => sum + r.valor, 0) || 0)
+
+        const saidas = (transacoesMes
           ?.filter(t => t.tipo === 'saida')
-          .reduce((sum, t) => sum + t.valor, 0) || 0
+          .reduce((sum, t) => sum + t.valor, 0) || 0) +
+          (payablesMes?.reduce((sum, p) => sum + p.valor, 0) || 0)
 
         fluxoCaixa.push({
           mes: data.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }),

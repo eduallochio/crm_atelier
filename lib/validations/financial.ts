@@ -106,7 +106,7 @@ export const transactionSchema = z.object({
   }),
   descricao: z.string().min(3, 'Descrição deve ter pelo menos 3 caracteres'),
   valor: z.string().min(1, 'Valor é obrigatório'),
-  data: z.string().min(1, 'Data é obrigatória'),
+  data_transacao: z.string().min(1, 'Data é obrigatória'),
   category_id: z.string().optional(),
   payment_method_id: z.string().optional(),
   receivable_id: z.string().optional(),
@@ -122,7 +122,7 @@ export interface Transaction {
   tipo: 'entrada' | 'saida'
   descricao: string
   valor: number
-  data: string
+  data_transacao: string
   category_id: string | null
   payment_method_id: string | null
   receivable_id: string | null

@@ -13,8 +13,12 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 
 export function OrderSettingsForm() {
-  const { data: settings, isLoading } = useOrderSettings()
+  const { data: settings, isLoading, error } = useOrderSettings()
   const updateSettings = useUpdateOrderSettings()
+
+  console.log('[OrderSettingsForm] Settings carregadas:', settings)
+  console.log('[OrderSettingsForm] isLoading:', isLoading)
+  console.log('[OrderSettingsForm] error:', error)
 
   const form = useForm({
     resolver: zodResolver(orderSettingsSchema),
@@ -54,8 +58,15 @@ export function OrderSettingsForm() {
   }, [settings, form])
 
   const onSubmit = (data: OrderSettingsInput) => {
+    console.log('[OrderSettingsForm] onSubmit chamado com:', data)
+    console.log('[OrderSettingsForm] settings.organization_id:', settings?.organization_id)
+    
     if (settings?.organization_id) {
+      console.log('[OrderSettingsForm] Chamando updateSettings.mutate')
       updateSettings.mutate({ ...data, organization_id: settings.organization_id })
+    } else {
+      console.error('[OrderSettingsForm] organization_id não encontrado!')
+      alert('Erro: organization_id não encontrado. Verifique o console.')
     }
   }
 
@@ -218,7 +229,10 @@ export function OrderSettingsForm() {
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={updateSettings.isPending}>
+          <Button 
+            type="submit" 
+            disabled={updateSettings.isPending || !settings?.organization_id}
+          >
             {updateSettings.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -229,6 +243,12 @@ export function OrderSettingsForm() {
             )}
           </Button>
         </div>
+
+        {!settings?.organization_id && !isLoading && (
+          <p className="text-sm text-red-600">
+            Erro: Não foi possível carregar as configurações. Recarregue a página.
+          </p>
+        )}
 
         {updateSettings.isSuccess && (
           <p className="text-sm text-green-600">Configurações salvas com sucesso!</p>
