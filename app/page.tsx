@@ -21,12 +21,56 @@ import {
   Shield,
   Clock
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 export default function HomePage() {
+  const [showStickyCTA, setShowStickyCTA] = useState(false)
+  const [confettiTriggered, setConfettiTriggered] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Mostra o CTA fixo após rolar 800px
+      setShowStickyCTA(window.scrollY > 800)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const triggerConfetti = () => {
+    if (confettiTriggered) return
+    setConfettiTriggered(true)
+    
+    // Criar confetes
+    const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B']
+    const confettiCount = 50
+    
+    for (let i = 0; i < confettiCount; i++) {
+      const confetti = document.createElement('div')
+      confetti.style.position = 'fixed'
+      confetti.style.width = '10px'
+      confetti.style.height = '10px'
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+      confetti.style.left = Math.random() * 100 + '%'
+      confetti.style.top = '-10px'
+      confetti.style.opacity = '1'
+      confetti.style.transform = 'rotate(0deg)'
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0'
+      confetti.style.zIndex = '9999'
+      confetti.style.pointerEvents = 'none'
+      confetti.style.animation = `confetti ${2 + Math.random() * 2}s linear forwards`
+      
+      document.body.appendChild(confetti)
+      
+      setTimeout(() => confetti.remove(), 4000)
+    }
+    
+    setTimeout(() => setConfettiTriggered(false), 4000)
+  }
   return (
     <div className="min-h-screen bg-linear-to-r from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 overflow-x-hidden">
       {/* Hero Section com gradiente animado */}
-      <div className="relative flex flex-col items-center justify-center px-4 py-16 sm:py-24 overflow-hidden">
+      <div className="relative flex flex-col items-center justify-center px-4 py-12 sm:py-16 lg:py-20 overflow-hidden">
         {/* Background decorativo animado */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -34,141 +78,297 @@ export default function HomePage() {
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="w-full max-w-6xl text-center space-y-8 relative z-10">
-          {/* Badge de destaque com oferta */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-full text-sm font-bold mb-2 sm:mb-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              <span className="text-green-700">🎉 Lançamento: Plano Free 100% gratuito para sempre!</span>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700 font-medium">
-              <Sparkles className="h-3 w-3" />
-              <span>Novo: Tema Escuro e Busca Global (⌘K)</span>
-            </div>
-          </div>
-
-          <div className="space-y-6 animate-fade-in-up">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight bg-linear-to-r from-gray-900 via-blue-800 to-indigo-900 dark:from-gray-100 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent leading-tight">
-              Seu Ateliê Merece um<br/>
-              <span className="bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Sistema Profissional
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed font-medium">
-              Pare de perder tempo com planilhas e anotações
-            </p>
-            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Gerencie clientes, ordens de serviço e finanças em um único lugar.<br/>
-              <span className="font-semibold text-blue-600">Simples, rápido e 100% gratuito para começar.</span>
-            </p>
-          </div>
-
-          {/* Prova Social - Avatares e Estatísticas */}
-          <div className="flex flex-col items-center gap-4 py-4 animate-fade-in-up animation-delay-200">
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-3">
-                <div className="w-10 h-10 rounded-full border-2 border-white bg-linear-to-r from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <div className="w-10 h-10 rounded-full border-2 border-white bg-linear-to-r from-purple-400 to-purple-600 flex items-center justify-center shadow-lg">
-                  <Scissors className="w-5 h-5 text-white" />
-                </div>
-                <div className="w-10 h-10 rounded-full border-2 border-white bg-linear-to-r from-pink-400 to-pink-600 flex items-center justify-center shadow-lg">
-                  <FileText className="w-5 h-5 text-white" />
+        <div className="w-full max-w-7xl mx-auto relative z-10">
+          {/* Grid Layout: Texto à esquerda, Mockups à direita */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            
+            {/* Left Column - Texto e CTAs */}
+            <div className="space-y-6 lg:text-left text-center">
+              {/* Badge de destaque com oferta */}
+              <div className="flex flex-col sm:flex-row items-center lg:items-start lg:justify-start justify-center gap-3 animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-full text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                  </span>
+                  <span className="text-green-700">🎉 Lançamento: Plano Free 100% gratuito para sempre!</span>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-              <span className="text-gray-600 dark:text-gray-400 font-medium">✨ Sistema em desenvolvimento ativo</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-gray-600 dark:text-gray-400 font-medium">🚀 Sempre buscando melhorias constantes</span>
-            </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up animation-delay-300">
-            <Link href="/cadastro">
-              <Button size="lg" className="w-full sm:w-auto text-base px-8 py-6 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 animate-pulse-slow">
-                <Zap className="h-5 w-5 mr-2" />
-                <span className="font-bold">Começar Grátis Agora →</span>
-              </Button>
-            </Link>
-            <Link href="#demo">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base px-8 py-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 border-2 hover:border-blue-300 dark:hover:border-blue-600">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                <span className="font-semibold">Assistir Demo (2 min)</span>
-              </Button>
-            </Link>
-          </div>
+              <div className="space-y-4 animate-fade-in-up">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-gray-900 dark:text-gray-100 leading-tight">
+                  Seu Ateliê Merece um{' '}
+                  <span className="bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Sistema Profissional
+                  </span>
+                </h1>
+                <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-xl lg:mx-0 mx-auto leading-relaxed">
+                  Gerencie clientes, ordens de serviço e finanças em um único lugar.
+                </p>
+                <p className="text-base text-gray-500 dark:text-gray-500 max-w-xl lg:mx-0 mx-auto">
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">✨ Simples, rápido e 100% gratuito para começar</span>
+                </p>
+              </div>
 
-          {/* Trust Badges */}
-          <div className="flex flex-wrap justify-center items-center gap-6 pt-4 animate-fade-in-up animation-delay-400">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <Shield className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">100% Seguro</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <Check className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">LGPD Compliant</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <Clock className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">99.9% Uptime</span>
-            </div>
-          </div>
+              <div className="flex flex-col sm:flex-row gap-3 lg:justify-start justify-center items-center animate-fade-in-up animation-delay-300">
+                <Link href="/cadastro" onClick={triggerConfetti}>
+                  <Button size="lg" className="w-full sm:w-auto text-base px-8 py-5 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700">
+                    <Zap className="h-5 w-5 mr-2" />
+                    <span className="font-bold">Começar Grátis Agora</span>
+                  </Button>
+                </Link>
+                <Link href="#demo">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-base px-6 py-5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 border-2 hover:border-blue-300 dark:hover:border-blue-600">
+                    <BarChart3 className="h-5 w-5 mr-2" />
+                    Ver Demo
+                  </Button>
+                </Link>
+              </div>
 
-          {/* Demo Search Bar - Visual com Video Preview */}
-          <div className="max-w-2xl mx-auto mt-12 animate-fade-in-up animation-delay-500">
-            <div className="relative group cursor-pointer" onClick={() => window.location.href = '/cadastro'}>
-              <div className="absolute -inset-1 bg-linear-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-500 animate-pulse"></div>
-              <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border-2 border-gray-200 dark:border-gray-700 group-hover:border-blue-300 dark:group-hover:border-blue-600 p-5 flex items-center gap-3 group-hover:shadow-2xl transition-all duration-300">
-                <Search className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-                <div className="flex-1 text-left">
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">Busque clientes, ordens ou serviços...</span>
+              {/* Trust Badges */}
+              <div className="flex flex-wrap lg:justify-start justify-center items-center gap-3 animate-fade-in-up animation-delay-400">
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 backdrop-blur-sm rounded-full shadow-sm border border-green-200 dark:border-green-800">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">100% Seguro</span>
                 </div>
-                <kbd className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 bg-linear-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
-                  ⌘K
-                </kbd>
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 backdrop-blur-sm rounded-full shadow-sm border border-blue-200 dark:border-blue-800">
+                  <Check className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">LGPD</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 backdrop-blur-sm rounded-full shadow-sm border border-purple-200 dark:border-purple-800">
+                  <Clock className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-400">99.9%</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column - Device Mockups */}
+            <div className="relative animate-fade-in-up animation-delay-200 lg:order-last order-first">
+              {/* Container dos dispositivos */}
+              <div className="relative h-[400px] sm:h-[500px] lg:h-[600px]">
+                
+                {/* Laptop/Notebook Mockup */}
+                <div className="absolute top-0 left-0 right-0 z-10 transform perspective-1000 animate-float">
+                  <div className="relative transform hover:scale-[1.02] transition-transform duration-500">
+                    {/* Glow effect */}
+                    <div className="absolute -inset-4 bg-linear-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                    
+                    {/* Laptop frame */}
+                    <div className="relative bg-gradient-to-b from-gray-800 via-gray-900 to-black rounded-t-2xl p-2 shadow-2xl">
+                      {/* Screen bezel com bordas metálicas */}
+                      <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-t-xl p-3 border border-gray-700 shadow-inner">
+                        {/* Camera e sensores */}
+                        <div className="flex justify-center items-center gap-2 mb-2">
+                          <div className="h-0.5 w-8 bg-gray-800 rounded-full"></div>
+                          <div className="h-1.5 w-1.5 rounded-full bg-gray-700 ring-1 ring-gray-600 shadow-inner"></div>
+                          <div className="h-0.5 w-8 bg-gray-800 rounded-full"></div>
+                        </div>
+                        
+                        {/* Screen content - Dashboard com reflexo de tela */}
+                        <div className="relative bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-2xl">
+                          {/* Reflexo de tela realista */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none z-10"></div>
+                          <div className="absolute top-0 left-0 w-1/3 h-1/3 bg-gradient-to-br from-white/5 to-transparent pointer-events-none z-10 rounded-lg"></div>
+                          {/* Browser bar */}
+                          <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+                            <div className="flex gap-1.5">
+                              <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                              <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                            </div>
+                            <div className="flex-1 bg-white dark:bg-gray-900 rounded px-2 py-1 text-[8px] text-gray-500 flex items-center gap-1">
+                              <Shield className="h-2 w-2" />
+                              <span>crmatelier.com.br/dashboard</span>
+                            </div>
+                          </div>
+                          
+                          {/* Dashboard content */}
+                          <div className="p-4 bg-linear-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30 h-64 sm:h-80">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-4 gap-2 mb-3">
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                                <div className="text-[8px] text-gray-600 dark:text-gray-400 mb-1">Clientes</div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">156</div>
+                                <div className="text-[7px] text-green-600">+12%</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                                <div className="text-[8px] text-gray-600 dark:text-gray-400 mb-1">Ordens</div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">23</div>
+                                <div className="text-[7px] text-green-600">+5</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                                <div className="text-[8px] text-gray-600 dark:text-gray-400 mb-1">Receita</div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">8.4k</div>
+                                <div className="text-[7px] text-green-600">+18%</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                                <div className="text-[8px] text-gray-600 dark:text-gray-400 mb-1">Caixa</div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">1.2k</div>
+                                <div className="text-[7px] text-gray-600 dark:text-gray-400">12x</div>
+                              </div>
+                            </div>
+                            
+                            {/* Chart */}
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm h-40 sm:h-52">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[9px] font-semibold text-gray-900 dark:text-gray-100">Últimos 6 Meses</span>
+                                <Calendar className="h-2.5 w-2.5 text-gray-400" />
+                              </div>
+                              <div className="h-28 sm:h-40 flex items-end gap-1">
+                                {[65, 59, 80, 81, 56, 85].map((height, i) => (
+                                  <div 
+                                    key={i} 
+                                    className="flex-1 bg-linear-to-t from-blue-600 to-indigo-500 rounded-t transition-all hover:from-blue-700 hover:to-indigo-600" 
+                                    style={{ height: `${height}%` }}
+                                  ></div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Laptop base com teclado */}
+                      <div className="bg-gradient-to-b from-gray-800 via-gray-850 to-gray-900 rounded-b-2xl border-t border-gray-700 shadow-xl">
+                        {/* Teclado estilizado */}
+                        <div className="px-4 py-2 flex flex-col gap-1">
+                          {/* Linhas do teclado */}
+                          <div className="flex gap-0.5 justify-center">
+                            {[...Array(14)].map((_, i) => (
+                              <div key={i} className="h-1.5 w-3 bg-gray-950 rounded-sm border border-gray-800"></div>
+                            ))}
+                          </div>
+                          <div className="flex gap-0.5 justify-center">
+                            {[...Array(13)].map((_, i) => (
+                              <div key={i} className="h-1.5 w-3 bg-gray-950 rounded-sm border border-gray-800"></div>
+                            ))}
+                          </div>
+                          {/* Trackpad */}
+                          <div className="mt-2 mx-auto h-6 w-20 bg-gray-850 rounded-lg border border-gray-700 shadow-inner"></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Laptop shadow/stand com perspectiva */}
+                    <div className="relative mt-1">
+                      <div className="h-1 bg-gradient-to-b from-gray-700 to-transparent rounded-b-3xl mx-8 shadow-2xl opacity-60"></div>
+                      <div className="absolute inset-0 bg-black/20 blur-xl rounded-full mx-4"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Phone Mockup */}
+                <div className="absolute bottom-0 right-0 sm:right-8 lg:right-12 z-20 transform hover:scale-105 transition-transform duration-500 animate-float-delayed">
+                  {/* Glow effect */}
+                  <div className="absolute -inset-3 bg-linear-to-r from-purple-600 via-pink-600 to-purple-600 rounded-3xl blur-xl opacity-30 group-hover:opacity-40 transition-opacity"></div>
+                  
+                  {/* Phone frame com bordas metálicas */}
+                  <div className="relative bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-[2.5rem] p-2 shadow-2xl w-40 sm:w-48">
+                    {/* Botões laterais */}
+                    <div className="absolute left-0 top-20 w-0.5 h-8 bg-gradient-to-b from-gray-700 to-gray-800 rounded-r-sm"></div>
+                    <div className="absolute left-0 top-32 w-0.5 h-6 bg-gradient-to-b from-gray-700 to-gray-800 rounded-r-sm"></div>
+                    <div className="absolute right-0 top-24 w-0.5 h-12 bg-gradient-to-b from-gray-700 to-gray-800 rounded-l-sm"></div>
+                    
+                    {/* Screen bezel */}
+                    <div className="bg-black rounded-[2.2rem] p-1.5 border border-gray-800">
+                      {/* Notch realista com câmera e sensores */}
+                      <div className="flex justify-center mb-0.5">
+                        <div className="bg-black rounded-full px-4 py-1.5 flex items-center gap-1.5 shadow-lg">
+                          <div className="h-1 w-1 rounded-full bg-blue-900 ring-1 ring-blue-800"></div>
+                          <div className="h-1 w-1 rounded-full bg-gray-800"></div>
+                          <div className="h-1.5 w-8 rounded-full bg-gray-900"></div>
+                        </div>
+                      </div>
+                      
+                      {/* Phone screen content com reflexo */}
+                      <div className="relative bg-white dark:bg-gray-900 rounded-[1.5rem] overflow-hidden shadow-2xl h-72 sm:h-96">
+                        {/* Reflexo de tela do celular */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/10 pointer-events-none z-10 rounded-[1.5rem]"></div>
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/10 to-transparent pointer-events-none z-10 rounded-tl-3xl rounded-br-[1.5rem]"></div>
+                        {/* Mobile header */}
+                        <div className="bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-3 text-white">
+                          <div className="flex items-center justify-between mb-2">
+                            <Bell className="h-3 w-3" />
+                            <span className="text-[9px] font-bold">Dashboard</span>
+                            <Search className="h-3 w-3" />
+                          </div>
+                        </div>
+                        
+                        {/* Mobile dashboard content */}
+                        <div className="p-3 bg-gray-50 dark:bg-gray-950 h-full overflow-hidden">
+                          {/* Mobile stats - 2x2 grid */}
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 shadow-sm">
+                              <Users className="h-3 w-3 text-blue-600 mb-1" />
+                              <div className="text-xs font-bold text-gray-900 dark:text-gray-100">156</div>
+                              <div className="text-[7px] text-gray-600 dark:text-gray-400">Clientes</div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 shadow-sm">
+                              <FileText className="h-3 w-3 text-purple-600 mb-1" />
+                              <div className="text-xs font-bold text-gray-900 dark:text-gray-100">23</div>
+                              <div className="text-[7px] text-gray-600 dark:text-gray-400">Ordens</div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 shadow-sm">
+                              <TrendingUp className="h-3 w-3 text-green-600 mb-1" />
+                              <div className="text-xs font-bold text-gray-900 dark:text-gray-100">R$ 8.4k</div>
+                              <div className="text-[7px] text-gray-600 dark:text-gray-400">Receita</div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 shadow-sm">
+                              <Wallet className="h-3 w-3 text-orange-600 mb-1" />
+                              <div className="text-xs font-bold text-gray-900 dark:text-gray-100">R$ 1.2k</div>
+                              <div className="text-[7px] text-gray-600 dark:text-gray-400">Caixa</div>
+                            </div>
+                          </div>
+                          
+                          {/* Mobile chart */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 shadow-sm">
+                            <div className="text-[8px] font-semibold text-gray-900 dark:text-gray-100 mb-2">Receita Mensal</div>
+                            <div className="h-20 flex items-end gap-1">
+                              {[65, 59, 80, 81, 56, 85].map((height, i) => (
+                                <div 
+                                  key={i} 
+                                  className="flex-1 bg-linear-to-t from-purple-600 to-pink-500 rounded-t" 
+                                  style={{ height: `${height}%` }}
+                                ></div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Mobile list items */}
+                          <div className="mt-3 space-y-2">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                <Users className="h-3 w-3 text-blue-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[8px] font-medium text-gray-900 dark:text-gray-100 truncate">Maria Silva</div>
+                                <div className="text-[7px] text-gray-500 dark:text-gray-400">Cliente ativo</div>
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                                <FileText className="h-3 w-3 text-purple-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[8px] font-medium text-gray-900 dark:text-gray-100 truncate">OS #1234</div>
+                                <div className="text-[7px] text-gray-500 dark:text-gray-400">Em andamento</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <span className="text-xs text-gray-500 dark:text-gray-400">✨ Busca inteligente disponível após login</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <button className="text-xs text-blue-600 hover:text-blue-700 font-semibold hover:underline flex items-center gap-1">
-                ▶️ Ver em ação (30s)
-              </button>
-            </div>
+
           </div>
 
-          {/* Badge de confiança melhorado */}
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 pt-8 animate-fade-in-up animation-delay-600">
-            <div className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <Check className="h-5 w-5 text-green-600" />
-              <div className="text-left">
-                <div className="text-sm font-bold text-green-700">Grátis para sempre</div>
-                <div className="text-xs text-green-600">Plano Free ilimitado</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <Check className="h-5 w-5 text-blue-600" />
-              <div className="text-left">
-                <div className="text-sm font-bold text-blue-700">Sem cartão de crédito</div>
-                <div className="text-xs text-blue-600">100% gratuito para testar</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-              <Zap className="h-5 w-5 text-purple-600" />
-              <div className="text-left">
-                <div className="text-sm font-bold text-purple-700">Setup em 2 minutos</div>
-                <div className="text-xs text-purple-600">Comece hoje mesmo</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Features Cards com efeito glassmorphism */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 animate-fade-in-up animation-delay-600">
+          {/* Features Cards logo abaixo dos mockups - Layout responsivo */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 lg:mt-24 animate-fade-in-up animation-delay-600">
             <div className="group p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-2xl hover:scale-105 transition-all duration-500 hover:bg-linear-to-br hover:from-blue-50 hover:to-white dark:hover:from-blue-950 dark:hover:to-gray-800">
               <div className="h-12 w-12 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg">
                 <FileText className="h-6 w-6 text-white" />
@@ -197,6 +397,7 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -581,6 +782,153 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Seção de Comparação - Antes × Depois */}
+      <div className="px-4 py-16 sm:py-24 bg-linear-to-b from-white via-blue-50 to-white dark:from-gray-900 dark:via-blue-950 dark:to-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block mb-4">
+              <span className="px-4 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-full text-sm font-semibold">
+                Transforme Seu Ateliê
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Antes × Depois do CRM Ateliê
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Veja a diferença que um sistema profissional faz no seu dia a dia
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Antes - Sem o Sistema */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-red-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition"></div>
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 border-2 border-red-200 dark:border-red-900">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                    <X className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Sem o Sistema</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Gestão manual e desorganizada</p>
+                  </div>
+                </div>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Planilhas desorganizadas</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Dados espalhados, difícil de encontrar</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Perda de informações</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Anotações em papel que se perdem</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Erros no caixa</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Dinheiro não bate no final do mês</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Tempo perdido procurando</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Horas buscando histórico de clientes</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <X className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Decisões no escuro</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Sem relatórios para analisar negócio</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Depois - Com o Sistema */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-linear-to-r from-green-500 to-emerald-500 rounded-2xl blur opacity-30 group-hover:opacity-40 transition"></div>
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 border-2 border-green-200 dark:border-green-900">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Com o CRM Ateliê</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Tudo organizado e automatizado</p>
+                  </div>
+                </div>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Tudo centralizado</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Busca instantânea de qualquer informação</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Histórico completo</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Cada cliente com todos os detalhes salvos</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Controle financeiro preciso</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Sabe exatamente quanto entrou e saiu</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Economia de 5h por semana</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Menos tempo em tarefas administrativas</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Relatórios em tempo real</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Decisões baseadas em dados concretos</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats de Impacto */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-5xl mx-auto">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="text-4xl font-bold text-blue-600 mb-2">5h</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Economizadas por semana</div>
+            </div>
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="text-4xl font-bold text-green-600 mb-2">95%</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Menos erros no caixa</div>
+            </div>
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="text-4xl font-bold text-purple-600 mb-2">3x</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Mais rápido para buscar</div>
+            </div>
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="text-4xl font-bold text-orange-600 mb-2">100%</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Dados organizados</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Pricing Section */}
       <div className="px-4 py-16 sm:py-24 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
@@ -874,14 +1222,12 @@ export default function HomePage() {
                 <div className="text-5xl font-bold mb-2 bg-linear-to-r from-white to-blue-100 bg-clip-text text-transparent">SSL</div>
                 <div className="text-blue-100 font-medium">Segurança Total</div>
                 <div className="text-blue-200 text-xs mt-1">Criptografia & LGPD</div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* FAQ Section */}
-      <div className="px-4 py-16 sm:py-24 bg-linear-to-r from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      {/* CTA Section */}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm font-medium mb-6">
@@ -1095,6 +1441,35 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Sticky CTA - Aparece ao rolar */}
+      <div className={`sticky-cta ${showStickyCTA ? 'visible' : ''}`}>
+        <div className="bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl border-t-4 border-white">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <p className="font-bold text-lg mb-1">Pronto para transformar seu ateliê?</p>
+              <p className="text-sm text-blue-100">Comece grátis agora - sem cartão de crédito!</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/cadastro" onClick={triggerConfetti}>
+                <Button 
+                  size="lg" 
+                  className="bg-white text-blue-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-bold"
+                >
+                  <Zap className="h-5 w-5 mr-2" />
+                  Começar Grátis →
+                </Button>
+              </Link>
+              <button 
+                className="text-white hover:text-gray-200 text-sm underline"
+                onClick={() => setShowStickyCTA(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
