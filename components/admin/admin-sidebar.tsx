@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Building2,
   CreditCard,
-  BarChart3,
   Users,
   LogOut,
   ChevronRight,
@@ -16,47 +15,46 @@ import {
   Settings,
   FileText,
   TrendingUp,
-  DollarSign,
+  Globe,
+  Flag,
+  Activity,
+  UserCog,
+  Tag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const menuItems = [
+const menuGroups = [
   {
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/admin/dashboard',
+    label: 'Visão Geral',
+    items: [
+      { label: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
+      { label: 'Análises', icon: TrendingUp, href: '/admin/analytics' },
+      { label: 'Logs', icon: FileText, href: '/admin/logs' },
+      { label: 'Saúde do Sistema', icon: Activity, href: '/admin/health' },
+    ],
   },
   {
-    label: 'Organizações',
-    icon: Building2,
-    href: '/admin/organizations',
+    label: 'Gestão',
+    items: [
+      { label: 'Organizações', icon: Building2, href: '/admin/organizations' },
+      { label: 'Usuários', icon: Users, href: '/admin/users' },
+      { label: 'Planos', icon: CreditCard, href: '/admin/plans' },
+      { label: 'Assinaturas', icon: UserCog, href: '/admin/subscriptions' },
+      { label: 'Cupons', icon: Tag, href: '/admin/coupons' },
+    ],
   },
   {
-    label: 'Planos',
-    icon: CreditCard,
-    href: '/admin/subscriptions',
-  },
-  {
-    label: 'Billing',
-    icon: DollarSign,
-    href: '/admin/billing',
-  },
-  {
-    label: 'Analytics',
-    icon: TrendingUp,
-    href: '/admin/analytics',
-  },
-  {
-    label: 'Logs',
-    icon: FileText,
-    href: '/admin/logs',
-  },
-  {
-    label: 'Configurações',
-    icon: Settings,
-    href: '/admin/settings',
+    label: 'Produto',
+    items: [
+      { label: 'Landing Page', icon: Globe, href: '/admin/landing' },
+      { label: 'Funcionalidades', icon: Flag, href: '/admin/feature-flags' },
+      { label: 'Configurações', icon: Settings, href: '/admin/settings' },
+    ],
   },
 ]
+
+// Flatten for mobile use
+const menuItems = menuGroups.flatMap((g) => g.items)
 
 export function AdminSidebar() {
   const pathname = usePathname()
@@ -96,27 +94,35 @@ export function AdminSidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => {
-              const isActive = pathname.startsWith(item.href)
-              const Icon = item.icon
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight className="w-4 h-4" />}
-                </Link>
-              )
-            })}
+          <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
+            {menuGroups.map((group) => (
+              <div key={group.label}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-4 mb-1.5">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const isActive = pathname.startsWith(item.href)
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-medium'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="flex-1 text-sm">{item.label}</span>
+                        {isActive && <ChevronRight className="w-3.5 h-3.5" />}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* Footer */}

@@ -5,29 +5,11 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { MoreVertical, UserPlus, Shield, Trash2 } from 'lucide-react'
+import { MoreVertical, UserPlus, Trash2, Loader2, Shield } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Admin {
   id: string
@@ -35,45 +17,68 @@ interface Admin {
   email: string
   role: 'super_admin' | 'admin' | 'support' | 'billing'
   createdAt: string
-  lastLogin?: string
 }
 
 interface AdminsManagementProps {
   admins: Admin[]
+  onRefresh?: () => void
 }
 
-const roleConfig = {
-  super_admin: { label: 'Super Admin', variant: 'default' as const, color: 'bg-purple-500' },
-  admin: { label: 'Admin', variant: 'secondary' as const, color: 'bg-blue-500' },
-  support: { label: 'Suporte', variant: 'outline' as const, color: 'bg-green-500' },
-  billing: { label: 'Financeiro', variant: 'outline' as const, color: 'bg-yellow-500' },
-}
-
-export function AdminsManagement({ admins }: AdminsManagementProps) {
+export function AdminsManagement({ admins, onRefresh }: AdminsManagementProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [newAdminEmail, setNewAdminEmail] = useState('')
-  const [newAdminName, setNewAdminName] = useState('')
-  const [newAdminRole, setNewAdminRole] = useState<string>('admin')
+  const [newEmail, setNewEmail] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const hasData = admins.length > 0
-
-  const handleAddAdmin = () => {
-    // TODO: Implementar adição de admin
-    console.log('Adicionar admin:', { newAdminEmail, newAdminName, newAdminRole })
-    setIsAddDialogOpen(false)
-    setNewAdminEmail('')
-    setNewAdminName('')
-    setNewAdminRole('admin')
+  const handleAddAdmin = async () => {
+    if (!newEmail || !newPassword) {
+      toast.error('Email e senha são obrigatórios')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail, name: newName, password: newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao adicionar admin')
+      toast.success(data.promoted ? 'Usuário promovido a admin!' : 'Admin criado com sucesso!')
+      setIsAddDialogOpen(false)
+      setNewEmail('')
+      setNewName('')
+      setNewPassword('')
+      onRefresh?.()
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleChangeRole = (adminId: string, newRole: string) => {
-    // TODO: Implementar mudança de role
-    console.log('Mudar role:', { adminId, newRole })
-  }
-
-  const handleRemoveAdmin = (adminId: string) => {
-    // TODO: Implementar remoção de admin
-    console.log('Remover admin:', adminId)
+  const handleRemove = async (id: string, email: string) => {
+    if (!confirm('Remover privilégios de admin de ' + email + '?')) return
+    setRemovingId(id)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? 'Erro ao remover admin')
+      }
+      toast.success('Admin removido com sucesso')
+      onRefresh?.()
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setRemovingId(null)
+    }
   }
 
   return (
@@ -83,7 +88,9 @@ export function AdminsManagement({ admins }: AdminsManagementProps) {
           <div>
             <h3 className="text-lg font-semibold">Administradores</h3>
             <p className="text-sm text-muted-foreground">
-              {hasData ? `${admins.length} administradores` : 'Nenhum administrador cadastrado'}
+              {admins.length > 0
+                ? `${admins.length} admin${admins.length !== 1 ? 's' : ''} com acesso master`
+                : 'Nenhum administrador cadastrado'}
             </p>
           </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -92,77 +99,60 @@ export function AdminsManagement({ admins }: AdminsManagementProps) {
           </Button>
         </div>
 
-        {hasData ? (
+        {admins.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium">Nome</th>
-                    <th className="text-left p-4 text-sm font-medium">Email</th>
-                    <th className="text-left p-4 text-sm font-medium">Role</th>
-                    <th className="text-left p-4 text-sm font-medium">Criado em</th>
-                    <th className="text-left p-4 text-sm font-medium">Último Login</th>
-                    <th className="text-right p-4 text-sm font-medium">Ações</th>
+            <table className="w-full">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left p-4 text-sm font-medium">Nome</th>
+                  <th className="text-left p-4 text-sm font-medium">Email</th>
+                  <th className="text-left p-4 text-sm font-medium">Nível</th>
+                  <th className="text-left p-4 text-sm font-medium">Criado em</th>
+                  <th className="text-right p-4 text-sm font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {admins.map((admin) => (
+                  <tr key={admin.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="p-4 font-medium">{admin.name}</td>
+                    <td className="p-4 text-sm text-muted-foreground">{admin.email}</td>
+                    <td className="p-4">
+                      <Badge className="bg-purple-500 text-white hover:bg-purple-600">
+                        <Shield className="w-3 h-3 mr-1" />
+                        Master
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-sm text-muted-foreground">
+                      {new Date(admin.createdAt).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="p-4 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={removingId === admin.id}>
+                            {removingId === admin.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <MoreVertical className="h-4 w-4" />}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleRemove(admin.id, admin.email)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remover Admin
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {admins.map((admin) => {
-                    const role = roleConfig[admin.role]
-                    return (
-                      <tr key={admin.id} className="hover:bg-muted/50 transition-colors">
-                        <td className="p-4">
-                          <div className="font-medium">{admin.name}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-sm text-muted-foreground">{admin.email}</div>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant={role.variant}>{role.label}</Badge>
-                        </td>
-                        <td className="p-4 text-sm text-muted-foreground">
-                          {new Date(admin.createdAt).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="p-4 text-sm text-muted-foreground">
-                          {admin.lastLogin
-                            ? new Date(admin.lastLogin).toLocaleDateString('pt-BR')
-                            : 'Nunca'
-                          }
-                        </td>
-                        <td className="p-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleChangeRole(admin.id, 'admin')}>
-                                <Shield className="h-4 w-4 mr-2" />
-                                Alterar Permissão
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleRemoveAdmin(admin.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remover Admin
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="border-2 border-dashed border-muted rounded-lg p-12 text-center">
-            <p className="text-muted-foreground mb-4">
-              Nenhum administrador cadastrado
-            </p>
+            <p className="text-muted-foreground mb-4">Nenhum administrador cadastrado</p>
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <UserPlus className="h-4 w-4 mr-2" />
               Adicionar Primeiro Admin
@@ -171,59 +161,51 @@ export function AdminsManagement({ admins }: AdminsManagementProps) {
         )}
       </Card>
 
-      {/* Dialog de Adicionar Admin */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Administrador</DialogTitle>
             <DialogDescription>
-              Convide um novo administrador para o sistema
+              Crie um novo admin ou promova um usuário existente pelo email.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
+              <Label>Nome Completo</Label>
               <Input
-                id="name"
                 placeholder="João Silva"
-                value={newAdminName}
-                onChange={(e) => setNewAdminName(e.target.value)}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label>Email *</Label>
               <Input
-                id="email"
                 type="email"
                 placeholder="joao@example.com"
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se o email já existir no sistema, o usuário será promovido a admin.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Senha * (apenas para novos usuários)</Label>
+              <Input
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Nível de Acesso</Label>
-              <Select value={newAdminRole} onValueChange={setNewAdminRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="super_admin">Super Admin (Acesso Total)</SelectItem>
-                  <SelectItem value="admin">Admin (Gestão Completa)</SelectItem>
-                  <SelectItem value="support">Suporte (Visualização e Suporte)</SelectItem>
-                  <SelectItem value="billing">Financeiro (Apenas Billing)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleAddAdmin}>
+            <Button onClick={handleAddAdmin} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Adicionar Admin
             </Button>
           </DialogFooter>

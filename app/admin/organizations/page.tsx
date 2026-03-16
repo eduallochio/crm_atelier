@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { OrganizationTable } from '@/components/admin/organization-table'
@@ -11,7 +10,7 @@ import { BulkActionsModal } from '@/components/admin/bulk-actions-modal'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro' | 'enterprise'
+  plan: 'free' | 'pro'
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number
@@ -20,7 +19,6 @@ interface Organization {
 }
 
 export default function OrganizationsPage() {
-  const supabase = createClient()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -30,53 +28,16 @@ export default function OrganizationsPage() {
 
   const fetchOrganizations = useCallback(async () => {
     try {
-      const { data: orgs, error } = await supabase
-        .from('organizations')
-        .select(`
-          id,
-          name,
-          plan,
-          state,
-          created_at
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      // Buscar contagens para cada organização
-      const orgsWithCounts = await Promise.all(
-        (orgs || []).map(async (org) => {
-          // Contar usuários
-          const { count: usersCount } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('organization_id', org.id)
-
-          // Contar clientes
-          const { count: clientsCount } = await supabase
-            .from('org_clients')
-            .select('*', { count: 'exact', head: true })
-            .eq('organization_id', org.id)
-
-          // Calcular MRR
-          const mrr = org.plan === 'pro' ? 59.90 : org.plan === 'enterprise' ? 299.90 : 0
-
-          return {
-            ...org,
-            users_count: usersCount || 0,
-            clients_count: clientsCount || 0,
-            mrr,
-          }
-        })
-      )
-
-      setOrganizations(orgsWithCounts)
+      const res = await fetch('/api/admin/organizations')
+      if (!res.ok) throw new Error('Erro ao buscar organizações')
+      const data = await res.json()
+      setOrganizations(data)
     } catch (error) {
       console.error('Erro ao buscar organizações:', error)
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     fetchOrganizations()
@@ -170,7 +131,6 @@ export default function OrganizationsPage() {
               <option value="all">Todos os planos</option>
               <option value="free">Free</option>
               <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
             </select>
           </div>
 

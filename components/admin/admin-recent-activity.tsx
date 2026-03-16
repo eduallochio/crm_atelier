@@ -3,149 +3,74 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-interface Activity {
-  id: string
-  action: string
-  organization_name?: string
-  created_at: string
-  type: 'success' | 'pending' | 'error'
-}
-
-// Dados vazios para desenvolvimento
-function getMockActivities(): Activity[] {
-  return []
-}
 
 interface AdminLog {
   id: string
   action: string
-  resource_type: string
+  description: string
+  admin_email: string | null
+  resource_type: string | null
   created_at: string
 }
 
+const ACTION_COLORS: Record<string, string> = {
+  CREATE:      'bg-emerald-500',
+  UPDATE:      'bg-blue-500',
+  DELETE:      'bg-red-500',
+  SUSPEND:     'bg-amber-500',
+  REACTIVATE:  'bg-teal-500',
+  CANCEL:      'bg-rose-500',
+  CHANGE_PLAN: 'bg-purple-500',
+  LOGIN:       'bg-sky-500',
+}
+
 export function AdminRecentActivity() {
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [logs, setLogs] = useState<AdminLog[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createClient()
-    const fetchActivities = async () => {
-      try {
-        // Buscar últimas atividades
-        const { data, error } = await supabase
-          .from('admin_logs')
-          .select('id, action, resource_type, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5)
-
-        if (error) {
-          // Tabela não existe - usar dados demo
-          setActivities(getMockActivities())
-          setLoading(false)
-          return
-        }
-
-        // Mapear dados para o formato esperado
-        const mappedActivities: Activity[] = (data || []).map((log: AdminLog) => ({
-          id: log.id,
-          action: getActivityDescription(log.action, log.resource_type),
-          created_at: log.created_at,
-          type: getActivityType(log.action),
-        }))
-
-        setActivities(mappedActivities)
-      } catch (error) {
-        // Usar dados demo em caso de erro
-        setActivities(getMockActivities())
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchActivities()
+    fetch('/api/admin/logs?limit=8')
+      .then((r) => r.json())
+      .then((data) => setLogs(data.logs ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
-
-  const getActivityIcon = (type: Activity['type']) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
-      case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-600" />
-      case 'pending':
-        return <Clock className="w-5 h-5 text-yellow-600" />
-    }
-  }
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h3 className="font-bold text-gray-900 dark:text-white">Atividade Recente</h3>
-        <Button variant="ghost" size="sm">
-          Ver tudo
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/admin/logs">
+            Ver tudo
+            <ArrowRight className="w-3 h-3 ml-1" />
+          </Link>
         </Button>
       </div>
 
-      {/* Timeline */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
-          <p className="text-gray-500 text-center py-8">Carregando atividades...</p>
-        ) : activities.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">Nenhuma atividade recente</p>
+          <p className="text-gray-500 text-center py-8 text-sm">Carregando...</p>
+        ) : logs.length === 0 ? (
+          <p className="text-gray-500 text-center py-8 text-sm">Nenhuma atividade recente</p>
         ) : (
-          activities.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-4">
-              {/* Icon */}
-              <div className="mt-1">{getActivityIcon(activity.type)}</div>
-
-              {/* Content */}
+          logs.map((log) => (
+            <div key={log.id} className="flex items-start gap-3">
+              <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${ACTION_COLORS[log.action] ?? 'bg-zinc-500'}`} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {activity.action}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {format(
-                    new Date(activity.created_at),
-                    "d 'de' MMMM 'às' HH:mm",
-                    { locale: ptBR }
-                  )}
+                <p className="text-sm text-gray-900 dark:text-white truncate">{log.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {format(new Date(log.created_at), "d MMM 'às' HH:mm", { locale: ptBR })}
+                  {log.admin_email && <span className="ml-1 opacity-60">· {log.admin_email}</span>}
                 </p>
               </div>
             </div>
           ))
         )}
       </div>
-
-      {/* Footer */}
-      <Button
-        variant="outline"
-        className="w-full mt-6"
-        asChild
-      >
-        <a href="/admin/logs">Ver logs completos</a>
-      </Button>
     </div>
   )
-}
-
-function getActivityDescription(action: string, resourceType: string): string {
-  const descriptions: Record<string, string> = {
-    create: `Nova ${resourceType} criada`,
-    update: `${resourceType} atualizada`,
-    delete: `${resourceType} deletada`,
-    login: 'Admin fez login',
-    export: `Dados de ${resourceType} exportados`,
-    view: `${resourceType} visualizada`,
-  }
-  return descriptions[action] || action
-}
-
-function getActivityType(action: string): Activity['type'] {
-  if (action === 'delete') return 'error'
-  if (action === 'create' || action === 'update') return 'success'
-  return 'pending'
 }

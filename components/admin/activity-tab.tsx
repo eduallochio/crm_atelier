@@ -14,7 +14,6 @@ import {
   UserPlus,
   Trash2
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface ActivityLog {
   id: string
@@ -32,64 +31,24 @@ interface ActivityTabProps {
   organizationName: string
 }
 
-export function ActivityTab({ organizationId, organizationName }: ActivityTabProps) {
+export function ActivityTab({ organizationId }: ActivityTabProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchActivities = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
-
-      const { data, error } = await supabase
-        .from('admin_logs')
-        .select('id, action, resource_type, resource_id, description, admin_id, created_at')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (error) throw error
-
-      // Buscar emails dos admins
-      const adminIds = [...new Set((data || []).map(log => log.admin_id).filter(Boolean))]
-      
-      let adminEmails: Record<string, string> = {}
-      if (adminIds.length > 0) {
-        const { data: admins } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .in('id', adminIds)
-
-        adminEmails = (admins || []).reduce((acc, admin) => {
-          acc[admin.id] = admin.email
-          return acc
-        }, {} as Record<string, string>)
-      }
-
-      const activitiesWithEmails = (data || []).map(log => ({
-        ...log,
-        admin_email: log.admin_id ? adminEmails[log.admin_id] : 'Sistema',
-      }))
-
-      setActivities(activitiesWithEmails)
+      const res = await fetch(`/api/admin/organizations/${organizationId}/activity`)
+      if (!res.ok) throw new Error('Erro ao buscar atividades')
+      const data = await res.json()
+      setActivities(data)
     } catch (error) {
       console.error('Erro ao buscar atividades:', error)
-      // Se não existir a tabela, criar dados simulados
-      setActivities([
-        {
-          id: '1',
-          action: 'organization.created',
-          resource_type: 'organization',
-          resource_id: organizationId,
-          description: `Organização ${organizationName} criada`,
-          admin_email: 'Sistema',
-          created_at: new Date().toISOString(),
-        },
-      ])
+      setActivities([])
     } finally {
       setLoading(false)
     }
-  }, [organizationId, organizationName])
+  }, [organizationId])
 
   useEffect(() => {
     fetchActivities()

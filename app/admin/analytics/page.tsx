@@ -1,118 +1,162 @@
-import { Header } from '@/components/layouts/header'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { GrowthChart } from '@/components/admin/growth-chart'
 import { ChurnAnalysis } from '@/components/admin/churn-analysis'
-import { CohortAnalysis } from '@/components/admin/cohort-analysis'
 import { TopClients } from '@/components/admin/top-clients'
-import { FeatureUsage } from '@/components/admin/feature-usage'
-import { Button } from '@/components/ui/button'
-import { Download, Mail, Calendar } from 'lucide-react'
 
-export default function AdminAnalyticsPage() {
-  // TODO: Substituir por hooks reais:
-  // const { growthData } = useGrowthData()
-  // const { churnData } = useChurnData()
-  // const { cohortData } = useCohortData()
-  // const { topClients } = useTopClients()
-  // const { featureUsage } = useFeatureUsage()
-
-  const growthData = {
-    monthly: [
-      { month: 'Jan', users: 0, revenue: 0, growth: 0 },
-      { month: 'Fev', users: 0, revenue: 0, growth: 0 },
-      { month: 'Mar', users: 0, revenue: 0, growth: 0 },
-      { month: 'Abr', users: 0, revenue: 0, growth: 0 },
-      { month: 'Mai', users: 0, revenue: 0, growth: 0 },
-      { month: 'Jun', users: 0, revenue: 0, growth: 0 },
-    ],
+interface AnalyticsData {
+  monthly: { month: string; users: number; revenue: number; growth: number }[]
+  planDistribution: Record<string, number>
+  churn: {
+    rate: number
+    trend: 'up' | 'down'
+    cancelled: number
+    total: number
+    reasons: { reason: string; count: number; percentage: number }[]
   }
-
-  const churnData = {
-    rate: 0,
-    trend: 'down' as const,
-    reasons: [
-      { reason: 'Preço alto', count: 0, percentage: 0 },
-      { reason: 'Falta de recursos', count: 0, percentage: 0 },
-      { reason: 'Mudança de negócio', count: 0, percentage: 0 },
-      { reason: 'Satisfeito com período gratuito', count: 0, percentage: 0 },
-      { reason: 'Concorrência', count: 0, percentage: 0 },
-    ],
-  }
-
-  const cohortData: Array<{
-    cohort: string
-    month0: number
-    month1: number
-    month2: number
-    month3: number
-    month4: number
-    month5: number
-  }> = []
-
-  const topClients: Array<{
+  topOrgs: {
     id: string
     name: string
     plan: string
     revenue: number
+    clients_count: number
+    orders_count: number
     growth: number
-  }> = []
+  }[]
+}
 
-  const featureUsage = [
-    { feature: 'Gestão de Clientes', free: 0, pro: 0, enterprise: 0 },
-    { feature: 'Ordens de Serviço', free: 0, pro: 0, enterprise: 0 },
-    { feature: 'Relatórios', free: 0, pro: 0, enterprise: 0 },
-    { feature: 'API Access', free: 0, pro: 0, enterprise: 0 },
-    { feature: 'Multi-usuários', free: 0, pro: 0, enterprise: 0 },
-  ]
+const PLAN_COLORS: Record<string, string> = {
+  free: 'bg-gray-400', pro: 'bg-blue-500',
+}
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Free', pro: 'Pro',
+}
+
+export default function AdminAnalyticsPage() {
+  const [data, setData]       = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/admin/analytics')
+      .then((r) => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  const totalOrgs = data
+    ? Object.values(data.planDistribution).reduce((a, b) => a + b, 0)
+    : 0
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-64 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  if (!data) {
+    return <div className="text-center py-20 text-gray-400">Erro ao carregar dados de analytics</div>
+  }
 
   return (
-    <div>
-      <Header
-        title="Analytics"
-        description="Relatórios e análises avançadas"
-      />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Análises</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Dados reais do sistema</p>
+      </div>
 
-      <div className="p-6 space-y-6">
-        {/* Ações de Exportação */}
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Excel
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-          <div className="flex-1" />
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Agendar Relatório
-          </Button>
-          <Button variant="outline" size="sm">
-            <Mail className="h-4 w-4 mr-2" />
-            Enviar por Email
-          </Button>
+      {/* Distribuicao de Planos */}
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribuicao de Planos</h3>
+        <div className="flex items-center gap-1 mb-4 h-8 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+          {Object.entries(data.planDistribution).map(([plan, count]) => {
+            const pct = totalOrgs > 0 ? (count / totalOrgs) * 100 : 0
+            return pct > 0 ? (
+              <div
+                key={plan}
+                className={`${PLAN_COLORS[plan] || 'bg-gray-400'} h-full flex items-center justify-center text-xs text-white font-medium transition-all`}
+                style={{ width: `${pct}%` }}
+                title={`${PLAN_LABELS[plan] || plan}: ${count}`}
+              >
+                {pct > 8 ? `${Math.round(pct)}%` : ''}
+              </div>
+            ) : null
+          })}
         </div>
-
-        {/* Crescimento Mensal */}
-        <GrowthChart data={growthData.monthly} />
-
-        {/* Análise de Churn */}
-        <ChurnAnalysis data={churnData} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Clientes */}
-          <TopClients clients={topClients} />
-
-          {/* Uso de Features */}
-          <FeatureUsage features={featureUsage} />
+        <div className="flex flex-wrap items-center gap-6">
+          {Object.entries(data.planDistribution).map(([plan, count]) => (
+            <div key={plan} className="flex items-center gap-2 text-sm">
+              <div className={`w-3 h-3 rounded-full ${PLAN_COLORS[plan] || 'bg-gray-400'}`} />
+              <span className="text-gray-600 dark:text-gray-400">{PLAN_LABELS[plan] || plan}:</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{count}</span>
+            </div>
+          ))}
+          <div className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+            Total: <strong className="text-gray-900 dark:text-white">{totalOrgs}</strong> organizacoes
+          </div>
         </div>
+      </div>
 
-        {/* Análise de Cohorts */}
-        <CohortAnalysis data={cohortData} />
+      {/* Crescimento Mensal */}
+      <GrowthChart data={data.monthly} />
+
+      {/* Churn + Top Orgs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChurnAnalysis data={data.churn} />
+        <TopClients clients={data.topOrgs.map((o) => ({
+          id:      o.id,
+          name:    o.name,
+          plan:    PLAN_LABELS[o.plan] || o.plan,
+          revenue: o.revenue,
+          growth:  o.growth,
+        }))} />
+      </div>
+
+      {/* Tabela Top Orgs */}
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Organizacoes por Atividade</h3>
+        {data.topOrgs.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">#</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Organizacao</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Plano</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Clientes</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Ordens</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">MRR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.topOrgs.map((org, i) => (
+                  <tr key={org.id} className="border-b border-gray-50 dark:border-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                    <td className="py-3 px-4 text-gray-400 font-mono text-xs">{i + 1}</td>
+                    <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{org.name}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium text-white ${PLAN_COLORS[org.plan] || 'bg-gray-400'}`}>
+                        {PLAN_LABELS[org.plan] || org.plan}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{org.clients_count}</td>
+                    <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{org.orders_count}</td>
+                    <td className="py-3 px-4 text-right font-medium text-gray-900 dark:text-white">
+                      {org.revenue > 0 ? `R$ ${org.revenue.toFixed(2)}` : 'Gratis'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 py-8">Nenhuma organizacao encontrada</p>
+        )}
       </div>
     </div>
   )

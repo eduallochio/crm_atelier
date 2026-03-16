@@ -1,7 +1,7 @@
 'use client'
 
 interface PlanBadgeProps {
-  plan: 'free' | 'pro' | 'enterprise'
+  plan: 'free' | 'pro'
 }
 
 const planConfig = {
@@ -12,10 +12,6 @@ const planConfig = {
   pro: {
     label: 'Pro',
     className: 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700',
-  },
-  enterprise: {
-    label: 'Enterprise',
-    className: 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700',
   },
 }
 

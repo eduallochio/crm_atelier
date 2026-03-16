@@ -17,7 +17,7 @@ interface BillingTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro' | 'enterprise'
+    plan: 'free' | 'pro'
     state: 'active' | 'trial' | 'cancelled' | 'suspended'
     mrr: number
   }

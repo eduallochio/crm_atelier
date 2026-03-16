@@ -1,34 +1,58 @@
 'use client'
 
+import { useState } from 'react'
 import { format, addMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { 
-  CreditCard, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
+import {
+  CreditCard,
+  Calendar,
+  TrendingUp,
+  Users,
   FileText,
   AlertTriangle,
   ArrowUpCircle,
-  ArrowDownCircle
+  ArrowDownCircle,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanBadge } from '@/components/admin/subscription-badge'
+import { toast } from 'sonner'
 
 interface SubscriptionTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro' | 'enterprise'
+    plan: 'free' | 'pro'
     state: 'active' | 'trial' | 'cancelled' | 'suspended'
     created_at: string
     users_count: number
     clients_count: number
     mrr: number
   }
+  onRefresh?: () => void
 }
 
-export function SubscriptionTab({ organization }: SubscriptionTabProps) {
+export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProps) {
+  const [loadingPlan, setLoadingPlan] = useState(false)
+
+  async function changePlan(newPlan: string) {
+    setLoadingPlan(true)
+    try {
+      const res = await fetch(`/api/admin/organizations/${organization.id}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: newPlan }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao alterar plano')
+      toast.success(`Plano alterado para ${newPlan}`)
+      onRefresh?.()
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setLoadingPlan(false)
+    }
+  }
   // Calcular próxima renovação
   const nextRenewal = addMonths(new Date(), 1)
 
@@ -36,7 +60,6 @@ export function SubscriptionTab({ organization }: SubscriptionTabProps) {
   const planLimits = {
     free: { users: 3, clients: 50, orders: 100 },
     pro: { users: Infinity, clients: Infinity, orders: Infinity },
-    enterprise: { users: Infinity, clients: Infinity, orders: Infinity },
   }
 
   const limits = planLimits[organization.plan]
@@ -62,11 +85,9 @@ export function SubscriptionTab({ organization }: SubscriptionTabProps) {
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
               {organization.state === 'trial' && 'Trial ativo - '}
-              {organization.plan === 'free' 
+              {organization.plan === 'free'
                 ? 'Plano gratuito com recursos limitados'
-                : organization.plan === 'pro'
-                ? 'Plano profissional com recursos completos'
-                : 'Plano empresarial com suporte prioritário'}
+                : 'Plano profissional com recursos completos'}
             </p>
           </div>
           <div className="text-right">
@@ -77,36 +98,18 @@ export function SubscriptionTab({ organization }: SubscriptionTabProps) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           {organization.plan === 'free' && (
-            <Button className="gap-2">
-              <ArrowUpCircle className="w-4 h-4" />
-              Fazer Upgrade
-            </Button>
-          )}
-          {organization.plan === 'enterprise' && (
-            <Button variant="outline" className="gap-2">
-              <ArrowDownCircle className="w-4 h-4" />
-              Fazer Downgrade
+            <Button className="gap-2" disabled={loadingPlan} onClick={() => changePlan('pro')}>
+              {loadingPlan ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpCircle className="w-4 h-4" />}
+              Upgrade para Pro
             </Button>
           )}
           {organization.plan === 'pro' && (
-            <>
-              <Button className="gap-2">
-                <ArrowUpCircle className="w-4 h-4" />
-                Upgrade para Enterprise
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <ArrowDownCircle className="w-4 h-4" />
-                Downgrade para Free
-              </Button>
-            </>
-          )}
-          {organization.state !== 'cancelled' && (
-            <Button variant="destructive">Cancelar Assinatura</Button>
-          )}
-          {organization.state === 'trial' && (
-            <Button variant="outline">Estender Trial</Button>
+            <Button variant="outline" className="gap-2" disabled={loadingPlan} onClick={() => changePlan('free')}>
+              {loadingPlan ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowDownCircle className="w-4 h-4" />}
+              Downgrade para Free
+            </Button>
           )}
         </div>
       </div>

@@ -105,7 +105,6 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
             <SelectItem value="all">Todos os Planos</SelectItem>
             <SelectItem value="free">Free</SelectItem>
             <SelectItem value="pro">Pro</SelectItem>
-            <SelectItem value="enterprise">Enterprise</SelectItem>
           </SelectContent>
         </Select>
       </div>

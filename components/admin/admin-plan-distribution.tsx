@@ -13,19 +13,16 @@ interface PlanDistributionData {
 export function AdminPlanDistribution({
   freePlanCount,
   proPlanCount,
-  enterprisePlanCount,
 }: {
   freePlanCount: number
   proPlanCount: number
-  enterprisePlanCount: number
 }) {
   const data: PlanDistributionData[] = [
     { name: 'Free', value: freePlanCount, color: '#6b7280' },
     { name: 'Pro', value: proPlanCount, color: '#3b82f6' },
-    { name: 'Enterprise', value: enterprisePlanCount, color: '#8b5cf6' },
   ].filter((item) => item.value > 0)
 
-  const total = freePlanCount + proPlanCount + enterprisePlanCount
+  const total = freePlanCount + proPlanCount
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
@@ -66,28 +63,19 @@ export function AdminPlanDistribution({
           </ResponsiveContainer>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="grid grid-cols-2 gap-4 mt-6">
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Free</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">{freePlanCount}</p>
               <p className="text-xs text-gray-500">
-                {((freePlanCount / total) * 100).toFixed(0)}%
+                {total > 0 ? ((freePlanCount / total) * 100).toFixed(0) : 0}%
               </p>
             </div>
             <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-center">
               <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Pro</p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{proPlanCount}</p>
               <p className="text-xs text-blue-500">
-                {((proPlanCount / total) * 100).toFixed(0)}%
-              </p>
-            </div>
-            <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg text-center">
-              <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">Enterprise</p>
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                {enterprisePlanCount}
-              </p>
-              <p className="text-xs text-purple-500">
-                {((enterprisePlanCount / total) * 100).toFixed(0)}%
+                {total > 0 ? ((proPlanCount / total) * 100).toFixed(0) : 0}%
               </p>
             </div>
           </div>

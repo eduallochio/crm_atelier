@@ -3,10 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building2, Calendar, Users, TrendingUp } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanBadge, StateBadge } from '@/components/admin/subscription-badge'
+import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OverviewTab } from '@/components/admin/overview-tab'
 import { SubscriptionTab } from '@/components/admin/subscription-tab'
@@ -19,7 +19,7 @@ import { NotesTab } from '@/components/admin/notes-tab'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro' | 'enterprise'
+  plan: 'free' | 'pro'
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number
@@ -32,43 +32,36 @@ export default function OrganizationDetailPage() {
   const orgId = params.id as string
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  async function changeState(action: 'suspend' | 'reactivate' | 'cancel') {
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/admin/organizations/${orgId}/state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao alterar estado')
+      const labels = { suspend: 'Organização suspensa', reactivate: 'Organização reativada', cancel: 'Assinatura cancelada' }
+      toast.success(labels[action])
+      fetchOrganization()
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const fetchOrganization = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
+      const res = await fetch(`/api/admin/organizations/${orgId}`)
+      if (!res.ok) throw new Error('Não encontrado')
+      const org = await res.json()
 
-      // Buscar organização
-      const { data: org, error } = await supabase
-        .from('organizations')
-        .select('id, name, plan, state, created_at')
-        .eq('id', orgId)
-        .single()
-
-      if (error) throw error
-      if (!org) return
-
-      // Contar usuários
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', org.id)
-
-      // Contar clientes
-      const { count: clientsCount } = await supabase
-        .from('org_clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', org.id)
-
-      // Calcular MRR
-      const mrr = org.plan === 'pro' ? 59.90 : org.plan === 'enterprise' ? 299.90 : 0
-
-      setOrganization({
-        ...org,
-        users_count: usersCount || 0,
-        clients_count: clientsCount || 0,
-        mrr,
-      })
+      setOrganization(org)
     } catch (error) {
       console.error('Erro ao buscar organização:', error)
     } finally {
@@ -135,9 +128,36 @@ export default function OrganizationDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline">Editar</Button>
-            <Button variant="outline">Suspender</Button>
-            <Button variant="destructive">Cancelar</Button>
+            {organization.state === 'suspended' ? (
+              <Button
+                variant="outline"
+                disabled={actionLoading}
+                onClick={() => changeState('reactivate')}
+                className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Reativar
+              </Button>
+            ) : organization.state !== 'cancelled' ? (
+              <Button
+                variant="outline"
+                disabled={actionLoading}
+                onClick={() => changeState('suspend')}
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Suspender
+              </Button>
+            ) : null}
+            {organization.state !== 'cancelled' && (
+              <Button
+                variant="destructive"
+                disabled={actionLoading}
+                onClick={() => { if (confirm(`Cancelar assinatura de "${organization.name}"?`)) changeState('cancel') }}
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Cancelar
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -218,7 +238,7 @@ export default function OrganizationDetailPage() {
         </TabsContent>
 
         <TabsContent value="subscription">
-          <SubscriptionTab organization={organization} />
+          <SubscriptionTab organization={organization} onRefresh={fetchOrganization} />
         </TabsContent>
 
         <TabsContent value="usage">

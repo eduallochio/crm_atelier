@@ -6,7 +6,6 @@ interface Feature {
   feature: string
   free: number
   pro: number
-  enterprise: number
 }
 
 interface FeatureUsageProps {
@@ -14,7 +13,7 @@ interface FeatureUsageProps {
 }
 
 export function FeatureUsage({ features }: FeatureUsageProps) {
-  const hasData = features.some(f => f.free > 0 || f.pro > 0 || f.enterprise > 0)
+  const hasData = features.some(f => f.free > 0 || f.pro > 0)
 
   return (
     <Card className="p-6">
@@ -26,10 +25,9 @@ export function FeatureUsage({ features }: FeatureUsageProps) {
       {hasData ? (
         <div className="space-y-6">
           {features.map((feature, index) => {
-            const total = feature.free + feature.pro + feature.enterprise
+            const total = feature.free + feature.pro
             const freePercent = total > 0 ? (feature.free / total) * 100 : 0
             const proPercent = total > 0 ? (feature.pro / total) * 100 : 0
-            const enterprisePercent = total > 0 ? (feature.enterprise / total) * 100 : 0
 
             return (
               <div key={index}>
@@ -56,14 +54,6 @@ export function FeatureUsage({ features }: FeatureUsageProps) {
                       {proPercent >= 10 && `${proPercent.toFixed(0)}%`}
                     </div>
                   )}
-                  {enterprisePercent > 0 && (
-                    <div
-                      className="bg-purple-500 flex items-center justify-center text-xs text-white font-medium"
-                      style={{ width: `${enterprisePercent}%` }}
-                    >
-                      {enterprisePercent >= 10 && `${enterprisePercent.toFixed(0)}%`}
-                    </div>
-                  )}
                 </div>
 
                 {/* Legenda */}
@@ -78,12 +68,6 @@ export function FeatureUsage({ features }: FeatureUsageProps) {
                     <div className="w-3 h-3 bg-blue-500 rounded" />
                     <span className="text-muted-foreground">
                       Pro ({feature.pro})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-purple-500 rounded" />
-                    <span className="text-muted-foreground">
-                      Enterprise ({feature.enterprise})
                     </span>
                   </div>
                 </div>

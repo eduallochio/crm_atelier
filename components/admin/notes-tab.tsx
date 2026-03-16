@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { StickyNote, Plus, Trash2, Star, Tag } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
 interface Note {
@@ -32,43 +31,10 @@ export function NotesTab({ organizationId }: NotesTabProps) {
   const fetchNotes = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
-
-      // Tentar buscar notas da tabela
-      const { data, error } = await supabase
-        .from('admin_notes')
-        .select('id, content, tags, is_important, created_by, created_at')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Erro ao buscar notas:', error)
-        setNotes([])
-        return
-      }
-
-      // Buscar emails dos admins
-      const adminIds = [...new Set((data || []).map(note => note.created_by).filter(Boolean))]
-      
-      let adminEmails: Record<string, string> = {}
-      if (adminIds.length > 0) {
-        const { data: admins } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .in('id', adminIds)
-
-        adminEmails = (admins || []).reduce((acc, admin) => {
-          acc[admin.id] = admin.email
-          return acc
-        }, {} as Record<string, string>)
-      }
-
-      const notesWithEmails = (data || []).map(note => ({
-        ...note,
-        admin_email: note.created_by ? adminEmails[note.created_by] : 'Desconhecido',
-      }))
-
-      setNotes(notesWithEmails)
+      const res = await fetch(`/api/admin/organizations/${organizationId}/notes`)
+      if (!res.ok) throw new Error('Erro ao buscar notas')
+      const data = await res.json()
+      setNotes(data)
     } catch (error) {
       console.error('Erro ao buscar notas:', error)
       setNotes([])
@@ -89,44 +55,22 @@ export function NotesTab({ organizationId }: NotesTabProps) {
 
     setSaving(true)
     try {
-      const supabase = createClient()
-
-      // Buscar usuário atual
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
-
       const tags = newTags.split(',').map(t => t.trim()).filter(Boolean)
 
-      const { data, error } = await supabase
-        .from('admin_notes')
-        .insert({
-          organization_id: organizationId,
+      const res = await fetch(`/api/admin/organizations/${organizationId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           content: newNote,
-          tags: tags.length > 0 ? tags : null,
+          tags: tags.length > 0 ? tags : [],
           is_important: isImportant,
-          created_by: user.id,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error('Erro ao salvar nota')
+      const data = await res.json()
 
-      // Adicionar nota à lista
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .single()
-
-      setNotes([
-        {
-          ...data,
-          admin_email: profile?.email || 'Você',
-        },
-        ...notes,
-      ])
-
-      // Limpar formulário
+      setNotes([data, ...notes])
       setNewNote('')
       setNewTags('')
       setIsImportant(false)
@@ -142,15 +86,11 @@ export function NotesTab({ organizationId }: NotesTabProps) {
     if (!confirm('Deseja realmente excluir esta nota?')) return
 
     try {
-      const supabase = createClient()
-
-      const { error } = await supabase
-        .from('admin_notes')
-        .delete()
-        .eq('id', noteId)
-
-      if (error) throw error
-
+      const res = await fetch(
+        `/api/admin/organizations/${organizationId}/notes?noteId=${noteId}`,
+        { method: 'DELETE' }
+      )
+      if (!res.ok) throw new Error('Erro ao excluir nota')
       setNotes(notes.filter(n => n.id !== noteId))
     } catch (error) {
       console.error('Erro ao excluir nota:', error)

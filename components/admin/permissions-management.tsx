@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Shield, Info } from 'lucide-react'
+import { Shield, Info, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 type Permission = 'view' | 'create' | 'edit' | 'delete'
 type Resource = 'organizations' | 'users' | 'billing' | 'analytics' | 'logs' | 'settings' | 'plans'
@@ -66,7 +67,7 @@ const resourceLabels: Record<Resource, string> = {
   organizations: 'Organizações',
   users: 'Usuários',
   billing: 'Faturamento',
-  analytics: 'Analytics',
+  analytics: 'Análises',
   logs: 'Logs',
   settings: 'Configurações',
   plans: 'Planos',
@@ -90,6 +91,23 @@ export function PermissionsManagement() {
   const [selectedRole, setSelectedRole] = useState<string>('admin')
   const [permissions, setPermissions] = useState<RolePermissions>(defaultPermissions)
   const [hasChanges, setHasChanges] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/system-settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.permissions) {
+          try {
+            const loaded = JSON.parse(data.permissions) as RolePermissions
+            setPermissions(loaded)
+          } catch {
+            // keep defaults
+          }
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const togglePermission = (role: string, resource: Resource, permission: Permission) => {
     setPermissions((prev) => {
@@ -113,10 +131,22 @@ export function PermissionsManagement() {
     return permissions[role][resource].includes(permission)
   }
 
-  const handleSave = () => {
-    // TODO: Implementar salvamento de permissões
-    console.log('Salvar permissões:', permissions)
-    setHasChanges(false)
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/system-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: JSON.stringify(permissions) }),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar')
+      toast.success('Permissões salvas com sucesso')
+      setHasChanges(false)
+    } catch {
+      toast.error('Erro ao salvar permissões')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleReset = () => {
@@ -140,10 +170,11 @@ export function PermissionsManagement() {
           </div>
           {hasChanges && (
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleReset}>
+              <Button variant="outline" onClick={handleReset} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Salvar Alterações
               </Button>
             </div>

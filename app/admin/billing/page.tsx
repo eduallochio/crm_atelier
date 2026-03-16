@@ -85,7 +85,7 @@ export default function AdminBillingPage() {
   return (
     <div>
       <Header
-        title="Billing Global"
+        title="Faturamento Global"
         description="Gestão financeira e faturamento"
       />
 

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro' | 'enterprise'
+  plan: 'free' | 'pro'
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number

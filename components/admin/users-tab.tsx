@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Users, Mail, Shield, Ban, Eye, Trash2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
 interface User {
@@ -28,24 +27,10 @@ export function UsersTab({ organizationId }: UsersTabProps) {
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, role, created_at')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      // Simular campos adicionais
-      const usersWithStatus = (data || []).map((user) => ({
-        ...user,
-        is_active: Math.random() > 0.2, // 80% ativos
-        last_sign_in_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }))
-
-      setUsers(usersWithStatus)
+      const res = await fetch(`/api/admin/organizations/${organizationId}/users`)
+      if (!res.ok) throw new Error('Erro ao buscar usuários')
+      const data = await res.json()
+      setUsers(data)
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
     } finally {
