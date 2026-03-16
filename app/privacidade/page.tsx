@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield, Lock, Eye, Download, Trash2, FileText } from 'lucide-react'
 
 export const metadata = {
-  title: 'Política de Privacidade - CRM Atelier',
-  description: 'Política de Privacidade e Proteção de Dados do CRM Atelier conforme LGPD',
+  title: 'Política de Privacidade - Meu Atelier',
+  description: 'Política de Privacidade e Proteção de Dados do Meu Atelier conforme LGPD',
 }
 
 export default function PrivacidadePage() {
@@ -61,7 +61,7 @@ export default function PrivacidadePage() {
               1. Identificação do Controlador
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              O <strong>CRM Atelier</strong> é desenvolvido e operado por:
+              O <strong>Meu Atelier</strong> é desenvolvido e operado por:
             </p>
             <div className="bg-gray-50 rounded-lg p-6 space-y-2">
               <p><strong>Razão Social:</strong> Omega Sistem</p>
@@ -80,7 +80,7 @@ export default function PrivacidadePage() {
               Para questões sobre proteção de dados, entre em contato com nosso Encarregado:
             </p>
             <div className="bg-gray-50 rounded-lg p-6 space-y-2">
-              <p><strong>Email:</strong> dpo@crmatelier.com.br</p>
+              <p><strong>Email:</strong> dpo@meuatelier.com.br</p>
               <p><strong>Tempo de resposta:</strong> Até 15 dias úteis</p>
             </div>
           </section>
@@ -239,8 +239,8 @@ export default function PrivacidadePage() {
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6">
               <p className="text-sm text-gray-800">
                 <strong>Como exercer seus direitos:</strong> Entre em contato com{' '}
-                <a href="mailto:dpo@crmatelier.com.br" className="text-blue-600 hover:underline">
-                  dpo@crmatelier.com.br
+                <a href="mailto:dpo@meuatelier.com.br" className="text-blue-600 hover:underline">
+                  dpo@meuatelier.com.br
                 </a>{' '}
                 ou acesse <Link href="/lgpd" className="text-blue-600 hover:underline">nossa página LGPD</Link>.
               </p>
@@ -297,9 +297,9 @@ export default function PrivacidadePage() {
           <section id="contato" className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-900">13. Contato</h2>
             <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 space-y-3">
-              <p className="text-gray-700"><strong>Email DPO:</strong> dpo@crmatelier.com.br</p>
+              <p className="text-gray-700"><strong>Email DPO:</strong> dpo@meuatelier.com.br</p>
               <p className="text-gray-700"><strong>Suporte:</strong> contato@omegasistem.com.br</p>
-              <p className="text-gray-700"><strong>LGPD:</strong> <Link href="/lgpd" className="text-blue-600 hover:underline">crmatelier.com.br/lgpd</Link></p>
+              <p className="text-gray-700"><strong>LGPD:</strong> <Link href="/lgpd" className="text-blue-600 hover:underline">meuatelier.com.br/lgpd</Link></p>
             </div>
           </section>
 

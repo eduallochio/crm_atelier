@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Shield, Eye, Download, Edit, Trash2, FileText, Mail, CheckCircle } from 'lucide-react'
 
 export const metadata = {
-  title: 'LGPD - Seus Direitos - CRM Atelier',
+  title: 'LGPD - Seus Direitos - Meu Atelier',
   description: 'Exercite seus direitos conforme a Lei Geral de Proteção de Dados (LGPD)',
 }
 
@@ -66,7 +66,7 @@ export default function LGPDPage() {
                   <li>Como os usamos</li>
                   <li>Com quem compartilhamos</li>
                 </ul>
-                <Link href="mailto:dpo@crmatelier.com.br?subject=Solicitação de Acesso aos Dados">
+                <Link href="mailto:dpo@meuatelier.com.br?subject=Solicitação de Acesso aos Dados">
                   <Button className="w-full mt-4" variant="outline">
                     <Mail className="h-4 w-4 mr-2" />
                     Solicitar Acesso
@@ -116,7 +116,7 @@ export default function LGPDPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-gray-600">
-                  Queremos parar de usar o CRM Atelier? Podemos excluir ou anonimizar seus dados.
+                  Queremos parar de usar o Meu Atelier? Podemos excluir ou anonimizar seus dados.
                 </p>
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
                   <p className="text-xs text-gray-700">
@@ -124,7 +124,7 @@ export default function LGPDPage() {
                     Esta ação é irreversível.
                   </p>
                 </div>
-                <Link href="mailto:dpo@crmatelier.com.br?subject=Solicitação de Exclusão de Dados">
+                <Link href="mailto:dpo@meuatelier.com.br?subject=Solicitação de Exclusão de Dados">
                   <Button className="w-full mt-4" variant="outline">
                     <Mail className="h-4 w-4 mr-2" />
                     Solicitar Exclusão
@@ -150,7 +150,7 @@ export default function LGPDPage() {
                 <p className="text-sm text-gray-600">
                   Receba uma cópia de todos os seus dados em JSON/CSV para usar em outro sistema.
                 </p>
-                <Link href="mailto:dpo@crmatelier.com.br?subject=Solicitação de Portabilidade de Dados">
+                <Link href="mailto:dpo@meuatelier.com.br?subject=Solicitação de Portabilidade de Dados">
                   <Button className="w-full mt-4" variant="outline">
                     <Mail className="h-4 w-4 mr-2" />
                     Solicitar Exportação
@@ -206,7 +206,7 @@ export default function LGPDPage() {
                 <p className="text-sm text-gray-600">
                   Você pode retirar o consentimento para notificações, marketing ou outros usos opcionais.
                 </p>
-                <Link href="mailto:dpo@crmatelier.com.br?subject=Revogação de Consentimento">
+                <Link href="mailto:dpo@meuatelier.com.br?subject=Revogação de Consentimento">
                   <Button className="w-full mt-4" variant="outline">
                     <Mail className="h-4 w-4 mr-2" />
                     Revogar Consentimento
@@ -228,7 +228,7 @@ export default function LGPDPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900">Entre em Contato</h3>
                   <p className="text-sm text-gray-600">
-                    Envie email para <a href="mailto:dpo@crmatelier.com.br" className="text-blue-600 hover:underline font-medium">dpo@crmatelier.com.br</a> informando 
+                    Envie email para <a href="mailto:dpo@meuatelier.com.br" className="text-blue-600 hover:underline font-medium">dpo@meuatelier.com.br</a> informando 
                     qual direito deseja exercer
                   </p>
                 </div>
@@ -271,8 +271,8 @@ export default function LGPDPage() {
               <div className="space-y-2">
                 <p className="text-gray-900">
                   <strong>Email:</strong>{' '}
-                  <a href="mailto:dpo@crmatelier.com.br" className="text-blue-600 hover:underline">
-                    dpo@crmatelier.com.br
+                  <a href="mailto:dpo@meuatelier.com.br" className="text-blue-600 hover:underline">
+                    dpo@meuatelier.com.br
                   </a>
                 </p>
                 <p className="text-gray-900">

@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, FileText, Scale, Shield, Ban, AlertTriangle } from 'lucide-react'
 
 export const metadata = {
-  title: 'Termos de Uso - CRM Atelier',
-  description: 'Termos e Condições de Uso do CRM Atelier',
+  title: 'Termos de Uso - Meu Atelier',
+  description: 'Termos e Condições de Uso do Meu Atelier',
 }
 
 export default function TermosPage() {
@@ -38,7 +38,7 @@ export default function TermosPage() {
               1. Aceitação dos Termos
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              Ao acessar e usar o <strong>CRM Atelier</strong>, você concorda com estes Termos de Uso e com nossa{' '}
+              Ao acessar e usar o <strong>Meu Atelier</strong>, você concorda com estes Termos de Uso e com nossa{' '}
               <Link href="/privacidade" className="text-blue-600 hover:underline">Política de Privacidade</Link>.
               Se você não concordar, não use o serviço.
             </p>
@@ -53,7 +53,7 @@ export default function TermosPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-900">2. Descrição do Serviço</h2>
             <p className="text-gray-700 leading-relaxed">
-              O CRM Atelier é uma plataforma SaaS (Software as a Service) para gestão de ateliês de costura e artesanato, 
+              O Meu Atelier é uma plataforma SaaS (Software as a Service) para gestão de ateliês de costura e artesanato, 
               oferecendo funcionalidades de:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
@@ -70,7 +70,7 @@ export default function TermosPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-900">3. Elegibilidade</h2>
             <p className="text-gray-700 leading-relaxed">
-              Para usar o CRM Atelier, você deve:
+              Para usar o Meu Atelier, você deve:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
               <li>Ter pelo menos 18 anos de idade</li>
@@ -152,7 +152,7 @@ export default function TermosPage() {
             
             <h3 className="text-xl font-semibold text-gray-800">7.1. Nossa Propriedade</h3>
             <p className="text-gray-700">
-              O CRM Atelier, incluindo código, design, marca e conteúdo, é propriedade exclusiva da Omega Sistem. 
+              O Meu Atelier, incluindo código, design, marca e conteúdo, é propriedade exclusiva da Omega Sistem. 
               Todos os direitos reservados.
             </p>
 
@@ -242,7 +242,7 @@ export default function TermosPage() {
           {/* Footer */}
           <div className="border-t pt-6 mt-12 text-center">
             <p className="text-sm text-gray-500 mb-4">
-              Ao usar o CRM Atelier, você concorda com estes Termos de Uso
+              Ao usar o Meu Atelier, você concorda com estes Termos de Uso
             </p>
             <div className="flex justify-center gap-4">
               <Link href="/privacidade">
