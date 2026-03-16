@@ -43,3 +43,6 @@ next-env.d.ts
 docs
 supabase/
 banco
+banco-adm
+.github/
+docs-banco/

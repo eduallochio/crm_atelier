@@ -1,22 +1,24 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { signIn, signOut } from '@/auth'
+import { getPool, sql } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { AuthError } from 'next-auth'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
-
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signInWithPassword(data)
-
-  if (error) {
-    return { error: error.message }
+  try {
+    await signIn('credentials', {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      redirect: false,
+    })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: 'Email ou senha incorretos.' }
+    }
+    throw error
   }
 
   revalidatePath('/', 'layout')
@@ -24,167 +26,88 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient()
-
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
 
-  // Criar usuário
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-        fullName: fullName, // Adicionar ambos os formatos
-      },
-    },
-  })
+  const pool = await getPool()
 
-  if (authError) {
-    console.error('Auth error:', authError)
-    return { error: authError.message }
+  // Verificar se email já existe
+  const existing = await pool
+    .request()
+    .input('email', sql.NVarChar, email)
+    .query('SELECT id FROM users WHERE email = @email')
+
+  if (existing.recordset.length > 0) {
+    return { error: 'Este email já está cadastrado.' }
   }
 
-  if (!authData.user) {
-    return { error: 'Erro ao criar usuário' }
+  const passwordHash = await bcrypt.hash(password, 12)
+
+  // Criar organização + usuário + métricas + customização em uma única transação
+  const transaction = new sql.Transaction(pool)
+
+  try {
+    await transaction.begin()
+
+    const orgSlug = `atelier-${Date.now()}`
+    const orgName = `${fullName} Atelier`
+
+    // 1. Organização
+    const orgResult = await new sql.Request(transaction)
+      .input('name', sql.NVarChar, orgName)
+      .input('slug', sql.NVarChar, orgSlug)
+      .query(`
+        INSERT INTO organizations (name, slug, plan)
+        OUTPUT INSERTED.id
+        VALUES (@name, @slug, 'free')
+      `)
+
+    const orgId: string = orgResult.recordset[0].id
+
+    // 2. Usuário
+    await new sql.Request(transaction)
+      .input('orgId', sql.UniqueIdentifier, orgId)
+      .input('email', sql.NVarChar, email)
+      .input('passwordHash', sql.NVarChar, passwordHash)
+      .input('fullName', sql.NVarChar, fullName)
+      .query(`
+        INSERT INTO users (organization_id, email, password_hash, full_name, [role], is_owner)
+        VALUES (@orgId, @email, @passwordHash, @fullName, 'owner', 1)
+      `)
+
+    // 3. Métricas de uso
+    await new sql.Request(transaction)
+      .input('orgId', sql.UniqueIdentifier, orgId)
+      .query(`
+        INSERT INTO usage_metrics (organization_id, clients_count, orders_count, users_count)
+        VALUES (@orgId, 0, 0, 1)
+      `)
+
+    // 4. Customização padrão
+    await new sql.Request(transaction)
+      .input('orgId', sql.UniqueIdentifier, orgId)
+      .query(`
+        INSERT INTO customization_settings (organization_id, primary_color, secondary_color)
+        VALUES (@orgId, '#3b82f6', '#10b981')
+      `)
+
+    await transaction.commit()
+  } catch (error) {
+    await transaction.rollback()
+    console.error('[signup] Erro ao criar conta:', error)
+    return { error: 'Erro ao criar sua conta. Tente novamente.' }
   }
 
-  // Aguardar um pouco para o trigger executar
-  await new Promise(resolve => setTimeout(resolve, 1500))
-
-  // Verificar se o perfil foi criado
-  let profile = null
-  const { data: existingProfile } = await supabase
-    .from('profiles')
-    .select('*, organization:organizations(*)')
-    .eq('id', authData.user.id)
-    .maybeSingle()
-
-  profile = existingProfile
-
-  if (!profile) {
-    console.log('Profile not found, creating manually...')
-    
-    // Usar service_role para bypass RLS na criação inicial
-    const adminClient = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-    
-    try {
-      // Verificar se já existe organização para esse usuário
-      const { data: existingOrg } = await adminClient
-        .from('organizations')
-        .select('*')
-        .eq('slug', `atelier-${authData.user.id.substring(0, 8)}`)
-        .maybeSingle()
-
-      let org = existingOrg
-
-      if (!org) {
-        // Criar organização com slug único usando timestamp
-        const uniqueSlug = `atelier-${authData.user.id.substring(0, 8)}-${Date.now()}`
-        const { data: newOrg, error: orgError } = await adminClient
-          .from('organizations')
-          .insert({
-            name: `${fullName} Atelier`,
-            slug: uniqueSlug,
-            plan: 'free',
-          })
-          .select()
-          .single()
-
-        if (orgError) {
-          console.error('Org creation error:', orgError)
-          throw orgError
-        }
-        org = newOrg
-      }
-
-      // Verificar se perfil já existe
-      const { data: existingProfileCheck } = await adminClient
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .maybeSingle()
-
-      if (!existingProfileCheck) {
-        // Criar perfil
-        const { error: profileInsertError } = await adminClient
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            organization_id: org.id,
-            email: email,
-            full_name: fullName,
-            role: 'owner',
-            is_owner: true,
-          })
-
-        if (profileInsertError) {
-          console.error('Profile insert error:', profileInsertError)
-          throw profileInsertError
-        }
-      }
-
-      // Verificar se métricas já existem
-      const { data: existingMetrics } = await adminClient
-        .from('usage_metrics')
-        .select('*')
-        .eq('organization_id', org.id)
-        .maybeSingle()
-
-      if (!existingMetrics) {
-        // Criar métricas
-        const { error: metricsError } = await adminClient
-          .from('usage_metrics')
-          .insert({
-            organization_id: org.id,
-            users_count: 1,
-            clients_count: 0,
-            orders_count: 0,
-          })
-
-        if (metricsError) {
-          console.error('Metrics error:', metricsError)
-        }
-      }
-
-      // Verificar se customização já existe
-      const { data: existingCustom } = await adminClient
-        .from('customization_settings')
-        .select('*')
-        .eq('organization_id', org.id)
-        .maybeSingle()
-
-      if (!existingCustom) {
-        // Criar customização
-        const { error: customError } = await adminClient
-          .from('customization_settings')
-          .insert({
-            organization_id: org.id,
-            primary_color: '#3b82f6',
-            secondary_color: '#10b981',
-          })
-
-        if (customError) {
-          console.error('Customization error:', customError)
-        }
-      }
-
-    } catch (manualError: any) {
-      console.error('Manual creation error:', manualError)
-      const errorMessage = manualError?.message || manualError?.toString() || 'Erro desconhecido'
-      return { error: `Erro ao configurar conta: ${errorMessage}` }
-    }
+  // Login automático após cadastro
+  try {
+    await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
+  } catch {
+    redirect('/login')
   }
 
   revalidatePath('/', 'layout')
@@ -192,8 +115,7 @@ export async function signup(formData: FormData) {
 }
 
 export async function logout() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  await signOut({ redirect: false })
   revalidatePath('/', 'layout')
   redirect('/login')
 }
