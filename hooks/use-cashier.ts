@@ -1,13 +1,12 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import {
+import type {
   Cashier, CashierInput,
   CashierSessionInput, CashierSessionWithRelations,
   CashierMovement, CashierMovementInput,
-  CashierReconciliation, CashierReconciliationInput
+  CashierReconciliation, CashierReconciliationInput,
 } from '@/lib/validations/cashier'
 
 // ===== CAIXAS =====
@@ -16,14 +15,9 @@ export function useCashiers() {
   return useQuery({
     queryKey: ['cashiers'],
     queryFn: async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_cashiers')
-        .select('*')
-        .order('nome')
-      
-      if (error) throw error
-      return data as Cashier[]
+      const res = await fetch('/api/cashiers')
+      if (!res.ok) throw new Error('Erro ao buscar caixas')
+      return res.json() as Promise<Cashier[]>
     },
   })
 }
@@ -32,15 +26,9 @@ export function useCashier(id: string) {
   return useQuery({
     queryKey: ['cashier', id],
     queryFn: async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_cashiers')
-        .select('*')
-        .eq('id', id)
-        .single()
-      
-      if (error) throw error
-      return data as Cashier
+      const res = await fetch(`/api/cashiers/${id}`)
+      if (!res.ok) throw new Error('Erro ao buscar caixa')
+      return res.json() as Promise<Cashier>
     },
     enabled: !!id,
   })
@@ -51,29 +39,13 @@ export function useCreateCashier() {
 
   return useMutation({
     mutationFn: async (input: CashierInput) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Usuário não pertence a uma organização')
-
-      const { data, error } = await supabase
-        .from('org_cashiers')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/cashiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao criar caixa')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashiers'] })
@@ -90,16 +62,13 @@ export function useUpdateCashier() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<CashierInput> }) => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_cashiers')
-        .update(input)
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/cashiers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao atualizar caixa')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashiers'] })
@@ -116,13 +85,8 @@ export function useDeleteCashier() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('org_cashiers')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/cashiers/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao excluir caixa')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashiers'] })
@@ -140,24 +104,12 @@ export function useCashierSessions(filters?: { caixa_id?: string; status?: strin
   return useQuery({
     queryKey: ['cashier-sessions', filters],
     queryFn: async () => {
-      const supabase = createClient()
-      let query = supabase
-        .from('org_cashier_sessions')
-        .select('*, org_cashiers(nome)')
-        .order('data_abertura', { ascending: false })
-      
-      if (filters?.caixa_id) {
-        query = query.eq('caixa_id', filters.caixa_id)
-      }
-      
-      if (filters?.status) {
-        query = query.eq('status', filters.status)
-      }
-
-      const { data, error } = await query
-      
-      if (error) throw error
-      return data as CashierSessionWithRelations[]
+      const params = new URLSearchParams()
+      if (filters?.caixa_id) params.set('caixa_id', filters.caixa_id)
+      if (filters?.status) params.set('status', filters.status)
+      const res = await fetch(`/api/cashiers/sessions?${params}`)
+      if (!res.ok) throw new Error('Erro ao buscar sessões')
+      return res.json() as Promise<CashierSessionWithRelations[]>
     },
   })
 }
@@ -166,15 +118,9 @@ export function useCashierSession(id: string) {
   return useQuery({
     queryKey: ['cashier-session', id],
     queryFn: async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_cashier_sessions')
-        .select('*, org_cashiers(nome)')
-        .eq('id', id)
-        .single()
-      
-      if (error) throw error
-      return data as CashierSessionWithRelations
+      const res = await fetch(`/api/cashiers/sessions/${id}`)
+      if (!res.ok) throw new Error('Erro ao buscar sessão')
+      return res.json() as Promise<CashierSessionWithRelations>
     },
     enabled: !!id,
   })
@@ -184,20 +130,12 @@ export function useActiveCashierSession(caixaId?: string) {
   return useQuery({
     queryKey: ['active-cashier-session', caixaId],
     queryFn: async () => {
-      const supabase = createClient()
-      let query = supabase
-        .from('org_cashier_sessions')
-        .select('*, org_cashiers(nome)')
-        .eq('status', 'aberto')
-      
-      if (caixaId) {
-        query = query.eq('caixa_id', caixaId)
-      }
-
-      const { data, error } = await query.maybeSingle()
-      
-      if (error) throw error
-      return data as CashierSessionWithRelations | null
+      const params = new URLSearchParams({ status: 'aberto' })
+      if (caixaId) params.set('caixa_id', caixaId)
+      const res = await fetch(`/api/cashiers/sessions?${params}`)
+      if (!res.ok) throw new Error('Erro ao buscar sessão ativa')
+      const data = await res.json() as CashierSessionWithRelations[]
+      return data[0] ?? null
     },
   })
 }
@@ -207,30 +145,13 @@ export function useOpenCashier() {
 
   return useMutation({
     mutationFn: async (input: CashierSessionInput) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Usuário não pertence a uma organização')
-
-      const { data, error } = await supabase
-        .from('org_cashier_sessions')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-          status: 'aberto',
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/cashiers/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao abrir caixa')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
@@ -247,33 +168,22 @@ export function useCloseCashier() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ 
-      sessaoId, 
-      saldo_real, 
-      observacoes_fechamento
-    }: { 
+    mutationFn: async ({
+      sessaoId,
+      saldo_real,
+      observacoes_fechamento,
+    }: {
       sessaoId: string
       saldo_real: number
       observacoes_fechamento?: string
     }) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Não autenticado')
-
-      const { data, error } = await supabase
-        .from('org_cashier_sessions')
-        .update({
-          status: 'fechado',
-          data_fechamento: new Date().toISOString(),
-          saldo_real,
-          observacoes_fechamento,
-        })
-        .eq('id', sessaoId)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/cashiers/sessions/${sessaoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'fechado', saldo_real, observacoes_fechamento }),
+      })
+      if (!res.ok) throw new Error('Erro ao fechar caixa')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
@@ -292,20 +202,9 @@ export function useCashierMovements(sessaoId?: string) {
   return useQuery({
     queryKey: ['cashier-movements', sessaoId],
     queryFn: async () => {
-      const supabase = createClient()
-      let query = supabase
-        .from('org_cashier_movements')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (sessaoId) {
-        query = query.eq('sessao_id', sessaoId)
-      }
-
-      const { data, error } = await query
-      
-      if (error) throw error
-      return data as CashierMovement[]
+      const res = await fetch(`/api/cashiers/sessions/${sessaoId}/movements`)
+      if (!res.ok) throw new Error('Erro ao buscar movimentações')
+      return res.json() as Promise<CashierMovement[]>
     },
     enabled: !!sessaoId,
   })
@@ -316,29 +215,13 @@ export function useCreateCashierMovement() {
 
   return useMutation({
     mutationFn: async (input: CashierMovementInput) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Usuário não pertence a uma organização')
-
-      const { data, error } = await supabase
-        .from('org_cashier_movements')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/cashiers/sessions/${input.sessao_id}/movements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao registrar movimentação')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashier-movements'] })
@@ -357,14 +240,9 @@ export function useCashierReconciliation(sessaoId: string) {
   return useQuery({
     queryKey: ['cashier-reconciliation', sessaoId],
     queryFn: async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_cashier_reconciliation')
-        .select('*')
-        .eq('sessao_id', sessaoId)
-
-      if (error) throw error
-      return data as CashierReconciliation[]
+      const res = await fetch(`/api/cashiers/sessions/${sessaoId}/reconciliations`)
+      if (!res.ok) throw new Error('Erro ao buscar conferência')
+      return res.json() as Promise<CashierReconciliation[]>
     },
     enabled: !!sessaoId,
   })
@@ -375,30 +253,15 @@ export function useCreateCashierReconciliation() {
 
   return useMutation({
     mutationFn: async (items: CashierReconciliationInput[]) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Usuário não pertence a uma organização')
-
-      const itemsWithOrg = items.map(item => ({
-        ...item,
-        organization_id: profile.organization_id,
-      }))
-
-      const { data, error } = await supabase
-        .from('org_cashier_reconciliation')
-        .insert(itemsWithOrg)
-        .select()
-
-      if (error) throw error
-      return data
+      if (items.length === 0) return []
+      const sessaoId = items[0].sessao_id
+      const res = await fetch(`/api/cashiers/sessions/${sessaoId}/reconciliations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(items),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar conferência')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashier-reconciliation'] })

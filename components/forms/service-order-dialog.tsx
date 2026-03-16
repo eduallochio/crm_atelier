@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { serviceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
+import { useQuery } from '@tanstack/react-query'
 import { useCreateServiceOrder } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
 import { useServices } from '@/hooks/use-services'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
-import { generateThermalPDF } from '@/lib/utils/thermal-printer'
+import { useSystemPreferences, useNotificationSettings, useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
+import type { Product } from '@/hooks/use-inventory'
+import { generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
 import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
 import {
@@ -22,7 +25,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, Eye, Check, ChevronsUpDown } from 'lucide-react'
+import { Plus, Trash2, Eye, Check, ChevronsUpDown, MessageCircle, Package } from 'lucide-react'
 import {
   Command,
   CommandEmpty,
@@ -38,6 +41,13 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
+interface MaterialRow {
+  product_id?: string | null
+  produto_nome: string
+  quantidade: number
+  unidade: string
+}
+
 interface ServiceOrderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -48,6 +58,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
   const [gerarPDF, setGerarPDF] = useState(true)
+  const [enviarWhatsApp, setEnviarWhatsApp] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
   const [openClientCombo, setOpenClientCombo] = useState(false)
@@ -55,10 +66,45 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [clientSearchValue, setClientSearchValue] = useState('')
   const [serviceSearchValue, setServiceSearchValue] = useState('')
 
+  const [materiais, setMateriais] = useState<MaterialRow[]>([])
+  const [selectedProductId, setSelectedProductId] = useState('')
+  const [materialQtd, setMaterialQtd] = useState(1)
+  const [materialUnidade, setMaterialUnidade] = useState('un')
+  const [openProductCombo, setOpenProductCombo] = useState(false)
+  const [productSearchValue, setProductSearchValue] = useState('')
+
   const createOrder = useCreateServiceOrder()
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useServices()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
+  const { data: systemPrefs } = useSystemPreferences()
+  const { data: notifSettings } = useNotificationSettings()
+  const { data: orgSettings } = useOrganizationSettings()
+  const { data: financialSettings } = useFinancialSettings()
+  const controlaEstoque = !!systemPrefs?.controla_estoque
+
+  const orgData = orgSettings ? {
+    name: orgSettings.name,
+    instagram: orgSettings.instagram,
+    facebook: orgSettings.facebook,
+    twitter: orgSettings.twitter,
+    tiktok: orgSettings.tiktok,
+    kwai: orgSettings.kwai,
+    pix_key: financialSettings?.pix_key || null,
+    show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
+  } : undefined
+  // Só busca produtos quando o módulo de controle de estoque está ativo
+  // (evita 403 para planos free e requests desnecessários)
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory/products')
+      if (!res.ok) throw new Error('Erro ao buscar produtos')
+      return res.json()
+    },
+    enabled: controlaEstoque,
+  })
+  const activeProducts = products.filter(p => p.ativo)
 
   const activeServices = services.filter(s => s.ativo)
 
@@ -91,11 +137,17 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
   useEffect(() => {
     if (open) {
+      // Pré-preenche observações com aviso padrão se configurado
+      const avisoInicial = notifSettings?.ordem_aviso_ativo && notifSettings.ordem_aviso_texto
+        ? notifSettings.ordem_aviso_texto
+        : undefined
+
       reset({
         client_id: '',
         status: 'pendente' as const,
         data_prevista: undefined,
-        observacoes: undefined,
+        forma_pagamento: undefined,
+        observacoes: avisoInicial,
         valor_entrada: 0,
         desconto_valor: 0,
         desconto_percentual: 0,
@@ -106,10 +158,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       setSelectedServiceId('')
       setQuantidade(1)
       setGerarPDF(true)
+      setEnviarWhatsApp(true)
       setClientSearchValue('')
       setServiceSearchValue('')
+      setMateriais([])
+      setSelectedProductId('')
+      setMaterialQtd(1)
+      setProductSearchValue('')
     }
-  }, [open, reset])
+  }, [open, reset, notifSettings])
 
   const addItem = () => {
     if (!selectedServiceId) {
@@ -135,6 +192,32 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     setValue('items', updatedItems)
     setSelectedServiceId('')
     setQuantidade(1)
+
+    // Auto-popula materiais do serviço se controle de estoque ativo
+    if (controlaEstoque && service.materiais_produtos && service.materiais_produtos.length > 0) {
+      setMateriais(prev => {
+        const next = [...prev]
+        for (const m of service.materiais_produtos!) {
+          const existingIdx = m.product_id
+            ? next.findIndex(x => x.product_id === m.product_id)
+            : next.findIndex(x => !x.product_id && x.produto_nome === m.produto_nome)
+          if (existingIdx >= 0) {
+            next[existingIdx] = {
+              ...next[existingIdx],
+              quantidade: next[existingIdx].quantidade + m.quantidade * quantidade,
+            }
+          } else {
+            next.push({
+              product_id: m.product_id ?? null,
+              produto_nome: m.produto_nome,
+              quantidade: m.quantidade * quantidade,
+              unidade: m.unidade || 'un',
+            })
+          }
+        }
+        return next
+      })
+    }
   }
 
   const removeItem = (index: number) => {
@@ -211,12 +294,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       }))
     }
 
-    console.log('[ServiceOrder] Preview preparado:', previewOrder)
-    
     setPreviewData({ formData: data, previewOrder })
     setShowPreview(true)
-    
-    console.log('[ServiceOrder] showPreview setado para true')
+  }
+
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '')
+    // Adiciona +55 se não tiver código do país
+    if (digits.startsWith('55') && digits.length >= 12) return digits
+    return `55${digits}`
   }
 
   const handleConfirmSave = async () => {
@@ -229,36 +315,49 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
     try {
       const result = await createOrder.mutateAsync(orderData)
-      
-      // Gerar PDF se opção estiver marcada
-      if (gerarPDF && result) {
+
+      // Salvar materiais se controle de estoque ativo
+      if (result?.id && controlaEstoque && materiais.length > 0) {
         try {
-          // Buscar a ordem completa com os dados do cliente e itens
-          const { createClient } = await import('@/lib/supabase/client')
-          const supabase = createClient()
-          
-          const { data: completeOrder } = await supabase
-            .from('org_service_orders')
-            .select(`
-              *,
-              client:org_clients!client_id(id, nome, telefone, email, endereco, cidade, estado, cep),
-              items:org_service_order_items(*)
-            `)
-            .eq('id', result.id)
-            .single()
-          
-          if (completeOrder) {
-            generateThermalPDF(completeOrder as ServiceOrder)
-            toast.success('Ordem criada e PDF gerado com sucesso!')
-          }
+          await fetch(`/api/orders/${result.id}/materials`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ materiais }),
+          })
+        } catch { /* non-blocking */ }
+      }
+
+      // Buscar OS completa (com número e itens)
+      let completeOrder: ServiceOrder | null = null
+      if (result) {
+        try {
+          const res = await fetch(`/api/orders/${result.id}`)
+          if (res.ok) completeOrder = await res.json()
+        } catch { /* usa dados do preview se falhar */ }
+      }
+
+      // Gerar PDF se opção estiver marcada
+      if (gerarPDF && completeOrder) {
+        try {
+          generateThermalPDF(completeOrder, orgData?.name, orgData)
         } catch (error) {
           console.error('Erro ao gerar PDF:', error)
-          toast.error('Ordem criada, mas falha ao gerar PDF')
         }
-      } else {
-        toast.success('Ordem criada com sucesso!')
       }
-      
+
+      // Enviar via WhatsApp se opção estiver marcada
+      const orderForMsg = completeOrder ?? previewData.previewOrder
+      const telefone = orderForMsg.client?.telefone
+      if (enviarWhatsApp && telefone) {
+        const phone = formatPhoneForWhatsApp(telefone)
+        const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData)
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+        window.open(url, '_blank')
+        toast.success('Ordem criada! WhatsApp aberto com a mensagem.')
+      } else {
+        toast.success(gerarPDF ? 'Ordem criada e PDF gerado!' : 'Ordem criada com sucesso!')
+      }
+
       setShowPreview(false)
       onOpenChange(false)
     } catch (error) {
@@ -658,18 +757,165 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             />
           </div>
 
-          {/* Opção de gerar PDF */}
-          <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <input
-              type="checkbox"
-              id="gerar_pdf"
-              checked={gerarPDF}
-              onChange={(e) => setGerarPDF(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="gerar_pdf" className="text-sm font-medium text-gray-700 cursor-pointer">
-              Gerar PDF automaticamente após criar a ordem
-            </label>
+          {/* Materiais utilizados (visível apenas com controle de estoque ativo) */}
+          {controlaEstoque && (
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium text-sm">Materiais Utilizados</h3>
+                <span className="text-xs text-muted-foreground">(debitados do estoque ao concluir)</span>
+              </div>
+
+              {/* Adicionar material */}
+              <div className="flex gap-2 items-center flex-wrap">
+                <Popover open={openProductCombo} onOpenChange={setOpenProductCombo}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="flex-1 min-w-40 justify-between text-left font-normal"
+                    >
+                      {selectedProductId
+                        ? activeProducts.find(p => p.id === selectedProductId)?.nome
+                        : 'Selecionar produto...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="Buscar produto..."
+                        value={productSearchValue}
+                        onValueChange={setProductSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                        <CommandGroup>
+                          {activeProducts
+                            .filter(p => p.nome.toLowerCase().includes(productSearchValue.toLowerCase()))
+                            .map(p => (
+                              <CommandItem
+                                key={p.id}
+                                value={p.nome}
+                                onSelect={() => {
+                                  setSelectedProductId(p.id)
+                                  setMaterialUnidade(p.unidade || 'un')
+                                  setOpenProductCombo(false)
+                                  setProductSearchValue('')
+                                }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${selectedProductId === p.id ? 'opacity-100' : 'opacity-0'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <span className="truncate">{p.nome}</span>
+                                  <span className="ml-1 text-xs text-muted-foreground">
+                                    ({p.quantidade_atual} {p.unidade})
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                <Input
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value={materialQtd}
+                  onChange={(e) => setMaterialQtd(parseFloat(e.target.value) || 1)}
+                  className="w-20"
+                  placeholder="Qtd"
+                />
+                <span className="text-xs text-muted-foreground w-8">{materialUnidade}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={!selectedProductId}
+                  onClick={() => {
+                    const product = activeProducts.find(p => p.id === selectedProductId)
+                    if (!product) return
+                    setMateriais(prev => [...prev, {
+                      product_id: product.id,
+                      produto_nome: product.nome,
+                      quantidade: materialQtd,
+                      unidade: materialUnidade,
+                    }])
+                    setSelectedProductId('')
+                    setMaterialQtd(1)
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Lista de materiais */}
+              {materiais.length > 0 && (
+                <div className="rounded-md border text-sm">
+                  {materiais.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
+                      <span className="flex-1 truncate">{m.produto_nome}</span>
+                      <span className="text-muted-foreground mx-3 whitespace-nowrap">
+                        {m.quantidade} {m.unidade}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setMateriais(prev => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {materiais.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Nenhum material adicionado
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Opções de envio */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <input
+                type="checkbox"
+                id="gerar_pdf"
+                checked={gerarPDF}
+                onChange={(e) => setGerarPDF(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="gerar_pdf" className="text-sm font-medium text-gray-700 cursor-pointer">
+                Gerar PDF automaticamente após criar a ordem
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+              <input
+                type="checkbox"
+                id="enviar_whatsapp"
+                checked={enviarWhatsApp}
+                onChange={(e) => setEnviarWhatsApp(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <MessageCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <label htmlFor="enviar_whatsapp" className="text-sm font-medium text-gray-700 cursor-pointer">
+                Enviar resumo da OS pelo WhatsApp
+                {watch('client_id') && (() => {
+                  const c = clients.find(cl => cl.id === watch('client_id'))
+                  return c?.telefone
+                    ? <span className="text-green-600 ml-1">({c.telefone})</span>
+                    : <span className="text-orange-500 ml-1">(cliente sem telefone)</span>
+                })()}
+              </label>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -695,7 +941,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       open={showPreview}
       onOpenChange={setShowPreview}
       order={previewData?.previewOrder || null}
-      organizationName="CRM Atelier"
+      organizationName="Meu Atelier"
       onConfirm={handleConfirmSave}
       confirmButtonText="Confirmar e Salvar Ordem"
       showConfirmButton={true}

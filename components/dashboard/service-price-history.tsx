@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import {
   Dialog,
@@ -35,15 +34,9 @@ export function ServicePriceHistory({
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['service-price-history', serviceId],
     queryFn: async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('org_service_price_history')
-        .select('*')
-        .eq('org_service_id', serviceId)
-        .order('changed_at', { ascending: false })
-
-      if (error) throw error
-      return data as PriceHistory[]
+      const res = await fetch(`/api/services/${serviceId}/price-history`)
+      if (!res.ok) throw new Error('Erro ao buscar histórico de preços')
+      return res.json() as Promise<PriceHistory[]>
     },
     enabled: open,
   })

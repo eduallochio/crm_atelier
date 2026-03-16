@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useClients } from '@/hooks/use-clients'
 import { useClientStats } from '@/hooks/use-client-stats'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ClientsTable } from '@/components/dashboard/clients-table'
 import { ClientsCards } from '@/components/dashboard/clients-cards'
 import { ClientDialog } from '@/components/forms/client-dialog'
@@ -25,6 +26,7 @@ export default function ClientesPage() {
 
   const { data: clients = [], isLoading } = useClients()
   const { data: stats } = useClientStats()
+  const clientLimit = usePlanLimit('clients')
 
   const handleEdit = (client: Client) => {
     setSelectedClient(client)
@@ -81,84 +83,35 @@ export default function ClientesPage() {
         description="Gerencie seus clientes"
       />
       
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Clientes</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.totalClients || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg">
-                <UserPlus className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Novos Este Mês</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.newThisMonth || 0}
-                </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {[
+            { label: 'Total Clientes',   value: stats?.totalClients || 0,       icon: Users,       bar: 'bg-blue-500',   icon_bg: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400' },
+            { label: 'Novos Este Mês',   value: stats?.newThisMonth || 0,        icon: UserPlus,    bar: 'bg-green-500',  icon_bg: 'bg-green-500',   text: 'text-green-600 dark:text-green-400' },
+            { label: 'Ordens Abertas',   value: stats?.withActiveOrders || 0,    icon: ShoppingBag, bar: 'bg-orange-500', icon_bg: 'bg-orange-500',  text: 'text-orange-600 dark:text-orange-400' },
+            { label: 'Com Telefone',     value: stats?.withPhone || 0,           icon: Phone,       bar: 'bg-purple-500', icon_bg: 'bg-purple-500',  text: 'text-purple-600 dark:text-purple-400' },
+            { label: 'Aniversários Mês', value: stats?.birthdayThisMonth || 0,  icon: Cake,        bar: 'bg-pink-500',   icon_bg: 'bg-pink-500',    text: 'text-pink-600 dark:text-pink-400', extra: 'col-span-2 sm:col-span-1' },
+          ].map(({ label, value, icon: Icon, bar, icon_bg, text, extra }) => (
+            <div key={label} className={`relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 ${extra || ''}`}>
+              <div className={`absolute top-0 left-0 right-0 h-[3px] ${bar}`} />
+              <div className="p-4 sm:p-5 pt-5 sm:pt-6">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-tight">{label}</p>
+                  <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${icon_bg} shadow-sm shrink-0`}>
+                    <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                  </div>
+                </div>
+                <p className={`text-2xl sm:text-3xl font-bold ${text}`}>{value}</p>
               </div>
             </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
-                <ShoppingBag className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Com Ordens Abertas</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.withActiveOrders || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
-                <Phone className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Com Telefone</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.withPhone || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-pink-50 dark:bg-pink-950/50 rounded-lg">
-                <Cake className="h-6 w-6 text-pink-600 dark:text-pink-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Aniversários Este Mês</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.birthdayThisMonth || 0}
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Barra de Ações */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Buscar por nome, email ou telefone..."
@@ -167,66 +120,64 @@ export default function ClientesPage() {
                 className="pl-10"
               />
             </div>
-
-            {/* Filtros */}
-            <div className="flex gap-2">
-              <select
-                value={filterPhone}
-                onChange={(e) => setFilterPhone(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="all">📞 Telefone: Todos</option>
-                <option value="with">✅ Com Telefone</option>
-                <option value="without">❌ Sem Telefone</option>
-              </select>
-
-              <select
-                value={filterEmail}
-                onChange={(e) => setFilterEmail(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="all">✉️ Email: Todos</option>
-                <option value="with">✅ Com Email</option>
-                <option value="without">❌ Sem Email</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="recent">🕐 Mais Recentes</option>
-                <option value="oldest">🕑 Mais Antigos</option>
-                <option value="name">🔤 A-Z</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Toggle View Mode */}
-            <div className="flex gap-1 border rounded-md p-1">
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                title="Visualização em lista"
-              >
+            <div className="flex gap-1 border rounded-md p-1 shrink-0">
+              <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} title="Lista">
                 <List className="h-4 w-4" />
               </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                title="Visualização em cards"
-              >
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} title="Cards">
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
+            <div className="flex items-center gap-2">
+              {clientLimit.isFree && (
+                <span className={`hidden sm:block text-xs font-medium ${clientLimit.atLimit ? 'text-red-500' : clientLimit.nearLimit ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                  {clientLimit.usage}/{clientLimit.limit} clientes
+                </span>
+              )}
+              <Button
+                onClick={handleNewClient}
+                size="sm"
+                className="shrink-0"
+                disabled={clientLimit.atLimit}
+                title={clientLimit.atLimit ? `Limite do plano Free atingido (${clientLimit.limit} clientes). Faça upgrade para continuar.` : undefined}
+              >
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Novo Cliente</span>
+              </Button>
+            </div>
+          </div>
 
-            <Button onClick={handleNewClient}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Cliente
-            </Button>
+          {/* Filtros */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <select
+              value={filterPhone}
+              onChange={(e) => setFilterPhone(e.target.value as 'all' | 'with' | 'without')}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="all">Telefone: Todos</option>
+              <option value="with">Com Telefone</option>
+              <option value="without">Sem Telefone</option>
+            </select>
+
+            <select
+              value={filterEmail}
+              onChange={(e) => setFilterEmail(e.target.value as 'all' | 'with' | 'without')}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="all">Email: Todos</option>
+              <option value="with">Com Email</option>
+              <option value="without">Sem Email</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'recent' | 'oldest')}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="recent">Mais Recentes</option>
+              <option value="oldest">Mais Antigos</option>
+              <option value="name">A-Z</option>
+            </select>
           </div>
         </div>
 

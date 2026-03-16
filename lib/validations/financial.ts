@@ -63,6 +63,7 @@ export interface Receivable {
   status: 'pendente' | 'recebido' | 'atrasado' | 'cancelado'
   category_id: string | null
   payment_method_id: string | null
+  forma_pagamento: string | null
   observacoes: string | null
   created_at: string
   updated_at: string
@@ -71,6 +72,7 @@ export interface Receivable {
 // Schema para Conta a Pagar
 export const payableSchema = z.object({
   supplier_id: z.string().optional(),
+  category_id: z.string().optional(),
   descricao: z.string().min(3, 'Descrição deve ter pelo menos 3 caracteres'),
   valor: z.string().min(1, 'Valor é obrigatório'),
   data_vencimento: z.string().min(1, 'Data de vencimento é obrigatória'),
@@ -87,6 +89,8 @@ export interface Payable {
   id: string
   organization_id: string
   supplier_id: string | null
+  fornecedor: string | null
+  category_id: string | null
   descricao: string
   valor: number
   data_vencimento: string

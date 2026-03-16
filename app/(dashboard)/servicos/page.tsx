@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useServices } from '@/hooks/use-services'
 import { useServiceStats } from '@/hooks/use-service-stats'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ServicesTable } from '@/components/dashboard/services-table'
 import { ServicesCards } from '@/components/dashboard/services-cards'
 import { ServiceDialog } from '@/components/forms/service-dialog'
@@ -23,6 +24,7 @@ export default function ServicosPage() {
 
   const { data: services = [], isLoading } = useServices()
   const { data: stats } = useServiceStats()
+  const serviceLimit = usePlanLimit('services')
 
   const handleEdit = (service: Service) => {
     setSelectedService(service)
@@ -113,89 +115,96 @@ export default function ServicosPage() {
         description="Gerencie o catálogo de serviços"
       />
       
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
-                <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* Total */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Serviços</p>
+                <div className="p-2 rounded-xl bg-blue-500 shadow-sm shrink-0">
+                  <Package className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Serviços</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.totalServices || 0}
-                </p>
-              </div>
+              <p className="text-3xl font-bold text-foreground mb-3">{stats?.totalServices || 0}</p>
+              <div className="h-px bg-border/50 mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">no catálogo</p>
             </div>
           </div>
 
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+          {/* Ativos */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Ativos</p>
+                <div className="p-2 rounded-xl bg-emerald-500 shadow-sm shrink-0">
+                  <CheckCircle className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Ativos</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.activeServices || 0}
-                </p>
-              </div>
+              <p className="text-3xl font-bold text-foreground mb-3">{stats?.activeServices || 0}</p>
+              <div className="h-px bg-border/50 mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">disponíveis</p>
             </div>
           </div>
 
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <XCircle className="h-6 w-6 text-muted-foreground" />
+          {/* Inativos */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-slate-400" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Inativos</p>
+                <div className="p-2 rounded-xl bg-slate-400 shadow-sm shrink-0">
+                  <XCircle className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Inativos</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.inactiveServices || 0}
-                </p>
-              </div>
+              <p className="text-3xl font-bold text-foreground mb-3">{stats?.inactiveServices || 0}</p>
+              <div className="h-px bg-border/50 mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">desativados</p>
             </div>
           </div>
 
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
-                <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          {/* Preço Médio */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-violet-500" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Preço Médio</p>
+                <div className="p-2 rounded-xl bg-violet-500 shadow-sm shrink-0">
+                  <DollarSign className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Preço Médio</p>
-                <p className="text-2xl font-bold text-foreground">
-                  R$ {stats?.averagePrice.toFixed(2) || '0.00'}
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-foreground mb-3">R$ {stats?.averagePrice?.toFixed(2) || '0.00'}</p>
+              <div className="h-px bg-border/50 mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">por serviço</p>
             </div>
           </div>
 
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+          {/* Mais Vendido */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 col-span-2 sm:col-span-1">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-orange-500" />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Mais Vendido</p>
+                <div className="p-2 rounded-xl bg-orange-500 shadow-sm shrink-0">
+                  <TrendingUp className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Mais Vendido</p>
-                <p className="text-sm font-semibold text-foreground truncate">
-                  {stats?.mostUsedService?.nome || '-'}
-                </p>
-                {stats?.mostUsedService && (
-                  <p className="text-xs text-muted-foreground">
-                    {stats.mostUsedService.count}x vendido
-                  </p>
-                )}
-              </div>
+              <p className="text-sm font-bold text-foreground mb-3 truncate leading-tight">{stats?.mostUsedService?.nome || '—'}</p>
+              <div className="h-px bg-border/50 mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">
+                {stats?.mostUsedService ? `${stats.mostUsedService.count}x vendido` : 'sem dados'}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Barra de Ações */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Buscar por nome, categoria ou descrição..."
@@ -204,68 +213,66 @@ export default function ServicosPage() {
                 className="pl-10"
               />
             </div>
-
-            {/* Filtros */}
-            <div className="flex gap-2">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="all">📦 Status: Todos</option>
-                <option value="active">✅ Ativos</option>
-                <option value="inactive">❌ Inativos</option>
-              </select>
-
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="all">🏷️ Categoria: Todas</option>
-                {allCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-              >
-                <option value="name">🔤 A-Z</option>
-                <option value="price-asc">📈 Preço Menor</option>
-                <option value="price-desc">📉 Preço Maior</option>
-                <option value="most-used">🎯 Mais Usado</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Toggle View Mode */}
-            <div className="flex gap-1 border rounded-md p-1">
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                title="Visualização em lista"
-              >
+            <div className="flex gap-1 border rounded-md p-1 shrink-0">
+              <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} title="Lista">
                 <List className="h-4 w-4" />
               </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                title="Visualização em cards"
-              >
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} title="Cards">
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
+            <div className="flex items-center gap-2">
+              {serviceLimit.isFree && (
+                <span className={`hidden sm:block text-xs font-medium ${serviceLimit.atLimit ? 'text-red-500' : serviceLimit.nearLimit ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                  {serviceLimit.usage}/{serviceLimit.limit} serviços
+                </span>
+              )}
+              <Button
+                onClick={handleNewService}
+                size="sm"
+                className="shrink-0"
+                disabled={serviceLimit.atLimit}
+                title={serviceLimit.atLimit ? `Limite do plano Free atingido (${serviceLimit.limit} serviços). Faça upgrade para continuar.` : undefined}
+              >
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Novo Serviço</span>
+              </Button>
+            </div>
+          </div>
 
-            <Button onClick={handleNewService}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Serviço
-            </Button>
+          {/* Filtros com scroll horizontal */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="all">Status: Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="all">Categoria: Todas</option>
+              {allCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'price-asc' | 'price-desc' | 'most-used')}
+              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
+            >
+              <option value="name">A-Z</option>
+              <option value="price-asc">Preco Menor</option>
+              <option value="price-desc">Preco Maior</option>
+              <option value="most-used">Mais Usado</option>
+            </select>
           </div>
         </div>
 

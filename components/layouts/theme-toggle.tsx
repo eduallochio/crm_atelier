@@ -10,10 +10,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSystemPreferences, useUpdateSystemPreferences } from '@/hooks/use-settings'
 import { toast } from 'sonner'
+import { useEffect, useState } from 'react'
 
 export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false)
   const { data: preferences } = useSystemPreferences()
   const updatePreferences = useUpdateSystemPreferences()
+
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) return <div className="h-9 w-9" />
 
   const currentTheme = preferences?.theme || 'auto'
 

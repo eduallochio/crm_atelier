@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import {
   useDeletePaymentMethod,
   type PaymentMethod,
 } from '@/hooks/use-payment-methods'
+import { useFinancialSettings, useUpdateFinancialSettings } from '@/hooks/use-settings'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,8 @@ export function FinancialSettingsForm() {
   const createMethod = useCreatePaymentMethod()
   const updateMethod = useUpdatePaymentMethod()
   const deleteMethod = useDeletePaymentMethod()
+  const { data: financialSettings } = useFinancialSettings()
+  const updateFinancialSettings = useUpdateFinancialSettings()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null)
@@ -44,6 +48,41 @@ export function FinancialSettingsForm() {
     color: '#3b82f6',
     enabled: true,
   })
+  const [pixKey, setPixKey] = useState('')
+  const [showPixOnOrder, setShowPixOnOrder] = useState(false)
+  const [pixSaving, setPixSaving] = useState(false)
+
+  // Sync local state when financial settings load
+  useEffect(() => {
+    if (financialSettings) {
+      setPixKey(financialSettings.pix_key || '')
+      setShowPixOnOrder(financialSettings.show_pix_key_on_order || false)
+    }
+  }, [financialSettings])
+
+  const handleSavePix = async () => {
+    if (!financialSettings) return
+    setPixSaving(true)
+    try {
+      await updateFinancialSettings.mutateAsync({
+        organization_id: financialSettings.organization_id,
+        payment_methods: financialSettings.payment_methods,
+        cashier_requires_opening: financialSettings.cashier_requires_opening,
+        cashier_opening_balance_required: financialSettings.cashier_opening_balance_required,
+        late_fee_percentage: financialSettings.late_fee_percentage,
+        interest_rate_per_month: financialSettings.interest_rate_per_month,
+        expense_categories: financialSettings.expense_categories,
+        income_categories: financialSettings.income_categories,
+        pix_key: pixKey,
+        show_pix_key_on_order: showPixOnOrder,
+      })
+      toast.success('Configurações PIX salvas!')
+    } catch {
+      toast.error('Erro ao salvar configurações PIX')
+    } finally {
+      setPixSaving(false)
+    }
+  }
 
   const handleOpenDialog = (method?: PaymentMethod) => {
     if (method) {
@@ -213,6 +252,54 @@ export function FinancialSettingsForm() {
             </p>
           </div>
         )}
+      </Card>
+
+      {/* Chave PIX */}
+      <Card className="p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Chave PIX</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure a chave PIX para exibição nas Ordens de Serviço
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="pix_key">Chave PIX</Label>
+            <Input
+              id="pix_key"
+              placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Ex: 11999999999, email@exemplo.com, 12.345.678/0001-90
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <Label htmlFor="show_pix" className="cursor-pointer">Mostrar chave PIX na OS</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Exibe a chave PIX no preview e PDF da OS quando o pagamento for PIX
+              </p>
+            </div>
+            <Switch
+              id="show_pix"
+              checked={showPixOnOrder}
+              onCheckedChange={setShowPixOnOrder}
+            />
+          </div>
+
+          <Button
+            onClick={handleSavePix}
+            disabled={pixSaving}
+            size="sm"
+          >
+            {pixSaving && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+            Salvar configurações PIX
+          </Button>
+        </div>
       </Card>
 
       {/* Dialog para criar/editar */}

@@ -3,11 +3,22 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 
+export interface OrganizationData {
+  name: string
+  instagram?: string | null
+  facebook?: string | null
+  twitter?: string | null
+  tiktok?: string | null
+  kwai?: string | null
+  pix_key?: string | null
+  show_pix_key_on_order?: boolean
+}
+
 /**
  * Gera PDF otimizado para impressora térmica (80mm)
  * Layout compacto e vertical, ideal para cupons não fiscais
  */
-export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'CRM Atelier') {
+export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData) {
   // Impressora térmica 80mm = ~75mm útil
   const doc = new jsPDF({
     unit: 'mm',
@@ -114,6 +125,15 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
 
   if (order.forma_pagamento) {
     addKeyValue('Pagamento:', order.forma_pagamento)
+  }
+
+  // Exibe chave PIX se pagamento for PIX e configuração ativa
+  if (
+    orgData?.show_pix_key_on_order &&
+    orgData?.pix_key &&
+    order.forma_pagamento?.toLowerCase().includes('pix')
+  ) {
+    addKeyValue('Chave PIX:', orgData.pix_key)
   }
 
   y += 2
@@ -226,6 +246,22 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   addLine()
   y += 3
   addCenteredText('Obrigado pela preferência!', 9)
+
+  // Redes sociais
+  if (orgData) {
+    const socials: { label: string; handle: string | null | undefined }[] = [
+      { label: 'Instagram', handle: orgData.instagram },
+      { label: 'Facebook',  handle: orgData.facebook },
+      { label: 'X',         handle: orgData.twitter },
+      { label: 'TikTok',   handle: orgData.tiktok },
+      { label: 'Kwai',     handle: orgData.kwai },
+    ].filter(s => s.handle)
+    if (socials.length > 0) {
+      y += 2
+      socials.forEach(s => addCenteredText(`${s.label}: @${s.handle}`, 7))
+    }
+  }
+
   addCenteredText(format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }), 7)
 
   // Salvar PDF
@@ -235,7 +271,7 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
 /**
  * Gera preview HTML da ordem para impressora térmica
  */
-export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'CRM Atelier'): string {
+export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
     em_andamento: 'Em Andamento',
@@ -294,6 +330,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           ${order.data_prevista ? `<div>Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
           ${order.data_conclusao ? `<div>Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
           ${order.forma_pagamento ? `<div>Pagamento: ${order.forma_pagamento}</div>` : '<div style="color: #999;">Pagamento: Não informado</div>'}
+          ${(orgData?.show_pix_key_on_order && orgData?.pix_key && order.forma_pagamento?.toLowerCase().includes('pix')) ? `<div style="font-size: 10px; margin-top: 2px; padding: 4px 6px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; color: #166534;">Chave PIX: ${orgData.pix_key}</div>` : ''}
         </div>
       </div>
       
@@ -357,8 +394,135 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
       <div style="text-align: center; font-size: 11px; margin-top: 12px;">
         <div style="margin-bottom: 4px;">Obrigado pela preferência!</div>
-        <div style="font-size: 9px;">${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
+        ${orgData ? (() => {
+          const socials = [
+            { label: 'Instagram', handle: orgData.instagram },
+            { label: 'Facebook',  handle: orgData.facebook },
+            { label: 'X',         handle: orgData.twitter },
+            { label: 'TikTok',   handle: orgData.tiktok },
+            { label: 'Kwai',     handle: orgData.kwai },
+          ].filter(s => s.handle)
+          if (socials.length === 0) return ''
+          return `<div style="margin-top: 6px; font-size: 9px; line-height: 1.6;">
+            ${socials.map(s => `<div>${s.label}: @${s.handle}</div>`).join('')}
+          </div>`
+        })() : ''}
+        <div style="font-size: 9px; margin-top: 4px;">${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
       </div>
     </div>
   `
+}
+
+/**
+ * Gera texto formatado para envio via WhatsApp
+ * Usa formatação suportada pelo WhatsApp (*negrito*, _itálico_)
+ */
+export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
+  const statusLabels: Record<string, string> = {
+    pendente: 'Pendente',
+    em_andamento: 'Em Andamento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado'
+  }
+
+  const sep = '─────────────────────'
+  const orderNumber = order.numero.toString().padStart(6, '0')
+
+  const subtotal = order.items?.reduce((sum, item) => sum + item.valor_total, 0) || 0
+
+  let valorDesconto = 0
+  if (order.desconto_percentual && order.desconto_percentual > 0) {
+    valorDesconto = (subtotal * order.desconto_percentual) / 100
+  } else if (order.desconto_valor && order.desconto_valor > 0) {
+    valorDesconto = order.desconto_valor
+  }
+
+  const totalComDesconto = subtotal - valorDesconto
+  const valorPago = order.valor_pago || 0
+  const saldoRestante = totalComDesconto - valorPago
+
+  const lines: string[] = []
+
+  // Cabeçalho
+  lines.push(`*${organizationName.toUpperCase()}*`)
+  lines.push(`*ORDEM DE SERVIÇO #${orderNumber}*`)
+  if (order.data_abertura) {
+    lines.push(format(new Date(order.data_abertura), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }))
+  }
+  lines.push(sep)
+
+  // Cliente
+  lines.push(`*CLIENTE*`)
+  lines.push(order.client?.nome || 'Não informado')
+  if (order.client?.telefone) lines.push(`Tel: ${order.client.telefone}`)
+  if (order.client?.email) lines.push(order.client.email)
+  lines.push(sep)
+
+  // Informações
+  lines.push(`*INFORMAÇÕES*`)
+  lines.push(`Status: ${statusLabels[order.status]}`)
+  if (order.data_prevista) {
+    lines.push(`Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}`)
+  }
+  if (order.data_conclusao) {
+    lines.push(`Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}`)
+  }
+  if (order.forma_pagamento) {
+    lines.push(`Pagamento: ${order.forma_pagamento}`)
+  }
+  // Chave PIX
+  if (
+    orgData?.show_pix_key_on_order &&
+    orgData?.pix_key &&
+    order.forma_pagamento?.toLowerCase().includes('pix')
+  ) {
+    lines.push(`Chave PIX: *${orgData.pix_key}*`)
+  }
+  lines.push(sep)
+
+  // Serviços
+  lines.push(`*SERVIÇOS*`)
+  order.items?.forEach(item => {
+    lines.push(`• *${item.service_nome}*`)
+    lines.push(`  ${item.quantidade}x R$ ${item.valor_unitario.toFixed(2)} = R$ ${item.valor_total.toFixed(2)}`)
+  })
+  if (!order.items?.length) lines.push('Nenhum serviço adicionado')
+  lines.push(sep)
+
+  // Totais
+  lines.push(`Subtotal: R$ ${subtotal.toFixed(2)}`)
+  if (valorDesconto > 0) {
+    const descontoLabel = order.desconto_percentual ? ` (${order.desconto_percentual}%)` : ''
+    lines.push(`Desconto${descontoLabel}: -R$ ${valorDesconto.toFixed(2)}`)
+  }
+  lines.push(`*TOTAL: R$ ${totalComDesconto.toFixed(2)}*`)
+  if (valorPago > 0) lines.push(`Pago: R$ ${valorPago.toFixed(2)}`)
+  if (saldoRestante > 0) lines.push(`*Saldo Restante: R$ ${saldoRestante.toFixed(2)}*`)
+
+  // Observações
+  if (order.observacoes) {
+    lines.push(sep)
+    lines.push(`*OBSERVAÇÕES*`)
+    lines.push(order.observacoes)
+  }
+
+  // Rodapé
+  lines.push(sep)
+  lines.push('Obrigado pela preferência! 🙏')
+
+  // Redes sociais
+  if (orgData) {
+    const socials: { label: string; handle: string | null | undefined }[] = [
+      { label: 'Instagram', handle: orgData.instagram },
+      { label: 'Facebook',  handle: orgData.facebook },
+      { label: 'X',         handle: orgData.twitter },
+      { label: 'TikTok',   handle: orgData.tiktok },
+      { label: 'Kwai',     handle: orgData.kwai },
+    ].filter(s => s.handle)
+    if (socials.length > 0) {
+      socials.forEach(s => lines.push(`${s.label}: @${s.handle}`))
+    }
+  }
+
+  return lines.join('\n')
 }

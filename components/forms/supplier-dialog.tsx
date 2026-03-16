@@ -60,9 +60,11 @@ interface SupplierDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   supplier?: Supplier | null
+  /** Chamado após criar/atualizar com sucesso */
+  onSaved?: (supplier: Supplier) => void
 }
 
-export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogProps) {
+export function SupplierDialog({ open, onOpenChange, supplier, onSaved }: SupplierDialogProps) {
   const [activeTab, setActiveTab] = useState('dados')
   const createSupplier = useCreateSupplier()
   const updateSupplier = useUpdateSupplier()
@@ -123,11 +125,13 @@ export function SupplierDialog({ open, onOpenChange, supplier }: SupplierDialogP
 
   const onSubmit = async (data: SupplierFormData) => {
     try {
+      let saved: Supplier
       if (supplier) {
-        await updateSupplier.mutateAsync({ id: supplier.id, data })
+        saved = await updateSupplier.mutateAsync({ id: supplier.id, data })
       } else {
-        await createSupplier.mutateAsync(data)
+        saved = await createSupplier.mutateAsync(data)
       }
+      onSaved?.(saved)
       onOpenChange(false)
       form.reset()
       setActiveTab('dados')

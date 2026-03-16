@@ -11,6 +11,11 @@ export const organizationSettingsSchema = z.object({
   zip_code: z.string().optional(),
   website: z.string().url('URL inválida').optional().or(z.literal('')),
   logo_url: z.string().optional(),
+  instagram: z.string().optional(),
+  facebook: z.string().optional(),
+  twitter: z.string().optional(),
+  tiktok: z.string().optional(),
+  kwai: z.string().optional(),
 })
 
 export const customizationSettingsSchema = z.object({
@@ -34,6 +39,8 @@ export const financialSettingsSchema = z.object({
   cashier_opening_balance_required: z.boolean(),
   expense_categories: z.array(z.string()).optional(),
   income_categories: z.array(z.string()).optional(),
+  pix_key: z.string().optional(),
+  show_pix_key_on_order: z.boolean().optional(),
 })
 
 export const notificationSettingsSchema = z.object({
@@ -48,6 +55,8 @@ export const notificationSettingsSchema = z.object({
   birthday_reminder_days: z.number().int().min(0).max(30),
   payment_reminder_days: z.number().int().min(0).max(30),
   order_reminder_days: z.number().int().min(0).max(30),
+  ordem_aviso_ativo: z.boolean(),
+  ordem_aviso_texto: z.string().max(1000, 'Máximo de 1000 caracteres').optional().or(z.literal('')),
 })
 
 export const orderSettingsSchema = z.object({
@@ -72,6 +81,7 @@ export const systemPreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'auto']),
   compact_mode: z.boolean(),
   show_tooltips: z.boolean(),
+  controla_estoque: z.boolean(),
 })
 
 export type OrganizationSettingsInput = z.infer<typeof organizationSettingsSchema>

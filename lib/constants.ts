@@ -4,7 +4,7 @@ export const PLAN_LIMITS = {
     maxUsers: 1,
     maxOrders: Infinity,
   },
-  enterprise: {
+  pro: {
     maxClients: Infinity,
     maxUsers: Infinity,
     maxOrders: Infinity,

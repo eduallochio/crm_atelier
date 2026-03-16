@@ -54,7 +54,75 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
 
   return (
     <>
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-3">
+        {services.map((service) => (
+          <div key={service.id} className="bg-card border border-border rounded-lg p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-foreground truncate">{service.nome}</p>
+                  {service.categoria && (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
+                      <Tag className="h-3 w-3" />
+                      {service.categoria}
+                    </span>
+                  )}
+                </div>
+                {service.descricao && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{service.descricao}</p>
+                )}
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="flex items-center text-base font-semibold text-green-600 dark:text-green-400">
+                    <DollarSign className="h-4 w-4" />
+                    {service.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                  {service.tempo_estimado && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {service.tempo_estimado}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={service.ativo}
+                    onCheckedChange={() => handleToggleStatus(service.id, service.ativo)}
+                    disabled={toggleStatus.isPending}
+                  />
+                  <span className={`text-xs font-medium ${service.ativo ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    {service.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setHistoryService(service)}
+                    className="p-1.5 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                    title="Histórico de preços"
+                  >
+                    <History className="h-4 w-4" />
+                  </button>
+                  <Button variant="ghost" size="icon" onClick={() => onDuplicate(service)} title="Duplicar" className="h-8 w-8">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(service)} className="h-8 w-8">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeleteId(service.id)}
+                    className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50 border-b border-border">

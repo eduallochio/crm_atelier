@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { payableSchema, PayableInput, Payable } from '@/lib/validations/financial'
-import { useCreatePayable, useUpdatePayable } from '@/hooks/use-financial'
+import { useCreatePayable, useUpdatePayable, useFinancialCategories } from '@/hooks/use-financial'
 import { useActiveSuppliers } from '@/hooks/use-suppliers'
 import { SupplierDialog } from '@/components/forms/supplier-dialog'
 import { Plus } from 'lucide-react'
@@ -45,11 +45,14 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
   const createMutation = useCreatePayable()
   const updateMutation = useUpdatePayable()
   const { data: suppliers = [] } = useActiveSuppliers()
+  const { data: categories = [] } = useFinancialCategories()
+  const expenseCategories = categories.filter(c => c.tipo === 'despesa')
 
   const form = useForm({
     resolver: zodResolver(payableSchema),
     defaultValues: {
       supplier_id: '',
+      category_id: '',
       descricao: '',
       valor: '',
       data_vencimento: '',
@@ -66,6 +69,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
     if (payable) {
       form.reset({
         supplier_id: payable.supplier_id || '',
+        category_id: payable.category_id || '',
         descricao: payable.descricao,
         valor: payable.valor.toString(),
         data_vencimento: payable.data_vencimento,
@@ -78,6 +82,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
     } else {
       form.reset({
         supplier_id: '',
+        category_id: '',
         descricao: '',
         valor: '',
         data_vencimento: '',
@@ -214,13 +219,25 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
             <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="categoria"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoria</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Material, Aluguel" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="sem-categoria">Sem categoria</SelectItem>
+                        {expenseCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

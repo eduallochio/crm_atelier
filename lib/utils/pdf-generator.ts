@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 
-export function generateOrderPDF(order: ServiceOrder, organizationName: string = 'CRM Atelier') {
+export function generateOrderPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier') {
   const doc = new jsPDF()
   
   // Configurações

@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Pencil, Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer } from 'lucide-react'
+import { Pencil, Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer, Banknote } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { Button } from '@/components/ui/button'
@@ -43,6 +41,7 @@ const statusLabels = {
 export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrdersTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
+  const [pendingConcluir, setPendingConcluir] = useState<{ id: string; saldo: number } | null>(null)
   const deleteOrder = useDeleteServiceOrder()
   const updateOrder = useUpdateServiceOrder()
 
@@ -53,25 +52,34 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     }
   }
 
+  const parseLocalDate = (dateStr: string): Date => {
+    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+
+  const fmtDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('T')[0].split('-')
+    return `${d}/${m}/${y}`
+  }
+
   // Verificar se ordem está atrasada
   const isOverdue = (order: ServiceOrder) => {
     if (order.status === 'concluido' || order.status === 'cancelado') return false
     if (!order.data_prevista) return false
-    return new Date(order.data_prevista) < new Date()
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    return parseLocalDate(order.data_prevista) < today
   }
 
   // Calcular dias restantes/atrasados
   const getDaysRemaining = (order: ServiceOrder) => {
     if (!order.data_prevista) return null
-    const today = new Date()
-    const prevista = new Date(order.data_prevista)
-    const diff = Math.ceil((prevista.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    return diff
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    return Math.ceil((parseLocalDate(order.data_prevista).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
   }
 
   const handleWhatsAppClick = (order: ServiceOrder) => {
     if (!order.client?.telefone) {
-      alert('Cliente não possui telefone cadastrado')
+      toast.error('Cliente não possui telefone cadastrado')
       return
     }
 
@@ -132,10 +140,23 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   }
 
   const handleStatusChange = async (orderId: string, newStatus: ServiceOrder['status']) => {
-    await updateOrder.mutateAsync({
-      id: orderId,
-      input: { status: newStatus }
-    })
+    if (newStatus === 'concluido') {
+      const order = orders.find(o => o.id === orderId)
+      if (order) {
+        const saldo = (order.valor_total || 0) - (order.valor_pago || 0)
+        if (saldo > 0) {
+          setPendingConcluir({ id: orderId, saldo })
+          return
+        }
+      }
+    }
+    await updateOrder.mutateAsync({ id: orderId, input: { status: newStatus } })
+  }
+
+  const confirmConcluir = async () => {
+    if (!pendingConcluir) return
+    await updateOrder.mutateAsync({ id: pendingConcluir.id, input: { status: 'concluido' } })
+    setPendingConcluir(null)
   }
 
   // Bulk actions
@@ -238,7 +259,136 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
         </div>
       )}
 
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-3">
+        {orders.map((order) => {
+          const overdue = isOverdue(order)
+          const daysRemaining = getDaysRemaining(order)
+          return (
+            <div
+              key={order.id}
+              className={`bg-card border rounded-lg p-4 ${overdue ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20' : 'border-border'}`}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm font-bold text-foreground">
+                    #{order.numero.toString().padStart(6, '0')}
+                  </span>
+                  <select
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value as ServiceOrder['status'])}
+                    className={`text-xs font-medium px-2 py-0.5 rounded-full border-0 cursor-pointer ${statusColors[order.status]}`}
+                    disabled={updateOrder.isPending}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em Andamento</option>
+                    <option value="concluido">Concluído</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                  {overdue && (
+                    <span className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 px-2 py-0.5 rounded-full">
+                      <AlertCircle className="h-3 w-3" />
+                      ATRASADA
+                    </span>
+                  )}
+                  {!overdue && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3 && order.status !== 'concluido' && order.status !== 'cancelado' && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50 px-2 py-0.5 rounded-full">
+                      <Clock className="h-3 w-3" />
+                      {daysRemaining === 0 ? 'Hoje' : `${daysRemaining}d`}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => toggleSelectOrder(order.id)}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  {selectedOrders.has(order.id) ? <CheckSquare className="h-5 w-5 text-blue-600" /> : <Square className="h-5 w-5" />}
+                </button>
+              </div>
+
+              {/* Cliente */}
+              <div className="flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground truncate">{order.client?.nome || 'Cliente não informado'}</p>
+                  {order.client?.telefone && (
+                    <p className="text-xs text-muted-foreground">{order.client.telefone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Datas + valor */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {fmtDate(order.data_abertura)}
+                    {order.data_prevista && <span className="text-muted-foreground/60">→ {fmtDate(order.data_prevista)}</span>}
+                  </div>
+                  {order.data_conclusao && (
+                    <div className="text-green-600 dark:text-green-400">Concluído: {fmtDate(order.data_conclusao)}</div>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="flex items-center text-base font-semibold text-green-600 dark:text-green-400">
+                    <DollarSign className="h-4 w-4" />
+                    {order.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                  {order.items && order.items.length > 0 && (
+                    <div className="text-xs text-muted-foreground">{order.items.length} {order.items.length === 1 ? 'item' : 'itens'}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Badge pagamento pendente */}
+              {order.status === 'concluido' && order.status_pagamento !== 'pago' && (
+                <button
+                  type="button"
+                  title="Clique para gerar conta a receber"
+                  disabled={updateOrder.isPending}
+                  onClick={() => updateOrder.mutateAsync({ id: order.id, input: { status: 'concluido' } })}
+                  className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors disabled:opacity-50"
+                >
+                  <Banknote className="h-3 w-3" />
+                  R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
+                </button>
+              )}
+
+              {/* Ações */}
+              <div className="flex items-center gap-1 border-t border-border pt-3 mt-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                  onClick={() => { try { generateThermalPDF(order); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
+                  title="Gerar PDF">
+                  <Printer className="h-4 w-4" />
+                </Button>
+                {order.client?.telefone && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50"
+                    onClick={() => handleWhatsAppWithPDF(order)} title="Enviar por WhatsApp">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                )}
+                {order.status === 'concluido' && order.client?.telefone && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50"
+                    onClick={() => handleWhatsAppClick(order)} title="Notificar conclusão">
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(order)}>
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
+                  onClick={() => setDeleteId(order.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50 border-b border-border">
@@ -295,7 +445,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="font-mono text-sm font-semibold text-foreground">
                         #{order.numero.toString().padStart(6, '0')}
                       </div>
@@ -310,6 +460,18 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           <Clock className="h-3 w-3" />
                           {daysRemaining === 0 ? 'Hoje' : `${daysRemaining}d`}
                         </div>
+                      )}
+                      {order.status === 'concluido' && order.status_pagamento !== 'pago' && (
+                        <button
+                          type="button"
+                          title="Clique para gerar conta a receber em Financeiro"
+                          disabled={updateOrder.isPending}
+                          onClick={() => updateOrder.mutateAsync({ id: order.id, input: { status: 'concluido' } })}
+                          className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Banknote className="h-3 w-3" />
+                          R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pendente
+                        </button>
                       )}
                     </div>
                   </td>
@@ -345,16 +507,16 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                     <div className="text-sm space-y-1">
                       <div className="flex items-center text-muted-foreground">
                         <Calendar className="h-3 w-3 mr-1" />
-                        Abertura: {format(new Date(order.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
+                        Abertura: {fmtDate(order.data_abertura)}
                       </div>
                       {order.data_prevista && (
                         <div className="text-muted-foreground">
-                          Previsão: {format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}
+                          Previsão: {fmtDate(order.data_prevista)}
                         </div>
                       )}
                       {order.data_conclusao && (
                         <div className="text-green-600 dark:text-green-400">
-                          Conclusão: {format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}
+                          Conclusão: {fmtDate(order.data_conclusao)}
                         </div>
                       )}
                     </div>
@@ -453,6 +615,42 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               className="bg-red-600 hover:bg-red-700"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingConcluir} onOpenChange={() => setPendingConcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Banknote className="h-5 w-5 text-amber-600" />
+              Pagamento pendente
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Esta OS possui um saldo de{' '}
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    R$ {pendingConcluir?.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>{' '}
+                  ainda não pago.
+                </p>
+                <p>
+                  Ao concluir, uma <strong>conta a receber</strong> será gerada automaticamente
+                  em <em>Financeiro → Contas a Receber</em>.
+                </p>
+                <p>Deseja marcar como concluída mesmo assim?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmConcluir}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Concluir mesmo assim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

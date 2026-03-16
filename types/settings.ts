@@ -12,6 +12,11 @@ export interface OrganizationSettings {
   zip_code?: string
   website?: string
   logo_url?: string
+  instagram?: string
+  facebook?: string
+  twitter?: string
+  tiktok?: string
+  kwai?: string
   created_at: string
   updated_at: string
 }
@@ -46,6 +51,9 @@ export interface FinancialSettings {
   // Categorias personalizadas
   expense_categories?: string[]
   income_categories?: string[]
+  // PIX
+  pix_key?: string
+  show_pix_key_on_order: boolean
   updated_at: string
 }
 
@@ -67,6 +75,9 @@ export interface NotificationSettings {
   birthday_reminder_days: number
   payment_reminder_days: number
   order_reminder_days: number
+  // Aviso padrão nas OS
+  ordem_aviso_ativo: boolean
+  ordem_aviso_texto?: string
   updated_at: string
 }
 
@@ -103,6 +114,8 @@ export interface SystemPreferences {
   theme: 'light' | 'dark' | 'auto'
   compact_mode: boolean
   show_tooltips: boolean
+  // Módulos
+  controla_estoque: boolean
   updated_at: string
 }
 

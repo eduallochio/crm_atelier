@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCounterAnimation } from '@/hooks/use-counter-animation'
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -31,59 +30,68 @@ export function AnimatedStatCard({
   const numericValue = typeof value === 'number' ? value : 0
   const animatedValue = useCounterAnimation({ end: numericValue, duration: 1500 })
 
-  const trendColor = trend === 0 
-    ? 'text-gray-500 dark:text-gray-400' 
-    : trendUp 
-      ? 'text-green-600 dark:text-green-400' 
-      : 'text-red-600 dark:text-red-400'
+  const trendColor = trend === 0
+    ? 'text-muted-foreground'
+    : trendUp
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-red-500 dark:text-red-400'
+
+  const displayValue = isMonetary
+    ? typeof value === 'string'
+      ? value
+      : `R$ ${animatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : animatedValue.toLocaleString('pt-BR')
 
   return (
-    <Card className={cn(
-      'relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]',
-      'border-border/50'
+    <div className={cn(
+      'relative bg-card rounded-2xl overflow-hidden',
+      'border border-border/60 shadow-sm',
+      'hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-default',
     )}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
-        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-          {name}
-        </CardTitle>
-        <div className={cn('p-2 sm:p-2.5 rounded-lg shadow-sm', iconBg)}>
-          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2 sm:space-y-3 px-4 sm:px-6 pb-4 sm:pb-6">
-        <div className="flex items-baseline justify-between">
-          <div className={cn('text-2xl sm:text-3xl font-bold tracking-tight', color)}>
-            {isMonetary 
-              ? typeof value === 'string' ? value : `R$ ${animatedValue.toLocaleString('pt-BR')}`
-              : animatedValue.toLocaleString('pt-BR')
-            }
+      {/* Top accent bar */}
+      <div className={cn('absolute top-0 left-0 right-0 h-[3px]', iconBg)} />
+
+      {/* Subtle background tint */}
+      <div className={cn('absolute inset-0 opacity-[0.15]', bgColor)} />
+
+      <div className="relative p-5">
+        {/* Header row */}
+        <div className="flex items-start justify-between mb-4">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-tight">
+            {name}
+          </p>
+          <div className={cn('p-2 rounded-xl shadow-sm shrink-0', iconBg)}>
+            <Icon className="h-3.5 w-3.5 text-white" />
           </div>
         </div>
-        
-        {(trend !== undefined && trend !== null) && (
-          <div className="flex items-center gap-1">
-            {trend === 0 ? (
-              <Minus className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
-            ) : trendUp ? (
-              <TrendingUp className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
-            ) : (
-              <TrendingDown className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', trendColor)} />
-            )}
-            <span className={cn('text-xs sm:text-sm font-medium', trendColor)}>
-              {Math.abs(trend)}%
-            </span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
-              vs. mês anterior
-            </span>
-          </div>
-        )}
-      </CardContent>
-      
-      {/* Gradient overlay */}
-      <div className={cn(
-        'absolute inset-0 -z-10 opacity-50',
-        bgColor
-      )} />
-    </Card>
+
+        {/* Value */}
+        <div className={cn(
+          'font-bold tracking-tight leading-none mb-3',
+          isMonetary ? 'text-2xl' : 'text-3xl',
+          color,
+        )}>
+          {displayValue}
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-border/50 mb-3" />
+
+        {/* Trend */}
+        <div className="flex items-center gap-1.5 h-4">
+          {trend === 0 ? (
+            <Minus className={cn('h-3 w-3', trendColor)} />
+          ) : trendUp ? (
+            <TrendingUp className={cn('h-3 w-3', trendColor)} />
+          ) : (
+            <TrendingDown className={cn('h-3 w-3', trendColor)} />
+          )}
+          <span className={cn('text-[11px] font-semibold', trendColor)}>
+            {Math.abs(trend)}%
+          </span>
+          <span className="text-[10px] text-muted-foreground">vs. mês anterior</span>
+        </div>
+      </div>
+    </div>
   )
 }

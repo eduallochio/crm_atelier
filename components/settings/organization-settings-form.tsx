@@ -12,7 +12,6 @@ import { Loader2, Search, Edit, X, Upload, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { buscarCep, formatarCep } from '@/lib/services/viacep'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
 export function OrganizationSettingsForm() {
@@ -22,7 +21,6 @@ export function OrganizationSettingsForm() {
   const [isEditing, setIsEditing] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const supabase = createClient()
 
   const form = useForm({
     resolver: zodResolver(organizationSettingsSchema),
@@ -37,6 +35,11 @@ export function OrganizationSettingsForm() {
       zip_code: '',
       website: '',
       logo_url: '',
+      instagram: '',
+      facebook: '',
+      twitter: '',
+      tiktok: '',
+      kwai: '',
     },
   })
 
@@ -53,6 +56,11 @@ export function OrganizationSettingsForm() {
         zip_code: settings.zip_code || '',
         website: settings.website || '',
         logo_url: settings.logo_url || '',
+        instagram: settings.instagram || '',
+        facebook: settings.facebook || '',
+        twitter: settings.twitter || '',
+        tiktok: settings.tiktok || '',
+        kwai: settings.kwai || '',
       })
       setLogoPreview(settings.logo_url || null)
     }
@@ -85,6 +93,11 @@ export function OrganizationSettingsForm() {
         zip_code: settings.zip_code || '',
         website: settings.website || '',
         logo_url: settings.logo_url || '',
+        instagram: settings.instagram || '',
+        facebook: settings.facebook || '',
+        twitter: settings.twitter || '',
+        tiktok: settings.tiktok || '',
+        kwai: settings.kwai || '',
       })
       setLogoPreview(settings.logo_url || null)
     }
@@ -95,13 +108,11 @@ export function OrganizationSettingsForm() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione uma imagem válida')
       return
     }
 
-    // Validar tamanho (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error('A imagem deve ter no máximo 2MB')
       return
@@ -109,42 +120,17 @@ export function OrganizationSettingsForm() {
 
     setIsUploadingLogo(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
+      const formData = new FormData()
+      formData.append('file', file)
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
+      const res = await fetch('/api/upload/logo', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('Erro ao fazer upload')
+      const { url } = await res.json()
 
-      if (!profile?.organization_id) throw new Error('Organização não encontrada')
-
-      // Gerar nome único para o arquivo
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${profile.organization_id}/logo-${Date.now()}.${fileExt}`
-
-      // Upload para o Supabase Storage
-      const { error } = await supabase.storage
-        .from('organization-logos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        })
-
-      if (error) throw error
-
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('organization-logos')
-        .getPublicUrl(fileName)
-
-      // Atualizar preview e form
-      setLogoPreview(publicUrl)
-      form.setValue('logo_url', publicUrl)
+      setLogoPreview(url)
+      form.setValue('logo_url', url)
       toast.success('Logo carregado com sucesso!')
     } catch (error) {
-      console.error('Erro ao fazer upload:', error)
       toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload do logo')
     } finally {
       setIsUploadingLogo(false)
@@ -401,6 +387,76 @@ export function OrganizationSettingsForm() {
             {form.formState.errors.website && (
               <p className="text-sm text-red-500">{form.formState.errors.website.message}</p>
             )}
+          </div>
+        </div>
+
+        {/* Redes Sociais */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Redes Sociais</h3>
+            <span className="text-xs text-muted-foreground">(aparecerá na OS enviada ao cliente)</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">@</span>
+                <Input
+                  id="instagram"
+                  {...form.register('instagram')}
+                  placeholder="seu.atelie"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="facebook">Facebook</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">@</span>
+                <Input
+                  id="facebook"
+                  {...form.register('facebook')}
+                  placeholder="seu.atelie"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="twitter">X (Twitter)</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">@</span>
+                <Input
+                  id="twitter"
+                  {...form.register('twitter')}
+                  placeholder="seuatelie"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tiktok">TikTok</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">@</span>
+                <Input
+                  id="tiktok"
+                  {...form.register('tiktok')}
+                  placeholder="seuatelie"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kwai">Kwai</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">@</span>
+                <Input
+                  id="kwai"
+                  {...form.register('kwai')}
+                  placeholder="seuatelie"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

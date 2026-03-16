@@ -46,15 +46,32 @@ export function ReceivablesTable({ receivables, isLoading, onSort, sortField, so
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR')
+    // Usa apenas a parte da data (sem horário) para evitar offset de timezone
+    const d = date.split('T')[0]
+    const [year, month, day] = d.split('-')
+    return `${day}/${month}/${year}`
   }
 
-  const handleMarkAsReceived = async (id: string) => {
+  const getLocalDateStr = () => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  const handleMarkAsReceived = async (receivable: Receivable) => {
     await updateMutation.mutateAsync({
-      id,
+      id: receivable.id,
       input: {
+        descricao: receivable.descricao,
+        valor: String(receivable.valor),
+        data_vencimento: receivable.data_vencimento,
         status: 'recebido',
-        data_recebimento: new Date().toISOString().split('T')[0],
+        data_recebimento: getLocalDateStr(),
+        category_id: receivable.category_id ?? undefined,
+        payment_method_id: receivable.payment_method_id ?? undefined,
+        observacoes: receivable.observacoes ?? undefined,
       },
     })
   }
@@ -179,7 +196,7 @@ export function ReceivablesTable({ receivables, isLoading, onSort, sortField, so
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {receivable.status !== 'recebido' && (
-                        <DropdownMenuItem onClick={() => handleMarkAsReceived(receivable.id)}>
+                        <DropdownMenuItem onClick={() => handleMarkAsReceived(receivable)}>
                           <Check className="h-4 w-4 mr-2" />
                           Marcar como Recebido
                         </DropdownMenuItem>

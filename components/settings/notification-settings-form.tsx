@@ -7,9 +7,10 @@ import { useNotificationSettings, useUpdateNotificationSettings } from '@/hooks/
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Loader2 } from 'lucide-react'
+import { Loader2, FileText } from 'lucide-react'
 import { useEffect } from 'react'
 
 export function NotificationSettingsForm() {
@@ -30,6 +31,8 @@ export function NotificationSettingsForm() {
       birthday_reminder_days: 7,
       payment_reminder_days: 3,
       order_reminder_days: 1,
+      ordem_aviso_ativo: false,
+      ordem_aviso_texto: '',
     },
   })
 
@@ -47,6 +50,8 @@ export function NotificationSettingsForm() {
         birthday_reminder_days: settings.birthday_reminder_days,
         payment_reminder_days: settings.payment_reminder_days,
         order_reminder_days: settings.order_reminder_days,
+        ordem_aviso_ativo: !!settings.ordem_aviso_ativo,
+        ordem_aviso_texto: settings.ordem_aviso_texto || '',
       })
     }
   }, [settings, form])
@@ -245,9 +250,54 @@ export function NotificationSettingsForm() {
           </div>
         </div>
 
+        {/* Aviso padrão nas ordens de serviço */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-md font-medium">Aviso Padrão nas Ordens de Serviço</h3>
+          </div>
+
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <Label htmlFor="ordem_aviso_ativo" className="cursor-pointer">
+                Ativar mensagem padrão
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Preenche automaticamente o campo de observações em toda nova OS criada
+              </p>
+            </div>
+            <Switch
+              id="ordem_aviso_ativo"
+              checked={watchedValues.ordem_aviso_ativo ?? false}
+              onCheckedChange={(checked) => form.setValue('ordem_aviso_ativo', checked)}
+            />
+          </div>
+
+          {watchedValues.ordem_aviso_ativo && (
+            <div className="space-y-2">
+              <Label htmlFor="ordem_aviso_texto">Mensagem padrão</Label>
+              <Textarea
+                id="ordem_aviso_texto"
+                placeholder="Ex: O prazo de entrega pode variar conforme disponibilidade de materiais. Agradecemos a compreensão!"
+                rows={4}
+                maxLength={1000}
+                {...form.register('ordem_aviso_texto')}
+              />
+              <div className="flex items-center justify-between">
+                {form.formState.errors.ordem_aviso_texto && (
+                  <p className="text-sm text-red-500">{form.formState.errors.ordem_aviso_texto.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground ml-auto">
+                  {(watchedValues.ordem_aviso_texto ?? '').length}/1000
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end pt-4">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={updateSettings.isPending || !settings?.organization_id}
           >
             {updateSettings.isPending ? (

@@ -1,83 +1,33 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import type { Client, ClientInput } from '@/lib/validations/client'
 import { toast } from 'sonner'
 
 export function useClients() {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      // Buscar o profile do usuário para pegar organization_id
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      // Buscar clientes da organização
-      const { data, error } = await supabase
-        .from('org_clients')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      return data as Client[]
+      const res = await fetch('/api/clients')
+      if (!res.ok) throw new Error('Erro ao buscar clientes')
+      return res.json() as Promise<Client[]>
     },
   })
 }
 
 export function useCreateClient() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: ClientInput) => {
-      // Buscar organization_id do usuário
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id, organization:organizations(plan)')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      // Verificar limites do plano
-      const { data: metrics } = await supabase
-        .from('usage_metrics')
-        .select('clients_count')
-        .eq('organization_id', profile.organization_id)
-        .single()
-
-      // @ts-ignore
-      if (profile.organization.plan === 'free' && metrics && metrics.clients_count >= 50) {
-        throw new Error('Limite de clientes atingido. Faça upgrade para o plano Enterprise.')
-      }
-
-      // Criar cliente
-      const { data, error } = await supabase
-        .from('org_clients')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar cliente')
+      return data as Client
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
@@ -90,20 +40,18 @@ export function useCreateClient() {
 }
 
 export function useUpdateClient() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: ClientInput }) => {
-      const { data, error } = await supabase
-        .from('org_clients')
-        .update(input)
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar cliente')
+      return data as Client
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
@@ -116,17 +64,15 @@ export function useUpdateClient() {
 }
 
 export function useDeleteClient() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_clients')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erro ao remover cliente')
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })

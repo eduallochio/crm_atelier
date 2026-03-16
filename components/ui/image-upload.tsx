@@ -2,9 +2,8 @@
 
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
 
 interface ImageUploadProps {
   orderId?: string
@@ -15,15 +14,12 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({
-  orderId,
-  organizationId,
   onImagesChange,
   existingImages = [],
   maxFiles = 5,
 }: ImageUploadProps) {
   const [images, setImages] = useState<string[]>(existingImages)
   const [uploading, setUploading] = useState(false)
-  const supabase = createClient()
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (images.length + acceptedFiles.length > maxFiles) {
@@ -32,35 +28,21 @@ export function ImageUpload({
     }
 
     setUploading(true)
-
     try {
       const uploadedUrls: string[] = []
 
       for (const file of acceptedFiles) {
-        // Gerar nome único para o arquivo
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${organizationId}/${orderId || 'temp'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const formData = new FormData()
+        formData.append('file', file)
 
-        // Upload para Supabase Storage
-        const { data, error } = await supabase.storage
-          .from('order-images')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false,
-          })
-
-        if (error) {
-          console.error('Erro no upload:', error)
+        const res = await fetch('/api/upload/images', { method: 'POST', body: formData })
+        if (!res.ok) {
           alert(`Erro ao enviar ${file.name}`)
           continue
         }
 
-        // Obter URL pública
-        const { data: { publicUrl } } = supabase.storage
-          .from('order-images')
-          .getPublicUrl(fileName)
-
-        uploadedUrls.push(publicUrl)
+        const { url } = await res.json()
+        uploadedUrls.push(url)
       }
 
       const newImages = [...images, ...uploadedUrls]
@@ -72,38 +54,23 @@ export function ImageUpload({
     } finally {
       setUploading(false)
     }
-  }, [images, maxFiles, orderId, organizationId, onImagesChange, supabase])
+  }, [images, maxFiles, onImagesChange])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
-    },
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
     maxFiles: maxFiles - images.length,
     disabled: uploading || images.length >= maxFiles,
   })
 
-  const removeImage = async (url: string) => {
-    try {
-      // Extrair nome do arquivo da URL
-      const fileName = url.split('/').slice(-3).join('/')
-      
-      // Deletar do storage
-      await supabase.storage
-        .from('order-images')
-        .remove([fileName])
-
-      const newImages = images.filter(img => img !== url)
-      setImages(newImages)
-      onImagesChange(newImages)
-    } catch (error) {
-      console.error('Erro ao remover imagem:', error)
-    }
+  const removeImage = (url: string) => {
+    const newImages = images.filter(img => img !== url)
+    setImages(newImages)
+    onImagesChange(newImages)
   }
 
   return (
     <div className="space-y-3">
-      {/* Área de Upload */}
       {images.length < maxFiles && (
         <div
           {...getRootProps()}
@@ -133,7 +100,6 @@ export function ImageUpload({
         </div>
       )}
 
-      {/* Preview das Imagens */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {images.map((url, index) => (

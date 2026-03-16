@@ -8,69 +8,68 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { User, Shield, Camera, Calendar, Monitor, Smartphone, Laptop, LogOut, AlertTriangle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { toast } from 'sonner'
+
+interface UserProfile {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  created_at: string
+}
 
 interface Session {
   factor_id: string
   created_at: string
   updated_at: string
-  aal?: string
   current?: boolean
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [fullName, setFullName] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [sessions, setSessions] = useState<Session[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingSessions, setIsLoadingSessions] = useState(true)
-  const supabase = createClient()
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = useCallback(() => {
     setIsLoadingSessions(true)
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-      
-      // Buscar todas as sessões do usuário
-      // Nota: O Supabase não fornece uma API pública para listar todas as sessões
-      // Por enquanto, vamos mostrar apenas a sessão atual
-      if (currentSession) {
-        setSessions([{
-          factor_id: currentSession.access_token.substring(0, 16) + '...',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          current: true
-        }])
-      }
-    } catch (error) {
-      console.error('Erro ao carregar sessões:', error)
-    } finally {
-      setIsLoadingSessions(false)
-    }
-  }, [supabase])
+    // NextAuth não expõe lista de sessões — mostramos a sessão atual
+    setSessions([{
+      factor_id: 'current',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      current: true,
+    }])
+    setIsLoadingSessions(false)
+  }, [])
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+    async function loadProfile() {
+      const res = await fetch('/api/profile')
+      if (!res.ok) return
+      const data = await res.json() as UserProfile
+      setProfile(data)
+      setFullName(data.full_name || '')
     }
-    getUser()
+    loadProfile()
     loadSessions()
-  }, [loadSessions, supabase])
+  }, [loadSessions])
 
   const getDeviceInfo = () => {
     const ua = navigator.userAgent
     let deviceType = Monitor
     let browser = 'Navegador Desconhecido'
 
-    // Detectar tipo de dispositivo
     if (/mobile/i.test(ua)) {
       deviceType = Smartphone
     } else if (/tablet/i.test(ua)) {
       deviceType = Laptop
     }
 
-    // Detectar navegador
     if (ua.includes('Chrome') && !ua.includes('Edg')) {
       browser = 'Chrome'
     } else if (ua.includes('Firefox')) {
@@ -83,7 +82,6 @@ export default function ProfilePage() {
       browser = 'Opera'
     }
 
-    // Detectar OS
     let os = 'Sistema Desconhecido'
     if (ua.includes('Win')) os = 'Windows'
     else if (ua.includes('Mac')) os = 'macOS'
@@ -91,12 +89,7 @@ export default function ProfilePage() {
     else if (ua.includes('Android')) os = 'Android'
     else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS'
 
-    return {
-      deviceType,
-      deviceName: `${browser} no ${os}`,
-      browser,
-      os
-    }
+    return { deviceType, deviceName: `${browser} no ${os}` }
   }
 
   const formatDateTime = (date: string) => {
@@ -105,38 +98,55 @@ export default function ProfilePage() {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
-    // Implementar salvamento
-    setTimeout(() => setIsSaving(false), 1000)
-  }
-
-  const handleChangePassword = async () => {
-    setIsSaving(true)
     try {
-      // Aqui você implementaria a lógica de alteração de senha
-      // await supabase.auth.updateUser({ password: newPassword })
-      alert('Funcionalidade de alteração de senha será implementada em breve')
-    } catch (error) {
-      console.error('Erro ao alterar senha:', error)
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName }),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar')
+      const updated = await res.json() as UserProfile
+      setProfile(updated)
+      toast.success('Perfil atualizado com sucesso!')
+    } catch {
+      toast.error('Erro ao salvar perfil')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleLogoutAllOtherSessions = async () => {
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem')
+      return
+    }
+    if (newPassword.length < 8) {
+      toast.error('A nova senha deve ter pelo menos 8 caracteres')
+      return
+    }
     setIsSaving(true)
     try {
-      // Isso vai fazer logout de todas as sessões e criar uma nova
-      await supabase.auth.refreshSession()
-      await loadSessions()
-      alert('Todas as outras sessões foram desconectadas')
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Erro ao alterar senha')
+      }
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      toast.success('Senha alterada com sucesso!')
     } catch (error) {
-      console.error('Erro ao desconectar sessões:', error)
+      toast.error((error as Error).message)
     } finally {
       setIsSaving(false)
     }
@@ -144,11 +154,11 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <Header 
+      <Header
         title="Meu Perfil"
         description="Gerencie suas informações pessoais e segurança"
       />
-      
+
       <div className="p-6 max-w-7xl mx-auto">
         <Tabs defaultValue="personal" className="space-y-6">
           <TabsList className="bg-muted">
@@ -171,7 +181,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-                        {user?.user_metadata?.name?.charAt(0).toUpperCase() || 'U'}
+                        {(fullName || profile?.email || 'U').charAt(0).toUpperCase()}
                       </div>
                       <button className="absolute bottom-0 right-0 p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors">
                         <Camera className="h-4 w-4 text-muted-foreground" />
@@ -191,20 +201,20 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome Completo</Label>
-                    <Input 
-                      id="name" 
-                      defaultValue={user?.user_metadata?.name || ''} 
+                    <Input
+                      id="name"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
                       placeholder="Seu nome completo"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      defaultValue={user?.email || ''} 
-                      placeholder="seu@email.com"
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile?.email || ''}
                       disabled
                       className="bg-muted"
                     />
@@ -212,37 +222,24 @@ export default function ProfilePage() {
                       O e-mail não pode ser alterado
                     </p>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone/WhatsApp</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      placeholder="(11) 98765-4321"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Cargo/Função</Label>
-                    <Input 
-                      id="role" 
-                      placeholder="Ex: Gerente, Atendente, Costureira"
-                    />
-                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-4 border-t border-border">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Membro desde</p>
-                    <p className="text-sm text-muted-foreground">
-                      {user?.created_at ? formatDateTime(user.created_at) : 'Data não disponível'}
-                    </p>
+                {profile?.created_at && (
+                  <div className="flex items-center gap-3 pt-4 border-t border-border">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Membro desde</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDateTime(profile.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button variant="outline">Cancelar</Button>
+                  <Button variant="outline" onClick={() => setFullName(profile?.full_name || '')}>
+                    Cancelar
+                  </Button>
                   <Button onClick={handleSaveProfile} disabled={isSaving}>
                     {isSaving ? 'Salvando...' : 'Salvar Alterações'}
                   </Button>
@@ -259,9 +256,11 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Senha Atual</Label>
-                  <Input 
-                    id="current-password" 
-                    type="password" 
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
                     placeholder="Digite sua senha atual"
                   />
                 </div>
@@ -269,18 +268,22 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="new-password">Nova Senha</Label>
-                    <Input 
-                      id="new-password" 
-                      type="password" 
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
                       placeholder="Digite a nova senha"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
-                    <Input 
-                      id="confirm-password" 
-                      type="password" 
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Confirme a nova senha"
                     />
                   </div>
@@ -322,9 +325,9 @@ export default function ProfilePage() {
                   {sessions.map((session, index) => {
                     const deviceInfo = getDeviceInfo()
                     const Icon = deviceInfo.deviceType
-                    
+
                     return (
-                      <div 
+                      <div
                         key={session.factor_id || index}
                         className="flex items-start justify-between p-4 bg-muted rounded-lg border border-border"
                       >
@@ -343,9 +346,7 @@ export default function ProfilePage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Sessão atual
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">Sessão atual</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Última atividade: {formatDateTime(session.updated_at)}
                             </p>
@@ -372,13 +373,13 @@ export default function ProfilePage() {
                     <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-3">
-                        <strong>Dica de segurança:</strong> Se você suspeita que sua conta foi comprometida, 
-                        altere sua senha imediatamente. Isso desconectará automaticamente todas as sessões.
+                        <strong>Dica de segurança:</strong> Se você suspeita que sua conta foi comprometida,
+                        altere sua senha imediatamente.
                       </p>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        onClick={handleLogoutAllOtherSessions}
+                        onClick={loadSessions}
                         disabled={isSaving}
                         className="border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
                       >

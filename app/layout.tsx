@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
@@ -10,8 +10,15 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+});
+
 export const metadata: Metadata = {
-  title: "CRM Atelier - Sistema de Gestão para Ateliês de Costura e Artesanato",
+  title: "Meu Atelier - Sistema de Gestão para Ateliês de Costura e Artesanato",
   description: "Sistema completo de gestão para ateliês: controle de clientes, ordens de serviço, financeiro e muito mais. Grátis para começar, sem cartão de crédito.",
   keywords: [
     "CRM para ateliê",
@@ -23,23 +30,23 @@ export const metadata: Metadata = {
     "gestão financeira ateliê",
     "sistema para artesanato"
   ],
-  authors: [{ name: "CRM Atelier" }],
-  creator: "CRM Atelier",
-  publisher: "CRM Atelier",
+  authors: [{ name: "Meu Atelier" }],
+  creator: "Meu Atelier",
+  publisher: "Meu Atelier",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://crmatelier.com.br'),
+  metadataBase: new URL('https://meuatelier.com.br'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: "CRM Atelier - Sistema de Gestão para Ateliês",
+    title: "Meu Atelier - Sistema de Gestão para Ateliês",
     description: "Sistema completo de gestão para ateliês: controle de clientes, ordens de serviço, financeiro e muito mais. Grátis para começar.",
-    url: 'https://crmatelier.com.br',
-    siteName: 'CRM Atelier',
+    url: 'https://meuatelier.com.br',
+    siteName: 'Meu Atelier',
     locale: 'pt_BR',
     type: 'website',
     images: [
@@ -47,13 +54,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'CRM Atelier - Dashboard',
+        alt: 'Meu Atelier - Dashboard',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "CRM Atelier - Sistema de Gestão para Ateliês",
+    title: "Meu Atelier - Sistema de Gestão para Ateliês",
     description: "Sistema completo de gestão para ateliês: controle de clientes, ordens de serviço, financeiro e muito mais.",
     images: ['/og-image.png'],
   },
@@ -80,7 +87,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased bg-background text-foreground`}>
         <Providers>
           {children}
           <Toaster position="top-right" richColors />

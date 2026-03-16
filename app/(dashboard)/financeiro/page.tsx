@@ -19,7 +19,7 @@ import { useFinancialStats } from '@/hooks/use-financial-stats'
 
 export default function FinanceiroPage() {
   const [dateFilter, setDateFilter] = useState<'7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'>('thisMonth')
-  const { data: stats, isLoading } = useFinancialStats()
+  const { data: stats, isLoading } = useFinancialStats(dateFilter)
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -98,83 +98,83 @@ export default function FinanceiroPage() {
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Saldo Atual */}
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Saldo Atual</span>
-              <div className={`p-2 rounded-lg ${
-                (stats?.saldoAtual || 0) >= 0 ? 'bg-green-50 dark:bg-green-950/50' : 'bg-red-50 dark:bg-red-950/50'
-              }`}>
-                <Wallet className={`h-5 w-5 ${
-                  (stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`} />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className={`absolute top-0 left-0 right-0 h-[3px] ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className="p-5 pt-6">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo Atual</p>
+                <div className={`p-2 rounded-xl shadow-sm ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
+                  <Wallet className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
+              <p className={`text-2xl font-bold ${(stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCurrency(stats?.saldoAtual || 0)}
+              </p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">Receitas − Despesas</p>
             </div>
-            <p className={`text-2xl font-bold ${
-              (stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(stats?.saldoAtual || 0)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Receitas - Despesas
-            </p>
           </div>
 
-          {/* Total a Receber */}
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">A Receber</span>
-              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
-                <ArrowUpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          {/* A Receber */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+            <div className="p-5 pt-6">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Receber</p>
+                <div className="p-2 rounded-xl bg-blue-500 shadow-sm">
+                  <ArrowUpCircle className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-            </div>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(stats?.totalAReceber || 0)}
-            </p>
-            {(stats?.receitasAtrasadas || 0) > 0 && (
-              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                {formatCurrency(stats?.receitasAtrasadas || 0)} atrasado
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {formatCurrency(stats?.totalAReceber || 0)}
               </p>
-            )}
+              {(stats?.receitasAtrasadas || 0) > 0 && (
+                <>
+                  <div className="h-px bg-border/50 mt-3 mb-2" />
+                  <p className="text-[11px] text-red-500 dark:text-red-400">{formatCurrency(stats?.receitasAtrasadas || 0)} em atraso</p>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Total a Pagar */}
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">A Pagar</span>
-              <div className="p-2 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
-                <ArrowDownCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          {/* A Pagar */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-orange-500" />
+            <div className="p-5 pt-6">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Pagar</p>
+                <div className="p-2 rounded-xl bg-orange-500 shadow-sm">
+                  <ArrowDownCircle className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-            </div>
-            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {formatCurrency(stats?.totalAPagar || 0)}
-            </p>
-            {(stats?.despesasAtrasadas || 0) > 0 && (
-              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                {formatCurrency(stats?.despesasAtrasadas || 0)} atrasado
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {formatCurrency(stats?.totalAPagar || 0)}
               </p>
-            )}
+              {(stats?.despesasAtrasadas || 0) > 0 && (
+                <>
+                  <div className="h-px bg-border/50 mt-3 mb-2" />
+                  <p className="text-[11px] text-red-500 dark:text-red-400">{formatCurrency(stats?.despesasAtrasadas || 0)} em atraso</p>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Saldo do Mês */}
-          <div className="bg-card rounded-lg border border-border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Saldo do Mês</span>
-              <div className={`p-2 rounded-lg ${
-                (stats?.saldoMes || 0) >= 0 ? 'bg-green-50 dark:bg-green-950/50' : 'bg-red-50 dark:bg-red-950/50'
-              }`}>
-                <Calendar className={`h-5 w-5 ${
-                  (stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`} />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className={`absolute top-0 left-0 right-0 h-[3px] ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className="p-5 pt-6">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo do Mês</p>
+                <div className={`p-2 rounded-xl shadow-sm ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
+                  <Calendar className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
+              <p className={`text-2xl font-bold ${(stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCurrency(stats?.saldoMes || 0)}
+              </p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">Entradas: {formatCurrency(stats?.entradasMes || 0)}</p>
             </div>
-            <p className={`text-2xl font-bold ${
-              (stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(stats?.saldoMes || 0)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Entradas: {formatCurrency(stats?.entradasMes || 0)}
-            </p>
           </div>
         </div>
 

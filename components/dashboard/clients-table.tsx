@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Pencil, Trash2, Phone, Mail, MapPin, FileText, MessageCircle } from 'lucide-react'
 import type { Client } from '@/lib/validations/client'
 import { useDeleteClient } from '@/hooks/use-clients'
@@ -69,7 +67,59 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
 
   return (
     <>
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-3">
+        {clients.map((client) => (
+          <div key={client.id} className="bg-card border border-border rounded-lg p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground truncate">{client.nome}</p>
+                {client.telefone && (
+                  <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span>{client.telefone}</span>
+                  </div>
+                )}
+                {client.email && (
+                  <div className="flex items-center gap-1.5 mt-0.5 text-sm text-muted-foreground truncate">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{client.email}</span>
+                  </div>
+                )}
+                {(client.logradouro || client.cidade) && (
+                  <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground/70 truncate">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{[client.cidade, client.estado].filter(Boolean).join(', ')}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {client.telefone && (
+                  <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(client)} title="WhatsApp"
+                    className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50">
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                {onViewOrders && (
+                  <Button variant="ghost" size="icon" onClick={() => onViewOrders(client)} title="Ver ordens" className="h-8 w-8">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => onEdit(client)} className="h-8 w-8">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteId(client.id)}
+                  className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50 border-b border-border">
@@ -130,9 +180,11 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {format(new Date(client.data_cadastro), "dd 'de' MMMM 'de' yyyy", {
-                      locale: ptBR,
-                    })}
+                    {(() => {
+                    const [y, m, d] = client.data_cadastro.split('T')[0].split('-')
+                    return new Date(Number(y), Number(m) - 1, Number(d))
+                      .toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+                  })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

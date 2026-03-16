@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
@@ -35,47 +34,42 @@ import Link from 'next/link'
 export default function MeusDadosPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const supabase = createClient()
 
   // Buscar dados do usuário
   const { data: userData, isLoading } = useQuery({
     queryKey: ['user-data'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
+      const [profileRes, orgRes, statsRes, clientsRes, ordersRes, servicesRes] = await Promise.all([
+        fetch('/api/profile'),
+        fetch('/api/settings/organization'),
+        fetch('/api/clients/stats'),
+        fetch('/api/clients'),
+        fetch('/api/orders'),
+        fetch('/api/services'),
+      ])
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*, organization:organizations(*)')
-        .eq('id', user.id)
-        .single()
-
-      const { data: clients, count: clientsCount } = await supabase
-        .from('org_clients')
-        .select('*', { count: 'exact' })
-        .eq('organization_id', profile.organization_id)
-        .is('deleted_at', null)
-
-      const { data: orders, count: ordersCount } = await supabase
-        .from('org_service_orders')
-        .select('*', { count: 'exact' })
-        .eq('organization_id', profile.organization_id)
-
-      const { data: services, count: servicesCount } = await supabase
-        .from('org_services')
-        .select('*', { count: 'exact' })
-        .eq('organization_id', profile.organization_id)
-        .is('deleted_at', null)
+      const profile = profileRes.ok ? await profileRes.json() : {}
+      const org = orgRes.ok ? await orgRes.json() : {}
+      const stats = statsRes.ok ? await statsRes.json() : {}
+      const clients = clientsRes.ok ? await clientsRes.json() : []
+      const orders = ordersRes.ok ? await ordersRes.json() : []
+      const services = servicesRes.ok ? await servicesRes.json() : []
 
       return {
-        user,
-        profile,
-        clients: clients || [],
-        clientsCount: clientsCount || 0,
-        orders: orders || [],
-        ordersCount: ordersCount || 0,
-        services: services || [],
-        servicesCount: servicesCount || 0,
+        user: { id: profile.id, email: profile.email, created_at: profile.created_at },
+        profile: {
+          full_name: profile.full_name,
+          email: profile.email,
+          role: profile.role,
+          created_at: profile.created_at,
+          organization: { name: org.name, plan: org.plan },
+        },
+        clients,
+        clientsCount: stats.totalClients ?? clients.length,
+        orders,
+        ordersCount: orders.length,
+        services,
+        servicesCount: services.length,
       }
     },
   })
@@ -121,7 +115,7 @@ export default function MeusDadosPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `meus-dados-crm-atelier-${new Date().toISOString().split('T')[0]}.json`
+      a.download = `meus-dados-meu-atelier-${new Date().toISOString().split('T')[0]}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -140,7 +134,7 @@ export default function MeusDadosPage() {
     setIsDeleting(true)
     try {
       // Enviar email para DPO
-      const mailtoLink = `mailto:dpo@crmatelier.com.br?subject=Solicitação de Exclusão de Conta&body=Olá, gostaria de solicitar a exclusão da minha conta.%0D%0A%0D%0AEmail: ${userData?.user.email}%0D%0AData: ${new Date().toLocaleString('pt-BR')}`
+      const mailtoLink = `mailto:dpo@meuatelier.com.br?subject=Solicitação de Exclusão de Conta&body=Olá, gostaria de solicitar a exclusão da minha conta.%0D%0A%0D%0AEmail: ${userData?.user.email}%0D%0AData: ${new Date().toLocaleString('pt-BR')}`
       
       window.location.href = mailtoLink
       
@@ -445,10 +439,10 @@ export default function MeusDadosPage() {
             <p className="text-gray-700 dark:text-gray-300">
               <strong>Email DPO:</strong>{' '}
               <a 
-                href="mailto:dpo@crmatelier.com.br" 
+                href="mailto:dpo@meuatelier.com.br" 
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                dpo@crmatelier.com.br
+                dpo@meuatelier.com.br
               </a>
             </p>
             <p className="text-gray-700 dark:text-gray-300">

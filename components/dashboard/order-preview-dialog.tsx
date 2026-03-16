@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Printer, X, MessageCircle } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
-import { generateThermalPreview, generateThermalPDF } from '@/lib/utils/thermal-printer'
+import { generateThermalPreview, generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
+import { useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
 import {
   Dialog,
   DialogContent,
@@ -30,13 +31,26 @@ export function OrderPreviewDialog({
   open, 
   onOpenChange, 
   order,
-  organizationName = 'CRM Atelier',
+  organizationName = 'Meu Atelier',
   onConfirm,
   confirmButtonText = 'Confirmar e Salvar',
   showConfirmButton = false
 }: OrderPreviewDialogProps) {
   const [printing, setPrinting] = useState(false)
   const { data: paymentMethods = [] } = usePaymentMethods()
+  const { data: orgSettings } = useOrganizationSettings()
+  const { data: financialSettings } = useFinancialSettings()
+
+  const orgData = orgSettings ? {
+    name: orgSettings.name || organizationName,
+    instagram: orgSettings.instagram,
+    facebook: orgSettings.facebook,
+    twitter: orgSettings.twitter,
+    tiktok: orgSettings.tiktok,
+    kwai: orgSettings.kwai,
+    pix_key: financialSettings?.pix_key || null,
+    show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
+  } : undefined
 
   // Converter código da forma de pagamento para nome
   const getPaymentMethodName = (code: string | null | undefined): string => {
@@ -55,7 +69,7 @@ export function OrderPreviewDialog({
     if (!orderWithPaymentName) return
     try {
       setPrinting(true)
-      generateThermalPDF(orderWithPaymentName, organizationName)
+      generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData)
       toast.success('PDF gerado com sucesso!')
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
@@ -72,24 +86,18 @@ export function OrderPreviewDialog({
     }
 
     try {
-      // Gerar o PDF primeiro
-      generateThermalPDF(orderWithPaymentName, organizationName)
-      
       // Formatar telefone (remover caracteres especiais)
       const phone = orderWithPaymentName.client.telefone.replace(/\D/g, '')
       const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`
-      
-      // Criar mensagem
-      const orderNumber = orderWithPaymentName.numero.toString().padStart(6, '0')
-      const message = `Olá ${orderWithPaymentName.client.nome}! Segue sua Ordem de Serviço #${orderNumber}.\n\nPor favor, anexe o PDF que acabou de ser baixado no seu computador.`
-      
-      // Abrir WhatsApp Web
+
+      // Gerar mensagem formatada igual ao cupom
+      const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData)
+
+      // Abrir WhatsApp Web com a OS completa
       const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`
       window.open(whatsappUrl, '_blank')
-      
-      toast.success('PDF gerado! Anexe o arquivo no WhatsApp que abriu.', {
-        duration: 5000,
-      })
+
+      toast.success('WhatsApp aberto com a OS formatada!')
     } catch (error) {
       console.error('Erro ao enviar por WhatsApp:', error)
       toast.error('Erro ao preparar envio por WhatsApp')
@@ -118,7 +126,7 @@ export function OrderPreviewDialog({
             <div className="my-4">
               <div 
                 className="overflow-auto"
-                dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, organizationName) }}
+                dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData) }}
               />
             </div>
 

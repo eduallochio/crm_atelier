@@ -1,236 +1,113 @@
 'use client'
 
-import { useState } from 'react'
-import { Header } from '@/components/layouts/header'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, FileText, DollarSign, TrendingUp, Plus, UserPlus } from 'lucide-react'
+import { Users, FileText, DollarSign, Plus, UserPlus } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { AnimatedStatCard } from '@/components/dashboard/animated-stat-card'
-import { RecentActivity, Activity } from '@/components/dashboard/recent-activity'
+import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UrgentOrders } from '@/components/dashboard/urgent-orders'
+import { BusinessInsights } from '@/components/dashboard/business-insights'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { PeriodFilterSelect, PeriodFilter, filterDataByPeriod } from '@/components/dashboard/period-filter'
+import { MonthlyGoal } from '@/components/dashboard/monthly-goal'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+
+function useGreeting(name: string) {
+  const [greeting, setGreeting] = useState('')
+  const [dateStr, setDateStr] = useState('')
+
+  useEffect(() => {
+    const h = new Date().getHours()
+    setGreeting(
+      h < 12 ? `Bom dia, ${name}!` :
+      h < 18 ? `Boa tarde, ${name}!` :
+               `Boa noite, ${name}!`
+    )
+    setDateStr(new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    }))
+  }, [name])
+
+  return { greeting, dateStr }
+}
 
 export default function DashboardPage() {
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [orderDialogOpen, setOrderDialogOpen] = useState(false)
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d')
-  const supabase = createClient()
 
-  // Buscar perfil do usuário
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
+  // Dados do usuário logado (sidebar já usa /api/me, reutilizamos)
+  const { data: me } = useQuery({
+    queryKey: ['me'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return null
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('*, organization:organizations(*)')
-        .eq('id', user.id)
-        .single()
-
-      return data
+      const res = await fetch('/api/me')
+      if (!res.ok) return null
+      return res.json()
     },
   })
 
-  // Buscar métricas
-  const { data: metrics } = useQuery({
-    queryKey: ['metrics', profile?.organization_id],
+  // Stats do dashboard: métricas, receita mensal, atividades, ordens urgentes
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      if (!profile?.organization_id) return null
-      
-      const { data } = await supabase
-        .from('usage_metrics')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .single()
-      
-      return data
+      const res = await fetch('/api/dashboard/stats')
+      if (!res.ok) return null
+      return res.json()
     },
-    enabled: !!profile?.organization_id,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchInterval: 5 * 60 * 1000, // Atualizar a cada 5 minutos
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   })
 
-  // Buscar ordens para gráficos
+  // Ordens para gráficos (usa API já migrada)
   const { data: orders = [] } = useQuery({
-    queryKey: ['orders-for-charts', profile?.organization_id],
+    queryKey: ['orders'],
     queryFn: async () => {
-      if (!profile?.organization_id) return []
-
-      const { data } = await supabase
-        .from('org_service_orders')
-        .select('*, items:org_service_order_items(*), client:org_clients(*)')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false })
-
-      return data || []
+      const res = await fetch('/api/orders')
+      if (!res.ok) return []
+      return res.json()
     },
-    enabled: !!profile?.organization_id,
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    staleTime: 3 * 60 * 1000,
   })
 
-  // Buscar serviços para gráficos
+  // Serviços para gráficos (usa API já migrada)
   const { data: services = [] } = useQuery({
-    queryKey: ['services-for-charts', profile?.organization_id],
+    queryKey: ['services'],
     queryFn: async () => {
-      if (!profile?.organization_id) return []
-
-      const { data } = await supabase
-        .from('org_services')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-
-      return data || []
+      const res = await fetch('/api/services')
+      if (!res.ok) return []
+      return res.json()
     },
-    enabled: !!profile?.organization_id,
-    staleTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 10 * 60 * 1000,
   })
 
-  // Buscar clientes para busca global
+  // Clientes para busca global (usa API já migrada)
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients-search', profile?.organization_id],
+    queryKey: ['clients'],
     queryFn: async () => {
-      if (!profile?.organization_id) return []
-
-      const { data } = await supabase
-        .from('org_clients')
-        .select('id, nome, email, telefone')
-        .eq('organization_id', profile.organization_id)
-        .limit(100)
-
-      return data || []
+      const res = await fetch('/api/clients')
+      if (!res.ok) return []
+      return res.json()
     },
-    enabled: !!profile?.organization_id,
     staleTime: 5 * 60 * 1000,
   })
 
-  // Buscar atividades recentes
-  const { data: recentActivities = [], isLoading: isLoadingActivities } = useQuery({
-    queryKey: ['recent-activities', profile?.organization_id],
-    queryFn: async () => {
-      if (!profile?.organization_id) return []
+  const metrics = stats?.metrics ?? {}
+  const monthlyRevenue = stats?.monthly_revenue ?? 0
+  const recentActivities = stats?.recent_activities ?? []
+  const urgentOrders = stats?.urgent_orders ?? []
+  const plan = stats?.plan ?? 'free'
+  const financialHealth = stats?.financial_health
+  const topClients = stats?.top_clients ?? []
+  const inactiveClientsCount = stats?.inactive_clients_count ?? 0
 
-      const activities: Activity[] = []
-
-      // Buscar últimos clientes cadastrados
-      const { data: recentClients } = await supabase
-        .from('org_clients')
-        .select('id, nome, created_at')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (recentClients) {
-        recentClients.forEach(client => {
-          activities.push({
-            id: `client-${client.id}`,
-            type: 'client',
-            title: 'Novo cliente cadastrado',
-            description: client.nome,
-            timestamp: client.created_at,
-          })
-        })
-      }
-
-      // Buscar últimas ordens criadas
-      const { data: recentOrders } = await supabase
-        .from('org_service_orders')
-        .select('id, numero, created_at, status, client:org_clients!inner(nome)')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (recentOrders) {
-        recentOrders.forEach(order => {
-          const client = Array.isArray(order.client) ? order.client[0] : order.client
-          activities.push({
-            id: `order-${order.id}`,
-            type: order.status === 'concluido' ? 'order_completed' : 'order',
-            title: order.status === 'concluido' ? 'Ordem concluída' : 'Nova ordem criada',
-            description: `${order.numero} - ${client?.nome || 'Cliente não informado'}`,
-            timestamp: order.created_at,
-            metadata: {
-              orderNumber: order.numero,
-              clientName: client?.nome,
-              status: order.status,
-            }
-          })
-        })
-      }
-
-      // Ordenar por data mais recente
-      return activities.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ).slice(0, 10) // Limitar a 10 atividades mais recentes
-
-    },
-    enabled: !!profile?.organization_id,
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 2 * 60 * 1000, // Atualizar a cada 2 minutos
-  })
-
-  // Buscar ordens urgentes (próximas da data de entrega)
-  const { data: urgentOrders = [], isLoading: isLoadingUrgent } = useQuery({
-    queryKey: ['urgent-orders', profile?.organization_id],
-    queryFn: async () => {
-      if (!profile?.organization_id) return []
-
-      const today = new Date()
-      const sevenDaysFromNow = new Date()
-      sevenDaysFromNow.setDate(today.getDate() + 7)
-
-      const { data } = await supabase
-        .from('org_service_orders')
-        .select('id, numero, data_prevista, status, valor_total, client:org_clients(nome)')
-        .eq('organization_id', profile.organization_id)
-        .in('status', ['pendente', 'em_andamento'])
-        .not('data_prevista', 'is', null)
-        .lte('data_prevista', sevenDaysFromNow.toISOString())
-        .order('data_prevista', { ascending: true })
-        .limit(5)
-
-      // Garantir que client seja um objeto, não um array
-      return (data || []).map(order => ({
-        ...order,
-        client: Array.isArray(order.client) ? order.client[0] : order.client
-      }))
-    },
-    enabled: !!profile?.organization_id,
-    staleTime: 60 * 1000, // 1 minuto
-    refetchInterval: 60 * 1000, // Atualizar a cada 1 minuto (ordens urgentes precisam ser mais atualizadas)
-  })
-
-  // Calcular receita real do mês atual
-  const calculateMonthlyRevenue = () => {
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
-
-    const monthlyOrders = orders.filter(order => {
-      if (order.status !== 'concluido' || !order.data_conclusao) return false
-      
-      const conclusionDate = new Date(order.data_conclusao)
-      return conclusionDate.getMonth() === currentMonth && 
-             conclusionDate.getFullYear() === currentYear
-    })
-
-    const total = monthlyOrders.reduce((sum, order) => sum + (order.valor_total || 0), 0)
-    return total
-  }
-
-  const monthlyRevenue = calculateMonthlyRevenue()
-
-  // Filtrar dados por período selecionado
   const filteredOrders = filterDataByPeriod(orders, periodFilter)
+  const { greeting, dateStr } = useGreeting(me?.name?.split(' ')[0] || 'Usuário')
 
-  const stats = [
+  const statCards = [
     {
       name: 'Clientes Cadastrados',
       value: metrics?.clients_count || 0,
@@ -250,7 +127,7 @@ export default function DashboardPage() {
     {
       name: 'Usuários',
       value: metrics?.users_count || 0,
-      icon: TrendingUp,
+      icon: Users,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30',
       iconBg: 'bg-purple-500 dark:bg-purple-600',
@@ -268,45 +145,56 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <Header 
-        title={`Bem-vindo, ${profile?.full_name || 'Usuário'}!`}
-        description="Visão geral do seu ateliê"
-      />
-
-      <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-        {/* Busca Global e Ações Rápidas */}
-        <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-row sm:flex-wrap sm:gap-3">
-          <div className="sm:flex-1 sm:min-w-50">
-            <GlobalSearch 
-              clients={clients}
-              orders={orders}
-              services={services}
-            />
+      {/* ── Greeting Banner ── */}
+      <div className="bg-card border-b border-border/60 px-4 sm:px-6 lg:px-8 py-5 pl-16 lg:pl-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 sm:mr-52 lg:mr-56">
+          <div className="pr-40 sm:pr-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+              {dateStr}
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+              {greeting || `Bem-vindo!`}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Visão geral do seu ateliê</p>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
-            <Button 
-              onClick={() => setClientDialogOpen(true)}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base"
-              size="sm"
-            >
+
+          {/* Desktop: busca + divisor + botões em linha */}
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
+            <div className="w-52 lg:w-64">
+              <GlobalSearch clients={clients} orders={orders} services={services} />
+            </div>
+            <div className="h-8 w-px bg-border/60 shrink-0" />
+            <Button onClick={() => setClientDialogOpen(true)} size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
               <UserPlus className="h-4 w-4" />
-              <span className="hidden xs:inline">Novo </span>Cliente
+              Novo Cliente
             </Button>
-            <Button 
-              onClick={() => setOrderDialogOpen(true)}
-              variant="outline"
-              className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base"
-              size="sm"
-            >
+            <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
               <Plus className="h-4 w-4" />
-              <span className="hidden xs:inline">Nova </span>Ordem
+              Nova Ordem
             </Button>
+          </div>
+
+          {/* Mobile: busca em cima, botões lado a lado embaixo */}
+          <div className="flex sm:hidden flex-col gap-3">
+            <GlobalSearch clients={clients} orders={orders} services={services} />
+            <div className="flex gap-3">
+              <Button onClick={() => setClientDialogOpen(true)} size="sm" className="flex-1 gap-2 h-10 font-medium">
+                <UserPlus className="h-4 w-4" />
+                Novo Cliente
+              </Button>
+              <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="flex-1 gap-2 h-10 font-medium">
+                <Plus className="h-4 w-4" />
+                Nova Ordem
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
+      <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+        {/* Stats Cards + Meta */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {statCards.map((stat) => (
             <AnimatedStatCard
               key={stat.name}
               name={stat.name}
@@ -318,60 +206,92 @@ export default function DashboardPage() {
               isMonetary={stat.isMonetary}
             />
           ))}
+          <MonthlyGoal
+            currentRevenue={monthlyRevenue}
+            isLoading={!stats}
+          />
         </div>
 
         {/* Plano Info */}
-        {profile?.organization?.plan === 'free' && (
-          <Card className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle className="text-blue-900 dark:text-blue-400">Plano Gratuito</CardTitle>
-            </CardHeader>
-            <CardContent className="text-blue-800 dark:text-blue-300 text-sm space-y-2">
-              <p>
-                Você cadastrou {metrics?.clients_count || 0} de 50 clientes disponíveis.
-              </p>
-              <p className="text-xs">
-                Faça upgrade para o plano Enterprise para clientes ilimitados e mais recursos.
-              </p>
-            </CardContent>
-          </Card>
+        {plan === 'free' && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                <span className="text-sm">✨</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-300">Plano Gratuito</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {metrics?.clients_count || 0} de 50 clientes utilizados
+                </p>
+              </div>
+            </div>
+            <div className="h-1.5 flex-1 max-w-[120px] rounded-full bg-amber-200 dark:bg-amber-800 overflow-hidden">
+              <div
+                className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all"
+                style={{ width: `${Math.min(((metrics?.clients_count || 0) / 50) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         )}
 
         {/* Layout com 2 colunas para Activity e Urgent Orders */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-          {/* Recent Activity */}
-          <RecentActivity 
+          <RecentActivity
             activities={recentActivities}
-            isLoading={isLoadingActivities}
+            isLoading={!stats}
           />
-
-          {/* Urgent Orders */}
-          <UrgentOrders 
+          <UrgentOrders
             orders={urgentOrders}
-            isLoading={isLoadingUrgent}
+            isLoading={!stats}
+          />
+        </div>
+
+        {/* Inteligência de negócios */}
+        <div>
+          <div className="mb-4">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Inteligência de Negócios
+            </p>
+            <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
+              Saúde do ateliê
+            </h3>
+          </div>
+          <BusinessInsights
+            orders={orders}
+            financialHealth={financialHealth}
+            topClients={topClients}
+            inactiveClientsCount={inactiveClientsCount}
+            currentMonthRevenue={monthlyRevenue}
+            isLoading={!stats}
           />
         </div>
 
         {/* Gráficos */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-          <div className="xl:col-span-3">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Análise de Dados</h3>
-              <PeriodFilterSelect value={periodFilter} onChange={setPeriodFilter} />
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Análise de Dados
+              </p>
+              <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
+                Visão de desempenho
+              </h3>
             </div>
-            <DashboardCharts ordersData={filteredOrders} servicesData={services} />
+            <PeriodFilterSelect value={periodFilter} onChange={setPeriodFilter} />
           </div>
+          <DashboardCharts ordersData={filteredOrders} servicesData={services} />
         </div>
       </div>
 
       {/* Diálogos */}
-      <ClientDialog 
-        open={clientDialogOpen} 
-        onOpenChange={setClientDialogOpen} 
+      <ClientDialog
+        open={clientDialogOpen}
+        onOpenChange={setClientDialogOpen}
       />
-      <ServiceOrderDialog 
-        open={orderDialogOpen} 
-        onOpenChange={setOrderDialogOpen} 
+      <ServiceOrderDialog
+        open={orderDialogOpen}
+        onOpenChange={setOrderDialogOpen}
       />
     </div>
   )

@@ -7,7 +7,8 @@ import { FinancialSettingsForm } from '@/components/settings/financial-settings-
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form'
 import { OrderSettingsForm } from '@/components/settings/order-settings-form'
 import { SystemSettingsForm } from '@/components/settings/system-settings-form'
-import { Building2, DollarSign, Bell, FileText, Settings } from 'lucide-react'
+import { UsersManagementForm } from '@/components/settings/users-management-form'
+import { Building2, DollarSign, Bell, FileText, Settings, Users } from 'lucide-react'
 
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('empresa')
@@ -22,10 +23,14 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5 mb-8">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-8">
           <TabsTrigger value="empresa" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Empresa</span>
+          </TabsTrigger>
+          <TabsTrigger value="usuarios" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Usuários</span>
           </TabsTrigger>
           <TabsTrigger value="financeiro" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
@@ -53,6 +58,16 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
           <OrganizationSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="usuarios">
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Usuários</h2>
+            <p className="text-muted-foreground mb-6">
+              Gerencie quem tem acesso ao sistema e defina os cargos de cada membro da equipe
+            </p>
+          </div>
+          <UsersManagementForm />
         </TabsContent>
 
         <TabsContent value="financeiro">

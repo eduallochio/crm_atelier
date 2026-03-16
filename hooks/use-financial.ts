@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import type {
   FinancialCategory,
   FinancialCategoryInput,
@@ -16,8 +15,6 @@ import type {
 } from '@/lib/validations/financial'
 import { toast } from 'sonner'
 
-const supabase = createClient()
-
 // =====================================================
 // CATEGORIAS FINANCEIRAS
 // =====================================================
@@ -26,14 +23,9 @@ export function useFinancialCategories() {
   return useQuery({
     queryKey: ['financial-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('org_financial_categories')
-        .select('*')
-        .order('tipo', { ascending: true })
-        .order('nome', { ascending: true })
-
-      if (error) throw error
-      return data as FinancialCategory[]
+      const res = await fetch('/api/financial/categories')
+      if (!res.ok) throw new Error('Erro ao buscar categorias')
+      return res.json() as Promise<FinancialCategory[]>
     },
   })
 }
@@ -43,25 +35,13 @@ export function useCreateFinancialCategory() {
 
   return useMutation({
     mutationFn: async (input: FinancialCategoryInput) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      const { data, error } = await supabase
-        .from('org_financial_categories')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/financial/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao criar categoria')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financial-categories'] })
@@ -78,12 +58,13 @@ export function useUpdateFinancialCategory() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: FinancialCategoryInput }) => {
-      const { error } = await supabase
-        .from('org_financial_categories')
-        .update(input)
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao atualizar categoria')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financial-categories'] })
@@ -100,12 +81,8 @@ export function useDeleteFinancialCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_financial_categories')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/categories/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao excluir categoria')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financial-categories'] })
@@ -125,13 +102,9 @@ export function usePaymentMethods() {
   return useQuery({
     queryKey: ['payment-methods'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('org_payment_methods')
-        .select('*')
-        .order('nome', { ascending: true })
-
-      if (error) throw error
-      return data as PaymentMethod[]
+      const res = await fetch('/api/financial/payment-methods')
+      if (!res.ok) throw new Error('Erro ao buscar métodos de pagamento')
+      return res.json() as Promise<PaymentMethod[]>
     },
   })
 }
@@ -141,25 +114,13 @@ export function useCreatePaymentMethod() {
 
   return useMutation({
     mutationFn: async (input: PaymentMethodInput) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      const { data, error } = await supabase
-        .from('org_payment_methods')
-        .insert({
-          ...input,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/financial/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao criar método de pagamento')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
@@ -176,12 +137,8 @@ export function useDeletePaymentMethod() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_payment_methods')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/payment-methods/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao excluir método de pagamento')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
@@ -201,13 +158,9 @@ export function useReceivables() {
   return useQuery({
     queryKey: ['receivables'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('org_receivables')
-        .select('*')
-        .order('data_vencimento', { ascending: false })
-
-      if (error) throw error
-      return data as Receivable[]
+      const res = await fetch('/api/financial/receivables')
+      if (!res.ok) throw new Error('Erro ao buscar contas a receber')
+      return res.json() as Promise<Receivable[]>
     },
   })
 }
@@ -217,28 +170,13 @@ export function useCreateReceivable() {
 
   return useMutation({
     mutationFn: async (input: ReceivableInput) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      const valorNumerico = parseFloat(input.valor.replace(',', '.'))
-
-      const { data, error } = await supabase
-        .from('org_receivables')
-        .insert({
-          ...input,
-          valor: valorNumerico,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/financial/receivables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao criar conta a receber')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
@@ -256,26 +194,25 @@ export function useUpdateReceivable() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<ReceivableInput> }) => {
-      const updateData: any = { ...input }
-      
-      if (input.valor) {
-        updateData.valor = parseFloat(input.valor.replace(',', '.'))
+      const res = await fetch(`/api/financial/receivables/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.details || err.error || 'Erro ao atualizar conta a receber')
       }
-
-      const { error } = await supabase
-        .from('org_receivables')
-        .update(updateData)
-        .eq('id', id)
-
-      if (error) throw error
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       toast.success('Conta a receber atualizada com sucesso!')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar conta a receber')
+    onError: (error: Error) => {
+      toast.error(error.message)
     },
   })
 }
@@ -285,16 +222,13 @@ export function useDeleteReceivable() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_receivables')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/receivables/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao excluir conta a receber')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       toast.success('Conta a receber excluída com sucesso!')
     },
     onError: () => {
@@ -311,13 +245,9 @@ export function usePayables() {
   return useQuery({
     queryKey: ['payables'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('org_payables')
-        .select('*')
-        .order('data_vencimento', { ascending: false })
-
-      if (error) throw error
-      return data as Payable[]
+      const res = await fetch('/api/financial/payables')
+      if (!res.ok) throw new Error('Erro ao buscar contas a pagar')
+      return res.json() as Promise<Payable[]>
     },
   })
 }
@@ -327,63 +257,21 @@ export function useCreatePayable() {
 
   return useMutation({
     mutationFn: async (input: PayableInput) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-
-      if (!profile?.organization_id) {
-        console.error('[CreatePayable] Perfil sem organization_id:', profile)
-        throw new Error('Organização não encontrada no perfil')
-      }
-
-      const valorNumerico = parseFloat(input.valor.replace(',', '.'))
-      
-      // Tratar supplier_id: se vazio ou "sem-fornecedor", usar null
-      const supplier_id = input.supplier_id && input.supplier_id !== 'sem-fornecedor' 
-        ? input.supplier_id 
-        : null
-
-      console.log('[CreatePayable] Dados a inserir:', {
-        ...input,
-        supplier_id,
-        valor: valorNumerico,
-        organization_id: profile.organization_id,
+      const res = await fetch('/api/financial/payables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
       })
-
-      const { data, error } = await supabase
-        .from('org_payables')
-        .insert({
-          descricao: input.descricao,
-          valor: valorNumerico,
-          data_vencimento: input.data_vencimento,
-          data_pagamento: input.data_pagamento || null,
-          status: input.status,
-          supplier_id,
-          categoria: input.categoria || null,
-          forma_pagamento: input.forma_pagamento || null,
-          observacoes: input.observacoes || null,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('[CreatePayable] Erro Supabase:', error)
-        throw error
-      }
-      
-      return data
+      if (!res.ok) throw new Error('Erro ao criar conta a pagar')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payables'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
       toast.success('Conta a pagar criada com sucesso!')
     },
-    onError: (error: any) => {
-      console.error('[CreatePayable] Erro completo:', error)
-      toast.error(`Erro ao criar conta a pagar: ${error.message || 'Desconhecido'}`)
+    onError: (error: Error) => {
+      toast.error(`Erro ao criar conta a pagar: ${error.message}`)
     },
   })
 }
@@ -393,30 +281,13 @@ export function useUpdatePayable() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<PayableInput> }) => {
-      const updateData: any = {}
-      
-      if (input.descricao !== undefined) updateData.descricao = input.descricao
-      if (input.valor) updateData.valor = parseFloat(input.valor.replace(',', '.'))
-      if (input.data_vencimento !== undefined) updateData.data_vencimento = input.data_vencimento
-      if (input.data_pagamento !== undefined) updateData.data_pagamento = input.data_pagamento || null
-      if (input.status !== undefined) updateData.status = input.status
-      if (input.categoria !== undefined) updateData.categoria = input.categoria || null
-      if (input.forma_pagamento !== undefined) updateData.forma_pagamento = input.forma_pagamento || null
-      if (input.observacoes !== undefined) updateData.observacoes = input.observacoes || null
-      
-      // Tratar supplier_id
-      if (input.supplier_id !== undefined) {
-        updateData.supplier_id = input.supplier_id && input.supplier_id !== 'sem-fornecedor' 
-          ? input.supplier_id 
-          : null
-      }
-
-      const { error } = await supabase
-        .from('org_payables')
-        .update(updateData)
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/payables/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao atualizar conta a pagar')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payables'] })
@@ -434,12 +305,8 @@ export function useDeletePayable() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_payables')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/financial/payables/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao excluir conta a pagar')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payables'] })
@@ -460,13 +327,9 @@ export function useTransactions() {
   return useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('org_transactions')
-        .select('*')
-        .order('data', { ascending: false })
-
-      if (error) throw error
-      return data as Transaction[]
+      const res = await fetch('/api/financial/transactions')
+      if (!res.ok) throw new Error('Erro ao buscar transações')
+      return res.json() as Promise<Transaction[]>
     },
   })
 }
@@ -476,28 +339,13 @@ export function useCreateTransaction() {
 
   return useMutation({
     mutationFn: async (input: TransactionInput) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      const valorNumerico = parseFloat(input.valor.replace(',', '.'))
-
-      const { data, error } = await supabase
-        .from('org_transactions')
-        .insert({
-          ...input,
-          valor: valorNumerico,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/financial/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error('Erro ao criar transação')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })

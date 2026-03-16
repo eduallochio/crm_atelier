@@ -22,7 +22,8 @@ export function useCounterAnimation({
       // Easing function (ease-out)
       const easeOut = 1 - Math.pow(1 - progress, 3)
       
-      setCount(Math.floor(easeOut * (end - start) + start))
+      const raw = easeOut * (end - start) + start
+      setCount(Math.round(raw * 100) / 100)
       
       if (progress < 1) {
         window.requestAnimationFrame(step)

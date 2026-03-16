@@ -46,7 +46,17 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR')
+    const d = date.split('T')[0]
+    const [year, month, day] = d.split('-')
+    return `${day}/${month}/${year}`
+  }
+
+  const getLocalDateStr = () => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
   }
 
   const handleMarkAsPaid = async (id: string) => {
@@ -54,7 +64,7 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
       id,
       input: {
         status: 'pago',
-        data_pagamento: new Date().toISOString().split('T')[0],
+        data_pagamento: getLocalDateStr(),
       },
     })
   }
@@ -133,9 +143,6 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <SortButton field="status">Status</SortButton>
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Pagamento

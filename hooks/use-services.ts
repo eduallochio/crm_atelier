@@ -1,90 +1,33 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import type { Service, ServiceInput } from '@/lib/validations/service'
 import { toast } from 'sonner'
 
 export function useServices() {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: ['services'],
     queryFn: async () => {
-      // Buscar o profile do usuário para pegar organization_id
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      // Buscar serviços da organização
-      const { data, error } = await supabase
-        .from('org_services')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      return data as Service[]
+      const res = await fetch('/api/services')
+      if (!res.ok) throw new Error('Erro ao buscar serviços')
+      return res.json() as Promise<Service[]>
     },
   })
 }
 
 export function useCreateService() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: ServiceInput) => {
-      // Buscar organization_id do usuário
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id, organization:organizations(plan)')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) throw new Error('Perfil não encontrado')
-
-      // Verificar limites do plano
-      const { count } = await supabase
-        .from('org_services')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', profile.organization_id)
-
-      // @ts-ignore
-      if (profile.organization.plan === 'free' && count && count >= 20) {
-        throw new Error('Limite de serviços atingido. Faça upgrade para o plano Enterprise.')
-      }
-
-      // Converter preço de string para número
-      const precoNumero = parseFloat(input.preco.replace(/[^\d,]/g, '').replace(',', '.'))
-
-      // Criar serviço
-      const { data, error } = await supabase
-        .from('org_services')
-        .insert({
-          nome: input.nome,
-          descricao: input.descricao || null,
-          preco: precoNumero,
-          categoria: input.categoria || null,
-          tempo_estimado: input.tempo_estimado || null,
-          ativo: input.ativo,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar serviço')
+      return data as Service
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
@@ -97,30 +40,18 @@ export function useCreateService() {
 }
 
 export function useUpdateService() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: ServiceInput }) => {
-      // Converter preço de string para número
-      const precoNumero = parseFloat(input.preco.replace(/[^\d,]/g, '').replace(',', '.'))
-
-      const { data, error } = await supabase
-        .from('org_services')
-        .update({
-          nome: input.nome,
-          descricao: input.descricao || null,
-          preco: precoNumero,
-          categoria: input.categoria || null,
-          tempo_estimado: input.tempo_estimado || null,
-          ativo: input.ativo,
-        })
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/services/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar serviço')
+      return data as Service
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
@@ -133,17 +64,15 @@ export function useUpdateService() {
 }
 
 export function useDeleteService() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('org_services')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch(`/api/services/${id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erro ao remover serviço')
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
@@ -156,20 +85,18 @@ export function useDeleteService() {
 }
 
 export function useToggleServiceStatus() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { data, error } = await supabase
-        .from('org_services')
-        .update({ ativo })
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      const res = await fetch(`/api/services/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar serviço')
+      return data as Service
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['services'] })

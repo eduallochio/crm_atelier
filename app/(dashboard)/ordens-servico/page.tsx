@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Eye } from 'lucide-react'
+import { Plus, Search, Eye, Banknote, CheckCircle2, Clock, RefreshCw, FileText, AlertTriangle, Layers } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useServiceOrders } from '@/hooks/use-service-orders'
+import { useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ServiceOrdersTable } from '@/components/dashboard/service-orders-table'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { OrderTimeline } from '@/components/dashboard/order-timeline'
@@ -29,16 +30,29 @@ export default function OrdensServicoPage() {
   const [dateFilter, setDateFilter] = useState<string>('all')
 
   const { data: orders = [], isLoading } = useServiceOrders()
+  const updateOrder = useUpdateServiceOrder()
+  const orderLimit = usePlanLimit('orders')
+
+  // Sempre usa a versão mais recente do cache — evita dados obsoletos no dialog de detalhes
+  const currentSelectedOrder = selectedOrder
+    ? (orders.find(o => o.id === selectedOrder.id) ?? selectedOrder)
+    : null
 
   const handleView = (order: ServiceOrder) => {
     setSelectedOrder(order)
     setViewDialogOpen(true)
   }
 
+  const parseLocalDate = (dateStr: string): Date => {
+    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+
   // Filtrar ordens
   const filteredOrders = orders.filter((order) => {
     const query = searchQuery.toLowerCase()
-    const matchesSearch = order.client?.nome.toLowerCase().includes(query)
+    const matchesSearch = (order.client?.nome?.toLowerCase() ?? '').includes(query) ||
+      order.numero.toString().includes(query)
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter
 
     // Filtro de data
@@ -46,28 +60,27 @@ export default function OrdensServicoPage() {
     if (dateFilter !== 'all') {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const orderDate = new Date(order.data_abertura)
-      orderDate.setHours(0, 0, 0, 0)
+      const orderDate = parseLocalDate(order.data_abertura)
 
       switch (dateFilter) {
         case 'today':
           matchesDate = orderDate.getTime() === today.getTime()
           break
-        case 'week':
+        case 'week': {
           const weekAgo = new Date(today)
           weekAgo.setDate(weekAgo.getDate() - 7)
           matchesDate = orderDate >= weekAgo
           break
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(today)
           monthAgo.setMonth(monthAgo.getMonth() - 1)
           matchesDate = orderDate >= monthAgo
           break
+        }
         case 'overdue':
           if (order.data_prevista && order.status !== 'concluido' && order.status !== 'cancelado') {
-            const prevista = new Date(order.data_prevista)
-            prevista.setHours(0, 0, 0, 0)
-            matchesDate = prevista < today
+            matchesDate = parseLocalDate(order.data_prevista) < today
           } else {
             matchesDate = false
           }
@@ -87,11 +100,8 @@ export default function OrdensServicoPage() {
     atrasadas: orders.filter(o => {
       if (o.status === 'concluido' || o.status === 'cancelado') return false
       if (!o.data_prevista) return false
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const prevista = new Date(o.data_prevista)
-      prevista.setHours(0, 0, 0, 0)
-      return prevista < today
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      return parseLocalDate(o.data_prevista) < today
     }).length,
   }
 
@@ -102,35 +112,94 @@ export default function OrdensServicoPage() {
         description="Gerencie as ordens de serviço"
       />
       
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Estatísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
+          {/* Total */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-slate-500" />
+            <div className="p-3 sm:p-5">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
+                <div className="p-1.5 sm:p-2 rounded-xl bg-slate-500 shadow-sm shrink-0">
+                  <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{stats.total}</p>
+              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">todas as ordens</p>
+            </div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-yellow-600 dark:text-yellow-500">Pendente</p>
-            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">{stats.pendente}</p>
+
+          {/* Pendente */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-amber-400" />
+            <div className="p-3 sm:p-5">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pendente</p>
+                <div className="p-1.5 sm:p-2 rounded-xl bg-amber-400 shadow-sm shrink-0">
+                  <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 mb-2 sm:mb-3">{stats.pendente}</p>
+              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">aguardando</p>
+            </div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-blue-600 dark:text-blue-400">Em Andamento</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.em_andamento}</p>
+
+          {/* Em Andamento */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+            <div className="p-3 sm:p-5">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Andamento</p>
+                <div className="p-1.5 sm:p-2 rounded-xl bg-blue-500 shadow-sm shrink-0">
+                  <Layers className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2 sm:mb-3">{stats.em_andamento}</p>
+              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">em execução</p>
+            </div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-green-600 dark:text-green-400">Concluído</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.concluido}</p>
+
+          {/* Concluído */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500" />
+            <div className="p-3 sm:p-5">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Concluído</p>
+                <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500 shadow-sm shrink-0">
+                  <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-2 sm:mb-3">{stats.concluido}</p>
+              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">finalizadas</p>
+            </div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-red-600 dark:text-red-400">Atrasadas</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.atrasadas}</p>
+
+          {/* Atrasadas */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 col-span-3 sm:col-span-1">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-red-500" />
+            <div className="p-3 sm:p-5">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atrasadas</p>
+                <div className="p-1.5 sm:p-2 rounded-xl bg-red-500 shadow-sm shrink-0">
+                  <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400 mb-2 sm:mb-3">{stats.atrasadas}</p>
+              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
+              <p className="text-[10.5px] text-muted-foreground">fora do prazo</p>
+            </div>
           </div>
         </div>
 
         {/* Barra de Ações */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Buscar por cliente..."
@@ -139,10 +208,29 @@ export default function OrdensServicoPage() {
                 className="pl-10"
               />
             </div>
+            <div className="flex items-center gap-2">
+              {orderLimit.isFree && (
+                <span className={`hidden sm:block text-xs font-medium ${orderLimit.atLimit ? 'text-red-500' : orderLimit.nearLimit ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                  {orderLimit.usage}/{orderLimit.limit} ordens
+                </span>
+              )}
+              <Button
+                onClick={() => setDialogOpen(true)}
+                size="sm"
+                className="shrink-0"
+                disabled={orderLimit.atLimit}
+                title={orderLimit.atLimit ? `Limite do plano Free atingido (${orderLimit.limit} ordens). Faça upgrade para continuar.` : undefined}
+              >
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nova Ordem</span>
+              </Button>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
             >
               <option value="all">Todos os períodos</option>
               <option value="today">Hoje</option>
@@ -153,7 +241,7 @@ export default function OrdensServicoPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
             >
               <option value="all">Todos os status</option>
               <option value="pendente">Pendente</option>
@@ -162,10 +250,6 @@ export default function OrdensServicoPage() {
               <option value="cancelado">Cancelado</option>
             </select>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Ordem
-          </Button>
         </div>
 
         {/* Contador */}
@@ -205,10 +289,10 @@ export default function OrdensServicoPage() {
               <div>
                 <DialogTitle>Detalhes da Ordem</DialogTitle>
                 <DialogDescription>
-                  Ordem #{selectedOrder?.numero.toString().padStart(6, '0')}
+                  Ordem #{currentSelectedOrder?.numero.toString().padStart(6, '0')}
                 </DialogDescription>
               </div>
-              {selectedOrder && (
+              {currentSelectedOrder && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -222,36 +306,104 @@ export default function OrdensServicoPage() {
             </div>
           </DialogHeader>
 
-          {selectedOrder && (
+          {currentSelectedOrder && (
             <div className="space-y-6">
               {/* Informações Básicas */}
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Cliente</p>
-                  <p className="font-medium text-foreground">{selectedOrder.client?.nome}</p>
+                  <p className="font-medium text-foreground">{currentSelectedOrder.client?.nome}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <p className="font-medium text-foreground capitalize">{selectedOrder.status.replace('_', ' ')}</p>
+                    <p className="font-medium text-foreground capitalize">{currentSelectedOrder.status.replace('_', ' ')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Valor Total</p>
                     <p className="font-medium text-green-600 dark:text-green-400">
-                      R$ {selectedOrder.valor_total.toFixed(2)}
+                      R$ {currentSelectedOrder.valor_total.toFixed(2)}
                     </p>
                   </div>
                 </div>
 
-                {selectedOrder.observacoes && (
+                {/* Situação do Pagamento */}
+                {(() => {
+                  const valorPago = currentSelectedOrder.valor_pago || 0
+                  const saldo = (currentSelectedOrder.valor_total || 0) - valorPago
+                  const isPago = currentSelectedOrder.status_pagamento === 'pago'
+                  const isParcial = currentSelectedOrder.status_pagamento === 'parcial'
+                  return (
+                    <div className={`rounded-lg border p-4 space-y-3 ${
+                      isPago
+                        ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20'
+                        : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-medium text-sm">
+                          {isPago ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                          )}
+                          <span className={isPago ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}>
+                            {isPago ? 'Pagamento completo' : isParcial ? 'Pagamento parcial' : 'Aguardando pagamento'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Total</p>
+                          <p className="font-semibold">R$ {(currentSelectedOrder.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Pago</p>
+                          <p className="font-semibold text-green-600 dark:text-green-400">
+                            R$ {valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Saldo</p>
+                          <p className={`font-semibold ${saldo > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>
+                            R$ {saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                      {!isPago && currentSelectedOrder.status === 'concluido' && saldo > 0 && (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Banknote className="h-3 w-3" />
+                            Conta a receber em <strong>Financeiro → Contas a Receber</strong>
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 px-2 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            disabled={updateOrder.isPending}
+                            onClick={async () => {
+                              await updateOrder.mutateAsync({ id: currentSelectedOrder.id, input: { status: 'concluido' } })
+                            }}
+                          >
+                            {updateOrder.isPending
+                              ? <RefreshCw className="h-3 w-3 animate-spin" />
+                              : <><RefreshCw className="h-3 w-3 mr-1" />Gerar conta</>
+                            }
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {currentSelectedOrder.observacoes && (
                   <div>
                     <p className="text-sm text-muted-foreground">Observações</p>
-                    <p className="text-sm text-foreground">{selectedOrder.observacoes}</p>
+                    <p className="text-sm text-foreground">{currentSelectedOrder.observacoes}</p>
                   </div>
                 )}
 
-                {selectedOrder.items && selectedOrder.items.length > 0 && (
+                {currentSelectedOrder.items && currentSelectedOrder.items.length > 0 && (
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Itens</p>
                     <div className="border border-border rounded-lg overflow-hidden">
@@ -264,7 +416,7 @@ export default function OrdensServicoPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                          {selectedOrder.items.map((item) => (
+                          {currentSelectedOrder.items.map((item) => (
                             <tr key={item.id}>
                               <td className="px-3 py-2 text-foreground">{item.service_nome}</td>
                               <td className="px-3 py-2 text-center text-foreground">{item.quantidade}</td>
@@ -281,7 +433,7 @@ export default function OrdensServicoPage() {
               </div>
 
               {/* Timeline e Notas */}
-              <OrderTimeline orderId={selectedOrder.id} />
+              <OrderTimeline orderId={currentSelectedOrder.id} />
             </div>
           )}
         </DialogContent>
@@ -291,8 +443,8 @@ export default function OrdensServicoPage() {
       <OrderPreviewDialog
         open={showPreview}
         onOpenChange={setShowPreview}
-        order={selectedOrder}
-        organizationName="CRM Atelier"
+        order={currentSelectedOrder}
+        organizationName="Meu Atelier"
         showConfirmButton={false}
       />
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Calendar, DollarSign, X, ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
+import { Plus, Search, X, ArrowLeft, FileSpreadsheet, FileText, TrendingUp, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -289,88 +289,84 @@ export default function ReceberPage() {
         </div>
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+          {/* Total — estático */}
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm col-span-2 xl:col-span-1">
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+            <div className="p-4 pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
+                <div className="p-2 rounded-xl bg-blue-500 shadow-sm shrink-0">
+                  <TrendingUp className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-xl font-bold text-foreground">
-                  {formatCurrency(stats.total)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.count} de {stats.totalCount} contas
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(stats.total)}</p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">{stats.count} de {stats.totalCount} contas</p>
             </div>
           </div>
 
+          {/* Pendente — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'pendente' ? 'all' : 'pendente')}
-            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
-              statusFilter === 'pendente' ? 'ring-2 ring-yellow-500 shadow-md' : ''
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
+              statusFilter === 'pendente' ? 'border-amber-400 dark:border-amber-600 ring-2 ring-amber-400/30' : 'border-border/60'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-yellow-50 dark:bg-yellow-950/50 rounded-lg">
-                <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-amber-500" />
+            <div className="p-4 pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pendente</p>
+                <div className="p-2 rounded-xl bg-amber-500 shadow-sm shrink-0">
+                  <Clock className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pendente</p>
-                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {formatCurrency(stats.pendente)}
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(stats.pendente)}</p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">{statusFilter === 'pendente' ? '✓ Filtro ativo' : 'clique para filtrar'}</p>
             </div>
-            {statusFilter === 'pendente' && (
-              <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mt-1">✓ Filtro ativo</p>
-            )}
           </button>
 
+          {/* Recebido — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'recebido' ? 'all' : 'recebido')}
-            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
-              statusFilter === 'recebido' ? 'ring-2 ring-green-500 shadow-md' : ''
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
+              statusFilter === 'recebido' ? 'border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/30' : 'border-border/60'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-50 dark:bg-green-950/50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500" />
+            <div className="p-4 pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recebido</p>
+                <div className="p-2 rounded-xl bg-emerald-500 shadow-sm shrink-0">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Recebido</p>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(stats.recebido)}
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(stats.recebido)}</p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">{statusFilter === 'recebido' ? '✓ Filtro ativo' : 'clique para filtrar'}</p>
             </div>
-            {statusFilter === 'recebido' && (
-              <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-1">✓ Filtro ativo</p>
-            )}
           </button>
 
+          {/* Atrasado — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'atrasado' ? 'all' : 'atrasado')}
-            className={`bg-card rounded-lg border border-border p-4 text-left transition-all hover:shadow-md ${
-              statusFilter === 'atrasado' ? 'ring-2 ring-red-500 shadow-md' : ''
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
+              statusFilter === 'atrasado' ? 'border-red-400 dark:border-red-600 ring-2 ring-red-400/30' : 'border-border/60'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-red-50 dark:bg-red-950/50 rounded-lg">
-                <Calendar className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-red-500" />
+            <div className="p-4 pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atrasado</p>
+                <div className="p-2 rounded-xl bg-red-500 shadow-sm shrink-0">
+                  <AlertTriangle className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Atrasado</p>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(stats.atrasado)}
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(stats.atrasado)}</p>
+              <div className="h-px bg-border/50 mt-3 mb-2" />
+              <p className="text-[11px] text-muted-foreground">{statusFilter === 'atrasado' ? '✓ Filtro ativo' : 'clique para filtrar'}</p>
             </div>
-            {statusFilter === 'atrasado' && (
-              <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">✓ Filtro ativo</p>
-            )}
           </button>
         </div>
 
