@@ -259,9 +259,6 @@ export function AppTour() {
         spotlight: {
           borderRadius: 10,
         },
-        progressBar: {
-          backgroundColor: '#6366f1',
-        },
       }}
     />
   )

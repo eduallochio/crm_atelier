@@ -43,7 +43,7 @@ export async function GET(
 
     const totalUses = items.reduce((sum: number, item: Record<string, unknown>) => sum + ((item.quantidade as number) || 0), 0)
     const totalRevenue = items.reduce((sum: number, item: Record<string, unknown>) => sum + ((item.valor_total as number) || 0), 0)
-    const lastUsed = items[0]?.created_at || null
+    const lastUsed = (result.recordset[0]?.created_at as string) || null
 
     return NextResponse.json({ items, totalUses, totalRevenue, lastUsed })
   } catch (error) {

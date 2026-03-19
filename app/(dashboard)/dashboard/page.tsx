@@ -63,7 +63,8 @@ export default function DashboardPage() {
   })
 
   // Ordens para gráficos (usa API já migrada)
-  const { data: orders = [] } = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: orders = [] } = useQuery<any[]>({
     queryKey: ['orders'],
     queryFn: async () => {
       const res = await fetch('/api/orders')
@@ -123,14 +124,6 @@ export default function DashboardPage() {
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30',
       iconBg: 'bg-green-500 dark:bg-green-600',
-    },
-    {
-      name: 'Usuários',
-      value: metrics?.users_count || 0,
-      icon: Users,
-      color: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30',
-      iconBg: 'bg-purple-500 dark:bg-purple-600',
     },
     {
       name: 'Receita do Mês',

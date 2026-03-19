@@ -43,7 +43,7 @@ export async function GET() {
       `)
 
     // Agrupar itens por order_id
-    const itemsByOrder: Record<string, typeof itemsResult.recordset> = {}
+    const itemsByOrder: Record<string, unknown[]> = {}
     for (const item of itemsResult.recordset) {
       const key = item.order_id as string
       if (!itemsByOrder[key]) itemsByOrder[key] = []

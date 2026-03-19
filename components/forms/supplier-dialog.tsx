@@ -70,7 +70,8 @@ export function SupplierDialog({ open, onOpenChange, supplier, onSaved }: Suppli
   const updateSupplier = useUpdateSupplier()
 
   const form = useForm<SupplierFormData>({
-    resolver: zodResolver(supplierSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(supplierSchema) as any,
     defaultValues: {
       nome: '',
       nome_fantasia: '',

@@ -160,34 +160,96 @@ export async function PUT(
         `)
 
       const updatedOrder = updateResult.recordset[0]
+      let noCashierSession = false
 
-      // Criar conta a receber se a OS está concluída (atual ou agora) e ainda não existe receivable
+      // Fluxo de pagamento ao concluir a OS
       if (finalStatus === 'concluido') {
-        const existingResult = await new sql.Request(transaction)
-          .input('orderId', sql.UniqueIdentifier, id)
-          .query(`SELECT id FROM org_receivables WHERE service_order_id = @orderId`)
-
+        const paymentAction = body.payment_action as 'paid' | 'receivable' | undefined
         const saldoRestante = (order.valor_total || 0) - (order.valor_pago || 0)
 
-        if (existingResult.recordset.length === 0 && saldoRestante > 0) {
-          const dataVencimento = new Date()
-          dataVencimento.setDate(dataVencimento.getDate() + 7)
-          const dataVencStr = dataVencimento.toISOString().split('T')[0]
+        if (saldoRestante > 0) {
+          if (paymentAction === 'paid') {
+            // Marcar OS como paga
+            await new sql.Request(transaction)
+              .input('id', sql.UniqueIdentifier, id)
+              .input('orgId', sql.UniqueIdentifier, user.organizationId)
+              .input('valorTotal', sql.Decimal(10, 2), order.valor_total)
+              .query(`
+                UPDATE org_service_orders
+                SET status_pagamento = 'pago', valor_pago = @valorTotal
+                WHERE id = @id AND organization_id = @orgId
+              `)
 
-          await new sql.Request(transaction)
-            .input('orgId', sql.UniqueIdentifier, user.organizationId)
-            .input('orderId', sql.UniqueIdentifier, id)
-            .input('clientId', sql.UniqueIdentifier, order.client_id || null)
-            .input('descricao', sql.NVarChar, `OS #${order.numero} - ${order.client_nome || 'Cliente'}`)
-            .input('valor', sql.Decimal(10, 2), saldoRestante)
-            .input('dataVenc', sql.NVarChar, dataVencStr)
-            .query(`
-              INSERT INTO org_receivables
-                (organization_id, service_order_id, client_id, descricao, valor, data_vencimento, status, observacoes)
-              VALUES
-                (@orgId, @orderId, @clientId, @descricao, @valor, CAST(@dataVenc AS DATE),
-                 'pendente', 'Gerado automaticamente na conclusão da ordem de serviço')
-            `)
+            // Lançar no caixa aberto, se houver
+            const sessaoResult = await new sql.Request(transaction)
+              .input('orgId', sql.UniqueIdentifier, user.organizationId)
+              .query(`
+                SELECT TOP 1 id FROM org_cashier_sessions
+                WHERE organization_id = @orgId AND status = 'aberto'
+                ORDER BY created_at DESC
+              `)
+
+            const descricaoOS = `OS #${order.numero} - ${order.client_nome || 'Cliente'}`
+            const hoje = new Date().toISOString().split('T')[0]
+
+            // Inserir em org_transactions (ledger financeiro — lido pelo stats/financeiro)
+            await new sql.Request(transaction)
+              .input('orgId', sql.UniqueIdentifier, user.organizationId)
+              .input('descricao', sql.NVarChar, descricaoOS)
+              .input('valor', sql.Decimal(10, 2), saldoRestante)
+              .input('dataTransacao', sql.NVarChar, hoje)
+              .input('observacoes', sql.NVarChar, 'Pagamento recebido na conclusão da OS')
+              .query(`
+                INSERT INTO org_transactions
+                  (organization_id, tipo, descricao, valor, data_transacao, observacoes)
+                VALUES
+                  (@orgId, 'entrada', @descricao, @valor, CAST(@dataTransacao AS DATE), @observacoes)
+              `)
+
+            if (sessaoResult.recordset.length > 0) {
+              const sessaoId = sessaoResult.recordset[0].id
+              await new sql.Request(transaction)
+                .input('orgId', sql.UniqueIdentifier, user.organizationId)
+                .input('sessaoId', sql.UniqueIdentifier, sessaoId)
+                .input('descricao', sql.NVarChar, descricaoOS)
+                .input('valor', sql.Decimal(10, 2), saldoRestante)
+                .input('orderId', sql.UniqueIdentifier, id)
+                .query(`
+                  INSERT INTO org_cashier_movements
+                    (organization_id, sessao_id, tipo, descricao, valor, referencia_id, referencia_tipo)
+                  VALUES
+                    (@orgId, @sessaoId, 'entrada', @descricao, @valor, @orderId, 'ordem_servico')
+                `)
+            } else {
+              noCashierSession = true
+            }
+          } else {
+            // payment_action === 'receivable' ou sem payment_action (fallback legado)
+            const existingResult = await new sql.Request(transaction)
+              .input('orderId', sql.UniqueIdentifier, id)
+              .query(`SELECT id FROM org_receivables WHERE service_order_id = @orderId`)
+
+            if (existingResult.recordset.length === 0) {
+              const dataVencimento = new Date()
+              dataVencimento.setDate(dataVencimento.getDate() + 7)
+              const dataVencStr = dataVencimento.toISOString().split('T')[0]
+
+              await new sql.Request(transaction)
+                .input('orgId', sql.UniqueIdentifier, user.organizationId)
+                .input('orderId', sql.UniqueIdentifier, id)
+                .input('clientId', sql.UniqueIdentifier, order.client_id || null)
+                .input('descricao', sql.NVarChar, `OS #${order.numero} - ${order.client_nome || 'Cliente'}`)
+                .input('valor', sql.Decimal(10, 2), saldoRestante)
+                .input('dataVenc', sql.NVarChar, dataVencStr)
+                .query(`
+                  INSERT INTO org_receivables
+                    (organization_id, service_order_id, client_id, descricao, valor, data_vencimento, status, observacoes)
+                  VALUES
+                    (@orgId, @orderId, @clientId, @descricao, @valor, CAST(@dataVenc AS DATE),
+                     'pendente', 'Gerado automaticamente na conclusão da ordem de serviço')
+                `)
+            }
+          }
         }
       }
 
@@ -242,7 +304,7 @@ export async function PUT(
       }
 
       await transaction.commit()
-      return NextResponse.json(updatedOrder)
+      return NextResponse.json({ ...updatedOrder, no_cashier_session: noCashierSession })
     } catch (txError) {
       await transaction.rollback()
       throw txError

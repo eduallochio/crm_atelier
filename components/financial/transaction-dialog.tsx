@@ -44,7 +44,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
       tipo: 'entrada',
       descricao: '',
       valor: '',
-      data: new Date().toISOString().split('T')[0],
+      data_transacao: new Date().toISOString().split('T')[0],
       observacoes: '',
     },
   })
@@ -57,7 +57,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
         tipo: 'entrada',
         descricao: '',
         valor: '',
-        data: new Date().toISOString().split('T')[0],
+        data_transacao: new Date().toISOString().split('T')[0],
         observacoes: '',
       })
     } catch (error) {
@@ -137,7 +137,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
 
               <FormField
                 control={form.control}
-                name="data"
+                name="data_transacao"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Data *</FormLabel>

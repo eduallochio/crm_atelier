@@ -81,7 +81,7 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
             <tr key={transaction.id} className="hover:bg-accent/50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-foreground">
-                  {formatDate(transaction.data)}
+                  {formatDate(transaction.data_transacao)}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">

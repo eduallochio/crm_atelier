@@ -39,8 +39,17 @@ export function useCreateOrderNote() {
   })
 }
 
+interface OrderHistoryItem {
+  id: string
+  user_email: string
+  campo_alterado: string
+  valor_anterior: string | null
+  valor_novo: string | null
+  created_at: string
+}
+
 export function useOrderHistory(orderId: string) {
-  return useQuery({
+  return useQuery<OrderHistoryItem[]>({
     queryKey: ['order-history', orderId],
     queryFn: async () => {
       const res = await fetch(`/api/orders/${orderId}/history`)

@@ -13,8 +13,27 @@ export function useClientStats() {
   })
 }
 
+interface ClientOrdersData {
+  stats: {
+    totalOrders: number
+    totalSpent: number
+    openOrders: number
+    lastOrder: { created_at: string } | null
+  }
+  orders: Array<{
+    id: string
+    numero: number
+    status: string
+    valor_total: number
+    data_abertura: string
+    data_conclusao: string | null
+    observacoes: string | null
+    items: Array<{ id: string; service_nome: string; quantidade: number; valor_unitario: number }>
+  }>
+}
+
 export function useClientOrders(clientId: string) {
-  return useQuery({
+  return useQuery<ClientOrdersData>({
     queryKey: ['client-orders', clientId],
     queryFn: async () => {
       const res = await fetch(`/api/clients/${clientId}/orders`)

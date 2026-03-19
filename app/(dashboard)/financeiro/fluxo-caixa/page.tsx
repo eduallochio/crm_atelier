@@ -71,7 +71,7 @@ export default function FluxoCaixaPage() {
       
       let matchesDate = true
       if (dateFrom && dateTo) {
-        const transactionDate = new Date(transaction.data)
+        const transactionDate = new Date(transaction.data_transacao)
         const from = new Date(dateFrom)
         const to = new Date(dateTo)
         matchesDate = transactionDate >= from && transactionDate <= to
@@ -93,7 +93,7 @@ export default function FluxoCaixaPage() {
       } else if (sortField === 'valor') {
         comparison = a.valor - b.valor
       } else if (sortField === 'data') {
-        comparison = new Date(a.data).getTime() - new Date(b.data).getTime()
+        comparison = new Date(a.data_transacao).getTime() - new Date(b.data_transacao).getTime()
       } else if (sortField === 'tipo') {
         comparison = a.tipo.localeCompare(b.tipo)
       }
@@ -136,7 +136,7 @@ export default function FluxoCaixaPage() {
   // Exportar para Excel (XLSX)
   const exportToExcel = () => {
     const data = sortedTransactions.map(t => ({
-      'Data': t.data,
+      'Data': t.data_transacao,
       'Tipo': t.tipo === 'entrada' ? 'Entrada' : 'Saída',
       'Descrição': t.descricao,
       'Valor': t.valor,
@@ -173,7 +173,7 @@ export default function FluxoCaixaPage() {
     doc.text(`Saldo: ${formatCurrency(stats.saldo)}`, 14, 51)
     
     const tableData = sortedTransactions.map(t => [
-      new Date(t.data).toLocaleDateString('pt-BR'),
+      new Date(t.data_transacao).toLocaleDateString('pt-BR'),
       t.tipo === 'entrada' ? 'Entrada' : 'Saída',
       t.descricao,
       formatCurrency(t.valor)

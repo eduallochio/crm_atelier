@@ -2,8 +2,31 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+interface FluxoCaixaItem {
+  mes: string
+  mesCompleto: string
+  entradas: number
+  saidas: number
+  saldo: number
+}
+
+interface FinancialStats {
+  saldoAtual: number
+  saldoMes: number
+  entradasMes: number
+  saidasMes: number
+  totalAReceber: number
+  totalAPagar: number
+  receitasAtrasadas: number
+  despesasAtrasadas: number
+  recebiveisVencendo: number
+  pagaveisVencendo: number
+  fluxoCaixa: FluxoCaixaItem[]
+  [key: string]: unknown
+}
+
 export function useFinancialStats(period: string = 'thisMonth') {
-  return useQuery({
+  return useQuery<FinancialStats>({
     queryKey: ['financial-stats', period],
     queryFn: async () => {
       const res = await fetch(`/api/financial/stats?period=${period}`)

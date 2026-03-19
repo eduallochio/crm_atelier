@@ -67,7 +67,7 @@ export default function PagarPage() {
     return payables.filter(payable => {
       const matchesSearch = 
         payable.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payable.fornecedor.toLowerCase().includes(searchTerm.toLowerCase())
+        (payable.fornecedor ?? '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === 'all' || payable.status === statusFilter
       
       let matchesDate = true
@@ -92,7 +92,7 @@ export default function PagarPage() {
       if (sortField === 'descricao') {
         comparison = a.descricao.localeCompare(b.descricao)
       } else if (sortField === 'fornecedor') {
-        comparison = a.fornecedor.localeCompare(b.fornecedor)
+        comparison = (a.fornecedor ?? '').localeCompare(b.fornecedor ?? '')
       } else if (sortField === 'valor') {
         comparison = a.valor - b.valor
       } else if (sortField === 'data_vencimento') {

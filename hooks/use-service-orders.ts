@@ -55,7 +55,7 @@ export function useUpdateServiceOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: Partial<ServiceOrderInput> }) => {
+    mutationFn: async ({ id, input }: { id: string; input: Partial<ServiceOrderInput> & { payment_action?: 'paid' | 'receivable' } }) => {
       const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -63,11 +63,16 @@ export function useUpdateServiceOrder() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao atualizar ordem de serviço')
-      return data as ServiceOrder
+      return data as ServiceOrder & { no_cashier_session?: boolean }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['cashier-movements'] })
+      queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
       toast.success('Ordem de serviço atualizada com sucesso!')
     },
     onError: (error: Error) => {

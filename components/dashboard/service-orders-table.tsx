@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer, Banknote } from 'lucide-react'
+import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ServiceOrdersTableProps {
   orders: ServiceOrder[]
@@ -40,6 +48,7 @@ const statusLabels = {
 
 export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrdersTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [bulkDeletePending, setBulkDeletePending] = useState(false)
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
   const [pendingConcluir, setPendingConcluir] = useState<{ id: string; saldo: number } | null>(null)
   const deleteOrder = useDeleteServiceOrder()
@@ -153,10 +162,31 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     await updateOrder.mutateAsync({ id: orderId, input: { status: newStatus } })
   }
 
-  const confirmConcluir = async () => {
+  const confirmConcluirPago = async () => {
     if (!pendingConcluir) return
-    await updateOrder.mutateAsync({ id: pendingConcluir.id, input: { status: 'concluido' } })
-    setPendingConcluir(null)
+    try {
+      const result = await updateOrder.mutateAsync({
+        id: pendingConcluir.id,
+        input: { status: 'concluido', payment_action: 'paid' },
+      })
+      if (result.no_cashier_session) {
+        toast.warning('OS concluída como paga, mas não há caixa aberto. O valor não foi lançado no caixa.')
+      }
+    } finally {
+      setPendingConcluir(null)
+    }
+  }
+
+  const confirmConcluirReceivable = async () => {
+    if (!pendingConcluir) return
+    try {
+      await updateOrder.mutateAsync({
+        id: pendingConcluir.id,
+        input: { status: 'concluido', payment_action: 'receivable' },
+      })
+    } finally {
+      setPendingConcluir(null)
+    }
   }
 
   // Bulk actions
@@ -178,15 +208,17 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedOrders.size === 0) return
-    
-    if (confirm(`Tem certeza que deseja excluir ${selectedOrders.size} ordem(ns)?`)) {
-      for (const orderId of selectedOrders) {
-        await deleteOrder.mutateAsync(orderId)
-      }
-      setSelectedOrders(new Set())
+    setBulkDeletePending(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    for (const orderId of selectedOrders) {
+      await deleteOrder.mutateAsync(orderId)
     }
+    setSelectedOrders(new Set())
+    setBulkDeletePending(false)
   }
 
   const handleBulkStatusChange = async (newStatus: ServiceOrder['status']) => {
@@ -345,10 +377,9 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               {order.status === 'concluido' && order.status_pagamento !== 'pago' && (
                 <button
                   type="button"
-                  title="Clique para gerar conta a receber"
-                  disabled={updateOrder.isPending}
-                  onClick={() => updateOrder.mutateAsync({ id: order.id, input: { status: 'concluido' } })}
-                  className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors disabled:opacity-50"
+                  title="Clique para registrar pagamento"
+                  onClick={() => setPendingConcluir({ id: order.id, saldo: (order.valor_total || 0) - (order.valor_pago || 0) })}
+                  className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors"
                 >
                   <Banknote className="h-3 w-3" />
                   R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
@@ -464,10 +495,9 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                       {order.status === 'concluido' && order.status_pagamento !== 'pago' && (
                         <button
                           type="button"
-                          title="Clique para gerar conta a receber em Financeiro"
-                          disabled={updateOrder.isPending}
-                          onClick={() => updateOrder.mutateAsync({ id: order.id, input: { status: 'concluido' } })}
-                          className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Clique para registrar pagamento"
+                          onClick={() => setPendingConcluir({ id: order.id, saldo: (order.valor_total || 0) - (order.valor_pago || 0) })}
+                          className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors"
                         >
                           <Banknote className="h-3 w-3" />
                           R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pendente
@@ -620,41 +650,82 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!pendingConcluir} onOpenChange={() => setPendingConcluir(null)}>
+      <AlertDialog open={bulkDeletePending} onOpenChange={setBulkDeletePending}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5 text-amber-600" />
-              Pagamento pendente
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  Esta OS possui um saldo de{' '}
-                  <span className="font-semibold text-amber-700 dark:text-amber-400">
-                    R$ {pendingConcluir?.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>{' '}
-                  ainda não pago.
-                </p>
-                <p>
-                  Ao concluir, uma <strong>conta a receber</strong> será gerada automaticamente
-                  em <em>Financeiro → Contas a Receber</em>.
-                </p>
-                <p>Deseja marcar como concluída mesmo assim?</p>
-              </div>
+            <AlertDialogTitle>Confirmar exclusão em lote</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedOrders.size}{' '}
+              {selectedOrders.size === 1 ? 'ordem de serviço' : 'ordens de serviço'}? Esta ação não
+              pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmConcluir}
-              className="bg-amber-600 hover:bg-amber-700"
+              onClick={confirmBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
             >
-              Concluir mesmo assim
+              Excluir {selectedOrders.size} {selectedOrders.size === 1 ? 'ordem' : 'ordens'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!pendingConcluir} onOpenChange={() => setPendingConcluir(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="flex items-center gap-3 text-base">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/60 shrink-0">
+                <Banknote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              Confirmar conclusão
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Saldo em destaque */}
+          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 mb-4">
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mb-1">
+              Saldo em aberto
+            </p>
+            <p className="text-3xl font-bold text-amber-700 dark:text-amber-300 tabular-nums">
+              R$ {pendingConcluir?.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+
+          <DialogDescription className="text-sm font-medium text-foreground mb-4">
+            A OS foi paga pelo cliente?
+          </DialogDescription>
+
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white h-10"
+              onClick={confirmConcluirPago}
+              disabled={updateOrder.isPending}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Sim — Lançar no caixa
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/50 h-10"
+              onClick={confirmConcluirReceivable}
+              disabled={updateOrder.isPending}
+            >
+              <ReceiptText className="h-4 w-4" />
+              Não — Gerar conta a receber
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full h-9 text-muted-foreground hover:text-foreground"
+              onClick={() => setPendingConcluir(null)}
+              disabled={updateOrder.isPending}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

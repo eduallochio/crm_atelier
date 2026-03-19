@@ -113,70 +113,74 @@ export function OrderPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-      <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto z-100">
-        <DialogHeader>
+      <DialogContent className="flex flex-col w-[calc(100vw-2rem)] max-w-lg max-h-[92vh] p-0 gap-0 overflow-hidden">
+        {/* Header fixo */}
+        <DialogHeader className="shrink-0 px-6 pt-5 pb-3 border-b border-border">
           <DialogTitle>Preview da Ordem de Serviço</DialogTitle>
           <DialogDescription>
             Visualização de como ficará a impressão térmica
           </DialogDescription>
         </DialogHeader>
 
+        {/* Preview com scroll independente */}
         {orderWithPaymentName && (
-          <>
-            <div className="my-4">
-              <div 
-                className="overflow-auto"
-                dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData) }}
-              />
-            </div>
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+            <div
+              dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData) }}
+            />
+          </div>
+        )}
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <div className="flex gap-2 w-full sm:w-auto">
+        {/* Footer fixo */}
+        {orderWithPaymentName && (
+          <div className="shrink-0 border-t border-border px-6 py-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                <X className="h-4 w-4 mr-1.5" />
+                Fechar
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                disabled={printing}
+              >
+                <Printer className="h-4 w-4 mr-1.5" />
+                Baixar PDF
+              </Button>
+
+              {orderWithPaymentName.client?.telefone && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="flex-1 sm:flex-initial"
+                  size="sm"
+                  onClick={handleWhatsApp}
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-300 dark:border-green-800"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Fechar
+                  <MessageCircle className="h-4 w-4 mr-1.5" />
+                  Enviar WhatsApp
                 </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrint}
-                  disabled={printing}
-                  className="flex-1 sm:flex-initial"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Baixar PDF
-                </Button>
-
-                {orderWithPaymentName.client?.telefone && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleWhatsApp}
-                    className="flex-1 sm:flex-initial text-green-600 hover:text-green-700 hover:bg-green-50"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Enviar WhatsApp
-                  </Button>
-                )}
-              </div>
+              )}
 
               {showConfirmButton && (
                 <Button
                   type="button"
+                  size="sm"
                   onClick={handleConfirm}
-                  className="w-full sm:w-auto"
+                  className="ml-auto"
                 >
                   {confirmButtonText}
                 </Button>
               )}
-            </DialogFooter>
-          </>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>

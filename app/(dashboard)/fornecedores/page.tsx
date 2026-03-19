@@ -23,7 +23,7 @@ export default function FornecedoresPage() {
       const q = search.toLowerCase()
       const matchSearch = !search ||
         s.nome.toLowerCase().includes(q) ||
-        (s.cnpj || '').toLowerCase().includes(q) ||
+        (s.cpf_cnpj || '').toLowerCase().includes(q) ||
         (s.email || '').toLowerCase().includes(q) ||
         (s.telefone || '').toLowerCase().includes(q)
       const matchStatus =
@@ -35,7 +35,7 @@ export default function FornecedoresPage() {
   }, [suppliers, search, statusFilter])
 
   const ativos = suppliers.filter(s => s.ativo)
-  const comCnpj = ativos.filter(s => s.cnpj)
+  const comCnpj = ativos.filter(s => s.cpf_cnpj)
 
   const handleEdit = (supplier: Supplier) => {
     setSelectedSupplier(supplier)
@@ -205,14 +205,11 @@ export default function FornecedoresPage() {
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className="text-sm text-muted-foreground font-mono">
-                          {supplier.cnpj || <span className="text-muted-foreground/40">—</span>}
+                          {supplier.cpf_cnpj || <span className="text-muted-foreground/40">—</span>}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
                         <div className="space-y-0.5">
-                          {supplier.contato && (
-                            <p className="text-sm text-foreground">{supplier.contato}</p>
-                          )}
                           {supplier.telefone && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Phone className="h-3 w-3" />

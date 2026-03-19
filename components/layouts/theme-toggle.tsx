@@ -40,6 +40,7 @@ export function ThemeToggle() {
         currency: preferences.currency || 'BRL',
         compact_mode: preferences.compact_mode || false,
         show_tooltips: preferences.show_tooltips !== false,
+        controla_estoque: preferences.controla_estoque || false,
       })
     } catch (error) {
       console.error('Erro ao alterar tema:', error)
