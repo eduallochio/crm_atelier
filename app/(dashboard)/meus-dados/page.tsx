@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   Download, 
@@ -171,18 +172,14 @@ export default function MeusDadosPage() {
       </div>
 
       {/* Banner Informativo */}
-      <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-500 dark:border-blue-600 p-4 rounded-lg">
-        <div className="flex items-start gap-3">
-          <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-          <div>
-            <h3 className="font-semibold text-blue-900 dark:text-blue-300">Seus Direitos Garantidos</h3>
-            <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              A LGPD garante que você tenha total controle sobre seus dados. Você pode acessar, corrigir, 
-              exportar ou solicitar exclusão a qualquer momento.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Alert variant="info">
+        <Shield className="h-4 w-4" />
+        <AlertTitle>Seus Direitos Garantidos</AlertTitle>
+        <AlertDescription>
+          A LGPD garante que você tenha total controle sobre seus dados. Você pode acessar, corrigir,
+          exportar ou solicitar exclusão a qualquer momento.
+        </AlertDescription>
+      </Alert>
 
       {/* Estatísticas Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -285,12 +282,12 @@ export default function MeusDadosPage() {
             </div>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm">
-            <p className="text-blue-900 dark:text-blue-200">
-              <strong>ℹ️ Informação:</strong> Estes são seus dados principais. Para ver dados de clientes 
+          <Alert variant="info">
+            <AlertDescription>
+              <strong>Informação:</strong> Estes são seus dados principais. Para ver dados de clientes
               que você cadastrou, acesse as respectivas páginas do sistema.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
@@ -379,20 +376,18 @@ export default function MeusDadosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 dark:border-red-600 p-4 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-              <div className="space-y-2">
-                <h4 className="font-semibold text-red-900 dark:text-red-400">⚠️ Atenção: Esta ação é irreversível!</h4>
-                <ul className="text-sm text-red-800 dark:text-red-300 space-y-1 list-disc ml-4">
-                  <li>Todos os seus dados serão anonimizados</li>
-                  <li>Você perderá acesso a todos os clientes e ordens cadastradas</li>
-                  <li>O processo leva até 30 dias para ser concluído</li>
-                  <li>Após 30 dias, os dados não poderão ser recuperados</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Atenção: Esta ação é irreversível!</AlertTitle>
+            <AlertDescription>
+              <ul className="space-y-1 list-disc ml-4">
+                <li>Todos os seus dados serão anonimizados</li>
+                <li>Você perderá acesso a todos os clientes e ordens cadastradas</li>
+                <li>O processo leva até 30 dias para ser concluído</li>
+                <li>Após 30 dias, os dados não poderão ser recuperados</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>

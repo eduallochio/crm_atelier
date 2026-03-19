@@ -6,6 +6,7 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SupplierDialog } from '@/components/forms/supplier-dialog'
 import { useSuppliers, useDeleteSupplier, type Supplier } from '@/hooks/use-suppliers'
 
@@ -130,15 +131,16 @@ export default function FornecedoresPage() {
           </div>
 
           <div className="flex gap-2">
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent"
-            >
-              <option value="ativos">Somente Ativos</option>
-              <option value="inativos">Somente Inativos</option>
-              <option value="all">Todos</option>
-            </select>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ativos">Somente Ativos</SelectItem>
+                <SelectItem value="inativos">Somente Inativos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { User, Shield, Camera, Calendar, Monitor, Smartphone, Laptop, LogOut, AlertTriangle } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 
 interface UserProfile {
@@ -317,9 +319,7 @@ export default function ProfilePage() {
               </p>
 
               {isLoadingSessions ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-                </div>
+                <Loader />
               ) : sessions.length > 0 ? (
                 <div className="space-y-4">
                   {sessions.map((session, index) => {
@@ -368,27 +368,25 @@ export default function ProfilePage() {
               )}
 
               <div className="mt-6 space-y-4">
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-3">
-                        <strong>Dica de segurança:</strong> Se você suspeita que sua conta foi comprometida,
-                        altere sua senha imediatamente.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadSessions}
-                        disabled={isSaving}
-                        className="border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Renovar Sessão de Segurança
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <Alert variant="warning">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="mb-3">
+                      <strong>Dica de segurança:</strong> Se você suspeita que sua conta foi comprometida,
+                      altere sua senha imediatamente.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadSessions}
+                      disabled={isSaving}
+                      className="border-yellow-300 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Renovar Sessão de Segurança
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               </div>
             </Card>
           </TabsContent>

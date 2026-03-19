@@ -5,6 +5,7 @@ import { Pencil, Trash2, Phone, Mail, MapPin, FileText, MessageCircle } from 'lu
 import type { Client } from '@/lib/validations/client'
 import { useDeleteClient } from '@/hooks/use-clients'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -93,26 +94,48 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {client.telefone && (
-                  <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(client)} title="WhatsApp"
-                    className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50">
-                    <MessageCircle className="h-4 w-4" />
-                  </Button>
-                )}
-                {onViewOrders && (
-                  <Button variant="ghost" size="icon" onClick={() => onViewOrders(client)} title="Ver ordens" className="h-8 w-8">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={() => onEdit(client)} className="h-8 w-8">
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setDeleteId(client.id)}
-                  className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <TooltipProvider>
+                <div className="flex items-center gap-1 shrink-0">
+                  {client.telefone && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(client)}
+                          className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50">
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>WhatsApp</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {onViewOrders && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => onViewOrders(client)} className="h-8 w-8">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Ver ordens</TooltipContent>
+                    </Tooltip>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => onEdit(client)} className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Editar</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(client.id)}
+                        className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Excluir</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </div>
           </div>
         ))}
@@ -187,66 +210,90 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                   })()}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {(client.logradouro && client.cidade) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            const endereco = [
-                              client.logradouro,
-                              client.numero,
-                              client.bairro,
-                              client.cidade,
-                              client.estado,
-                              client.cep
-                            ].filter(Boolean).join(', ')
-                            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`
-                            window.open(url, '_blank')
-                          }}
-                          title="Abrir no Google Maps"
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                        >
-                          <MapPin className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {client.telefone && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleWhatsApp(client)}
-                          title="Enviar mensagem no WhatsApp"
-                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onViewOrders && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onViewOrders(client)}
-                          title="Ver histórico de ordens"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(client)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(client.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <div className="flex items-center justify-end gap-2">
+                        {(client.logradouro && client.cidade) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const endereco = [
+                                    client.logradouro,
+                                    client.numero,
+                                    client.bairro,
+                                    client.cidade,
+                                    client.estado,
+                                    client.cep
+                                  ].filter(Boolean).join(', ')
+                                  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`
+                                  window.open(url, '_blank')
+                                }}
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                              >
+                                <MapPin className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Abrir no Google Maps</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {client.telefone && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleWhatsApp(client)}
+                                className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Enviar mensagem no WhatsApp</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {onViewOrders && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onViewOrders(client)}
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Ver histórico de ordens</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(client)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(client.id)}
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </td>
                 </tr>
               ))}

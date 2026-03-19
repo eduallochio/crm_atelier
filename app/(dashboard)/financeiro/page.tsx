@@ -13,6 +13,8 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
 } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { useFinancialStats } from '@/hooks/use-financial-stats'
@@ -35,12 +37,7 @@ export default function FinanceiroPage() {
           title="Financeiro"
           description="Controle financeiro do ateliê"
         />
-        <div className="p-6 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-            <p className="mt-4 text-muted-foreground">Carregando dados financeiros...</p>
-          </div>
-        </div>
+        <Loader text="Carregando dados financeiros..." />
       </div>
     )
   }
@@ -180,22 +177,20 @@ export default function FinanceiroPage() {
 
         {/* Alertas */}
         {((stats?.recebiveisVencendo || 0) > 0 || (stats?.pagaveisVencendo || 0) > 0) && (
-          <div className="bg-yellow-50 dark:bg-yellow-950/50 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-medium text-yellow-900 dark:text-yellow-300">Contas Vencendo nos Próximos 7 Dias</h3>
-                <div className="mt-2 space-y-1 text-sm text-yellow-800 dark:text-yellow-400">
-                  {(stats?.recebiveisVencendo || 0) > 0 && (
-                    <p>• {stats?.recebiveisVencendo} conta(s) a receber</p>
-                  )}
-                  {(stats?.pagaveisVencendo || 0) > 0 && (
-                    <p>• {stats?.pagaveisVencendo} conta(s) a pagar</p>
-                  )}
-                </div>
+          <Alert variant="warning">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Contas Vencendo nos Próximos 7 Dias</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-1">
+                {(stats?.recebiveisVencendo || 0) > 0 && (
+                  <p>• {stats?.recebiveisVencendo} conta(s) a receber</p>
+                )}
+                {(stats?.pagaveisVencendo || 0) > 0 && (
+                  <p>• {stats?.pagaveisVencendo} conta(s) a pagar</p>
+                )}
               </div>
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Gráfico de Fluxo de Caixa */}

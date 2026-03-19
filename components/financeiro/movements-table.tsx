@@ -1,6 +1,6 @@
 'use client'
 
-import { TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import { CashierMovement } from '@/lib/validations/cashier'
 
 interface MovementsTableProps {
@@ -63,7 +64,7 @@ export function MovementsTable({ movements, isLoading }: MovementsTableProps) {
   if (isLoading) {
     return (
       <div className="p-8 text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
         <p className="mt-4 text-muted-foreground">Carregando movimentos...</p>
       </div>
     )
@@ -113,9 +114,9 @@ export function MovementsTable({ movements, isLoading }: MovementsTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="px-2 py-1 bg-muted text-foreground text-xs font-medium rounded-full">
+                  <Badge variant="secondary">
                     {movement.metodo_pagamento_id ? paymentLabels[movement.metodo_pagamento_id] || movement.metodo_pagamento_id : '-'}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <span className="text-muted-foreground">

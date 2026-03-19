@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import {
   TrendingUp, TrendingDown, Minus,
   Wallet, Users, Timer,
@@ -64,17 +66,17 @@ const fmtShort = (v: number) => {
 function SkeletonCard() {
   return (
     <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm">
-      <div className="absolute top-0 left-0 right-0 h-[3px] bg-muted animate-pulse" />
+      <Skeleton className="absolute top-0 left-0 right-0 h-[3px] rounded-none" />
       <div className="p-5 space-y-3">
         <div className="flex justify-between">
-          <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-          <div className="h-7 w-7 bg-muted rounded-xl animate-pulse" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-7 w-7 rounded-xl" />
         </div>
-        <div className="h-7 w-32 bg-muted rounded animate-pulse" />
-        <div className="h-px bg-border/50" />
+        <Skeleton className="h-7 w-32" />
+        <Separator />
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-4 bg-muted rounded animate-pulse" style={{ width: `${70 - i * 10}%` }} />
+            <Skeleton key={i} className="h-4" style={{ width: `${70 - i * 10}%` }} />
           ))}
         </div>
       </div>
@@ -116,7 +118,7 @@ function FinancialHealthCard({ fh, currentRevenue }: { fh: FinancialHealth; curr
           </div>
         </div>
 
-        <div className="h-px bg-border/50 mb-3" />
+        <Separator className="mb-3" />
 
         {/* Rows */}
         <div className="space-y-2.5">
@@ -226,7 +228,7 @@ function TopClientsCard({
           </div>
         </div>
 
-        <div className="h-px bg-border/50 mb-3" />
+        <Separator className="mb-3" />
 
         {topClients.length > 0 ? (
           <div className="space-y-3">
@@ -362,7 +364,7 @@ function OperationalCard({ orders }: { orders: Order[] }) {
           </div>
         </div>
 
-        <div className="h-px bg-border/50 mb-3" />
+        <Separator className="mb-3" />
 
         <div className="space-y-2.5">
           {/* Ticket médio */}

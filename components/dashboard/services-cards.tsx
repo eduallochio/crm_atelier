@@ -7,6 +7,8 @@ import { useDeleteService, useToggleServiceStatus } from '@/hooks/use-services'
 import { useServiceStats } from '@/hooks/use-service-stats'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,7 +103,7 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
               )}
 
               {/* Detalhes */}
-              <div className="space-y-2 mb-4 pb-4 border-b border-border">
+              <div className="space-y-2 mb-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Preço:</span>
                   <div className="flex flex-col items-end gap-1">
@@ -144,15 +146,13 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
                 )}
               </div>
 
+              <Separator className="mb-4" />
+
               {/* Status Badge */}
               <div className="mb-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  service.ativo 
-                    ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400' 
-                    : 'bg-muted text-muted-foreground'
-                }`}>
+                <Badge variant={service.ativo ? 'default' : 'secondary'}>
                   {service.ativo ? '✓ Ativo' : '✕ Inativo'}
-                </span>
+                </Badge>
               </div>
 
               {/* Ações */}

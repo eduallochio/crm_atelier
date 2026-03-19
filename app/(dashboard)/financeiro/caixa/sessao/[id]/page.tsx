@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, FileText, X } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { useCashierSession, useCashierMovements, useCloseCashier } from '@/hooks/use-cashier'
@@ -58,12 +59,7 @@ export default function SessaoCaixaPage() {
 
   if (loadingSessao) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-gray-500">Carregando...</p>
-        </div>
-      </div>
+      <Loader className="min-h-screen" text="Carregando..." />
     )
   }
 

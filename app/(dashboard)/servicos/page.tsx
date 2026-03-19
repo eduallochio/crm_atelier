@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Plus, Search, Package, CheckCircle, XCircle, DollarSign, TrendingUp, LayoutGrid, List, Filter } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useServices } from '@/hooks/use-services'
 import { useServiceStats } from '@/hooks/use-service-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
@@ -242,37 +244,40 @@ export default function ServicosPage() {
 
           {/* Filtros com scroll horizontal */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="all">Status: Todos</option>
-              <option value="active">Ativos</option>
-              <option value="inactive">Inativos</option>
-            </select>
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as 'all' | 'active' | 'inactive')}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Status: Todos</SelectItem>
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="all">Categoria: Todas</option>
-              {allCategories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Categoria: Todas</SelectItem>
+                {allCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'price-asc' | 'price-desc' | 'most-used')}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="name">A-Z</option>
-              <option value="price-asc">Preco Menor</option>
-              <option value="price-desc">Preco Maior</option>
-              <option value="most-used">Mais Usado</option>
-            </select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'price-asc' | 'price-desc' | 'most-used')}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">A-Z</SelectItem>
+                <SelectItem value="price-asc">Preço Menor</SelectItem>
+                <SelectItem value="price-desc">Preço Maior</SelectItem>
+                <SelectItem value="most-used">Mais Usado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -290,10 +295,7 @@ export default function ServicosPage() {
 
         {/* Tabela/Cards de Serviços */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-muted-foreground">Carregando serviços...</p>
-          </div>
+          <Loader text="Carregando serviços..." />
         ) : viewMode === 'list' ? (
           <ServicesTable services={filteredServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />
         ) : (

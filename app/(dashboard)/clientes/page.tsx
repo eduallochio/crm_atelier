@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Plus, Search, Users, UserPlus, ShoppingBag, Phone, Filter, SortAsc, Cake, LayoutGrid, List } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClients } from '@/hooks/use-clients'
 import { useClientStats } from '@/hooks/use-client-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
@@ -149,35 +151,38 @@ export default function ClientesPage() {
 
           {/* Filtros */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <select
-              value={filterPhone}
-              onChange={(e) => setFilterPhone(e.target.value as 'all' | 'with' | 'without')}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="all">Telefone: Todos</option>
-              <option value="with">Com Telefone</option>
-              <option value="without">Sem Telefone</option>
-            </select>
+            <Select value={filterPhone} onValueChange={(v) => setFilterPhone(v as 'all' | 'with' | 'without')}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Telefone: Todos</SelectItem>
+                <SelectItem value="with">Com Telefone</SelectItem>
+                <SelectItem value="without">Sem Telefone</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={filterEmail}
-              onChange={(e) => setFilterEmail(e.target.value as 'all' | 'with' | 'without')}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="all">Email: Todos</option>
-              <option value="with">Com Email</option>
-              <option value="without">Sem Email</option>
-            </select>
+            <Select value={filterEmail} onValueChange={(v) => setFilterEmail(v as 'all' | 'with' | 'without')}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Email: Todos</SelectItem>
+                <SelectItem value="with">Com Email</SelectItem>
+                <SelectItem value="without">Sem Email</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'recent' | 'oldest')}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground hover:bg-accent shrink-0"
-            >
-              <option value="recent">Mais Recentes</option>
-              <option value="oldest">Mais Antigos</option>
-              <option value="name">A-Z</option>
-            </select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'recent' | 'oldest')}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Mais Recentes</SelectItem>
+                <SelectItem value="oldest">Mais Antigos</SelectItem>
+                <SelectItem value="name">A-Z</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -195,10 +200,7 @@ export default function ClientesPage() {
 
         {/* Tabela/Cards de Clientes */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-muted-foreground">Carregando clientes...</p>
-          </div>
+          <Loader text="Carregando clientes..." />
         ) : viewMode === 'list' ? (
           <ClientsTable clients={filteredClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
         ) : (

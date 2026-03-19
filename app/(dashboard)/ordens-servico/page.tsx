@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Plus, Search, Eye, Banknote, CheckCircle2, Clock, RefreshCw, FileText, AlertTriangle, Layers } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ServiceOrdersTable } from '@/components/dashboard/service-orders-table'
@@ -227,28 +229,30 @@ export default function OrdensServicoPage() {
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-            >
-              <option value="all">Todos os períodos</option>
-              <option value="today">Hoje</option>
-              <option value="week">Últimos 7 dias</option>
-              <option value="month">Último mês</option>
-              <option value="overdue">Atrasadas</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-            >
-              <option value="all">Todos os status</option>
-              <option value="pendente">Pendente</option>
-              <option value="em_andamento">Em Andamento</option>
-              <option value="concluido">Concluído</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os períodos</SelectItem>
+                <SelectItem value="today">Hoje</SelectItem>
+                <SelectItem value="week">Últimos 7 dias</SelectItem>
+                <SelectItem value="month">Último mês</SelectItem>
+                <SelectItem value="overdue">Atrasadas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-auto shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                <SelectItem value="concluido">Concluído</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -266,10 +270,7 @@ export default function OrdensServicoPage() {
 
         {/* Tabela */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-muted-foreground">Carregando ordens...</p>
-          </div>
+          <Loader text="Carregando ordens..." />
         ) : (
           <ServiceOrdersTable orders={filteredOrders} onView={handleView} />
         )}

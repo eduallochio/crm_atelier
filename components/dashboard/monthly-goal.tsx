@@ -5,6 +5,8 @@ import { Target, Pencil, Check, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 
 interface MonthlyGoalProps {
   currentRevenue: number
@@ -175,12 +177,12 @@ export function MonthlyGoal({ currentRevenue, isLoading }: MonthlyGoalProps) {
         )}
 
         {/* Barra de progresso */}
-        <div className="h-px bg-border/50 mb-4" />
+        <Separator className="mb-4" />
 
         {isLoading ? (
-          <div className="space-y-2 animate-pulse">
-            <div className="h-2 bg-muted rounded-full" />
-            <div className="h-4 bg-muted rounded w-1/2" />
+          <div className="space-y-2">
+            <Skeleton className="h-2 rounded-full" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
         ) : (
           <>

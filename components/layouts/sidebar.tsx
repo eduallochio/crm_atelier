@@ -4,6 +4,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   LayoutDashboard,
   Users,
@@ -112,7 +122,6 @@ export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<{
     name: string
     email: string
@@ -124,7 +133,6 @@ export function Sidebar() {
   } | null>(null)
   const [badges, setBadges] = useState<Record<string, number>>({})
   const [alerts, setAlerts] = useState<Record<string, number>>({})
-  const [isBellOpen, setIsBellOpen] = useState(false)
 
   // Auto-expand submenu for active sub-routes
   useEffect(() => {
@@ -178,7 +186,7 @@ export function Sidebar() {
       <div className="lg:hidden fixed top-3.5 left-4 z-50">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#0d1117] text-slate-400 hover:text-slate-100 border border-white/10 shadow-lg transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#18181b] text-zinc-400 hover:text-zinc-100 border border-white/10 shadow-lg transition-colors"
           aria-label="Abrir menu"
         >
           {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -190,120 +198,101 @@ export function Sidebar() {
         <ThemeToggle />
 
         {/* Notification Bell */}
-        <div className="relative">
-          <button
-            onClick={() => setIsBellOpen(!isBellOpen)}
-            className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm"
-            aria-label="Alertas"
-          >
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            {totalAlerts > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
-                {totalAlerts > 99 ? '99+' : totalAlerts}
-              </span>
-            )}
-          </button>
-
-          {isBellOpen && (
-            <>
-              <div className="fixed inset-0 z-[55]" onClick={() => setIsBellOpen(false)} />
-              <div className="absolute top-full right-0 mt-1.5 w-72 bg-popover border border-border rounded-xl shadow-2xl py-2 z-[60] overflow-hidden">
-                <div className="px-4 py-2 border-b border-border/60 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">Alertas</p>
-                  {totalAlerts > 0 && (
-                    <span className="text-[11px] font-medium text-red-500">{totalAlerts} pendente{totalAlerts !== 1 ? 's' : ''}</span>
-                  )}
-                </div>
-                {alertItems.length === 0 ? (
-                  <div className="px-4 py-5 text-center">
-                    <Bell className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Nenhum alerta no momento</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">Tudo em dia!</p>
-                  </div>
-                ) : (
-                  <div className="py-1">
-                    {alertItems.map(({ href, label, count }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setIsBellOpen(false)}
-                        className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-accent transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                          <span className="text-sm text-foreground truncate">{label}</span>
-                        </div>
-                        <span className="shrink-0 min-w-[22px] h-5 px-1.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 text-[11px] font-bold flex items-center justify-center">
-                          {count}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm"
+              aria-label="Alertas"
+            >
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              {totalAlerts > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
+                  {totalAlerts > 99 ? '99+' : totalAlerts}
+                </span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72 rounded-xl">
+            <DropdownMenuLabel className="flex items-center justify-between px-4 py-2">
+              <span className="font-semibold">Alertas</span>
+              {totalAlerts > 0 && (
+                <span className="text-[11px] font-medium text-red-500">{totalAlerts} pendente{totalAlerts !== 1 ? 's' : ''}</span>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {alertItems.length === 0 ? (
+              <div className="px-4 py-5 text-center">
+                <Bell className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhum alerta no momento</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">Tudo em dia!</p>
               </div>
-            </>
-          )}
-        </div>
+            ) : (
+              alertItems.map(({ href, label, count }) => (
+                <DropdownMenuItem key={href} asChild className="px-4 py-2.5 cursor-pointer">
+                  <Link href={href} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                      <span className="text-sm truncate">{label}</span>
+                    </div>
+                    <span className="shrink-0 min-w-[22px] h-5 px-1.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 text-[11px] font-bold flex items-center justify-center">
+                      {count}
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {userProfile && (
-          <div className="relative">
-            <button
-              data-tour="user-menu"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm"
-            >
-              <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 font-bold text-[10px]">
-                {initials}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                data-tour="user-menu"
+                className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm"
+              >
+                <Avatar className="w-6 h-6">
+                  <AvatarFallback className="text-[10px] font-bold text-[#c8714a]" style={{ background:'rgba(200,113,74,0.18)', border:'1px solid rgba(200,113,74,0.3)' }}>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:block text-xs font-medium text-foreground pr-0.5">
+                  {userProfile.name.split(' ')[0]}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 rounded-xl">
+              <div className="px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">{userProfile.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{userProfile.email}</p>
+                <span className="inline-block mt-2 text-[11px] font-medium px-2 py-0.5 rounded-full text-[#c8714a]" style={{ background:'rgba(200,113,74,0.12)', border:'1px solid rgba(200,113,74,0.25)' }}>
+                  {userProfile.organization}
+                </span>
               </div>
-              <span className="hidden sm:block text-xs font-medium text-foreground pr-0.5">
-                {userProfile.name.split(' ')[0]}
-              </span>
-              <ChevronDown className={cn(
-                'h-3 w-3 text-muted-foreground transition-transform duration-200',
-                isProfileOpen && 'rotate-180'
-              )} />
-            </button>
-
-            {isProfileOpen && (
-              <>
-                <div className="fixed inset-0 z-[55]" onClick={() => setIsProfileOpen(false)} />
-                <div className="absolute top-full right-0 mt-1.5 w-60 bg-popover border border-border rounded-xl shadow-2xl py-1 z-[60] overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border/60">
-                    <p className="text-sm font-semibold text-foreground">{userProfile.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{userProfile.email}</p>
-                    <span className="inline-block mt-2 text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800/50">
-                      {userProfile.organization}
-                    </span>
-                  </div>
-                  <div className="py-1">
-                    {[
-                      { href: '/profile', icon: User, label: 'Meu Perfil' },
-                      { href: '/configuracoes', icon: Settings, label: 'Configurações' },
-                      { href: '/meus-dados', icon: Shield, label: 'Meus Dados (LGPD)' },
-                    ].map(({ href, icon: Icon, label }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => { setIsProfileOpen(false); setIsMobileMenuOpen(false) }}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
-                      >
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                        {label}
-                      </Link>
-                    ))}
-                    <div className="h-px bg-border/60 my-1" />
-                    <button
-                      onClick={() => { setIsProfileOpen(false); handleLogout() }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                    >
-                      <LogOut className="h-3.5 w-3.5" />
-                      Sair
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+              <DropdownMenuSeparator />
+              {[
+                { href: '/profile', icon: User, label: 'Meu Perfil' },
+                { href: '/configuracoes', icon: Settings, label: 'Configurações' },
+                { href: '/meus-dados', icon: Shield, label: 'Meus Dados (LGPD)' },
+              ].map(({ href, icon: Icon, label }) => (
+                <DropdownMenuItem key={href} asChild className="cursor-pointer">
+                  <Link href={href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    {label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/30 cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -318,7 +307,7 @@ export function Sidebar() {
       {/* ─── Sidebar ─── */}
       <aside
         data-tour="sidebar"
-        style={{ background: 'linear-gradient(180deg, #0d1117 0%, #0a0e16 100%)' }}
+        style={{ background: '#18181b' }}
         className={cn(
           'fixed top-0 left-0 z-40 h-screen w-64',
           'border-r border-white/[0.07]',
@@ -340,7 +329,7 @@ export function Sidebar() {
             />
           ) : (
             <div className="h-[34px] w-[34px] rounded-lg shrink-0 flex items-center justify-center text-white font-bold text-sm shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              style={{ background: 'linear-gradient(135deg, #c8714a, #d4a85a)' }}>
               {orgSettings?.name?.charAt(0)?.toUpperCase() || 'C'}
             </div>
           )}
@@ -348,7 +337,7 @@ export function Sidebar() {
             <h1 className="text-sm font-semibold text-white truncate leading-tight">
               {orgSettings?.name || 'Meu Atelier'}
             </h1>
-            <p className="text-[11px] text-slate-600 mt-[1px]">Painel de Gestão</p>
+            <p className="text-[11px] text-zinc-600 mt-[1px]">Painel de Gestão</p>
           </div>
         </div>
 
@@ -356,7 +345,7 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4">
           {navigation.map((group) => (
             <div key={group.section}>
-              <p className="px-2.5 mb-1 text-[10px] font-semibold text-slate-600 uppercase tracking-[0.1em]">
+              <p className="px-2.5 mb-1 text-[10px] font-semibold text-zinc-600 uppercase tracking-[0.1em]">
                 {group.section}
               </p>
 
@@ -380,15 +369,15 @@ export function Sidebar() {
                             'transition-all duration-150 group relative',
                             highlighted
                               ? 'bg-white/[0.08] text-white'
-                              : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100'
+                              : 'text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100'
                           )}
                         >
                           {highlighted && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-400" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#c8714a]" />
                           )}
                           <item.icon className={cn(
                             'h-4 w-4 shrink-0 transition-colors',
-                            highlighted ? 'text-indigo-400' : 'text-slate-600 group-hover:text-slate-400'
+                            highlighted ? 'text-[#c8714a]' : 'text-zinc-600 group-hover:text-zinc-400'
                           )} />
                           <span className="flex-1 text-left">{item.name}</span>
                           {alert > 0 && (
@@ -397,7 +386,7 @@ export function Sidebar() {
                             </span>
                           )}
                           {badge > 0 && alert === 0 && (
-                            <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-indigo-500/20 text-indigo-400">
+                            <span className="text-[10px] font-bold px-1.5 py-px rounded-full text-[#c8714a]" style={{ background:'rgba(200,113,74,0.18)' }}>
                               {badge > 99 ? '99+' : badge}
                             </span>
                           )}
@@ -416,15 +405,15 @@ export function Sidebar() {
                             'transition-all duration-150 group relative',
                             isActive
                               ? 'bg-white/[0.08] text-white'
-                              : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100'
+                              : 'text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100'
                           )}
                         >
                           {isActive && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-400" />
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#c8714a]" />
                           )}
                           <item.icon className={cn(
                             'h-4 w-4 shrink-0 transition-colors',
-                            isActive ? 'text-indigo-400' : 'text-slate-600 group-hover:text-slate-400'
+                            isActive ? 'text-[#c8714a]' : 'text-zinc-600 group-hover:text-zinc-400'
                           )} />
                           <span className="flex-1">{item.name}</span>
                           {alert > 0 && (
@@ -436,8 +425,8 @@ export function Sidebar() {
                             <span className={cn(
                               'text-[10px] font-bold px-1.5 py-px rounded-full',
                               isActive
-                                ? 'bg-indigo-500/20 text-indigo-400'
-                                : 'bg-white/[0.07] text-slate-400'
+                                ? 'text-[#c8714a]'
+                                : 'bg-white/[0.07] text-zinc-400'
                             )}>
                               {badge > 99 ? '99+' : badge}
                             </span>
@@ -466,11 +455,11 @@ export function Sidebar() {
                                 )}
                               >
                                 {isSubItemActive && (
-                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-indigo-400" />
+                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[#c8714a]" />
                                 )}
                                 <sub.icon className={cn(
                                   'h-3.5 w-3.5 shrink-0 transition-colors',
-                                  isSubItemActive ? 'text-indigo-400' : 'text-slate-700 group-hover:text-slate-400'
+                                  isSubItemActive ? 'text-[#c8714a]' : 'text-zinc-700 group-hover:text-zinc-400'
                                 )} />
                                 <span className="flex-1">{sub.name}</span>
                                 {subAlert > 0 && (
@@ -479,7 +468,7 @@ export function Sidebar() {
                                   </span>
                                 )}
                                 {subBadge > 0 && subAlert === 0 && (
-                                  <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-indigo-500/20 text-indigo-400">
+                                  <span className="text-[10px] font-bold px-1.5 py-px rounded-full text-[#c8714a]" style={{ background:'rgba(200,113,74,0.18)' }}>
                                     {subBadge > 99 ? '99+' : subBadge}
                                   </span>
                                 )}
@@ -500,7 +489,7 @@ export function Sidebar() {
         <div className="px-2.5 pb-1">
           <button
             onClick={() => window.dispatchEvent(new Event('start-tour'))}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-slate-600 hover:text-slate-400 hover:bg-white/[0.04] transition-colors"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.04] transition-colors"
           >
             <HelpCircle className="h-3.5 w-3.5 shrink-0" />
             Ver tour do sistema
@@ -511,13 +500,14 @@ export function Sidebar() {
         <div className="shrink-0 border-t border-white/[0.07] p-2.5">
           {userProfile ? (
             <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.05] transition-colors group">
-              <div className="w-8 h-8 rounded-full border border-indigo-400/30 flex items-center justify-center text-indigo-300 font-bold text-xs shrink-0"
-                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25))' }}>
-                {initials}
-              </div>
+              <Avatar className="w-8 h-8 shrink-0">
+                <AvatarFallback className="text-xs font-bold text-[#c8714a]" style={{ background:'rgba(200,113,74,0.18)', border:'1px solid rgba(200,113,74,0.3)' }}>
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-slate-200 truncate leading-tight">{userProfile.name}</p>
-                <p className="text-[10px] text-slate-600 truncate mt-[1px]">{userProfile.email}</p>
+                <p className="text-[12px] font-semibold text-zinc-200 truncate leading-tight">{userProfile.name}</p>
+                <p className="text-[10px] text-zinc-600 truncate mt-[1px]">{userProfile.email}</p>
               </div>
               <button
                 onClick={handleLogout}

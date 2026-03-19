@@ -3,6 +3,7 @@
 import { useCounterAnimation } from '@/hooks/use-counter-animation'
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
 
 interface AnimatedStatCardProps {
   name: string
@@ -75,7 +76,7 @@ export function AnimatedStatCard({
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-border/50 mb-3" />
+        <Separator className="mb-3" />
 
         {/* Trend */}
         <div className="flex items-center gap-1.5 h-4">

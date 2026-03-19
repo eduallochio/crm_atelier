@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Plus, DollarSign, Clock, CheckCircle, AlertCircle, Calendar, ArrowLeft } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { useCashiers, useCashierSessions } from '@/hooks/use-cashier'
@@ -149,10 +150,7 @@ export default function CaixaPage() {
           </div>
           
           {loadingCaixas ? (
-            <div className="p-8 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-              <p className="mt-4 text-muted-foreground">Carregando caixas...</p>
-            </div>
+            <Loader text="Carregando caixas..." />
           ) : caixas && caixas.length > 0 ? (
             <div className="divide-y divide-border">
               {caixas.map((caixa) => {

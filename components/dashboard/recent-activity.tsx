@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { UserPlus, FileText, DollarSign, Clock, CheckCircle2 } from 'lucide-react'
 import { getRelativeTime } from '@/lib/utils/date-utils'
 import { cn } from '@/lib/utils'
@@ -61,11 +62,11 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
         <CardContent>
           <div className="space-y-5">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-start gap-4 animate-pulse">
-                <div className="w-8 h-8 rounded-full bg-muted shrink-0 mt-0.5" />
+              <div key={i} className="flex items-start gap-4">
+                <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3.5 bg-muted rounded w-2/3" />
-                  <div className="h-3 bg-muted rounded w-1/3" />
+                  <Skeleton className="h-3.5 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
                 </div>
               </div>
             ))}

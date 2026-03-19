@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { AlertTriangle, Clock, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -53,7 +54,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
         <CardContent>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-[68px] rounded-xl bg-muted animate-pulse" />
+              <Skeleton key={i} className="h-[68px] rounded-xl" />
             ))}
           </div>
         </CardContent>

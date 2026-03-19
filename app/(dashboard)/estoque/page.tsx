@@ -5,6 +5,7 @@ import { Package, AlertTriangle, DollarSign, Lock, Plus, Search, Pencil, Trash2,
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { useProducts, useDeleteProduct, type Product } from '@/hooks/use-inventory'
 import { ProductDialog } from '@/components/inventory/product-dialog'
@@ -252,24 +253,26 @@ export default function EstoquePage() {
             className="pl-9"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground"
-        >
-          <option value="all">Todos</option>
-          <option value="ativos">Ativos</option>
-          <option value="inativos">Inativos</option>
-        </select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger className="w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="ativos">Ativos</SelectItem>
+            <SelectItem value="inativos">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
         {categories.length > 0 && (
-          <select
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground"
-          >
-            <option value="">Todas as categorias</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-auto">
+              <SelectValue placeholder="Todas as categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas as categorias</SelectItem>
+              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
         )}
       </div>
 
