@@ -220,8 +220,8 @@ export default function HomePage() {
         /* hero grid */
         .hero-grid {
           display: grid;
-          grid-template-columns: 1fr 1.35fr;
-          gap: 60px;
+          grid-template-columns: 1fr 1.55fr;
+          gap: 48px;
           align-items: flex-start;
         }
         /* o col do card swap precisa de overflow visível para os cards atrás aparecerem */
