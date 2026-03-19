@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   Check, X, FileText, Wallet, Users, Scissors,
   BarChart3, ArrowRight, TrendingUp,
-  Search, Bell, Shield, Menu, X as XIcon,
+  Search, Bell, Shield, Menu,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import ScrollStack, { ScrollStackItem } from '@/components/landing/scroll-stack'
@@ -13,6 +13,8 @@ import GlareHover from '@/components/landing/glare-hover'
 import Aurora from '@/components/landing/aurora'
 import BlurText from '@/components/landing/blur-text'
 import ShinyText from '@/components/landing/shiny-text'
+import StaggeredMenu from '@/components/landing/staggered-menu'
+import CardSwap from '@/components/landing/card-swap'
 import type { PublicPlan } from '@/app/api/plans/route'
 
 interface LandingContent {
@@ -60,63 +62,6 @@ function Reveal({ children, delay = 0, className = '' }: { children: React.React
       }}
     >
       {children}
-    </div>
-  )
-}
-
-/* ─── Dashboard mockup ─────────────────────────────────────────────────── */
-function DashMockup() {
-  return (
-    <div className="relative">
-      <div className="absolute -inset-px rounded-2xl" style={{ background: 'linear-gradient(135deg,#d4a85a55,transparent 60%)' }} />
-      <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: '#3a2a1a' }}>
-        {/* browser bar */}
-        <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: '#1a110a' }}>
-          <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
-          <div className="ml-3 flex items-center gap-1.5 rounded px-3 py-1 text-[10px]" style={{ background: '#2C1810', color: '#a07850' }}>
-            <Shield className="h-2.5 w-2.5" />
-            meuatelier.com.br/dashboard
-          </div>
-        </div>
-        {/* content */}
-        <div className="p-4" style={{ background: '#f7f0e6' }}>
-          <div className="grid grid-cols-2 gap-2 mb-3 sm:grid-cols-4">
-            {[
-              { label: 'Clientes', value: '156', sub: '+12%', color: '#c8714a' },
-              { label: 'Ordens', value: '23', sub: '+5', color: '#c8714a' },
-              { label: 'Receita', value: 'R$ 8,4k', sub: '+18%', color: '#2a7a4a' },
-              { label: 'Caixa', value: 'R$ 1,2k', sub: '12 mov.', color: '#7a6a5a' },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl p-3 shadow-sm" style={{ background: '#fff8f0' }}>
-                <p className="text-[9px] mb-1" style={{ color: '#7a6a5a' }}>{s.label}</p>
-                <p className="text-sm font-bold" style={{ color: '#2C1810', fontFamily: 'serif' }}>{s.value}</p>
-                <p className="text-[8px] mt-0.5 font-medium" style={{ color: s.color }}>{s.sub}</p>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-xl p-3 shadow-sm" style={{ background: '#fff8f0' }}>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-semibold" style={{ color: '#2C1810' }}>Receita — Últimos 6 Meses</span>
-              <span className="text-[9px]" style={{ color: '#a07850' }}>2025</span>
-            </div>
-            <div className="h-20 flex items-end gap-1">
-              {[55, 72, 60, 85, 68, 92].map((h, i) => (
-                <div key={i} className="flex-1 rounded-t" style={{
-                  height: `${h}%`,
-                  background: i === 5 ? '#c8714a' : '#d4a85a55',
-                }} />
-              ))}
-            </div>
-            <div className="flex justify-between mt-1">
-              {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'].map(m => (
-                <span key={m} className="text-[8px]" style={{ color: '#a07850' }}>{m}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
@@ -265,22 +210,6 @@ export default function HomePage() {
           max-width: 400px; margin: 0 auto;
         }
 
-        /* ── mobile menu overlay ── */
-        .mobile-menu {
-          position: fixed; inset: 0; z-index: 200;
-          background: rgba(26,17,10,0.97);
-          display: flex; flex-direction: column;
-          padding: 80px 32px 48px;
-          transform: translateX(100%);
-          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-        }
-        .mobile-menu.open { transform: translateX(0); }
-        .mobile-menu .nav-link {
-          font-size: 22px; letter-spacing: 0.04em; padding: 14px 0;
-          border-bottom: 1px solid rgba(212,168,90,0.1);
-          color: rgba(247,240,230,0.75);
-          display: block;
-        }
 
         /* ── LAYOUT CLASSES ── */
 
@@ -291,11 +220,12 @@ export default function HomePage() {
         /* hero grid */
         .hero-grid {
           display: grid;
-          grid-template-columns: 1fr 1.2fr;
-          gap: 80px;
-          align-items: center;
+          grid-template-columns: 1fr 1.35fr;
+          gap: 60px;
+          align-items: flex-start;
         }
-        .hero-mockup-col { display: block; }
+        /* o col do card swap precisa de overflow visível para os cards atrás aparecerem */
+        .hero-mockup-col { display: block; overflow: visible; }
 
         /* stats */
         .stats-grid {
@@ -461,36 +391,16 @@ export default function HomePage() {
 
       <div style={{ background: 'var(--ink)' }}>
 
-        {/* ── MOBILE MENU ── */}
-        <div
-          className={`mobile-menu ${menuOpen ? 'open' : ''}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => setMenuOpen(false)}
-            style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer', padding: 8 }}
-          >
-            <XIcon size={24} />
-          </button>
-          <div className="display" style={{ fontSize: 24, fontWeight: 600, color: 'var(--cream)', marginBottom: 40, letterSpacing: '0.05em' }}>
-            Meu <span style={{ color: 'var(--terra)' }}>Atelier</span>
-          </div>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 40 }}>
-            {[
-              { href: '#funcionalidades', label: 'Funcionalidades' },
-              { href: '#como-funciona', label: 'Como funciona' },
-              { href: '#planos', label: 'Planos' },
-              { href: '/login', label: 'Entrar' },
-            ].map(l => (
-              <a key={l.href} href={l.href} className="nav-link" onClick={() => setMenuOpen(false)}>
-                {l.label}
-              </a>
-            ))}
-          </nav>
-          <Link href="/cadastro" className="btn-primary" style={{ textAlign: 'center' }}>
-            Começar grátis <ArrowRight size={15} />
-          </Link>
-        </div>
+        {/* ── MOBILE MENU (Staggered) ── */}
+        <StaggeredMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          navItems={[
+            { href: '#funcionalidades', label: 'Funcionalidades' },
+            { href: '#como-funciona',   label: 'Como funciona'   },
+            { href: '#planos',          label: 'Planos'          },
+          ]}
+        />
 
         {/* ── NAV ── */}
         <nav
@@ -618,10 +528,9 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* mockup */}
-              <div className="float hero-anim-3 hero-mockup-col" style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: -40, right: -20, width: 1, height: 180, background: 'linear-gradient(to bottom, transparent, var(--gold), transparent)', display: 'none' }} />
-                <DashMockup />
+              {/* card swap */}
+              <div className="hero-anim-3 hero-mockup-col" style={{ position: 'relative', marginTop: -40 }}>
+                <CardSwap />
               </div>
             </div>
 
