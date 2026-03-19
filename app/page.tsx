@@ -3,10 +3,16 @@
 import Link from 'next/link'
 import {
   Check, X, FileText, Wallet, Users, Scissors,
-  BarChart3, ArrowRight, Clock, TrendingUp,
+  BarChart3, ArrowRight, TrendingUp,
   Search, Bell, Shield, Menu, X as XIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import ScrollStack, { ScrollStackItem } from '@/components/landing/scroll-stack'
+import SpotlightCard from '@/components/landing/spotlight-card'
+import GlareHover from '@/components/landing/glare-hover'
+import Aurora from '@/components/landing/aurora'
+import BlurText from '@/components/landing/blur-text'
+import ShinyText from '@/components/landing/shiny-text'
 import type { PublicPlan } from '@/app/api/plans/route'
 
 interface LandingContent {
@@ -306,6 +312,51 @@ export default function HomePage() {
           background: rgba(212,168,90,0.2);
         }
 
+        /* timeline (como funciona) */
+        .timeline-wrapper { position: relative; display: flex; flex-direction: column; }
+        .timeline-line {
+          position: absolute; left: 35px; top: 52px; bottom: 52px; width: 1px;
+          background: linear-gradient(to bottom, var(--terra), var(--gold), rgba(200,113,74,0.1));
+        }
+        .timeline-item { display: flex; align-items: flex-start; gap: 28px; padding: 16px 0; }
+        .timeline-bubble {
+          flex-shrink: 0; width: 70px; height: 70px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+          position: relative; z-index: 1; transition: all 0.3s;
+        }
+        .timeline-bubble-active {
+          background: var(--terra); border: 2px solid var(--terra);
+          color: var(--cream); box-shadow: 0 4px 20px rgba(200,113,74,0.35);
+        }
+        .timeline-bubble-default {
+          background: var(--card); border: 2px solid rgba(200,113,74,0.3); color: var(--terra);
+        }
+        .timeline-card {
+          flex: 1; background: var(--card); border: 1px solid rgba(200,113,74,0.12);
+          border-radius: 20px; padding: 32px 36px; margin-bottom: 20px;
+        }
+        .timeline-card:last-child { margin-bottom: 0; }
+        .timeline-card-header {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-bottom: 16px; gap: 12px;
+        }
+        .timeline-card-title-row { display: flex; align-items: center; gap: 10px; }
+        .timeline-badge {
+          font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+          color: var(--terra); background: rgba(200,113,74,0.08);
+          padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+          .timeline-line { left: 24px; top: 40px; bottom: 40px; }
+          .timeline-item { gap: 16px; padding: 12px 0; }
+          .timeline-bubble { width: 48px; height: 48px; font-size: 11px; }
+          .timeline-card { padding: 20px 18px; border-radius: 14px; margin-bottom: 12px; }
+          .timeline-card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .timeline-badge { align-self: flex-start; }
+        }
+
         /* features */
         .features-grid {
           display: grid;
@@ -325,9 +376,13 @@ export default function HomePage() {
         /* plans */
         .plans-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1px;
-          background: rgba(212,168,90,0.15);
+          grid-template-columns: repeat(var(--plans-cols, 2), 1fr);
+          gap: 20px;
+        }
+        .plan-card { padding: 44px 40px; }
+        @media (max-width: 768px) {
+          .plans-grid { --plans-cols: 1 !important; gap: 16px; }
+          .plan-card { padding: 32px 24px !important; }
         }
 
         /* hero buttons */
@@ -380,9 +435,8 @@ export default function HomePage() {
           .steps-grid { gap: 1px; }
           .features-grid { grid-template-columns: 1fr; }
 
-          /* comparison & plans: single col */
+          /* comparison: single col */
           .comparison-grid { grid-template-columns: 1fr; }
-          .plans-grid { grid-template-columns: 1fr; }
 
           /* section padding */
           .section-pad { padding: 64px 20px; }
@@ -395,8 +449,6 @@ export default function HomePage() {
           /* nav bar padding */
           .nav-bar { padding: 16px 20px !important; }
 
-          /* plans card padding */
-          .plan-card { padding: 36px 24px !important; }
           .comparison-card { padding: 28px 20px !important; }
         }
 
@@ -479,11 +531,30 @@ export default function HomePage() {
         </nav>
 
         {/* ── HERO ── */}
-        <section className="dark-linen hero-pad" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+        <section className="dark-linen hero-pad" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+
+          {/* Aurora background */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.55 }}>
+            <Aurora
+              colorStops={['#1a0a04', '#C8714A', '#3a1a08']}
+              amplitude={1.2}
+              blend={0.5}
+              speed={0.6}
+            />
+          </div>
+
+          <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
 
             <div className="hero-anim-1" style={{ marginBottom: 24 }}>
-              <span className="tag">Sistema de Gestão para Ateliês</span>
+              <span className="tag">
+                <ShinyText
+                  text="Sistema de Gestão para Ateliês"
+                  color="rgba(212,168,90,0.7)"
+                  shineColor="rgba(212,168,90,1)"
+                  speed={4}
+                  spread={90}
+                />
+              </span>
             </div>
 
             <div className="hero-anim-2" style={{ marginBottom: 40 }}>
@@ -494,9 +565,30 @@ export default function HomePage() {
                 letterSpacing: '-0.02em',
                 margin: 0,
               }}>
-                Seu ateliê,<br />
-                <em style={{ color: 'var(--terra)', fontStyle: 'italic' }}>organizado</em><br />
-                como merece.
+                <BlurText
+                  text="Seu ateliê,"
+                  as="span"
+                  delay={60}
+                  direction="bottom"
+                  stepDuration={0.35}
+                  style={{ display: 'block', color: 'var(--cream)' }}
+                />
+                <BlurText
+                  text="organizado"
+                  as="span"
+                  delay={55}
+                  direction="bottom"
+                  stepDuration={0.38}
+                  style={{ display: 'block', color: 'var(--terra)', fontStyle: 'italic' }}
+                />
+                <BlurText
+                  text="como merece."
+                  as="span"
+                  delay={60}
+                  direction="bottom"
+                  stepDuration={0.35}
+                  style={{ display: 'block', color: 'var(--cream)' }}
+                />
               </h1>
             </div>
 
@@ -558,7 +650,7 @@ export default function HomePage() {
 
         {/* ── COMO FUNCIONA ── */}
         <section id="como-funciona" className="linen section-pad">
-          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
             <Reveal>
               <div className="scissor-divider" style={{ marginBottom: 16 }}>
@@ -566,36 +658,52 @@ export default function HomePage() {
                 <Scissors size={16} style={{ color: 'var(--gold)' }} />
                 <div className="gold-line" style={{ flex: 1 }} />
               </div>
-              <h2 className="display" style={{ fontSize: 'clamp(32px,5vw,64px)', fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 56, letterSpacing: '-0.01em' }}>
+              <h2 className="display" style={{ fontSize: 'clamp(32px,5vw,64px)', fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 72, letterSpacing: '-0.01em' }}>
                 Três passos para organizar<br />
                 <em style={{ color: 'var(--terra)' }}>tudo que importa</em>
               </h2>
             </Reveal>
 
-            <div className="steps-grid">
+            {/* Timeline vertical */}
+            <div className="timeline-wrapper">
+              <div className="timeline-line" />
+
               {(() => {
                 let cmsSteps: { step: number; title: string; description: string }[] = []
                 try { cmsSteps = cms.how_it_works_json ? JSON.parse(cms.how_it_works_json) : [] } catch { /* */ }
 
                 const defaultSteps = [
-                  { n: '01', title: 'Crie sua conta', desc: 'Cadastro em menos de 2 minutos. Sem cartão de crédito. Configure o nome do seu ateliê e comece imediatamente.', icon: <Users size={20} style={{ color: 'var(--terra)' }} /> },
-                  { n: '02', title: 'Cadastre seus dados', desc: 'Adicione clientes, serviços e preços. O sistema se adapta ao seu jeito de trabalhar, não o contrário.', icon: <Scissors size={20} style={{ color: 'var(--terra)' }} /> },
-                  { n: '03', title: 'Gerencie com clareza', desc: 'Ordens de serviço, caixa, relatórios — tudo em uma tela. De qualquer dispositivo, a qualquer hora.', icon: <BarChart3 size={20} style={{ color: 'var(--terra)' }} /> },
+                  { n: '01', title: 'Crie sua conta', desc: 'Cadastro em menos de 2 minutos. Sem cartão de crédito. Configure o nome do seu ateliê e comece imediatamente.', icon: <Users size={20} />, detail: 'Grátis para começar' },
+                  { n: '02', title: 'Cadastre seus dados', desc: 'Adicione clientes, serviços e preços. O sistema se adapta ao seu jeito de trabalhar, não o contrário.', icon: <Scissors size={20} />, detail: 'Importação facilitada' },
+                  { n: '03', title: 'Gerencie com clareza', desc: 'Ordens de serviço, caixa, relatórios — tudo em uma tela. De qualquer dispositivo, a qualquer hora.', icon: <BarChart3 size={20} />, detail: 'Acesso em qualquer lugar' },
                 ]
 
                 const steps = cmsSteps.length > 0
-                  ? cmsSteps.map((s) => ({ n: String(s.step).padStart(2, '0'), title: s.title, desc: s.description, icon: <BarChart3 size={20} style={{ color: 'var(--terra)' }} /> }))
+                  ? cmsSteps.map((s, idx) => ({ n: String(s.step).padStart(2, '0'), title: s.title, desc: s.description, icon: [<Users size={20} key={0} />, <Scissors size={20} key={1} />, <BarChart3 size={20} key={2} />][idx] ?? <BarChart3 size={20} />, detail: '' }))
                   : defaultSteps
 
                 return steps.map((step, i) => (
-                  <Reveal key={i} delay={i * 100}>
-                    <div style={{ background: 'var(--card)', padding: '44px 36px', position: 'relative', overflow: 'hidden', height: '100%' }}>
-                      <span className="step-num">{step.n}</span>
-                      <div style={{ position: 'relative', zIndex: 1 }}>
-                        <div style={{ marginBottom: 20 }}>{step.icon}</div>
-                        <h3 className="display" style={{ fontSize: 26, fontWeight: 400, color: 'var(--ink)', marginBottom: 14, margin: '0 0 14px' }}>{step.title}</h3>
-                        <p style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--mid)', margin: 0 }}>{step.desc}</p>
+                  <Reveal key={i} delay={i * 120}>
+                    <div className="timeline-item">
+                      <div className={`timeline-bubble ${i === 0 ? 'timeline-bubble-active' : 'timeline-bubble-default'}`}>
+                        {step.n}
                       </div>
+                      <SpotlightCard className="timeline-card" spotlightColor="rgba(200,113,74,0.12)">
+                        <div style={{ position: 'relative', zIndex: 1 }}>
+                          <div className="timeline-card-header">
+                            <div className="timeline-card-title-row">
+                              <div style={{ color: 'var(--terra)' }}>{step.icon}</div>
+                              <h3 className="display" style={{ fontSize: 22, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>
+                                {step.title}
+                              </h3>
+                            </div>
+                            {step.detail && <span className="timeline-badge">{step.detail}</span>}
+                          </div>
+                          <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--mid)', margin: 0 }}>
+                            {step.desc}
+                          </p>
+                        </div>
+                      </SpotlightCard>
                     </div>
                   </Reveal>
                 ))
@@ -605,9 +713,8 @@ export default function HomePage() {
         </section>
 
         {/* ── FUNCIONALIDADES ── */}
-        <section id="funcionalidades" className="dark-linen section-pad">
-          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-
+        <section id="funcionalidades" className="dark-linen" style={{ padding: '100px 0 0' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 40px' }}>
             <Reveal>
               <span className="tag" style={{ display: 'block', textAlign: 'center', marginBottom: 20 }}>Funcionalidades</span>
               <h2 className="display" style={{ fontSize: 'clamp(32px,5vw,64px)', fontWeight: 300, color: 'var(--cream)', textAlign: 'center', marginBottom: 56, letterSpacing: '-0.01em' }}>
@@ -615,46 +722,143 @@ export default function HomePage() {
                 <em style={{ color: 'var(--gold)' }}>nada que não precisa.</em>
               </h2>
             </Reveal>
+          </div>
 
-            <div className="features-grid">
-              {(() => {
-                // Use CMS features if available, otherwise use hardcoded defaults
-                let cmsFeatures: { title: string; description: string }[] = []
-                try { cmsFeatures = cms.features_json ? JSON.parse(cms.features_json) : [] } catch { /* */ }
-
-                if (cmsFeatures.length > 0) {
-                  return cmsFeatures.map((f, i) => (
-                    <Reveal key={i} delay={i * 50}>
-                      <div className="feature-card" style={{ background: 'rgba(247,240,230,0.03)' }}>
-                        <div style={{ color: 'var(--terra)', marginBottom: 16 }}><BarChart3 size={22} /></div>
-                        <h3 style={{ fontSize: 16, fontWeight: 500, color: 'var(--cream)', marginBottom: 10, margin: '0 0 10px' }}>{f.title}</h3>
-                        <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(247,240,230,0.5)', margin: 0 }}>{f.description}</p>
+          {/* ScrollStack de funcionalidades */}
+          <div style={{ maxWidth: 860, margin: '0 auto' }}>
+            <ScrollStack
+              useWindowScroll
+              itemDistance={80}
+              itemScale={0.04}
+              itemStackDistance={28}
+              stackPosition="18%"
+              scaleEndPosition="8%"
+              baseScale={0.82}
+              blurAmount={1.2}
+            >
+              {[
+                {
+                  icon: <BarChart3 size={28} />,
+                  title: 'Dashboard em tempo real',
+                  desc: 'KPIs atualizados instantaneamente. Visualize receita, ordens em aberto e performance do seu ateliê de um relance.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
+                },
+                {
+                  icon: <FileText size={28} />,
+                  title: 'Ordens de serviço',
+                  desc: 'Timeline completa por ordem. Status, histórico de alterações, anotações e fotos em um só lugar.',
+                  accent: '#D4A85A',
+                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
+                  border: 'rgba(212,168,90,0.25)',
+                },
+                {
+                  icon: <Users size={28} />,
+                  title: 'Gestão de clientes',
+                  desc: 'Cadastro completo com histórico de compras, medidas, aniversários e preferências de cada cliente.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
+                },
+                {
+                  icon: <Wallet size={28} />,
+                  title: 'Controle financeiro',
+                  desc: 'Caixa, contas a pagar e a receber com relatórios de fluxo de caixa mensais e metas de faturamento.',
+                  accent: '#D4A85A',
+                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
+                  border: 'rgba(212,168,90,0.25)',
+                },
+                {
+                  icon: <Search size={28} />,
+                  title: 'Busca global ⌘K',
+                  desc: 'Encontre qualquer cliente, ordem ou serviço em segundos com busca inteligente em todo o sistema.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
+                },
+                {
+                  icon: <Bell size={28} />,
+                  title: 'Lembretes automáticos',
+                  desc: 'Aniversários, ordens vencendo e contas a pagar — notificações sempre no momento certo.',
+                  accent: '#D4A85A',
+                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
+                  border: 'rgba(212,168,90,0.25)',
+                },
+                {
+                  icon: <TrendingUp size={28} />,
+                  title: 'Análises avançadas',
+                  desc: 'Gráficos de evolução, comparativos mensais e serviços mais vendidos para decisões mais inteligentes.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
+                },
+                {
+                  icon: <Shield size={28} />,
+                  title: 'Dados seguros',
+                  desc: 'Arquitetura multi-tenant com isolamento total entre ateliês. Conformidade com a LGPD.',
+                  accent: '#D4A85A',
+                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
+                  border: 'rgba(212,168,90,0.25)',
+                },
+              ].map((f, i) => (
+                <ScrollStackItem key={i} itemClassName="">
+                  <div style={{
+                    background: f.bg,
+                    border: `1px solid ${f.border}`,
+                    borderRadius: 28,
+                    padding: '48px 56px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 20,
+                  }}>
+                    {/* número + ícone */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{
+                        width: 52, height: 52, borderRadius: 14,
+                        background: `${f.accent}22`,
+                        border: `1px solid ${f.accent}44`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: f.accent,
+                      }}>
+                        {f.icon}
                       </div>
-                    </Reveal>
-                  ))
-                }
-
-                return [
-                  { icon: <BarChart3 size={22} />, title: 'Dashboard em tempo real', desc: 'KPIs atualizados instantaneamente. Visualize receita, ordens em aberto e performance de um relance.' },
-                  { icon: <FileText size={22} />, title: 'Ordens de serviço', desc: 'Timeline completa por ordem. Status, histórico de alterações, anotações e fotos em um só lugar.' },
-                  { icon: <Users size={22} />, title: 'Gestão de clientes', desc: 'Cadastro completo com histórico de compras, medidas, aniversários e preferências.' },
-                  { icon: <Wallet size={22} />, title: 'Controle financeiro', desc: 'Caixa, contas a pagar e a receber com relatórios de fluxo de caixa mensais.' },
-                  { icon: <Search size={22} />, title: 'Busca global ⌘K', desc: 'Encontre qualquer cliente, ordem ou serviço em segundos com busca inteligente.' },
-                  { icon: <Bell size={22} />, title: 'Lembretes automáticos', desc: 'Aniversários, ordens vencendo e contas a pagar — notificações no painel.' },
-                  { icon: <TrendingUp size={22} />, title: 'Análises avançadas', desc: 'Gráficos de evolução, comparativos mensais e serviços mais vendidos.' },
-                  { icon: <Clock size={22} />, title: 'Histórico completo', desc: 'Cada alteração registrada com data, hora e responsável. Nada se perde.' },
-                  { icon: <Shield size={22} />, title: 'Dados seguros', desc: 'Arquitetura multi-tenant com isolamento total. Conformidade com LGPD.' },
-                ].map((f, i) => (
-                  <Reveal key={i} delay={i * 50}>
-                    <div className="feature-card" style={{ background: 'rgba(247,240,230,0.03)' }}>
-                      <div style={{ color: 'var(--terra)', marginBottom: 16 }}>{f.icon}</div>
-                      <h3 style={{ fontSize: 16, fontWeight: 500, color: 'var(--cream)', marginBottom: 10, margin: '0 0 10px' }}>{f.title}</h3>
-                      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(247,240,230,0.5)', margin: 0 }}>{f.desc}</p>
+                      <span style={{
+                        fontSize: 72, fontWeight: 700, lineHeight: 1,
+                        color: 'rgba(247,240,230,0.04)',
+                        fontVariantNumeric: 'tabular-nums',
+                        userSelect: 'none',
+                      }}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
                     </div>
-                  </Reveal>
-                ))
-              })()}
-            </div>
+
+                    {/* texto */}
+                    <div>
+                      <h3 style={{
+                        fontSize: 'clamp(20px,2vw,26px)', fontWeight: 500,
+                        color: 'var(--cream)', margin: '0 0 12px', letterSpacing: '-0.01em',
+                      }}>
+                        {f.title}
+                      </h3>
+                      <p style={{
+                        fontSize: 16, lineHeight: 1.75,
+                        color: 'rgba(247,240,230,0.55)', margin: 0, maxWidth: 520,
+                      }}>
+                        {f.desc}
+                      </p>
+                    </div>
+
+                    {/* linha decorativa */}
+                    <div style={{
+                      marginTop: 'auto', height: 1,
+                      background: `linear-gradient(90deg, ${f.accent}55, transparent)`,
+                    }} />
+                  </div>
+                </ScrollStackItem>
+              ))}
+            </ScrollStack>
           </div>
         </section>
 
@@ -791,7 +995,7 @@ export default function HomePage() {
             </Reveal>
 
             {plans.length > 0 ? (
-              <div className="plans-grid" style={{ gridTemplateColumns: `repeat(${Math.min(plans.length, 3)}, 1fr)` }}>
+              <div className="plans-grid" style={{ '--plans-cols': String(Math.min(plans.length, 3)) } as React.CSSProperties}>
                 {plans.map((plan, idx) => {
                   const featured = plan.is_featured
                   const ink = featured ? 'var(--ink)' : 'var(--cream)'
@@ -801,55 +1005,76 @@ export default function HomePage() {
 
                   return (
                     <Reveal key={plan.id} delay={idx * 100}>
-                      <div className="plan-card" style={{
-                        background: featured ? 'var(--card)' : 'rgba(247,240,230,0.03)',
-                        padding: 48, height: '100%', position: 'relative',
-                      }}>
+                      <GlareHover
+                        glareColor={featured ? '#C8714A' : '#D4A85A'}
+                        glareOpacity={featured ? 0.15 : 0.1}
+                        glareAngle={-40}
+                        glareSize={300}
+                        style={{
+                          background: featured ? 'var(--card)' : 'rgba(247,240,230,0.03)',
+                          border: `1px solid ${featured ? 'rgba(200,113,74,0.35)' : 'rgba(212,168,90,0.12)'}`,
+                          borderRadius: 20,
+                          height: '100%',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* barra topo destaque */}
                         {featured && (
-                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--terra)' }} />
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--terra)', borderRadius: '20px 20px 0 0' }} />
                         )}
-                        {plan.badge && (
-                          <div style={{ position: 'absolute', top: 16, right: 16 }}>
-                            <span style={{ background: 'var(--terra)', color: 'var(--cream)', fontSize: 10, padding: '4px 10px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                              {plan.badge}
-                            </span>
+
+                        {/* conteúdo com padding responsivo via classe */}
+                        <div className="plan-card" style={{ position: 'relative', zIndex: 2, height: '100%' }}>
+                          {plan.badge && (
+                            <div style={{ position: 'absolute', top: -1, right: 20 }}>
+                              <span style={{ background: 'var(--terra)', color: 'var(--cream)', fontSize: 10, padding: '4px 12px', letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: '0 0 8px 8px', display: 'block' }}>
+                                {plan.badge}
+                              </span>
+                            </div>
+                          )}
+
+                          <p className="display" style={{ fontSize: 'clamp(22px,3vw,28px)', fontWeight: 300, color: ink, margin: '0 0 16px' }}>{plan.name}</p>
+
+                          <div style={{ marginBottom: 4 }}>
+                            <span className="display" style={{ fontSize: 'clamp(40px,5vw,56px)', fontWeight: 300, color: ink, lineHeight: 1 }}>R$ {whole}</span>
+                            {cents
+                              ? <span style={{ color: mid, fontSize: 14 }}>,{cents} /mês</span>
+                              : <span style={{ color: mid, fontSize: 14 }}> /mês</span>
+                            }
                           </div>
-                        )}
-                        <p className="display" style={{ fontSize: 28, fontWeight: 300, color: ink, marginBottom: 4, margin: '0 0 4px' }}>{plan.name}</p>
-                        <div style={{ marginBottom: plan.annual_note ? 4 : 8 }}>
-                          <span className="display" style={{ fontSize: 52, fontWeight: 300, color: ink }}>R$ {whole}</span>
-                          {cents
-                            ? <span style={{ color: mid, fontSize: 14 }}>,{cents} /mês</span>
-                            : <span style={{ color: mid, fontSize: 14 }}> /mês</span>
-                          }
+
+                          <p style={{ fontSize: 13, color: mid, marginBottom: 28, minHeight: 20 }}>
+                            {plan.annual_note || plan.description || '\u00a0'}
+                          </p>
+
+                          <Link
+                            href={plan.cta_url}
+                            className={featured ? 'btn-primary' : 'btn-ghost'}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 32, textAlign: 'center' }}
+                          >
+                            {plan.cta_text} {featured && <ArrowRight size={14} />}
+                          </Link>
+
+                          <div style={{ height: 1, background: featured ? 'rgba(200,113,74,0.15)' : 'rgba(212,168,90,0.08)', marginBottom: 24 }} />
+
+                          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 13 }}>
+                            {plan.features.map((f, fi) => (
+                              <li key={fi} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                {f.included
+                                  ? <Check size={14} style={{ color: featured ? 'var(--terra)' : 'var(--gold)', flexShrink: 0, marginTop: 2 }} />
+                                  : <X size={14} style={{ color: 'rgba(247,240,230,0.18)', flexShrink: 0, marginTop: 2 }} />
+                                }
+                                <span style={{
+                                  fontSize: 13, lineHeight: 1.5,
+                                  color: f.included
+                                    ? (featured ? 'var(--mid)' : 'rgba(247,240,230,0.6)')
+                                    : 'rgba(247,240,230,0.22)',
+                                }}>{f.text}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <p style={{ fontSize: 13, color: mid, marginBottom: 28 }}>
-                          {plan.annual_note || plan.description || '\u00a0'}
-                        </p>
-                        <Link
-                          href={plan.cta_url}
-                          className={featured ? 'btn-primary' : 'btn-ghost'}
-                          style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}
-                        >
-                          {plan.cta_text} {featured && <ArrowRight size={14} />}
-                        </Link>
-                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          {plan.features.map((f, fi) => (
-                            <li key={fi} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                              {f.included
-                                ? <Check size={14} style={{ color: featured ? 'var(--terra)' : 'var(--gold)', flexShrink: 0 }} />
-                                : <X size={14} style={{ color: 'rgba(247,240,230,0.2)', flexShrink: 0 }} />
-                              }
-                              <span style={{
-                                fontSize: 13,
-                                color: f.included
-                                  ? (featured ? 'var(--mid)' : 'rgba(247,240,230,0.6)')
-                                  : 'rgba(247,240,230,0.25)',
-                              }}>{f.text}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      </GlareHover>
                     </Reveal>
                   )
                 })}
