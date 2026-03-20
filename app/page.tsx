@@ -16,6 +16,7 @@ import ShinyText from '@/components/landing/shiny-text'
 import StaggeredMenu from '@/components/landing/staggered-menu'
 import CardSwap from '@/components/landing/card-swap'
 import NavBar from '@/components/landing/nav-bar'
+import { useTrack, usePageView } from '@/hooks/use-track'
 import type { PublicPlan } from '@/app/api/plans/route'
 
 interface LandingContent {
@@ -123,6 +124,8 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen]   = useState(false)
   const [plans, setPlans]         = useState<PublicPlan[]>(DEFAULT_PLANS)
   const [cms, setCms]             = useState<LandingContent>({})
+  const track = useTrack()
+  usePageView('/')
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40)
@@ -977,6 +980,7 @@ export default function HomePage() {
                             href={plan.cta_url}
                             className={featured ? 'btn-primary' : 'btn-ghost'}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 32, textAlign: 'center' }}
+                            onClick={() => track('cta_click', { location: 'plans', plan: plan.slug })}
                           >
                             {plan.cta_text} {featured && <ArrowRight size={14} />}
                           </Link>
@@ -1035,7 +1039,9 @@ export default function HomePage() {
               <p style={{ fontSize: 16, color: 'rgba(247,240,230,0.5)', maxWidth: 380, margin: '0 auto 40px' }}>
                 Plano gratuito para sempre. Sem surpresas.
               </p>
-              <Link href="/cadastro" className="btn-primary" style={{ fontSize: 15, padding: '18px 48px' }}>
+              <Link href="/cadastro" className="btn-primary" style={{ fontSize: 15, padding: '18px 48px' }}
+                onClick={() => track('cta_click', { location: 'bottom_cta' })}
+              >
                 Criar conta grátis <ArrowRight size={16} />
               </Link>
             </div>

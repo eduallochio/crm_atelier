@@ -13,12 +13,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { signup } from '../actions'
+import { useTrack, usePageView } from '@/hooks/use-track'
 
 export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const track = useTrack()
+  usePageView('/cadastro')
   
   const {
     register,
@@ -35,17 +38,20 @@ export default function CadastroPage() {
     }
 
     setIsLoading(true)
-    
+    track('signup_started')
+
     const formData = new FormData()
     formData.append('fullName', data.fullName)
     formData.append('email', data.email)
     formData.append('password', data.password)
-    
+
     const result = await signup(formData)
-    
+
     if (result?.error) {
       toast.error(result.error)
       setIsLoading(false)
+    } else {
+      track('signup_completed')
     }
   }
 
