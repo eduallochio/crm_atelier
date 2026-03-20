@@ -142,8 +142,6 @@ export default function HomePage() {
   const c = {
     heroTitle:    cms.hero_title    || 'Gerencie seu ateliê com eficiência',
     heroSubtitle: cms.hero_subtitle || 'Gerencie clientes, ordens de serviço e finanças em um único lugar.\nFeito especialmente para costureiras e proprietárias de ateliê.',
-    ctaPrimary:   cms.hero_cta_primary   || 'Criar conta grátis',
-    ctaSecondary: cms.hero_cta_secondary || 'Ver como funciona',
     statsOrgs:    cms.stats_orgs    || '500+',
     statsClients: cms.stats_clients || '10.000+',
     statsOrders:  cms.stats_orders  || '50.000+',
@@ -369,11 +367,6 @@ export default function HomePage() {
           .plan-card { padding: 32px 24px !important; }
         }
 
-        /* hero buttons */
-        .hero-buttons { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-
-        /* trust row */
-        .trust-row { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
 
         /* footer */
         .footer-inner {
@@ -923,9 +916,8 @@ export default function HomePage() {
               <p style={{ textAlign: 'center', color: 'rgba(247,240,230,0.5)', marginBottom: 56, fontSize: 15 }}>Sem cartão de crédito para começar.</p>
             </Reveal>
 
-            {plans.length > 0 ? (
-              <div className="plans-grid" style={{ '--plans-cols': String(Math.min(plans.length, 3)) } as React.CSSProperties}>
-                {plans.map((plan, idx) => {
+            <div className="plans-grid" style={{ '--plans-cols': String(Math.min(plans.length, 3)) } as React.CSSProperties}>
+              {plans.map((plan, idx) => {
                   const featured = plan.is_featured
                   const ink = featured ? 'var(--ink)' : 'var(--cream)'
                   const mid = featured ? 'var(--mid)' : 'rgba(247,240,230,0.4)'
@@ -1008,20 +1000,7 @@ export default function HomePage() {
                     </Reveal>
                   )
                 })}
-              </div>
-            ) : (
-              /* Skeleton enquanto carrega */
-              <div className="plans-grid">
-                {[0, 1].map((i) => (
-                  <div key={i} style={{
-                    background: 'rgba(247,240,230,0.04)', padding: 48,
-                    border: '1px solid rgba(212,168,90,0.1)',
-                    animation: 'pulse 2s ease infinite',
-                    minHeight: 400,
-                  }} />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         </section>
 
