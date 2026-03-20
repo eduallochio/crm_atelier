@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 
 const SESSION_KEY = 'atelier_sid'
 const CONSENT_KEY = 'cookie-consent'
@@ -53,16 +53,17 @@ function getUtms(searchParams: URLSearchParams | null): {
  * para /api/events de forma fire-and-forget, respeitando o consentimento LGPD.
  */
 export function useTrack() {
-  const pathname    = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   const track = useCallback(
     (eventType: string, metadata?: Record<string, unknown>) => {
-      // Respeita LGPD: só rastreia se o usuário aceitou cookies além dos necessários
       const consent = getConsent()
       if (consent === 'necessary') return
 
       const session_id = getSessionId()
+      const searchParams = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : null
       const { utm_source, utm_medium, utm_campaign } = getUtms(searchParams)
       const referrer = typeof document !== 'undefined' ? document.referrer || null : null
 
@@ -77,16 +78,14 @@ export function useTrack() {
         metadata: metadata ?? null,
       }
 
-      // Fire-and-forget — nunca bloqueia nem propaga erros
       fetch('/api/events', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
-        // keepalive permite que a requisição sobreviva ao unload da página
         keepalive: true,
       }).catch(() => {/* silencia erros de rede */})
     },
-    [pathname, searchParams],
+    [pathname],
   )
 
   return track
@@ -97,14 +96,16 @@ export function useTrack() {
  * @param page - página opcional; se omitido usa o pathname atual do Next.js
  */
 export function usePageView(page?: string) {
-  const pathname    = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   useEffect(() => {
     const consent = getConsent()
     if (consent === 'necessary') return
 
     const session_id = getSessionId()
+    const searchParams = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search)
+      : null
     const { utm_source, utm_medium, utm_campaign } = getUtms(searchParams)
     const referrer = typeof document !== 'undefined' ? document.referrer || null : null
 
@@ -125,7 +126,6 @@ export function usePageView(page?: string) {
       body:      JSON.stringify(payload),
       keepalive: true,
     }).catch(() => {/* silencia erros de rede */})
-  // Executa apenas no mount — dependências intencionalmente omitidas
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }
