@@ -1,10 +1,53 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import React, {
+  Children, cloneElement, forwardRef, isValidElement,
+  useEffect, useMemo, useRef,
+} from 'react'
+import gsap from 'gsap'
 import { BarChart3, FileText, Users, Wallet, Scissors, TrendingUp, CheckCircle2, Clock } from 'lucide-react'
 
-/* ─── telas mockadas ────────────────────────────────────────────────── */
+/* ─── Card primitive ─────────────────────────────────────────────────── */
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  customClass?: string
+}
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ customClass, className, ...rest }, ref) => (
+    <div
+      ref={ref}
+      {...rest}
+      className={['cs-card', customClass, className].filter(Boolean).join(' ')}
+    />
+  )
+)
+Card.displayName = 'Card'
 
+/* ─── GSAP helpers (idênticos ao React Bits) ─────────────────────────── */
+const makeSlot = (i: number, distX: number, distY: number, total: number) => ({
+  x: i * distX,
+  y: -i * distY,
+  z: -i * distX * 1.5,
+  zIndex: total - i,
+})
+
+const placeNow = (
+  el: HTMLElement,
+  slot: ReturnType<typeof makeSlot>,
+  skew: number
+) =>
+  gsap.set(el, {
+    x: slot.x,
+    y: slot.y,
+    z: slot.z,
+    xPercent: -50,
+    yPercent: -50,
+    skewY: skew,
+    transformOrigin: 'center center',
+    zIndex: slot.zIndex,
+    force3D: true,
+  })
+
+/* ─── Telas mockadas ─────────────────────────────────────────────────── */
 function ScreenDashboard() {
   return (
     <div style={{ width:'100%', height:'100%', background:'#f4f4f5', display:'flex', borderRadius:10, overflow:'hidden' }}>
@@ -224,110 +267,125 @@ function ScreenFinanceiro() {
   )
 }
 
-/* ─── CardSwap ───────────────────────────────────────────────────────── */
+/* ─── CardSwap (GSAP, igual React Bits) ─────────────────────────────── */
+interface CardSwapProps {
+  width?: number
+  height?: number
+  cardDistance?: number
+  verticalDistance?: number
+  delay?: number
+  pauseOnHover?: boolean
+  skewAmount?: number
+  easing?: 'elastic' | 'power'
+}
 
-const SCREENS = [
-  { id:'dashboard',  label:'Dashboard',  url:'dashboard',  Screen: ScreenDashboard  },
-  { id:'orders',     label:'Ordens',     url:'ordens',     Screen: ScreenOrders     },
-  { id:'clients',    label:'Clientes',   url:'clientes',   Screen: ScreenClients    },
-  { id:'financeiro', label:'Financeiro', url:'financeiro', Screen: ScreenFinanceiro },
-]
+export default function CardSwap({
+  width = 500,
+  height = 400,
+  cardDistance = 60,
+  verticalDistance = 70,
+  delay = 5000,
+  pauseOnHover = false,
+  skewAmount = 6,
+  easing = 'elastic',
+}: CardSwapProps) {
+  const config = easing === 'elastic'
+    ? { ease:'elastic.out(0.6,0.9)', durDrop:2, durMove:2, durReturn:2, promoteOverlap:0.9, returnDelay:0.05 }
+    : { ease:'power1.inOut',         durDrop:0.8, durMove:0.8, durReturn:0.8, promoteOverlap:0.45, returnDelay:0.2 }
 
-// Cada card atrás: rotação + offset. Índice 0 = card da frente.
-// Exatamente como React Bits: cards atrás ficam ligeiramente rotacionados
-// e visíveis na borda direita superior, como um deck de cartas.
-const STACK: { rotate: number; tx: number; ty: number; scale: number }[] = [
-  { rotate:  0,   tx:   0,  ty:   0,  scale: 1.00 }, // frente
-  { rotate:  6,   tx:  36,  ty: -24,  scale: 0.95 }, // atrás 1
-  { rotate: 12,   tx:  66,  ty: -44,  scale: 0.90 }, // atrás 2
-  { rotate: 18,   tx:  92,  ty: -60,  scale: 0.85 }, // atrás 3
-]
+  const screens = [
+    { id:'dashboard',  Screen: ScreenDashboard  },
+    { id:'orders',     Screen: ScreenOrders     },
+    { id:'clients',    Screen: ScreenClients    },
+    { id:'financeiro', Screen: ScreenFinanceiro },
+  ]
 
-const INTERVAL = 3200
-
-export default function CardSwap() {
-  const [order, setOrder] = useState([0, 1, 2, 3])
-  const [exiting, setExiting] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const advance = useCallback(() => {
-    if (exiting) return
-    setExiting(true)
-    setTimeout(() => {
-      setOrder(prev => {
-        const next = [...prev]
-        next.push(next.shift()!)
-        return next
-      })
-      setExiting(false)
-    }, 380)
-  }, [exiting])
-
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = setInterval(advance, INTERVAL)
-  }, [advance])
+  const refs = useMemo(() => screens.map(() => React.createRef<HTMLDivElement>()), [])
+  const order = useRef(screens.map((_, i) => i))
+  const tlRef = useRef<gsap.core.Timeline | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    timerRef.current = setInterval(advance, INTERVAL)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [advance])
+    const total = refs.length
+    refs.forEach((r, i) => {
+      if (r.current) placeNow(r.current, makeSlot(i, cardDistance, verticalDistance, total), skewAmount)
+    })
+
+    const swap = () => {
+      if (order.current.length < 2) return
+      const [front, ...rest] = order.current
+      const elFront = refs[front].current
+      if (!elFront) return
+      const tl = gsap.timeline()
+      tlRef.current = tl
+
+      tl.to(elFront, { y: '+=800', duration: config.durDrop, ease: config.ease })
+
+      tl.addLabel('promote', `-=${config.durDrop * config.promoteOverlap}`)
+      rest.forEach((idx, i) => {
+        const el = refs[idx].current
+        if (!el) return
+        const slot = makeSlot(i, cardDistance, verticalDistance, refs.length)
+        tl.set(el, { zIndex: slot.zIndex }, 'promote')
+        tl.to(el, { x: slot.x, y: slot.y, z: slot.z, duration: config.durMove, ease: config.ease }, `promote+=${i * 0.15}`)
+      })
+
+      const backSlot = makeSlot(refs.length - 1, cardDistance, verticalDistance, refs.length)
+      tl.addLabel('return', `promote+=${config.durMove * config.returnDelay}`)
+      tl.call(() => { gsap.set(elFront, { zIndex: backSlot.zIndex }) }, undefined, 'return')
+      tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, duration: config.durReturn, ease: config.ease }, 'return')
+      tl.call(() => { order.current = [...rest, front] })
+    }
+
+    swap()
+    intervalRef.current = setInterval(swap, delay)
+
+    if (pauseOnHover && container.current) {
+      const node = container.current
+      const pause  = () => { tlRef.current?.pause(); if (intervalRef.current) clearInterval(intervalRef.current) }
+      const resume = () => { tlRef.current?.play();  intervalRef.current = setInterval(swap, delay) }
+      node.addEventListener('mouseenter', pause)
+      node.addEventListener('mouseleave', resume)
+      return () => {
+        node.removeEventListener('mouseenter', pause)
+        node.removeEventListener('mouseleave', resume)
+        if (intervalRef.current) clearInterval(intervalRef.current)
+      }
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [cardDistance, verticalDistance, delay, pauseOnHover, skewAmount, easing])
 
   return (
     <>
       <style>{`
-        /* wrapper: tamanho fixo grande no desktop, responsivo no mobile */
-        .cs-wrap {
-          position: relative;
-          width: 100%;
-          max-width: 680px;
-          height: 460px;
+        .cs-container {
+          position: absolute;
+          top: 20%;
+          left: 95%;
+          transform: translate(-90%, -90%);
+          transform-origin: center center;
+          perspective: 900px;
+          overflow: visible;
         }
-        @media (max-width: 1024px) {
-          .cs-wrap { max-width: 560px; height: 380px; }
-        }
-        @media (max-width: 768px) {
-          .cs-wrap { max-width: 100%; height: 280px; }
-        }
-
         .cs-card {
           position: absolute;
-          /* o card da frente ocupa ~85% da largura do wrapper */
-          left: 0;
-          top: 0;
-          width: 86%;
-          height: 100%;
+          top: 50%;
+          left: 50%;
           border-radius: 14px;
+          border: 1px solid rgba(212,168,90,0.3);
+          background: #0e0a06;
+          transform-style: preserve-3d;
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
           overflow: hidden;
-          border: 1px solid rgba(212,168,90,0.22);
-          background: #120b05;
           display: flex;
           flex-direction: column;
-          will-change: transform, opacity;
-          transform-origin: bottom left;
-          transition:
-            transform 0.40s cubic-bezier(0.4, 0, 0.2, 1),
-            opacity   0.40s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.40s ease;
         }
-
-        .cs-card[data-front="true"] {
-          box-shadow:
-            0 32px 80px rgba(0,0,0,0.55),
-            0 8px 24px rgba(0,0,0,0.35),
-            0 0 0 1px rgba(212,168,90,0.15);
-          cursor: pointer;
-        }
-        .cs-card[data-front="true"]:hover {
-          box-shadow:
-            0 36px 88px rgba(0,0,0,0.6),
-            0 8px 24px rgba(212,168,90,0.12),
-            0 0 0 1px rgba(212,168,90,0.25);
-        }
-
         .cs-chrome {
           height: 30px;
-          background: #0e0703;
+          background: #0a0603;
           display: flex;
           align-items: center;
           padding: 0 14px;
@@ -347,127 +405,55 @@ export default function CardSwap() {
           display: flex; align-items: center; gap: 4px;
           white-space: nowrap;
         }
-        .cs-screen-name {
-          margin-left: auto;
-          font-size: 8px;
-          color: rgba(212,168,90,0.35);
-          font-family: 'DM Sans', sans-serif;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          white-space: nowrap;
+        .cs-body { flex: 1; overflow: hidden; min-height: 0; }
+        @media (max-width: 1024px) {
+          .cs-container {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.85);
+          }
         }
-        .cs-body {
-          flex: 1;
-          overflow: hidden;
-          min-height: 0;
+        @media (max-width: 768px) {
+          .cs-container {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.6);
+          }
         }
-
-        /* dots */
-        .cs-dots {
-          display: flex; gap: 6px; align-items: center;
-          justify-content: center;
-          margin-top: 16px;
-        }
-        .cs-dot-btn {
-          height: 5px; border-radius: 3px;
-          border: none; padding: 0; cursor: pointer;
-          transition: width 0.3s, background 0.3s;
-          background: rgba(212,168,90,0.25);
-          width: 5px;
-        }
-        .cs-dot-btn.active { width: 18px; background: #c8714a; }
-
-        .cs-label {
-          text-align: center;
-          margin-top: 9px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 9px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(247,240,230,0.3);
+        @media (max-width: 480px) {
+          .cs-container {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.45);
+          }
         }
       `}</style>
 
-      <div>
-        <div className="cs-wrap">
-          {order.map((screenIdx, stackPos) => {
-            const s        = SCREENS[screenIdx]
-            const isFront  = stackPos === 0
-            const cfg      = STACK[stackPos] ?? STACK[STACK.length - 1]
-            const opacity  = stackPos === 0 ? 1
-                           : stackPos === 1 ? 0.85
-                           : stackPos === 2 ? 0.65
-                           : 0
-            const zIndex   = SCREENS.length - stackPos
-
-            // saída: card da frente voa para baixo+direita ao ser trocado
-            const exitRotate = exiting && isFront ?  8  : cfg.rotate
-            const exitTX     = exiting && isFront ?  20 : cfg.tx
-            const exitTY     = exiting && isFront ?  80 : cfg.ty
-            const exitScale  = exiting && isFront ? 0.9 : cfg.scale
-            const exitOpacity = exiting && isFront ? 0  : opacity
-
-            const { Screen } = s
-
-            return (
-              <div
-                key={s.id}
-                className="cs-card"
-                data-front={String(isFront)}
-                style={{
-                  transform: `translate(${exitTX}px, ${exitTY}px) rotate(${exitRotate}deg) scale(${exitScale})`,
-                  opacity: exitOpacity,
-                  zIndex,
-                  pointerEvents: isFront ? 'auto' : 'none',
-                }}
-                onClick={() => {
-                  if (!isFront || exiting) return
-                  advance()
-                  resetTimer()
-                }}
-              >
-                <div className="cs-chrome">
-                  <div className="cs-dot" style={{ background:'#ff5f57' }} />
-                  <div className="cs-dot" style={{ background:'#ffbd2e' }} />
-                  <div className="cs-dot" style={{ background:'#28c940' }} />
-                  <div className="cs-url">
-                    <svg width="7" height="8" viewBox="0 0 12 14" fill="none">
-                      <rect x="1" y="5" width="10" height="8" rx="2" stroke="#7a5830" strokeWidth="1.5"/>
-                      <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#7a5830" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    meuatelier.com.br/{s.url}
-                  </div>
-                  <span className="cs-screen-name">{s.label}</span>
-                </div>
-                <div className="cs-body">
-                  <Screen />
-                </div>
+      <div ref={container} className="cs-container" style={{ width, height }}>
+        {screens.map((s, i) => (
+          <div
+            key={s.id}
+            ref={refs[i]}
+            className="cs-card"
+            style={{ width, height }}
+          >
+            <div className="cs-chrome">
+              <div className="cs-dot" style={{ background:'#ff5f57' }} />
+              <div className="cs-dot" style={{ background:'#ffbd2e' }} />
+              <div className="cs-dot" style={{ background:'#28c940' }} />
+              <div className="cs-url">
+                <svg width="7" height="8" viewBox="0 0 12 14" fill="none">
+                  <rect x="1" y="5" width="10" height="8" rx="2" stroke="#7a5830" strokeWidth="1.5"/>
+                  <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#7a5830" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                meuatelier.com.br
               </div>
-            )
-          })}
-        </div>
-
-        <div className="cs-dots">
-          {SCREENS.map((s, i) => (
-            <button
-              key={s.id}
-              className={`cs-dot-btn ${order[0] === i ? 'active' : ''}`}
-              onClick={() => {
-                if (exiting) return
-                const pos = order.indexOf(i)
-                if (pos === 0) return
-                setOrder(prev => {
-                  const next = [...prev]
-                  for (let k = 0; k < pos; k++) next.push(next.shift()!)
-                  return next
-                })
-                resetTimer()
-              }}
-              aria-label={`Ver ${s.label}`}
-            />
-          ))}
-        </div>
-        <p className="cs-label">{SCREENS[order[0]].label}</p>
+            </div>
+            <div className="cs-body">
+              <s.Screen />
+            </div>
+          </div>
+        ))}
       </div>
     </>
   )

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   Check, X, FileText, Wallet, Users, Scissors,
   BarChart3, ArrowRight, TrendingUp,
-  Search, Bell, Shield, Menu,
+  Search, Bell, Shield,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import ScrollStack, { ScrollStackItem } from '@/components/landing/scroll-stack'
@@ -273,7 +273,7 @@ export default function HomePage() {
           display: grid;
           grid-template-columns: 1fr 1.55fr;
           gap: 48px;
-          align-items: flex-start;
+          align-items: center;
         }
         /* o col do card swap precisa de overflow visível para os cards atrás aparecerem */
         .hero-mockup-col { display: block; overflow: visible; }
@@ -388,9 +388,15 @@ export default function HomePage() {
         /* ── TABLET (≤ 1024px) ── */
         @media (max-width: 1024px) {
           .hero-grid { grid-template-columns: 1fr; gap: 48px; }
-          .hero-mockup-col { max-width: 540px; margin: 0 auto; width: 100%; }
+          .hero-mockup-col { max-width: 540px; margin: 0 auto; width: 100%; height: 380px !important; }
           .steps-grid { grid-template-columns: 1fr; }
           .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+          .hero-mockup-col { height: 300px !important; }
+        }
+        @media (max-width: 480px) {
+          .hero-mockup-col { height: 240px !important; }
         }
 
         /* ── MOBILE (≤ 768px) ── */
@@ -474,7 +480,7 @@ export default function HomePage() {
 
           <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
 
-            <div className="hero-anim-1" style={{ marginBottom: 24 }}>
+            <div className="hero-anim-1" style={{ marginBottom: 16 }}>
               <span className="tag">
                 <ShinyText
                   text="Sistema de Gestão para Ateliês"
@@ -486,7 +492,7 @@ export default function HomePage() {
               </span>
             </div>
 
-            <div className="hero-anim-2" style={{ marginBottom: 40 }}>
+            <div className="hero-anim-2" style={{ marginBottom: 16 }}>
               <h1 className="display" style={{
                 fontSize: 'clamp(48px, 9vw, 112px)',
                 fontWeight: 300, lineHeight: 1.0,
@@ -521,40 +527,31 @@ export default function HomePage() {
               </h1>
             </div>
 
+            <p className="hero-anim-3" style={{ fontSize: 16, lineHeight: 1.75, color: 'rgba(247,240,230,0.65)', maxWidth: 520, marginBottom: 40 }}>
+              {c.heroSubtitle}
+            </p>
+
             <div className="hero-grid">
-              {/* copy */}
-              <div>
-                <p className="hero-anim-3" style={{ fontSize: 16, lineHeight: 1.75, color: 'rgba(247,240,230,0.65)', maxWidth: 420, marginBottom: 36 }}>
-                  {c.heroSubtitle}
-                </p>
-
-                <div className="hero-buttons hero-anim-4" style={{ marginBottom: 48 }}>
-                  <Link href="/cadastro" className="btn-primary">
-                    {c.ctaPrimary} <ArrowRight size={15} />
-                  </Link>
-                  <a href="#como-funciona" className="btn-ghost">
-                    {c.ctaSecondary}
-                  </a>
-                </div>
-
-                <div className="trust-row hero-anim-5">
-                  {['Plano gratuito para sempre', 'LGPD em conformidade', '99.9% uptime'].map(t => (
-                    <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--terra)', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: 'rgba(247,240,230,0.45)', letterSpacing: '0.04em' }}>{t}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* espaço vazio para manter o grid 2 colunas */}
+              <div />
 
               {/* card swap */}
-              <div className="hero-anim-3 hero-mockup-col" style={{ position: 'relative', marginTop: -40 }}>
-                <CardSwap />
+              <div className="hero-anim-3 hero-mockup-col" style={{ position: 'relative', height: 120 }}>
+                <CardSwap
+                  width={580}
+                  height={460}
+                  cardDistance={60}
+                  verticalDistance={70}
+                  delay={4000}
+                  pauseOnHover
+                  skewAmount={6}
+                  easing="elastic"
+                />
               </div>
             </div>
 
             {/* stats strip */}
-            <div style={{ marginTop: 64 }}>
+            <div style={{ marginTop: 0 }}>
               <div className="gold-line" style={{ marginBottom: 32 }} />
               <div className="stats-grid">
                 {[
@@ -564,11 +561,12 @@ export default function HomePage() {
                   { num: 'R$ 0', desc: 'para começar hoje' },
                 ].map((s, i) => (
                   <div key={i} style={{
-                    padding: '0 24px',
+                    paddingLeft: i === 0 ? 0 : 32,
+                    paddingRight: 32,
                     borderLeft: i > 0 ? '1px solid rgba(212,168,90,0.2)' : 'none',
                   }}>
                     <div className="display" style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 300, color: 'var(--gold)', lineHeight: 1.1 }}>{s.num}</div>
-                    <div style={{ fontSize: 13, color: 'rgba(247,240,230,0.5)', marginTop: 4 }}>{s.desc}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(247,240,230,0.5)', marginTop: 6, letterSpacing: '0.02em' }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
