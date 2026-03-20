@@ -16,9 +16,9 @@ export async function GET(
       .input('orgId', sql.UniqueIdentifier, id)
       .query(`
         SELECT
-          (SELECT COUNT(*) FROM org_clients        WHERE organization_id = @orgId AND deleted_at IS NULL) AS total_clients,
-          (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId)                        AS total_orders,
-          (SELECT COUNT(*) FROM org_services       WHERE organization_id = @orgId AND is_active = 1)      AS total_services,
+          (SELECT COUNT(*) FROM org_clients        WHERE organization_id = @orgId) AS total_clients,
+          (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId) AS total_orders,
+          (SELECT COUNT(*) FROM org_services       WHERE organization_id = @orgId AND ativo = 1) AS total_services,
           (SELECT COUNT(*) FROM users              WHERE organization_id = @orgId)                        AS total_users,
           (SELECT COUNT(*) FROM org_service_orders
            WHERE organization_id = @orgId
@@ -44,7 +44,6 @@ export async function GET(
           FROM org_clients
           WHERE organization_id = @orgId
             AND created_at >= DATEADD(month, -6, GETDATE())
-            AND deleted_at IS NULL
           UNION ALL
           SELECT
             DATEFROMPARTS(YEAR(created_at), MONTH(created_at), 1) AS ym,

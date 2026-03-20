@@ -15,6 +15,7 @@ import { BillingTab } from '@/components/admin/billing-tab'
 import { UsersTab } from '@/components/admin/users-tab'
 import { ActivityTab } from '@/components/admin/activity-tab'
 import { NotesTab } from '@/components/admin/notes-tab'
+import { HealthTab } from '@/components/admin/health-tab'
 
 interface Organization {
   id: string
@@ -223,7 +224,7 @@ export default function OrganizationDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-8 lg:w-auto">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="subscription">Assinatura</TabsTrigger>
           <TabsTrigger value="usage">Uso</TabsTrigger>
@@ -231,6 +232,7 @@ export default function OrganizationDetailPage() {
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="activity">Atividade</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
+          <TabsTrigger value="health">Saúde</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -259,6 +261,10 @@ export default function OrganizationDetailPage() {
 
         <TabsContent value="notes">
           <NotesTab organizationId={organization.id} />
+        </TabsContent>
+
+        <TabsContent value="health">
+          <HealthTab organizationId={organization.id} />
         </TabsContent>
       </Tabs>
     </div>
