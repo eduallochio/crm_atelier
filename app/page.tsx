@@ -15,6 +15,7 @@ import BlurText from '@/components/landing/blur-text'
 import ShinyText from '@/components/landing/shiny-text'
 import StaggeredMenu from '@/components/landing/staggered-menu'
 import CardSwap from '@/components/landing/card-swap'
+import NavBar from '@/components/landing/nav-bar'
 import type { PublicPlan } from '@/app/api/plans/route'
 
 interface LandingContent {
@@ -66,11 +67,61 @@ function Reveal({ children, delay = 0, className = '' }: { children: React.React
   )
 }
 
+/* ─── Planos padrão (fallback se API falhar) ─────────────────────────────── */
+const DEFAULT_PLANS: PublicPlan[] = [
+  {
+    id: 'free',
+    slug: 'free',
+    name: 'Grátis',
+    description: 'Para começar sem compromisso',
+    price: 0,
+    price_annual: null,
+    annual_note: null,
+    badge: null,
+    is_featured: false,
+    cta_text: 'Criar conta grátis',
+    cta_url: '/cadastro',
+    sort_order: 1,
+    features: [
+      { text: 'Até 50 clientes', included: true },
+      { text: 'Até 100 ordens de serviço', included: true },
+      { text: 'Até 20 serviços cadastrados', included: true },
+      { text: 'Controle financeiro básico', included: true },
+      { text: 'Relatórios avançados', included: false },
+      { text: 'Usuários adicionais', included: false },
+      { text: 'Suporte prioritário', included: false },
+    ],
+  },
+  {
+    id: 'enterprise',
+    slug: 'enterprise',
+    name: 'Enterprise',
+    description: 'Para ateliês em crescimento',
+    price: 49.9,
+    price_annual: null,
+    annual_note: 'Ou R$ 479/ano — 2 meses grátis',
+    badge: 'Mais popular',
+    is_featured: true,
+    cta_text: 'Começar agora',
+    cta_url: '/cadastro',
+    sort_order: 2,
+    features: [
+      { text: 'Clientes ilimitados', included: true },
+      { text: 'Ordens de serviço ilimitadas', included: true },
+      { text: 'Serviços ilimitados', included: true },
+      { text: 'Controle financeiro completo', included: true },
+      { text: 'Relatórios avançados', included: true },
+      { text: 'Múltiplos usuários', included: true },
+      { text: 'Suporte prioritário', included: true },
+    ],
+  },
+]
+
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 export default function HomePage() {
   const [scrolled, setScrolled]   = useState(false)
   const [menuOpen, setMenuOpen]   = useState(false)
-  const [plans, setPlans]         = useState<PublicPlan[]>([])
+  const [plans, setPlans]         = useState<PublicPlan[]>(DEFAULT_PLANS)
   const [cms, setCms]             = useState<LandingContent>({})
 
   useEffect(() => {
@@ -80,7 +131,7 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/plans').then((r) => r.json()).then(setPlans).catch(() => {})
+    fetch('/api/plans').then((r) => r.ok ? r.json() : Promise.reject()).then((data) => { if (Array.isArray(data) && data.length > 0) setPlans(data) }).catch(() => {})
     fetch('/api/landing').then((r) => r.json()).then(setCms).catch(() => {})
   }, [])
 
@@ -403,42 +454,10 @@ export default function HomePage() {
         />
 
         {/* ── NAV ── */}
-        <nav
-          className="nav-bar"
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-            padding: '20px 40px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: scrolled ? 'rgba(26,17,10,0.92)' : 'transparent',
-            backdropFilter: scrolled ? 'blur(12px)' : 'none',
-            borderBottom: scrolled ? '1px solid rgba(212,168,90,0.15)' : 'none',
-            transition: 'all 0.4s ease',
-          }}
-        >
-          <div className="display" style={{ fontSize: 22, fontWeight: 600, color: 'var(--cream)', letterSpacing: '0.05em' }}>
-            Meu <span style={{ color: 'var(--terra)' }}>Atelier</span>
-          </div>
-
-          {/* desktop links */}
-          <div className="nav-links-desktop">
-            <a href="#funcionalidades" className="nav-link">Funcionalidades</a>
-            <a href="#como-funciona" className="nav-link">Como funciona</a>
-            <a href="#planos" className="nav-link">Planos</a>
-            <Link href="/login" className="nav-link">Entrar</Link>
-            <Link href="/cadastro" className="btn-primary" style={{ padding: '10px 22px', fontSize: 12 }}>
-              Começar grátis
-            </Link>
-          </div>
-
-          {/* hamburger */}
-          <button
-            className="nav-hamburger"
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(o => !o) }}
-            aria-label="Abrir menu"
-          >
-            <Menu size={24} />
-          </button>
-        </nav>
+        <NavBar
+          scrolled={scrolled}
+          onMenuOpen={() => setMenuOpen(o => !o)}
+        />
 
         {/* ── HERO ── */}
         <section className="dark-linen hero-pad" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
