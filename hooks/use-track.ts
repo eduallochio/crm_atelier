@@ -89,7 +89,7 @@ export function useTrack() {
     [pathname, searchParams],
   )
 
-  return { track }
+  return track
 }
 
 /**
