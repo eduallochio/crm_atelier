@@ -598,7 +598,7 @@ export default function HomePage() {
 
                 const defaultSteps = [
                   { n: '01', title: 'Crie sua conta', desc: 'Cadastro em menos de 2 minutos. Sem cartão de crédito. Configure o nome do seu ateliê e comece imediatamente.', icon: <Users size={20} />, detail: 'Grátis para começar' },
-                  { n: '02', title: 'Cadastre seus dados', desc: 'Adicione clientes, serviços e preços. O sistema se adapta ao seu jeito de trabalhar, não o contrário.', icon: <Scissors size={20} />, detail: 'Importação facilitada' },
+                  { n: '02', title: 'Cadastre seus dados', desc: 'Adicione clientes, serviços e preços. O sistema se adapta ao seu jeito de trabalhar, não o contrário.', icon: <Scissors size={20} />, detail: 'Simples e rápido' },
                   { n: '03', title: 'Gerencie com clareza', desc: 'Ordens de serviço, caixa, relatórios — tudo em uma tela. De qualquer dispositivo, a qualquer hora.', icon: <BarChart3 size={20} />, detail: 'Acesso em qualquer lugar' },
                 ]
 
@@ -672,7 +672,7 @@ export default function HomePage() {
                 {
                   icon: <FileText size={28} />,
                   title: 'Ordens de serviço',
-                  desc: 'Timeline completa por ordem. Status, histórico de alterações, anotações e fotos em um só lugar.',
+                  desc: 'Timeline completa por ordem. Status, histórico de alterações, anotações e valores em um só lugar.',
                   accent: '#D4A85A',
                   bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
                   border: 'rgba(212,168,90,0.25)',
@@ -680,7 +680,7 @@ export default function HomePage() {
                 {
                   icon: <Users size={28} />,
                   title: 'Gestão de clientes',
-                  desc: 'Cadastro completo com histórico de compras, medidas, aniversários e preferências de cada cliente.',
+                  desc: 'Cadastro completo com histórico de ordens, aniversários e observações de cada cliente.',
                   accent: '#C8714A',
                   bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
                   border: 'rgba(200,113,74,0.25)',
@@ -703,16 +703,16 @@ export default function HomePage() {
                 },
                 {
                   icon: <Bell size={28} />,
-                  title: 'Lembretes automáticos',
-                  desc: 'Aniversários, ordens vencendo e contas a pagar — notificações sempre no momento certo.',
+                  title: 'Aniversários de clientes',
+                  desc: 'Visualize aniversariantes do mês diretamente no dashboard. Nunca perca uma data importante.',
                   accent: '#D4A85A',
                   bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
                   border: 'rgba(212,168,90,0.25)',
                 },
                 {
                   icon: <TrendingUp size={28} />,
-                  title: 'Análises avançadas',
-                  desc: 'Gráficos de evolução, comparativos mensais e serviços mais vendidos para decisões mais inteligentes.',
+                  title: 'Relatórios e exportações',
+                  desc: 'Exporte contas a receber e relatórios de estoque em Excel ou PDF com poucos cliques.',
                   accent: '#C8714A',
                   bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
                   border: 'rgba(200,113,74,0.25)',
