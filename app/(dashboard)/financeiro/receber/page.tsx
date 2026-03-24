@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useReceivables } from '@/hooks/use-financial'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { ReceivableDialog } from '@/components/financial/receivable-dialog'
 import { ReceivablesTable } from '@/components/financial/receivables-table'
 import * as XLSX from 'xlsx'
@@ -30,6 +31,8 @@ export default function ReceberPage() {
   
   const { data: receivables, isLoading } = useReceivables()
   const { data: paymentMethods = [] } = usePaymentMethods()
+  const { data: planUsage } = usePlanUsage()
+  const isFree = planUsage?.plan === 'free'
 
   // Helper para formatar nome da forma de pagamento baseado nas configurações
   const getPaymentMethodName = (code: string | null | undefined): string => {
@@ -273,11 +276,11 @@ export default function ReceberPage() {
             Voltar
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel}>
+            <Button variant="outline" onClick={exportToExcel} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Exportar Excel
             </Button>
-            <Button variant="outline" onClick={exportToPDF}>
+            <Button variant="outline" onClick={exportToPDF} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
               <FileText className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Package, AlertTriangle, DollarSign, Lock, Plus, Search, Pencil, Trash2, Download } from 'lucide-react'
+import { Package, AlertTriangle, DollarSign, Plus, Search, Pencil, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
+import { UpgradePrompt } from '@/components/upgrade-prompt'
 import { useProducts, useDeleteProduct, type Product } from '@/hooks/use-inventory'
 import { ProductDialog } from '@/components/inventory/product-dialog'
 import { StockEntryDialog } from '@/components/inventory/stock-entry-dialog'
@@ -14,27 +15,6 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
-function UpgradePrompt() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-      <div className="flex flex-col items-center gap-4 max-w-md text-center">
-        <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center">
-          <Lock className="h-8 w-8 text-indigo-500" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-foreground">Recurso do Plano Pago</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            O controle de estoque está disponível a partir do plano Pro.
-            Faça upgrade para gerenciar produtos, registrar entradas com nota fiscal e receber alertas de estoque baixo.
-          </p>
-        </div>
-        <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white">
-          Fazer Upgrade para Pro
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 function StatCard({ title, value, icon: Icon, color, bar }: {
   title: string
@@ -178,7 +158,7 @@ export default function EstoquePage() {
     )
   }
 
-  if (isFree) return <UpgradePrompt />
+  if (isFree) return <UpgradePrompt message="O controle de estoque está disponível a partir do plano Pro. Faça upgrade para gerenciar produtos, registrar entradas com nota fiscal e receber alertas de estoque baixo." />
 
   return (
     <div className="space-y-6 p-6">

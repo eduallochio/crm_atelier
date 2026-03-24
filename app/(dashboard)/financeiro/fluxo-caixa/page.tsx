@@ -7,6 +7,7 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTransactions } from '@/hooks/use-financial'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { TransactionDialog } from '@/components/financial/transaction-dialog'
 import { TransactionsTable } from '@/components/financial/transactions-table'
 import * as XLSX from 'xlsx'
@@ -27,6 +28,8 @@ export default function FluxoCaixaPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   
   const { data: transactions, isLoading } = useTransactions()
+  const { data: planUsage } = usePlanUsage()
+  const isFree = planUsage?.plan === 'free'
 
   // Atalhos rápidos de datas
   const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'lastMonth') => {
@@ -205,11 +208,11 @@ export default function FluxoCaixaPage() {
             Voltar
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel}>
+            <Button variant="outline" onClick={exportToExcel} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Exportar Excel
             </Button>
-            <Button variant="outline" onClick={exportToPDF}>
+            <Button variant="outline" onClick={exportToPDF} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
               <FileText className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>

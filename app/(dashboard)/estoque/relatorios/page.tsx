@@ -3,35 +3,17 @@
 import { useState, useMemo } from 'react'
 import {
   Download, AlertTriangle, Package, PackageOpen,
-  TrendingUp, BarChart3, Lock,
+  TrendingUp, BarChart3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
+import { UpgradePrompt } from '@/components/upgrade-prompt'
 import { useProducts, useStockEntries } from '@/hooks/use-inventory'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
-// ─── Upgrade prompt ────────────────────────────────────────────────────────────
-function UpgradePrompt() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-      <div className="flex flex-col items-center gap-4 max-w-md text-center">
-        <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center">
-          <Lock className="h-8 w-8 text-indigo-500" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Recurso do Plano Pago</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Os relatórios de estoque estão disponíveis a partir do plano Pro.
-          </p>
-        </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Fazer Upgrade para Pro</Button>
-      </div>
-    </div>
-  )
-}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -279,7 +261,7 @@ export default function RelatoriosEstoquePage() {
     )
   }
 
-  if (isFree) return <UpgradePrompt />
+  if (isFree) return <UpgradePrompt message="Os relatórios de estoque estão disponíveis a partir do plano Pro." />
 
   const activeReport = REPORTS.find(r => r.id === selected)!
 
