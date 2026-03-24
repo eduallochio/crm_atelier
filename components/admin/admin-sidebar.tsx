@@ -15,7 +15,6 @@ import {
   Settings,
   FileText,
   TrendingUp,
-  Globe,
   Flag,
   Activity,
   UserCog,
@@ -46,7 +45,6 @@ const menuGroups = [
   {
     label: 'Produto',
     items: [
-      { label: 'Landing Page', icon: Globe, href: '/admin/landing' },
       { label: 'Funcionalidades', icon: Flag, href: '/admin/feature-flags' },
       { label: 'Configurações', icon: Settings, href: '/admin/settings' },
     ],
