@@ -144,9 +144,6 @@ export default function HomePage() {
   const c = {
     heroTitle:    cms.hero_title    || 'Gerencie seu ateliê com eficiência',
     heroSubtitle: cms.hero_subtitle || 'Gerencie clientes, ordens de serviço e finanças em um único lugar.\nFeito especialmente para costureiras e proprietárias de ateliê.',
-    statsOrgs:    cms.stats_orgs    || '500+',
-    statsClients: cms.stats_clients || '10.000+',
-    statsOrders:  cms.stats_orders  || '50.000+',
     footerTagline: cms.footer_tagline || 'Meu Atelier',
   }
 
@@ -555,7 +552,7 @@ export default function HomePage() {
                 {[
                   { num: '5h', desc: 'economizadas por semana' },
                   { num: '95%', desc: 'menos erros no caixa' },
-                  { num: c.statsOrgs, desc: 'ateliês cadastrados' },
+                  { num: '250', desc: 'ordens de serviço no plano free' },
                   { num: 'R$ 0', desc: 'para começar hoje' },
                 ].map((s, i) => (
                   <div key={i} style={{
