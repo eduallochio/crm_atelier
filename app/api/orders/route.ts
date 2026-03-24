@@ -93,20 +93,21 @@ export async function POST(request: Request) {
     const body = await request.json()
     const pool = await getPool()
 
-    // Verificar limite do plano
+    // Verificar limite do plano (usa contador cumulativo — exclusões não resetam o limite)
     const [limitResult, limits] = await Promise.all([
       pool.request()
         .input('orgId', sql.UniqueIdentifier, user.organizationId)
         .query(`
-          SELECT o.[plan],
-            (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId) AS orders_count
-          FROM organizations o WHERE o.id = @orgId
+          SELECT o.[plan], ISNULL(m.total_orders_ever, 0) AS total_orders_ever
+          FROM organizations o
+          LEFT JOIN usage_metrics m ON m.organization_id = o.id
+          WHERE o.id = @orgId
         `),
       getPlanLimits(),
     ])
 
     const planRow = limitResult.recordset[0]
-    if (planRow?.plan === 'free' && planRow?.orders_count >= limits.max_orders_free) {
+    if (planRow?.plan === 'free' && planRow?.total_orders_ever >= limits.max_orders_free) {
       return NextResponse.json(
         limitExceededResponse('ordens de serviço', limits.max_orders_free),
         { status: 403 }
@@ -207,7 +208,9 @@ export async function POST(request: Request) {
         .input('orgId', sql.UniqueIdentifier, user.organizationId)
         .query(`
           UPDATE usage_metrics
-          SET orders_count = orders_count + 1, updated_at = GETDATE()
+          SET orders_count = orders_count + 1,
+              total_orders_ever = total_orders_ever + 1,
+              updated_at = GETDATE()
           WHERE organization_id = @orgId
         `)
 

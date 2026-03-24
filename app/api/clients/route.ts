@@ -33,20 +33,21 @@ export async function POST(request: Request) {
     const body = await request.json()
     const pool = await getPool()
 
-    // Verificar limite do plano
+    // Verificar limite do plano (usa contador cumulativo — exclusões não resetam o limite)
     const [limitResult, limits] = await Promise.all([
       pool.request()
         .input('orgId', sql.UniqueIdentifier, user.organizationId)
         .query(`
-          SELECT o.[plan],
-            (SELECT COUNT(*) FROM org_clients WHERE organization_id = @orgId) AS clients_count
-          FROM organizations o WHERE o.id = @orgId
+          SELECT o.[plan], ISNULL(m.total_clients_ever, 0) AS total_clients_ever
+          FROM organizations o
+          LEFT JOIN usage_metrics m ON m.organization_id = o.id
+          WHERE o.id = @orgId
         `),
       getPlanLimits(),
     ])
 
     const planRow = limitResult.recordset[0]
-    if (planRow?.plan === 'free' && planRow?.clients_count >= limits.max_clients_free) {
+    if (planRow?.plan === 'free' && planRow?.total_clients_ever >= limits.max_clients_free) {
       return NextResponse.json(
         limitExceededResponse('clientes', limits.max_clients_free),
         { status: 403 }
@@ -87,7 +88,9 @@ export async function POST(request: Request) {
       .input('orgId', sql.UniqueIdentifier, user.organizationId)
       .query(`
         UPDATE usage_metrics
-        SET clients_count = clients_count + 1, updated_at = GETDATE()
+        SET clients_count = clients_count + 1,
+            total_clients_ever = total_clients_ever + 1,
+            updated_at = GETDATE()
         WHERE organization_id = @orgId
       `)
 

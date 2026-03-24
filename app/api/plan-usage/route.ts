@@ -14,10 +14,11 @@ export async function GET() {
         .query(`
           SELECT
             o.[plan],
-            (SELECT COUNT(*) FROM org_clients       WHERE organization_id = @orgId) AS clients_count,
-            (SELECT COUNT(*) FROM org_services      WHERE organization_id = @orgId) AS services_count,
-            (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId) AS orders_count
+            ISNULL(m.total_clients_ever, 0) AS clients_count,
+            ISNULL(m.total_orders_ever,  0) AS orders_count,
+            (SELECT COUNT(*) FROM org_services WHERE organization_id = @orgId) AS services_count
           FROM organizations o
+          LEFT JOIN usage_metrics m ON m.organization_id = o.id
           WHERE o.id = @orgId
         `),
       getPlanLimits(),
