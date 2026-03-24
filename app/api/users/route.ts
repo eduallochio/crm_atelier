@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { getPool, sql } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { getPlanLimits } from '@/lib/plan-limits'
 
 export async function GET() {
   try {
@@ -59,10 +60,12 @@ export async function POST(req: Request) {
     }
 
     // Verificar limite do plano
-    const planResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT [plan] FROM organizations WHERE id = @orgId`)
+    const [planResult, limits] = await Promise.all([
+      pool.request()
+        .input('orgId', sql.UniqueIdentifier, user.organizationId)
+        .query(`SELECT [plan] FROM organizations WHERE id = @orgId`),
+      getPlanLimits(),
+    ])
 
     const plan = planResult.recordset[0]?.plan ?? 'free'
 
@@ -72,9 +75,9 @@ export async function POST(req: Request) {
         .input('orgId', sql.UniqueIdentifier, user.organizationId)
         .query(`SELECT COUNT(*) AS cnt FROM users WHERE organization_id = @orgId`)
 
-      if (countResult.recordset[0]?.cnt >= 1) {
+      if (countResult.recordset[0]?.cnt >= limits.max_users_free) {
         return NextResponse.json({
-          error: 'O plano gratuito permite apenas 1 usuário. Faça upgrade para adicionar mais.',
+          error: `O plano gratuito permite apenas ${limits.max_users_free} usuário(s). Faça upgrade para o plano Pro para adicionar mais.`,
         }, { status: 403 })
       }
     }

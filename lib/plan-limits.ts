@@ -10,8 +10,8 @@ export interface PlanLimits {
 const DEFAULTS: PlanLimits = {
   max_clients_free: 50,
   max_services_free: 20,
-  max_orders_free: 100,
-  max_users_free: 3,
+  max_orders_free: 250,
+  max_users_free: 1,
 }
 
 let cached: { limits: PlanLimits; at: number } | null = null
