@@ -1043,6 +1043,12 @@ export default function HomePage() {
                   {l.label}
                 </Link>
               ))}
+              <button
+                onClick={() => { localStorage.removeItem('cookie-consent'); localStorage.removeItem('cookie-consent-date'); window.location.reload() }}
+                style={{ fontSize: 12, color: 'rgba(247,240,230,0.3)', letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                Cookies
+              </button>
             </div>
             <p style={{ fontSize: 12, color: 'rgba(247,240,230,0.25)', margin: 0 }}>
               © {new Date().getFullYear()} Meu Atelier
