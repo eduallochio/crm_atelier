@@ -24,9 +24,11 @@ export function useOrganizationSettings() {
     queryKey: ['organization-settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings/organization')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar configurações da organização')
       return res.json() as Promise<OrganizationSettings>
     },
+    retry: false,
   })
 }
 
@@ -54,9 +56,11 @@ export function useCustomizationSettings() {
     queryKey: ['customization-settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings/customization')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar configurações de customização')
       return res.json() as Promise<CustomizationSettings>
     },
+    retry: false,
   })
 }
 
@@ -84,9 +88,11 @@ export function useFinancialSettings() {
     queryKey: ['financial-settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings/financial')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar configurações financeiras')
       return res.json() as Promise<FinancialSettings>
     },
+    retry: false,
   })
 }
 
@@ -114,9 +120,11 @@ export function useNotificationSettings() {
     queryKey: ['notification-settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings/notifications')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar configurações de notificações')
       return res.json() as Promise<NotificationSettings>
     },
+    retry: false,
   })
 }
 
@@ -148,9 +156,11 @@ export function useOrderSettings() {
     queryKey: ['order-settings'],
     queryFn: async () => {
       const res = await fetch('/api/settings/orders')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar configurações de ordens')
       return res.json() as Promise<OrderSettings>
     },
+    retry: false,
   })
 }
 
@@ -182,9 +192,11 @@ export function useSystemPreferences() {
     queryKey: ['system-preferences'],
     queryFn: async () => {
       const res = await fetch('/api/settings/system')
+      if (res.status === 401 || res.status === 403) return null
       if (!res.ok) throw new Error('Erro ao buscar preferências do sistema')
       return res.json() as Promise<SystemPreferences>
     },
+    retry: false,
   })
 }
 
