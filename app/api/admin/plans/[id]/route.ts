@@ -48,8 +48,11 @@ export async function PUT(
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    return handleAuthError(error) ?? (logServerError('[admin/plans/[id]] PUT:', error); console.error('[admin/plans/[id]] PUT:', error),
-      NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
+    const authErr = handleAuthError(error)
+    if (authErr) return authErr
+    logServerError('[admin/plans/[id]] PUT:', error)
+    console.error('[admin/plans/[id]] PUT:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
@@ -65,7 +68,10 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    return handleAuthError(error) ?? (logServerError('[admin/plans/[id]] DELETE:', error); console.error('[admin/plans/[id]] DELETE:', error),
-      NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
+    const authErr = handleAuthError(error)
+    if (authErr) return authErr
+    logServerError('[admin/plans/[id]] DELETE:', error)
+    console.error('[admin/plans/[id]] DELETE:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

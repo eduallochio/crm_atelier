@@ -43,8 +43,11 @@ export async function GET() {
 
     return NextResponse.json(result)
   } catch (error) {
-    return handleAuthError(error) ?? (logServerError('[admin/plans] GET:', error); console.error('[admin/plans] GET:', error),
-      NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
+    const authErr = handleAuthError(error)
+    if (authErr) return authErr
+    logServerError('[admin/plans] GET:', error)
+    console.error('[admin/plans] GET:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
@@ -75,7 +78,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ id: inserted[0].id }, { status: 201 })
   } catch (error) {
-    return handleAuthError(error) ?? (logServerError('[admin/plans] POST:', error); console.error('[admin/plans] POST:', error),
-      NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
+    const authErr = handleAuthError(error)
+    if (authErr) return authErr
+    logServerError('[admin/plans] POST:', error)
+    console.error('[admin/plans] POST:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
