@@ -144,6 +144,7 @@ export function Sidebar() {
     organization: meData.organizationName,
   } : null
   const orgSettings = meData ? { name: meData.organizationName, logo_url: meData.logoUrl } : null
+  const isMaster: boolean = meData?.isMaster === true
   const badges: Record<string, number> = meData?.badges ?? {}
   const alerts: Record<string, number> = meData?.alerts ?? {}
 
@@ -480,6 +481,19 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
+
+        {/* ── Admin button (master only) ── */}
+        {isMaster && (
+          <div className="px-2.5 pb-1">
+            <Link
+              href="/admin"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              <Shield className="h-3.5 w-3.5 shrink-0" />
+              Painel Admin
+            </Link>
+          </div>
+        )}
 
         {/* ── Tour button ── */}
         <div className="px-2.5 pb-1">

@@ -85,6 +85,7 @@ export async function GET() {
     const response = NextResponse.json({
       name: user.name,
       email: user.email,
+      isMaster: user.isMaster,
       organizationName: org?.name ?? 'Meu Atelier',
       logoUrl: org?.logoUrl ?? null,
       badges: {
