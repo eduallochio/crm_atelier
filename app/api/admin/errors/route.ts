@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { adminErrorLogs } from '@/lib/db/schema'
-import { desc, eq, and, isNull } from 'drizzle-orm'
-import { requireMaster } from '@/lib/auth/session'
-import { getSessionUser } from '@/lib/auth/session'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { desc, eq, and } from 'drizzle-orm'
+import { requireMaster, getSessionUser } from '@/lib/auth/session'
 
 // POST — recebe erro do frontend (não exige auth, usa service role para gravar)
 export async function POST(request: Request) {

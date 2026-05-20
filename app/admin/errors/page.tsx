@@ -52,15 +52,19 @@ export default function AdminErrorsPage() {
   const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('open')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  const { data: errors = [], isLoading, refetch } = useQuery<ErrorLog[]>({
+  const { data: errors = [], isLoading, isError, error: queryError, refetch } = useQuery<ErrorLog[]>({
     queryKey: ['admin-errors', filter],
     queryFn: async () => {
       const param = filter === 'open' ? '?resolved=false' : filter === 'resolved' ? '?resolved=true' : ''
       const res = await fetch(`/api/admin/errors${param}`)
-      if (!res.ok) throw new Error('Erro ao carregar')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? `HTTP ${res.status}`)
+      }
       return res.json()
     },
     refetchInterval: 30_000,
+    retry: 1,
   })
 
   const resolve = useMutation({
@@ -151,6 +155,16 @@ export default function AdminErrorsPage() {
         <div className="flex items-center justify-center py-16 text-gray-400">
           <RefreshCw className="w-5 h-5 animate-spin mr-2" />
           Carregando...
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <AlertTriangle className="w-10 h-10 text-red-400" />
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Erro ao carregar</p>
+          <p className="text-xs text-gray-500">{(queryError as Error)?.message}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2 max-w-sm text-center">
+            Se a mensagem for "relation does not exist", execute a migration SQL no Supabase Dashboard antes de usar esta página.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>Tentar novamente</Button>
         </div>
       ) : errors.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
