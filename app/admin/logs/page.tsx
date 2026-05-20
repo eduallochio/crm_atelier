@@ -241,11 +241,7 @@ export default function AdminLogsPage() {
             <div className="flex flex-col items-center justify-center py-16 text-zinc-500 gap-3">
               <FileText className="h-10 w-10 opacity-30" />
               <p className="text-sm">Nenhum log encontrado</p>
-              {!availableActions.length && (
-                <p className="text-xs text-zinc-600 max-w-sm text-center">
-                  Execute o arquivo <code className="text-zinc-400">sql/04-admin-tables.sql</code> no banco para criar a tabela de logs.
-                </p>
-              )}
+              <p className="text-xs text-zinc-600">As ações realizadas no painel admin aparecerão aqui.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
