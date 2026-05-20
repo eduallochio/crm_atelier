@@ -609,10 +609,10 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                         <td className="px-3 py-2">{item.service_nome}</td>
                         <td className="px-3 py-2 text-center">{item.quantidade}</td>
                         <td className="px-3 py-2 text-right">
-                          R$ {item.valor_unitario.toFixed(2)}
+                          R$ {Number(item.valor_unitario).toFixed(2)}
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
-                          R$ {item.valor_total.toFixed(2)}
+                          R$ {Number(item.valor_total).toFixed(2)}
                         </td>
                         <td className="px-3 py-2 text-right">
                           <Button

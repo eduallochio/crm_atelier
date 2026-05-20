@@ -344,7 +344,7 @@ export default function OrdensServicoPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Valor Total</p>
                     <p className="font-medium text-green-600 dark:text-green-400">
-                      R$ {currentSelectedOrder.valor_total.toFixed(2)}
+                      R$ {Number(currentSelectedOrder.valor_total).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -442,7 +442,7 @@ export default function OrdensServicoPage() {
                               <td className="px-3 py-2 text-foreground">{item.service_nome}</td>
                               <td className="px-3 py-2 text-center text-foreground">{item.quantidade}</td>
                               <td className="px-3 py-2 text-right text-foreground">
-                                R$ {item.valor_total.toFixed(2)}
+                                R$ {Number(item.valor_total).toFixed(2)}
                               </td>
                             </tr>
                           ))}

@@ -115,7 +115,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
         reset({
           nome: service.nome,
           descricao: service.descricao || '',
-          preco: service.preco.toFixed(2).replace('.', ','),
+          preco: Number(service.preco).toFixed(2).replace('.', ','),
           categoria: service.categoria || '',
           tempo_estimado: service.tempo_estimado || '',
           materiais_produtos: parsed,
@@ -344,7 +344,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                                   <span className="flex-1 truncate">{p.nome}</span>
                                   {p.preco_custo ? (
                                     <span className="text-xs text-muted-foreground ml-2">
-                                      R$ {p.preco_custo.toFixed(2).replace('.', ',')}
+                                      R$ {Number(p.preco_custo).toFixed(2).replace('.', ',')}
                                     </span>
                                   ) : null}
                                 </CommandItem>
@@ -388,7 +388,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                         </span>
                         {(m.preco_custo ?? 0) > 0 && (
                           <span className="text-muted-foreground text-xs mr-3 whitespace-nowrap">
-                            R$ {((m.preco_custo ?? 0) * m.quantidade).toFixed(2).replace('.', ',')}
+                            R$ {(Number(m.preco_custo ?? 0) * m.quantidade).toFixed(2).replace('.', ',')}
                           </span>
                         )}
                         <Button

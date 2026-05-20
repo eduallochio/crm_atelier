@@ -118,7 +118,7 @@ export default function EstoquePage() {
         Number(p.quantidade_minima).toLocaleString('pt-BR', { maximumFractionDigits: 3 }),
         p.unidade,
         p.preco_custo != null ? `R$ ${Number(p.preco_custo).toFixed(2)}` : '—',
-        p.preco_custo != null ? `R$ ${(p.preco_custo * p.quantidade_atual).toFixed(2)}` : '—',
+        p.preco_custo != null ? `R$ ${(Number(p.preco_custo) * Number(p.quantidade_atual)).toFixed(2)}` : '—',
         p.quantidade_minima > 0 && p.quantidade_atual <= p.quantidade_minima ? 'BAIXO' : 'OK',
       ]),
       styles: { fontSize: 8, cellPadding: 3 },

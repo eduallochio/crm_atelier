@@ -81,7 +81,7 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                   <span className="text-xs font-medium">Total Gasto</span>
                 </div>
                 <div className="text-2xl font-bold text-green-900">
-                  R$ {data.stats.totalSpent.toFixed(2)}
+                  R$ {Number(data.stats.totalSpent).toFixed(2)}
                 </div>
               </div>
 
@@ -129,7 +129,7 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-green-600">
-                          R$ {order.valor_total.toFixed(2)}
+                          R$ {Number(order.valor_total).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           {format(new Date(order.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
@@ -145,7 +145,7 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                             <div key={item.id} className="text-sm text-gray-700 flex justify-between">
                               <span>• {item.service_nome}</span>
                               <span className="text-gray-500">
-                                {item.quantidade}x R$ {item.valor_unitario.toFixed(2)}
+                                {item.quantidade}x R$ {Number(item.valor_unitario).toFixed(2)}
                               </span>
                             </div>
                           ))}
