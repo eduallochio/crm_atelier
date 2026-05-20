@@ -1,23 +1,31 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { organizations } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT * FROM organizations WHERE id = @orgId`)
+    const result = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId))
+      .limit(1)
 
-    if (result.recordset.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
     }
 
-    const org = result.recordset[0]
-    return NextResponse.json({ ...org, organization_id: org.id })
+    const org = result[0]
+    return NextResponse.json({
+      ...org,
+      organization_id: org.id,
+      // Mapeia camelCase Drizzle → snake_case esperado pelo form
+      zip_code:  org.zipCode  ?? null,
+      logo_url:  org.logoUrl  ?? null,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -31,51 +39,37 @@ export async function PUT(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('name', sql.NVarChar, body.name)
-      .input('email', sql.NVarChar, body.email || null)
-      .input('phone', sql.NVarChar, body.phone || null)
-      .input('cnpj', sql.NVarChar, body.cnpj || null)
-      .input('address', sql.NVarChar, body.address || null)
-      .input('city', sql.NVarChar, body.city || null)
-      .input('state', sql.NVarChar, body.state || null)
-      .input('zipCode', sql.NVarChar, body.zip_code || null)
-      .input('website', sql.NVarChar, body.website || null)
-      .input('logoUrl', sql.NVarChar, body.logo_url || null)
-      .input('instagram', sql.NVarChar, body.instagram || null)
-      .input('facebook', sql.NVarChar, body.facebook || null)
-      .input('twitter', sql.NVarChar, body.twitter || null)
-      .input('tiktok', sql.NVarChar, body.tiktok || null)
-      .input('kwai', sql.NVarChar, body.kwai || null)
-      .query(`
-        UPDATE organizations
-        SET
-          name = @name,
-          email = @email,
-          phone = @phone,
-          cnpj = @cnpj,
-          address = @address,
-          city = @city,
-          state = @state,
-          zip_code = @zipCode,
-          website = @website,
-          logo_url = @logoUrl,
-          instagram = @instagram,
-          facebook = @facebook,
-          twitter = @twitter,
-          tiktok = @tiktok,
-          kwai = @kwai,
-          updated_at = GETDATE()
-        OUTPUT INSERTED.*
-        WHERE id = @orgId
-      `)
+    const updated = await db
+      .update(organizations)
+      .set({
+        name:      body.name,
+        email:     body.email     || null,
+        phone:     body.phone     || null,
+        cnpj:      body.cnpj      || null,
+        address:   body.address   || null,
+        city:      body.city      || null,
+        state:     body.state     || null,
+        zipCode:   body.zip_code  || null,
+        website:   body.website   || null,
+        logoUrl:   body.logo_url  || null,
+        instagram: body.instagram || null,
+        facebook:  body.facebook  || null,
+        twitter:   body.twitter   || null,
+        tiktok:    body.tiktok    || null,
+        kwai:      body.kwai      || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, user.organizationId))
+      .returning()
 
-    const org = result.recordset[0]
-    return NextResponse.json({ ...org, organization_id: org.id })
+    const org = updated[0]
+    return NextResponse.json({
+      ...org,
+      organization_id: org.id,
+      zip_code: org.zipCode  ?? null,
+      logo_url: org.logoUrl  ?? null,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

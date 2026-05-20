@@ -1,37 +1,35 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgStockEntries, orgStockEntryItems, organizations } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const orgRes = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query('SELECT [plan] FROM organizations WHERE id = @orgId')
-    if (orgRes.recordset[0]?.plan === 'free') {
+    const [org] = await db
+      .select({ plan: organizations.plan })
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId))
+    if (org?.plan === 'free') {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
 
-    const entryRes = await pool.request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT e.*, s.nome as fornecedor_nome
-        FROM org_stock_entries e
-        LEFT JOIN org_suppliers s ON s.id = e.supplier_id
-        WHERE e.id = @id AND e.organization_id = @orgId
-      `)
-    const entry = entryRes.recordset[0]
+    const [entry] = await db
+      .select()
+      .from(orgStockEntries)
+      .where(and(eq(orgStockEntries.id, id), eq(orgStockEntries.organizationId, user.organizationId)))
+
     if (!entry) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
-    const itemsRes = await pool.request()
-      .input('entry_id', sql.UniqueIdentifier, id)
-      .query('SELECT * FROM org_stock_entry_items WHERE entry_id = @entry_id')
+    const items = await db
+      .select()
+      .from(orgStockEntryItems)
+      .where(eq(orgStockEntryItems.entryId, id))
 
-    return NextResponse.json({ ...entry, itens: itemsRes.recordset })
+    return NextResponse.json({ ...entry, itens: items })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

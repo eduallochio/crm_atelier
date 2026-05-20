@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { adminLogs } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
+
+// admin_notes table does not exist in the Drizzle schema.
+// Notes are stored as admin_logs entries with action = 'NOTE' and resource_type = 'org_note'.
+// This keeps the feature functional without requiring a new migration.
 
 export async function GET(
   _request: Request,
@@ -9,19 +15,30 @@ export async function GET(
   try {
     await requireMaster()
     const { id } = await params
-    const pool = await getPool()
 
     try {
-      const result = await pool
-        .request()
-        .input('orgId', sql.UniqueIdentifier, id)
-        .query(`
-          SELECT id, content, tags, is_important, admin_email, created_at
-          FROM admin_notes
-          WHERE organization_id = @orgId
-          ORDER BY created_at DESC
-        `)
-      return NextResponse.json(result.recordset)
+      const rows = await db
+        .select()
+        .from(adminLogs)
+        .where(eq(adminLogs.resourceId, id))
+        .orderBy(desc(adminLogs.createdAt))
+        .limit(50)
+
+      const notes = rows
+        .filter((r) => r.action === 'NOTE')
+        .map((r) => {
+          const details = (r.detailsJson ?? {}) as Record<string, unknown>
+          return {
+            id:           r.id,
+            content:      details.content as string ?? r.description,
+            tags:         details.tags ?? [],
+            is_important: details.is_important ?? false,
+            admin_email:  r.adminEmail,
+            created_at:   r.createdAt,
+          }
+        })
+
+      return NextResponse.json(notes)
     } catch {
       return NextResponse.json([])
     }
@@ -41,26 +58,33 @@ export async function POST(
     const user = await requireMaster()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : null
+    const tags = Array.isArray(body.tags) ? body.tags : []
+    const isImportant = Boolean(body.is_important)
 
-    const result = await pool
-      .request()
-      .input('orgId',       sql.UniqueIdentifier, id)
-      .input('content',     sql.NVarChar,         body.content)
-      .input('tags',        sql.NVarChar,         tags)
-      .input('isImportant', sql.Bit,              body.is_important ?? false)
-      .input('createdBy',   sql.UniqueIdentifier, user.id)
-      .input('adminEmail',  sql.NVarChar,         user.email ?? null)
-      .query(`
-        INSERT INTO admin_notes (organization_id, content, tags, is_important, created_by, admin_email)
-        OUTPUT INSERTED.id, INSERTED.content, INSERTED.tags, INSERTED.is_important,
-               INSERTED.admin_email, INSERTED.created_at
-        VALUES (@orgId, @content, @tags, @isImportant, @createdBy, @adminEmail)
-      `)
+    const inserted = await db.insert(adminLogs).values({
+      action:       'NOTE',
+      resourceType: 'org_note',
+      resourceId:   id,
+      description:  body.content,
+      adminEmail:   user.email ?? null,
+      detailsJson:  {
+        content:      body.content,
+        tags,
+        is_important: isImportant,
+      },
+    }).returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    const r = inserted[0]
+    const details = (r.detailsJson ?? {}) as Record<string, unknown>
+    return NextResponse.json({
+      id:           r.id,
+      content:      details.content as string,
+      tags:         details.tags,
+      is_important: details.is_important,
+      admin_email:  r.adminEmail,
+      created_at:   r.createdAt,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -78,16 +102,10 @@ export async function DELETE(
     await requireMaster()
     const { searchParams } = new URL(request.url)
     const noteId = searchParams.get('noteId')
-    const { id } = await params
-    const pool = await getPool()
 
     if (!noteId) return NextResponse.json({ error: 'noteId required' }, { status: 400 })
 
-    await pool
-      .request()
-      .input('noteId', sql.UniqueIdentifier, noteId)
-      .input('orgId', sql.UniqueIdentifier, id)
-      .query(`DELETE FROM admin_notes WHERE id = @noteId AND organization_id = @orgId`)
+    await db.delete(adminLogs).where(eq(adminLogs.id, noteId))
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getPool } from '@/lib/db'
+import { db } from '@/lib/db'
+import { adminSystemSettings } from '@/lib/db/schema'
+import { inArray } from 'drizzle-orm'
 
 const KEYS = [
   'hero_title', 'hero_subtitle', 'hero_cta_primary', 'hero_cta_secondary',
@@ -15,13 +17,14 @@ const KEYS = [
 
 export async function GET() {
   try {
-    const pool = await getPool()
-    const inClause = KEYS.map((k) => `'${k}'`).join(',')
-    const result = await pool.request().query(
-      `SELECT [key], value FROM admin_system_settings WHERE [key] IN (${inClause})`
-    )
+    const rows = await db
+      .select({ key: adminSystemSettings.key, value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(inArray(adminSystemSettings.key, KEYS))
+
     const data: Record<string, string> = {}
-    for (const row of result.recordset) data[row.key as string] = row.value as string
+    for (const row of rows) data[row.key] = row.value
+
     return NextResponse.json(data, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     })

@@ -130,7 +130,7 @@ export function ActivityTab({ organizationId }: ActivityTabProps) {
                     {activity.description}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-500">
-                    {format(new Date(activity.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {activity.created_at ? format(new Date(activity.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">

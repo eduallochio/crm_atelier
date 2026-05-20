@@ -1,25 +1,75 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
-import bcrypt from 'bcryptjs'
-import { getPlanLimits } from '@/lib/plan-limits'
+import { db } from '@/lib/db'
+import { organizations, profiles, adminSystemSettings } from '@/lib/db/schema'
+import { eq, desc, inArray } from 'drizzle-orm'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+
+const DEFAULTS = {
+  max_users_free: 1,
+}
+
+async function getMaxUsersFree(): Promise<number> {
+  try {
+    const rows = await db
+      .select({ value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(eq(adminSystemSettings.key, 'max_users_free'))
+      .limit(1)
+    const val = parseInt(rows[0]?.value ?? '')
+    return !isNaN(val) && val > 0 ? val : DEFAULTS.max_users_free
+  } catch {
+    return DEFAULTS.max_users_free
+  }
+}
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
+    const orgId = user.organizationId
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT id, full_name, email, role, is_owner, created_at
-        FROM users
-        WHERE organization_id = @orgId
-        ORDER BY is_owner DESC, created_at ASC
-      `)
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    return NextResponse.json(result.recordset)
+    // Get profiles for this org
+    const profileRows = await db
+      .select({
+        id: profiles.id,
+        fullName: profiles.fullName,
+        role: profiles.role,
+        isOwner: profiles.isOwner,
+        createdAt: profiles.createdAt,
+      })
+      .from(profiles)
+      .where(eq(profiles.organizationId, orgId))
+      .orderBy(desc(profiles.isOwner), profiles.createdAt)
+
+    // Get emails from Supabase auth
+    const ids = profileRows.map((p) => p.id)
+    let emailMap: Record<string, string> = {}
+    if (ids.length > 0) {
+      const { data } = await supabase.auth.admin.listUsers()
+      if (data?.users) {
+        for (const u of data.users) {
+          if (ids.includes(u.id)) {
+            emailMap[u.id] = u.email ?? ''
+          }
+        }
+      }
+    }
+
+    const result = profileRows.map((p) => ({
+      id: p.id,
+      full_name: p.fullName,
+      email: emailMap[p.id] ?? '',
+      role: p.role,
+      is_owner: p.isOwner,
+      created_at: p.createdAt,
+    }))
+
+    return NextResponse.json(result)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -47,57 +97,68 @@ export async function POST(req: Request) {
     const validRoles = ['admin', 'member']
     const safeRole = validRoles.includes(role) ? role : 'member'
 
-    const pool = await getPool()
-
-    // Verificar se o email já existe
-    const existing = await pool
-      .request()
-      .input('email', sql.NVarChar, email.toLowerCase().trim())
-      .query(`SELECT id FROM users WHERE email = @email`)
-
-    if (existing.recordset.length > 0) {
-      return NextResponse.json({ error: 'Este email já está em uso' }, { status: 409 })
-    }
-
     // Verificar limite do plano
-    const [planResult, limits] = await Promise.all([
-      pool.request()
-        .input('orgId', sql.UniqueIdentifier, user.organizationId)
-        .query(`SELECT [plan] FROM organizations WHERE id = @orgId`),
-      getPlanLimits(),
+    const [orgRows, maxUsers] = await Promise.all([
+      db.select({ plan: organizations.plan })
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1),
+      getMaxUsersFree(),
     ])
 
-    const plan = planResult.recordset[0]?.plan ?? 'free'
+    const plan = orgRows[0]?.plan ?? 'free'
 
     if (plan === 'free') {
-      const countResult = await pool
-        .request()
-        .input('orgId', sql.UniqueIdentifier, user.organizationId)
-        .query(`SELECT COUNT(*) AS cnt FROM users WHERE organization_id = @orgId`)
+      const countRows = await db
+        .select({ count: profiles.id })
+        .from(profiles)
+        .where(eq(profiles.organizationId, user.organizationId))
 
-      if (countResult.recordset[0]?.cnt >= limits.max_users_free) {
+      if (countRows.length >= maxUsers) {
         return NextResponse.json({
-          error: `O plano gratuito permite apenas ${limits.max_users_free} usuário(s). Faça upgrade para o plano Pro para adicionar mais.`,
+          error: `O plano gratuito permite apenas ${maxUsers} usuário(s). Faça upgrade para o plano Pro para adicionar mais.`,
         }, { status: 403 })
       }
     }
 
-    const passwordHash = await bcrypt.hash(password, 12)
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    const insertResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('fullName', sql.NVarChar, full_name.trim())
-      .input('email', sql.NVarChar, email.toLowerCase().trim())
-      .input('passwordHash', sql.NVarChar, passwordHash)
-      .input('role', sql.NVarChar, safeRole)
-      .query(`
-        INSERT INTO users (organization_id, full_name, email, password_hash, role, is_owner)
-        OUTPUT INSERTED.id, INSERTED.full_name, INSERTED.email, INSERTED.role, INSERTED.is_owner, INSERTED.created_at
-        VALUES (@orgId, @fullName, @email, @passwordHash, @role, 0)
-      `)
+    // Criar usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: full_name.trim() },
+    })
 
-    return NextResponse.json(insertResult.recordset[0], { status: 201 })
+    if (authError) {
+      if (authError.message.includes('already') || authError.message.includes('duplicate')) {
+        return NextResponse.json({ error: 'Este email já está em uso' }, { status: 409 })
+      }
+      throw authError
+    }
+
+    const newUserId = authData.user.id
+
+    // Criar perfil na tabela profiles
+    await db.insert(profiles).values({
+      id: newUserId,
+      organizationId: user.organizationId,
+      fullName: full_name.trim(),
+      role: safeRole,
+      isOwner: false,
+    })
+
+    return NextResponse.json({
+      id: newUserId,
+      full_name: full_name.trim(),
+      email: email.toLowerCase().trim(),
+      role: safeRole,
+      is_owner: false,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

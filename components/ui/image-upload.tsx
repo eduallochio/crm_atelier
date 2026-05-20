@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { compressOrderImage } from '@/lib/utils/compress-image'
 
 interface ImageUploadProps {
   orderId?: string
@@ -32,8 +33,9 @@ export function ImageUpload({
       const uploadedUrls: string[] = []
 
       for (const file of acceptedFiles) {
+        const compressed = await compressOrderImage(file)
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', compressed)
 
         const res = await fetch('/api/upload/images', { method: 'POST', body: formData })
         if (!res.ok) {

@@ -1,39 +1,83 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgClients, orgServiceOrders } from '@/lib/db/schema'
+import { eq, and, count, gte, isNotNull, ne, sql as drizzleSql } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const currentMonth = now.getMonth() + 1
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('startOfMonth', sql.DateTime2, startOfMonth)
-      .input('currentMonth', sql.Int, currentMonth)
-      .query(`
-        SELECT
-          (SELECT COUNT(*) FROM org_clients WHERE organization_id = @orgId) AS total_clients,
-          (SELECT COUNT(*) FROM org_clients WHERE organization_id = @orgId AND created_at >= @startOfMonth) AS new_this_month,
-          (SELECT COUNT(*) FROM org_clients WHERE organization_id = @orgId AND telefone IS NOT NULL AND telefone <> '') AS with_phone,
-          (SELECT COUNT(DISTINCT client_id) FROM org_service_orders
-            WHERE organization_id = @orgId AND status IN ('pendente', 'em_andamento')) AS with_active_orders,
-          (SELECT COUNT(*) FROM org_clients WHERE organization_id = @orgId
-            AND data_nascimento IS NOT NULL AND MONTH(data_nascimento) = @currentMonth) AS birthday_this_month
-      `)
+    const [
+      [totalRow],
+      [newThisMonthRow],
+      [withPhoneRow],
+      [withActiveOrdersRow],
+      [birthdayRow],
+    ] = await Promise.all([
+      // Total clients
+      db
+        .select({ cnt: count() })
+        .from(orgClients)
+        .where(eq(orgClients.organizationId, user.organizationId)),
 
-    const row = result.recordset[0]
+      // New this month
+      db
+        .select({ cnt: count() })
+        .from(orgClients)
+        .where(
+          and(
+            eq(orgClients.organizationId, user.organizationId),
+            gte(orgClients.createdAt, startOfMonth)
+          )
+        ),
+
+      // With phone
+      db
+        .select({ cnt: count() })
+        .from(orgClients)
+        .where(
+          and(
+            eq(orgClients.organizationId, user.organizationId),
+            isNotNull(orgClients.telefone),
+            ne(orgClients.telefone, '')
+          )
+        ),
+
+      // With active orders (distinct client_id)
+      db
+        .select({ cnt: drizzleSql<number>`COUNT(DISTINCT ${orgServiceOrders.clientId})` })
+        .from(orgServiceOrders)
+        .where(
+          and(
+            eq(orgServiceOrders.organizationId, user.organizationId),
+            drizzleSql`${orgServiceOrders.status} IN ('pendente', 'em_andamento')`
+          )
+        ),
+
+      // Birthday this month
+      db
+        .select({ cnt: count() })
+        .from(orgClients)
+        .where(
+          and(
+            eq(orgClients.organizationId, user.organizationId),
+            isNotNull(orgClients.dataNascimento),
+            drizzleSql`EXTRACT(MONTH FROM ${orgClients.dataNascimento}) = ${currentMonth}`
+          )
+        ),
+    ])
+
     return NextResponse.json({
-      totalClients: row.total_clients,
-      newThisMonth: row.new_this_month,
-      withPhone: row.with_phone,
-      withActiveOrders: row.with_active_orders,
-      birthdayThisMonth: row.birthday_this_month,
+      totalClients: Number(totalRow?.cnt ?? 0),
+      newThisMonth: Number(newThisMonthRow?.cnt ?? 0),
+      withPhone: Number(withPhoneRow?.cnt ?? 0),
+      withActiveOrders: Number(withActiveOrdersRow?.cnt ?? 0),
+      birthdayThisMonth: Number(birthdayRow?.cnt ?? 0),
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

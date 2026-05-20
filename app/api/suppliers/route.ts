@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgSuppliers } from '@/lib/db/schema'
+import { eq, asc } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT * FROM org_suppliers
-        WHERE organization_id = @orgId
-        ORDER BY nome ASC
-      `)
+    const rows = await db
+      .select()
+      .from(orgSuppliers)
+      .where(eq(orgSuppliers.organizationId, user.organizationId))
+      .orderBy(asc(orgSuppliers.nome))
 
-    return NextResponse.json(result.recordset)
+    return NextResponse.json(rows)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -30,30 +28,23 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('nome', sql.NVarChar, body.nome)
-      .input('contato', sql.NVarChar, body.contato || null)
-      .input('telefone', sql.NVarChar, body.telefone || null)
-      .input('email', sql.NVarChar, body.email || null)
-      .input('cnpj', sql.NVarChar, body.cnpj || body.cpf_cnpj || null)
-      .input('endereco', sql.NVarChar, body.endereco || null)
-      .input('observacoes', sql.NVarChar, body.observacoes || null)
-      .input('ativo', sql.Bit, body.ativo !== false ? 1 : 0)
-      .query(`
-        INSERT INTO org_suppliers (
-          organization_id, nome, contato, telefone, email, cnpj, endereco, observacoes, ativo
-        )
-        OUTPUT INSERTED.*
-        VALUES (
-          @orgId, @nome, @contato, @telefone, @email, @cnpj, @endereco, @observacoes, @ativo
-        )
-      `)
+    const [row] = await db
+      .insert(orgSuppliers)
+      .values({
+        organizationId: user.organizationId,
+        nome:           body.nome,
+        contato:        body.contato    || null,
+        telefone:       body.telefone   || null,
+        email:          body.email      || null,
+        cnpj:           body.cnpj || body.cpf_cnpj || null,
+        endereco:       body.endereco   || null,
+        observacoes:    body.observacoes || null,
+        ativo:          body.ativo !== false,
+      })
+      .returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

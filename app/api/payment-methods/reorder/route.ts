@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgPaymentMethods } from '@/lib/db/schema'
+import { and, eq } from 'drizzle-orm'
 
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
     const methods: { id: string; display_order: number }[] = Array.isArray(body) ? body : []
 
     for (const { id, display_order } of methods) {
-      await pool
-        .request()
-        .input('id',           sql.UniqueIdentifier, id)
-        .input('orgId',        sql.UniqueIdentifier, user.organizationId)
-        .input('displayOrder', sql.Int, display_order)
-        .query(`
-          UPDATE org_payment_methods
-          SET display_order = @displayOrder, updated_at = GETDATE()
-          WHERE id = @id AND organization_id = @orgId
-        `)
+      await db
+        .update(orgPaymentMethods)
+        .set({ sortOrder: display_order })
+        .where(
+          and(
+            eq(orgPaymentMethods.id, id),
+            eq(orgPaymentMethods.organizationId, user.organizationId)
+          )
+        )
     }
 
     return NextResponse.json({ ok: true })

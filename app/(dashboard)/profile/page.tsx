@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { User, Shield, Camera, Calendar, Monitor, Smartphone, Laptop, LogOut, AlertTriangle } from 'lucide-react'
+import { User, Shield, Camera, Calendar, Monitor, Smartphone, Laptop, LogOut, AlertTriangle, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
+import { compressLogo } from '@/lib/utils/compress-image'
 
 interface UserProfile {
   id: string
@@ -36,6 +38,8 @@ export default function ProfilePage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingSessions, setIsLoadingSessions] = useState(true)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const loadSessions = useCallback(() => {
     setIsLoadingSessions(true)
@@ -56,6 +60,7 @@ export default function ProfilePage() {
       const data = await res.json() as UserProfile
       setProfile(data)
       setFullName(data.full_name || '')
+      setAvatarUrl((data as any).avatar_url || null)
     }
     loadProfile()
     loadSessions()
@@ -102,6 +107,34 @@ export default function ProfilePage() {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem válida'); return }
+
+    setIsUploadingAvatar(true)
+    try {
+      const compressed = await compressLogo(file)
+      const formData = new FormData()
+      formData.append('file', compressed)
+      const res = await fetch('/api/upload/logo', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('Erro ao fazer upload')
+      const { url } = await res.json()
+      setAvatarUrl(url)
+      // Salva o avatar_url no perfil
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, avatar_url: url }),
+      })
+      toast.success('Foto de perfil atualizada!')
+    } catch {
+      toast.error('Erro ao atualizar foto de perfil')
+    } finally {
+      setIsUploadingAvatar(false)
+    }
   }
 
   const handleSaveProfile = async () => {
@@ -182,12 +215,37 @@ export default function ProfilePage() {
                   <h3 className="text-lg font-semibold text-foreground mb-4">Foto de Perfil</h3>
                   <div className="flex items-center gap-6">
                     <div className="relative">
-                      <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-                        {(fullName || profile?.email || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <button className="absolute bottom-0 right-0 p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors">
-                        <Camera className="h-4 w-4 text-muted-foreground" />
-                      </button>
+                      {avatarUrl ? (
+                        <Image
+                          src={avatarUrl}
+                          alt="Avatar"
+                          width={96}
+                          height={96}
+                          className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+                          {(fullName || profile?.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <label
+                        htmlFor="avatar-upload"
+                        className="absolute bottom-0 right-0 p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors cursor-pointer"
+                        title="Alterar foto de perfil"
+                      >
+                        {isUploadingAvatar
+                          ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          : <Camera className="h-4 w-4 text-muted-foreground" />
+                        }
+                      </label>
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        disabled={isUploadingAvatar}
+                      />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground mb-2">
@@ -239,7 +297,7 @@ export default function ProfilePage() {
                 )}
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setFullName(profile?.full_name || '')}>
+                  <Button variant="outline" onClick={() => { setFullName(profile?.full_name || ''); setAvatarUrl((profile as any)?.avatar_url || null) }}>
                     Cancelar
                   </Button>
                   <Button onClick={handleSaveProfile} disabled={isSaving}>

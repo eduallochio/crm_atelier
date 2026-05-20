@@ -1,92 +1,95 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { organizations, orgServiceOrders, orgPayables, orgReceivables, orgClients } from '@/lib/db/schema'
+import { eq, and, count, isNotNull, lt, sql as drizzleSql } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
-
-    // Buscar dados da organização
-    const orgResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT name, logo_url FROM organizations WHERE id = @orgId`)
-
-    const org = orgResult.recordset[0]
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const currentMonth = today.getMonth() + 1
 
-    // Ordens ATRASADAS (data_prevista < hoje, ainda abertas)
-    const overdueOrdersResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('today', sql.Date, today)
-      .query(`
-        SELECT COUNT(*) AS cnt
-        FROM org_service_orders
-        WHERE organization_id = @orgId
-          AND status IN ('pendente', 'em_andamento')
-          AND data_prevista IS NOT NULL
-          AND CAST(data_prevista AS DATE) < @today
-      `)
+    const [
+      orgRows,
+      [overdueOrdersRow],
+      [overduePayablesRow],
+      [overdueReceivablesRow],
+      [birthdayRow],
+    ] = await Promise.all([
+      // Organization name + logo
+      db
+        .select({ name: organizations.name, logoUrl: organizations.logoUrl })
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1),
 
-    // Contas a pagar vencidas (status pendente, vencimento < hoje)
-    const overduePayablesResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('today', sql.Date, today)
-      .query(`
-        SELECT COUNT(*) AS cnt
-        FROM org_payables
-        WHERE organization_id = @orgId
-          AND status = 'pendente'
-          AND CAST(data_vencimento AS DATE) < @today
-      `)
+      // Overdue service orders (open + past dataPrevista)
+      db
+        .select({ cnt: count() })
+        .from(orgServiceOrders)
+        .where(
+          and(
+            eq(orgServiceOrders.organizationId, user.organizationId),
+            drizzleSql`${orgServiceOrders.status} IN ('pendente', 'em_andamento')`,
+            isNotNull(orgServiceOrders.dataPrevista),
+            lt(orgServiceOrders.dataPrevista, today.toISOString().slice(0, 10))
+          )
+        ),
 
-    // Contas a receber vencidas (status pendente, vencimento < hoje)
-    const overdueReceivablesResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('today', sql.Date, today)
-      .query(`
-        SELECT COUNT(*) AS cnt
-        FROM org_receivables
-        WHERE organization_id = @orgId
-          AND status = 'pendente'
-          AND CAST(data_vencimento AS DATE) < @today
-      `)
+      // Overdue payables (pendente + past dataVencimento)
+      db
+        .select({ cnt: count() })
+        .from(orgPayables)
+        .where(
+          and(
+            eq(orgPayables.organizationId, user.organizationId),
+            eq(orgPayables.status, 'pendente'),
+            lt(orgPayables.dataVencimento, today.toISOString().slice(0, 10))
+          )
+        ),
 
-    // Aniversários do mês (informativo)
-    const birthdayResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('month', sql.Int, currentMonth)
-      .query(`
-        SELECT COUNT(*) AS cnt
-        FROM org_clients
-        WHERE organization_id = @orgId
-          AND data_nascimento IS NOT NULL
-          AND MONTH(data_nascimento) = @month
-      `)
+      // Overdue receivables (pendente + past dataVencimento)
+      db
+        .select({ cnt: count() })
+        .from(orgReceivables)
+        .where(
+          and(
+            eq(orgReceivables.organizationId, user.organizationId),
+            eq(orgReceivables.status, 'pendente'),
+            lt(orgReceivables.dataVencimento, today.toISOString().slice(0, 10))
+          )
+        ),
 
-    const overdueOrders     = overdueOrdersResult.recordset[0]?.cnt || 0
-    const overduePayables   = overduePayablesResult.recordset[0]?.cnt || 0
-    const overdueReceivables = overdueReceivablesResult.recordset[0]?.cnt || 0
-    const birthdays         = birthdayResult.recordset[0]?.cnt || 0
+      // Birthdays this month
+      db
+        .select({ cnt: count() })
+        .from(orgClients)
+        .where(
+          and(
+            eq(orgClients.organizationId, user.organizationId),
+            isNotNull(orgClients.dataNascimento),
+            drizzleSql`EXTRACT(MONTH FROM ${orgClients.dataNascimento}) = ${currentMonth}`
+          )
+        ),
+    ])
 
-    return NextResponse.json({
+    const org = orgRows[0]
+    const overdueOrders      = Number(overdueOrdersRow?.cnt ?? 0)
+    const overduePayables    = Number(overduePayablesRow?.cnt ?? 0)
+    const overdueReceivables = Number(overdueReceivablesRow?.cnt ?? 0)
+    const birthdays          = Number(birthdayRow?.cnt ?? 0)
+
+    const response = NextResponse.json({
       name: user.name,
       email: user.email,
-      organizationName: org?.name || 'Meu Atelier',
-      logoUrl: org?.logo_url || null,
-      // Badges informativos (azul/indigo)
+      organizationName: org?.name ?? 'Meu Atelier',
+      logoUrl: org?.logoUrl ?? null,
       badges: {
         '/clientes': birthdays,
       },
-      // Alertas urgentes (vermelho)
       alerts: {
         '/ordens-servico':     overdueOrders,
         '/financeiro':         overduePayables + overdueReceivables,
@@ -94,6 +97,10 @@ export async function GET() {
         '/financeiro/receber': overdueReceivables,
       },
     })
+
+    // Cache privado por 60s — evita 5 queries ao banco por navegação
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=30')
+    return response
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

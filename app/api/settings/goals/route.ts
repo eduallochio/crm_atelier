@@ -1,22 +1,29 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgMonthlyGoals } from '@/lib/db/schema'
+import { and, eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
+    const now   = new Date()
+    const year  = now.getFullYear()
+    const month = now.getMonth() + 1
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT monthly_revenue_goal
-        FROM org_system_preferences
-        WHERE organization_id = @orgId
-      `)
+    const result = await db
+      .select()
+      .from(orgMonthlyGoals)
+      .where(
+        and(
+          eq(orgMonthlyGoals.organizationId, user.organizationId),
+          eq(orgMonthlyGoals.year,  year),
+          eq(orgMonthlyGoals.month, month),
+        )
+      )
+      .limit(1)
 
-    const goal = result.recordset[0]?.monthly_revenue_goal ?? 0
+    const goal = result[0]?.revenueGoal ?? '0'
     return NextResponse.json({ monthly_revenue_goal: Number(goal) })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
@@ -36,18 +43,25 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Valor inválido' }, { status: 400 })
     }
 
-    const pool = await getPool()
+    const now   = new Date()
+    const year  = now.getFullYear()
+    const month = now.getMonth() + 1
 
-    await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('goal', sql.Decimal(10, 2), monthly_revenue_goal)
-      .query(`
-        UPDATE org_system_preferences SET monthly_revenue_goal = @goal WHERE organization_id = @orgId
-        IF @@ROWCOUNT = 0
-          INSERT INTO org_system_preferences (organization_id, monthly_revenue_goal)
-          VALUES (@orgId, @goal)
-      `)
+    await db
+      .insert(orgMonthlyGoals)
+      .values({
+        organizationId: user.organizationId,
+        year,
+        month,
+        revenueGoal: String(monthly_revenue_goal),
+      })
+      .onConflictDoUpdate({
+        target: [orgMonthlyGoals.organizationId, orgMonthlyGoals.year, orgMonthlyGoals.month],
+        set: {
+          revenueGoal: String(monthly_revenue_goal),
+          updatedAt:   new Date(),
+        },
+      })
 
     return NextResponse.json({ monthly_revenue_goal })
   } catch (error) {

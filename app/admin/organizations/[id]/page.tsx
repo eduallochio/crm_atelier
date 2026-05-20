@@ -20,7 +20,7 @@ import { HealthTab } from '@/components/admin/health-tab'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro'
+  plan: string
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number

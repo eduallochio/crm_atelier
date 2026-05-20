@@ -1,87 +1,105 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool } from '@/lib/db'
+import { db } from '@/lib/db'
+import { organizations, orgClients, orgServiceOrders, plans } from '@/lib/db/schema'
+import { eq, gte, sql as drizzleSql, count } from 'drizzle-orm'
 
 export async function GET() {
   try {
     await requireMaster()
-    const pool = await getPool()
 
-    // ── Preços reais ────────────────────────────────────────────────────────
-    const plansResult = await pool
-      .request()
-      .query(`SELECT slug, price FROM plans WHERE is_active = 1`)
-    const planPrices: Record<string, number> = { free: 0, pro: 0 }
-    for (const p of plansResult.recordset) {
+    // Preços reais da tabela plans
+    const planRows = await db
+      .select({ slug: plans.slug, price: plans.price })
+      .from(plans)
+      .where(eq(plans.isActive, true))
+
+    const planPrices: Record<string, number> = {}
+    for (const p of planRows) {
       planPrices[p.slug] = parseFloat(p.price) || 0
     }
 
-    // ── Crescimento mensal (últimos 12 meses) ───────────────────────────────
-    const growthResult = await pool.request().query(`
-      SELECT
-        FORMAT(created_at, 'yyyy-MM') AS ym,
-        FORMAT(created_at, 'MMM', 'pt-BR') AS month_label,
-        COUNT(*) AS new_orgs,
-        SUM(CASE WHEN [plan] = 'pro' THEN 1 ELSE 0 END) AS pro_count
-      FROM organizations
-      WHERE created_at >= DATEADD(month, -12, GETDATE())
-      GROUP BY FORMAT(created_at, 'yyyy-MM'), FORMAT(created_at, 'MMM', 'pt-BR')
-      ORDER BY ym ASC
-    `)
+    // Crescimento mensal (últimos 12 meses)
+    const twelveMonthsAgo = new Date()
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+
+    const growthResult = await db
+      .select({
+        ym: drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+        monthLabel: drizzleSql<string>`TO_CHAR(created_at, 'Mon')`,
+        newOrgs: count(),
+        proCount: drizzleSql<number>`COUNT(*) FILTER (WHERE plan = 'pro')::int`,
+      })
+      .from(organizations)
+      .where(gte(organizations.createdAt, twelveMonthsAgo))
+      .groupBy(
+        drizzleSql`DATE_TRUNC('month', created_at)`,
+        drizzleSql`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+        drizzleSql`TO_CHAR(created_at, 'Mon')`,
+      )
+      .orderBy(drizzleSql`DATE_TRUNC('month', created_at) ASC`)
 
     let prevNewOrgs = 0
-    const monthly = growthResult.recordset.map((r) => {
-      const newOrgs = Number(r.new_orgs)
-      const revenue = Number(r.pro_count) * (planPrices.pro ?? 0)
+    const monthly = growthResult.map((r) => {
+      const newOrgs = Number(r.newOrgs)
+      const revenue = Number(r.proCount) * (planPrices.pro ?? 0)
       const growth = prevNewOrgs > 0 ? Math.round(((newOrgs - prevNewOrgs) / prevNewOrgs) * 1000) / 10 : 0
       prevNewOrgs = newOrgs
       return {
-        month:   r.month_label as string,
-        users:   newOrgs,
+        month: r.monthLabel,
+        users: newOrgs,
         revenue: Math.round(revenue * 100) / 100,
         growth,
       }
     })
 
-    // ── Distribuição por plano ──────────────────────────────────────────────
-    const distResult = await pool.request().query(`
-      SELECT [plan], COUNT(*) AS cnt
-      FROM organizations
-      GROUP BY [plan]
-    `)
+    // Distribuição por plano
+    const distResult = await db
+      .select({
+        plan: organizations.plan,
+        cnt: count(),
+      })
+      .from(organizations)
+      .groupBy(organizations.plan)
+
     const planDist: Record<string, number> = {}
-    for (const r of distResult.recordset) {
-      planDist[r.plan as string] = Number(r.cnt)
+    for (const r of distResult) {
+      planDist[r.plan] = Number(r.cnt)
     }
 
-    // ── Top organizações por clientes ───────────────────────────────────────
-    const topResult = await pool.request().query(`
-      SELECT TOP 10
-        o.id, o.name, o.[plan], o.state,
-        (SELECT COUNT(*) FROM org_clients c WHERE c.organization_id = o.id) AS clients_count,
-        (SELECT COUNT(*) FROM org_service_orders so WHERE so.organization_id = o.id) AS orders_count
-      FROM organizations o
-      ORDER BY clients_count DESC
-    `)
+    // Top organizações por clientes
+    const topResult = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        plan: organizations.plan,
+        subscriptionStatus: organizations.subscriptionStatus,
+        clientsCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id})::int`,
+        ordersCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_service_orders WHERE org_service_orders.organization_id = ${organizations.id})::int`,
+      })
+      .from(organizations)
+      .orderBy(drizzleSql`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id}) DESC`)
+      .limit(10)
 
-    const topOrgs = topResult.recordset.map((r) => ({
-      id:            r.id as string,
-      name:          r.name as string,
-      plan:          r.plan as string,
-      revenue:       planPrices[r.plan as string] ?? 0,
-      clients_count: Number(r.clients_count),
-      orders_count:  Number(r.orders_count),
-      growth:        0,
+    const topOrgs = topResult.map((r) => ({
+      id: r.id,
+      name: r.name,
+      plan: r.plan,
+      revenue: planPrices[r.plan] ?? 0,
+      clients_count: Number(r.clientsCount),
+      orders_count: Number(r.ordersCount),
+      growth: 0,
     }))
 
-    // ── Churn ───────────────────────────────────────────────────────────────
-    const churnResult = await pool.request().query(`
-      SELECT
-        COUNT(*) AS total,
-        SUM(CASE WHEN state = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
-      FROM organizations
-    `)
-    const cr = churnResult.recordset[0]
+    // Churn
+    const churnResult = await db
+      .select({
+        total: count(),
+        cancelled: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'cancelled')::int`,
+      })
+      .from(organizations)
+
+    const cr = churnResult[0]
     const churnTotal     = Number(cr.total)
     const churnCancelled = Number(cr.cancelled)
     const churnRate      = churnTotal > 0 ? Math.round((churnCancelled / churnTotal) * 1000) / 10 : 0

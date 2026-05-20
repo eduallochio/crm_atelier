@@ -22,7 +22,7 @@ interface SubscriptionTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro'
+    plan: string
     state: 'active' | 'trial' | 'cancelled' | 'suspended'
     created_at: string
     users_count: number
@@ -56,13 +56,13 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
   // Calcular próxima renovação
   const nextRenewal = addMonths(new Date(), 1)
 
-  // Limites por plano
-  const planLimits = {
-    free: { users: 3, clients: 50, orders: 100 },
-    pro: { users: Infinity, clients: Infinity, orders: Infinity },
+  // Limites por plano (licença vitalícia = sem limites, mesmo no free)
+  const planLimits: Record<string, { users: number; clients: number; orders: number }> = {
+    free:       { users: 2,        clients: 50,       orders: 100      },
+    pro:        { users: 5,        clients: 200,      orders: 1000     },
   }
 
-  const limits = planLimits[organization.plan]
+  const limits = planLimits[organization.plan] ?? planLimits.free
 
   // Calcular percentuais
   const usersPercent = limits.users === Infinity 
@@ -258,7 +258,7 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
                   Plano {organization.plan} ativado
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {format(new Date(organization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {organization.created_at ? format(new Date(organization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                 </p>
               </div>
             </div>

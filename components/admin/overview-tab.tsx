@@ -16,7 +16,7 @@ interface OverviewTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro'
+    plan: string
     state: 'active' | 'trial' | 'cancelled' | 'suspended'
     created_at: string
     users_count: number
@@ -73,7 +73,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Data de Cadastro</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
-              {format(new Date(organization.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              {organization.created_at ? format(new Date(organization.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : '—'}
             </p>
           </div>
           <div>
@@ -101,15 +101,15 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Próxima Renovação</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
-              {organization.plan !== 'free' 
-                ? format(nextRenewal, 'dd/MM/yyyy', { locale: ptBR })
-                : 'N/A'}
+              {organization.plan === 'free'
+                ? 'Plano Gratuito'
+                : format(nextRenewal, 'dd/MM/yyyy', { locale: ptBR })}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Método de Pagamento</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
-              {organization.plan !== 'free' ? 'Cartão de Crédito' : 'N/A'}
+              {organization.plan === 'free' ? 'Sem cobrança' : 'Cartão de Crédito'}
             </p>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
                 Organização Criada
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {format(new Date(organization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                {organization.created_at ? format(new Date(organization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
               </p>
             </div>
           </div>

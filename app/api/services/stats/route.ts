@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { orgServices, orgServiceOrderItems } from '@/lib/db/schema'
+import { eq, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const servicesResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT id, nome, preco, ativo, categoria
-        FROM org_services
-        WHERE organization_id = @orgId
-      `)
+    const services = await db
+      .select({
+        id:       orgServices.id,
+        nome:     orgServices.nome,
+        preco:    orgServices.preco,
+        ativo:    orgServices.ativo,
+        categoria: orgServices.categoria,
+      })
+      .from(orgServices)
+      .where(eq(orgServices.organizationId, user.organizationId))
 
-    const services = servicesResult.recordset
     if (services.length === 0) {
       return NextResponse.json({
         totalServices: 0,
@@ -30,32 +32,34 @@ export async function GET() {
       })
     }
 
-    const serviceIds = services.map((s: Record<string, unknown>) => `'${s.id}'`).join(',')
+    const serviceIds = services.map(s => s.id)
 
-    const usageResult = await pool
-      .request()
-      .query(`
-        SELECT service_id, service_nome,
-          SUM(quantidade) AS total_qty,
-          SUM(valor_total) AS total_revenue
-        FROM org_service_order_items
-        WHERE service_id IN (${serviceIds})
-        GROUP BY service_id, service_nome
-      `)
+    const usageRows = await db
+      .select({
+        serviceId:    orgServiceOrderItems.serviceId,
+        serviceNome:  orgServiceOrderItems.serviceNome,
+        totalQty:     drizzleSql<number>`sum(${orgServiceOrderItems.quantidade})`,
+        totalRevenue: drizzleSql<number>`sum(${orgServiceOrderItems.valorTotal})`,
+      })
+      .from(orgServiceOrderItems)
+      .where(inArray(orgServiceOrderItems.serviceId, serviceIds))
+      .groupBy(orgServiceOrderItems.serviceId, orgServiceOrderItems.serviceNome)
 
     const usageMap = new Map<string, { nome: string; count: number; revenue: number }>()
-    for (const row of usageResult.recordset) {
-      usageMap.set(row.service_id, {
-        nome: row.service_nome,
-        count: row.total_qty,
-        revenue: row.total_revenue,
-      })
+    for (const row of usageRows) {
+      if (row.serviceId) {
+        usageMap.set(row.serviceId, {
+          nome:    row.serviceNome,
+          count:   Number(row.totalQty) || 0,
+          revenue: Number(row.totalRevenue) || 0,
+        })
+      }
     }
 
     const totalServices = services.length
-    const activeServices = services.filter((s: Record<string, unknown>) => s.ativo).length
+    const activeServices = services.filter(s => s.ativo).length
     const inactiveServices = totalServices - activeServices
-    const averagePrice = services.reduce((sum: number, s: Record<string, unknown>) => sum + ((s.preco as number) || 0), 0) / totalServices
+    const averagePrice = services.reduce((sum, s) => sum + (Number(s.preco) || 0), 0) / totalServices
 
     let mostUsedService: { id: string; nome: string; count: number; revenue: number } | null = null
     let maxCount = 0
@@ -66,8 +70,8 @@ export async function GET() {
       }
     })
 
-    const neverUsedCount = services.filter((s: Record<string, unknown>) => !usageMap.has(s.id as string)).length
-    const categories = new Set(services.map((s: Record<string, unknown>) => s.categoria).filter(Boolean))
+    const neverUsedCount = services.filter(s => !usageMap.has(s.id)).length
+    const categories = new Set(services.map(s => s.categoria).filter(Boolean))
 
     const serviceUsage = Array.from(usageMap.entries())
       .map(([id, data]) => ({ id, ...data }))

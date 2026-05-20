@@ -16,7 +16,7 @@ export function usePlanUsage() {
       if (!res.ok) throw new Error('Erro ao buscar uso do plano')
       return res.json()
     },
-    staleTime: 30_000,
+    staleTime: 2 * 60 * 1000,
   })
 }
 

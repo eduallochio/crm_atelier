@@ -17,7 +17,7 @@ interface BillingTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro'
+    plan: string
     state: 'active' | 'trial' | 'cancelled' | 'suspended'
     mrr: number
   }
@@ -255,7 +255,7 @@ export function BillingTab({ organization }: BillingTabProps) {
                     {invoice.id}
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                    {format(new Date(invoice.date), 'dd/MM/yyyy', { locale: ptBR })}
+                    {invoice.date ? format(new Date(invoice.date), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
                   </td>
                   <td className="py-4 px-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(invoice.status)}`}>

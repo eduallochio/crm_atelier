@@ -11,6 +11,8 @@ import { Card } from '@/components/ui/card'
 import { Loader2, Search, Edit, X, Upload, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { buscarCep, formatarCep } from '@/lib/services/viacep'
+import { buscarCnpj, formatarCnpj, formatarTelefone, isAtiva, getTelefone } from '@/lib/services/brasilcnpj'
+import { compressLogo } from '@/lib/utils/compress-image'
 import { toast } from 'sonner'
 import Image from 'next/image'
 
@@ -18,6 +20,7 @@ export function OrganizationSettingsForm() {
   const { data: settings, isLoading } = useOrganizationSettings()
   const updateSettings = useUpdateOrganizationSettings()
   const [isLoadingCep, setIsLoadingCep] = useState(false)
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -113,15 +116,11 @@ export function OrganizationSettingsForm() {
       return
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 2MB')
-      return
-    }
-
     setIsUploadingLogo(true)
     try {
+      const compressed = await compressLogo(file)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', compressed)
 
       const res = await fetch('/api/upload/logo', { method: 'POST', body: formData })
       if (!res.ok) throw new Error('Erro ao fazer upload')
@@ -140,6 +139,41 @@ export function OrganizationSettingsForm() {
   const handleRemoveLogo = () => {
     setLogoPreview(null)
     form.setValue('logo_url', '')
+  }
+
+  const handleBuscarCnpj = async () => {
+    const cnpj = form.getValues('cnpj')
+    const digits = cnpj?.replace(/\D/g, '') ?? ''
+    if (digits.length !== 14) {
+      toast.error('Digite um CNPJ completo (14 dígitos) para consultar')
+      return
+    }
+    setIsLoadingCnpj(true)
+    try {
+      const data = await buscarCnpj(digits)
+      const nome = data.nome_fantasia?.trim() || data.razao_social?.trim() || ''
+      const tel  = getTelefone(data)
+
+      // Preenche com dados da Receita Federal (só sobrescreve se há dado)
+      if (nome)                       form.setValue('name',     nome)
+      if (tel)                        form.setValue('phone',    formatarTelefone(tel))
+      if (data.email)                 form.setValue('email',    data.email)
+      if (data.municipio)             form.setValue('city',     data.municipio)
+      if (data.uf)                    form.setValue('state',    data.uf)
+      if (data.logradouro?.trim())    form.setValue('address',  data.logradouro)
+      if (data.cep)                   form.setValue('zip_code', formatarCep(data.cep))
+      form.setValue('cnpj', formatarCnpj(digits))
+
+      if (!isAtiva(data)) {
+        toast.warning(`CNPJ ${data.descricao_situacao_cadastral ?? 'inativo'} na Receita Federal`)
+      } else {
+        toast.success(`${data.razao_social} — dados preenchidos automaticamente!`)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao consultar CNPJ')
+    } finally {
+      setIsLoadingCnpj(false)
+    }
   }
 
   const handleBuscarCep = async () => {
@@ -283,12 +317,30 @@ export function OrganizationSettingsForm() {
 
           <div className="space-y-2">
             <Label htmlFor="cnpj">CNPJ / CPF</Label>
-            <Input
-              id="cnpj"
-              {...form.register('cnpj')}
-              placeholder="00.000.000/0000-00"
-              disabled={!isEditing}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="cnpj"
+                {...form.register('cnpj')}
+                placeholder="00.000.000/0000-00"
+                disabled={!isEditing || isLoadingCnpj}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleBuscarCnpj}
+                disabled={isLoadingCnpj || !isEditing}
+                title="Consultar CNPJ na Receita Federal"
+              >
+                {isLoadingCnpj
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Search className="h-4 w-4" />
+                }
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Digite o CNPJ e clique na lupa para preencher automaticamente
+            </p>
           </div>
 
           <div className="space-y-2">

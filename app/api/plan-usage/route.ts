@@ -1,43 +1,83 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
-import { getPlanLimits } from '@/lib/plan-limits'
+import { db } from '@/lib/db'
+import { organizations, usageMetrics, orgServices, adminSystemSettings } from '@/lib/db/schema'
+import { eq, inArray } from 'drizzle-orm'
+import { hasLifetimeLicense } from '@/lib/plan-limits'
+
+const DEFAULTS = {
+  max_clients_free: 50,
+  max_services_free: 20,
+  max_orders_free: 250,
+  max_users_free: 1,
+}
+
+async function getPlanLimits() {
+  try {
+    const rows = await db
+      .select({ key: adminSystemSettings.key, value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(
+        inArray(adminSystemSettings.key, [
+          'max_clients_free',
+          'max_services_free',
+          'max_orders_free',
+          'max_users_free',
+        ])
+      )
+
+    const limits = { ...DEFAULTS }
+    for (const row of rows) {
+      const val = parseInt(row.value)
+      if (!isNaN(val) && val > 0) {
+        limits[row.key as keyof typeof DEFAULTS] = val
+      }
+    }
+    return limits
+  } catch {
+    return DEFAULTS
+  }
+}
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
+    const orgId = user.organizationId
 
-    const [usageResult, limits] = await Promise.all([
-      pool.request()
-        .input('orgId', sql.UniqueIdentifier, user.organizationId)
-        .query(`
-          SELECT
-            o.[plan],
-            ISNULL(m.total_clients_ever, 0) AS clients_count,
-            ISNULL(m.total_orders_ever,  0) AS orders_count,
-            (SELECT COUNT(*) FROM org_services WHERE organization_id = @orgId) AS services_count
-          FROM organizations o
-          LEFT JOIN usage_metrics m ON m.organization_id = o.id
-          WHERE o.id = @orgId
-        `),
+    const [orgRows, metricsRows, servicesCount, limits, lifetime] = await Promise.all([
+      db.select({ plan: organizations.plan })
+        .from(organizations)
+        .where(eq(organizations.id, orgId))
+        .limit(1),
+      db.select({
+          totalClientsEver: usageMetrics.totalClientsEver,
+          totalOrdersEver: usageMetrics.totalOrdersEver,
+        })
+        .from(usageMetrics)
+        .where(eq(usageMetrics.organizationId, orgId))
+        .limit(1),
+      db.select({ count: eq(orgServices.organizationId, orgId) })
+        .from(orgServices)
+        .where(eq(orgServices.organizationId, orgId)),
       getPlanLimits(),
+      hasLifetimeLicense(orgId),
     ])
 
-    const row = usageResult.recordset[0]
+    const plan = lifetime ? 'enterprise' : (orgRows[0]?.plan ?? 'free')
+    const metrics = metricsRows[0]
 
     return NextResponse.json({
-      plan: row?.plan || 'free',
+      plan,
       usage: {
-        clients:  Number(row?.clients_count  ?? 0),
-        services: Number(row?.services_count ?? 0),
-        orders:   Number(row?.orders_count   ?? 0),
+        clients: Number(metrics?.totalClientsEver ?? 0),
+        services: servicesCount.length,
+        orders: Number(metrics?.totalOrdersEver ?? 0),
       },
       limits: {
-        clients:  limits.max_clients_free,
+        clients: limits.max_clients_free,
         services: limits.max_services_free,
-        orders:   limits.max_orders_free,
-        users:    limits.max_users_free,
+        orders: limits.max_orders_free,
+        users: limits.max_users_free,
       },
     })
   } catch (error) {

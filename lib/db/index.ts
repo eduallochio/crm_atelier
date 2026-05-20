@@ -1,53 +1,35 @@
-import sql from 'mssql'
+/**
+ * Drizzle ORM client — CRM Atelier
+ *
+ * IMPORTANTE: prepare: false é obrigatório para funcionar com pgBouncer do Supabase.
+ * Sem isso as queries falham em produção no Vercel.
+ *
+ * DATABASE_URL deve apontar para a connection string direta (porta 5432),
+ * não via pgBouncer (porta 6543).
+ */
 
-// Suporte a Windows Authentication (SQLSERVER_TRUSTED_CONNECTION=true)
-// ou SQL Server Authentication (SQLSERVER_USER + SQLSERVER_PASSWORD)
-const useTrustedConnection = process.env.SQLSERVER_TRUSTED_CONNECTION === 'true'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import * as schema from './schema'
 
-const config: sql.config = {
-  server: process.env.SQLSERVER_SERVER!,
-  database: process.env.SQLSERVER_DATABASE || 'CrmAtelier',
-  port: Number(process.env.SQLSERVER_PORT) || 1433,
-  options: {
-    encrypt: process.env.SQLSERVER_ENCRYPT === 'true',
-    trustServerCertificate: true,
-    // Windows Authentication — não precisa de usuário/senha
-    ...(useTrustedConnection && { trustedConnection: true }),
-  },
-  pool: {
-    max: 10,
-    min: 0,
-    idleTimeoutMillis: 30000,
-  },
-  // Credenciais SQL Server Auth (ignoradas se trustedConnection=true)
-  ...(!useTrustedConnection && {
-    user: process.env.SQLSERVER_USER,
-    password: process.env.SQLSERVER_PASSWORD,
-  }),
+// Previne múltiplas conexões em hot-reload do Next.js dev
+declare global {
+  // eslint-disable-next-line no-var
+  var _drizzleClient: ReturnType<typeof postgres> | undefined
 }
 
-let pool: sql.ConnectionPool | null = null
-
-export async function getPool(): Promise<sql.ConnectionPool> {
-  // Se o pool existe mas não está conectado, descarta e recria
-  if (pool && !pool.connected) {
-    try { await pool.close() } catch { /* ignora */ }
-    pool = null
-  }
-
-  if (!pool) {
-    pool = await new sql.ConnectionPool(config).connect()
-  }
-
-  return pool
+function createQueryClient() {
+  return postgres(process.env.DATABASE_URL!, {
+    prepare: false, // obrigatório para Supabase pgBouncer (transaction mode)
+  })
 }
 
-/** Fecha o pool (útil em testes ou hot-reload de dev) */
-export async function closePool() {
-  if (pool) {
-    await pool.close()
-    pool = null
-  }
-}
+const queryClient =
+  process.env.NODE_ENV === 'production'
+    ? createQueryClient()
+    : (global._drizzleClient ?? (global._drizzleClient = createQueryClient()))
 
-export { sql }
+export const db = drizzle(queryClient, { schema })
+
+// Re-exporta o schema para facilitar imports
+export * from './schema'

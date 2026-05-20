@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import {
+  orgServiceOrders,
+  orgServiceOrderItems,
+  orgClients,
+  usageMetrics,
+  orgReceivables,
+  orgTransactions,
+  orgCashierSessions,
+  orgCashierMovements,
+  orgSystemPreferences,
+  orgServiceOrderMaterials,
+  orgStockExits,
+  orgStockExitItems,
+} from '@/lib/db/schema'
+import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
 
 export async function GET(
   _request: Request,
@@ -9,60 +24,69 @@ export async function GET(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const orderResult = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT
-          o.id, o.numero, o.organization_id, o.client_id,
-          o.status, o.valor_total, o.valor_entrada, o.valor_pago,
-          o.status_pagamento, o.desconto_valor, o.desconto_percentual,
-          o.data_abertura, o.data_prevista, o.data_conclusao,
-          o.forma_pagamento, o.observacoes, o.notas_internas, o.created_at,
-          c.id AS c_id, c.nome AS c_nome,
-          c.telefone AS c_telefone, c.email AS c_email
-        FROM org_service_orders o
-        LEFT JOIN org_clients c ON c.id = o.client_id
-        WHERE o.id = @id AND o.organization_id = @orgId
-      `)
+    const [orderRow] = await db
+      .select({
+        id:                 orgServiceOrders.id,
+        numero:             orgServiceOrders.numero,
+        organizationId:     orgServiceOrders.organizationId,
+        clientId:           orgServiceOrders.clientId,
+        status:             orgServiceOrders.status,
+        valorTotal:         orgServiceOrders.valorTotal,
+        valorEntrada:       orgServiceOrders.valorEntrada,
+        valorPago:          orgServiceOrders.valorPago,
+        statusPagamento:    orgServiceOrders.statusPagamento,
+        descontoValor:      orgServiceOrders.descontoValor,
+        descontoPercentual: orgServiceOrders.descontoPercentual,
+        dataAbertura:       orgServiceOrders.dataAbertura,
+        dataPrevista:       orgServiceOrders.dataPrevista,
+        dataConclusao:      orgServiceOrders.dataConclusao,
+        formaPagamento:     orgServiceOrders.formaPagamento,
+        observacoes:        orgServiceOrders.observacoes,
+        notasInternas:      orgServiceOrders.notasInternas,
+        createdAt:          orgServiceOrders.createdAt,
+        clienteCId:         orgClients.id,
+        clienteNome:        orgClients.nome,
+        clienteTelefone:    orgClients.telefone,
+        clienteEmail:       orgClients.email,
+      })
+      .from(orgServiceOrders)
+      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
-    if (orderResult.recordset.length === 0) {
+    if (!orderRow) {
       return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
     }
 
-    const itemsResult = await pool
-      .request()
-      .input('orderId', sql.UniqueIdentifier, id)
-      .query(`SELECT * FROM org_service_order_items WHERE order_id = @orderId`)
+    const items = await db
+      .select()
+      .from(orgServiceOrderItems)
+      .where(eq(orgServiceOrderItems.orderId, id))
 
-    const row = orderResult.recordset[0]
     const order = {
-      id: row.id,
-      numero: row.numero,
-      organization_id: row.organization_id,
-      client_id: row.client_id,
-      status: row.status,
-      valor_total: row.valor_total,
-      valor_entrada: row.valor_entrada,
-      valor_pago: row.valor_pago,
-      status_pagamento: row.status_pagamento,
-      desconto_valor: row.desconto_valor,
-      desconto_percentual: row.desconto_percentual,
-      data_abertura: row.data_abertura,
-      data_prevista: row.data_prevista,
-      data_conclusao: row.data_conclusao,
-      forma_pagamento: row.forma_pagamento,
-      observacoes: row.observacoes,
-      notas_internas: row.notas_internas,
-      fotos: null,
-      created_at: row.created_at,
-      client: row.c_id
-        ? { id: row.c_id, nome: row.c_nome, telefone: row.c_telefone, email: row.c_email }
+      id:                  orderRow.id,
+      numero:              orderRow.numero,
+      organization_id:     orderRow.organizationId,
+      client_id:           orderRow.clientId,
+      status:              orderRow.status,
+      valor_total:         orderRow.valorTotal,
+      valor_entrada:       orderRow.valorEntrada,
+      valor_pago:          orderRow.valorPago,
+      status_pagamento:    orderRow.statusPagamento,
+      desconto_valor:      orderRow.descontoValor,
+      desconto_percentual: orderRow.descontoPercentual,
+      data_abertura:       orderRow.dataAbertura,
+      data_prevista:       orderRow.dataPrevista,
+      data_conclusao:      orderRow.dataConclusao,
+      forma_pagamento:     orderRow.formaPagamento,
+      observacoes:         orderRow.observacoes,
+      notas_internas:      orderRow.notasInternas,
+      fotos:               null,
+      created_at:          orderRow.createdAt,
+      client: orderRow.clienteCId
+        ? { id: orderRow.clienteCId, nome: orderRow.clienteNome, telefone: orderRow.clienteTelefone, email: orderRow.clienteEmail }
         : null,
-      items: itemsResult.recordset,
+      items,
     }
 
     return NextResponse.json(order)
@@ -83,34 +107,36 @@ export async function PUT(
     const user = await requireAuth()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const transaction = new sql.Transaction(pool)
-    await transaction.begin()
+    const result = await db.transaction(async (tx) => {
+      // Fetch current order
+      const [order] = await tx
+        .select({
+          id:            orgServiceOrders.id,
+          numero:        orgServiceOrders.numero,
+          status:        orgServiceOrders.status,
+          valorTotal:    orgServiceOrders.valorTotal,
+          valorPago:     orgServiceOrders.valorPago,
+          clientId:      orgServiceOrders.clientId,
+          dataPrevista:  orgServiceOrders.dataPrevista,
+          observacoes:   orgServiceOrders.observacoes,
+          notasInternas: orgServiceOrders.notasInternas,
+          formaPagamento: orgServiceOrders.formaPagamento,
+          dataConclusao: orgServiceOrders.dataConclusao,
+          clienteNome:   orgClients.nome,
+        })
+        .from(orgServiceOrders)
+        .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+        .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
-    try {
-      // Buscar dados atuais da ordem
-      const orderResult = await new sql.Request(transaction)
-        .input('id', sql.UniqueIdentifier, id)
-        .input('orgId', sql.UniqueIdentifier, user.organizationId)
-        .query(`
-          SELECT o.*, c.nome AS client_nome
-          FROM org_service_orders o
-          LEFT JOIN org_clients c ON c.id = o.client_id
-          WHERE o.id = @id AND o.organization_id = @orgId
-        `)
-
-      if (orderResult.recordset.length === 0) {
-        await transaction.rollback()
-        return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
+      if (!order) {
+        return { notFound: true }
       }
 
-      const order = orderResult.recordset[0]
       const finalStatus = body.status ?? order.status
       const isBeingConcluded = body.status === 'concluido' && order.status !== 'concluido'
       const isBeingReopened = order.status === 'concluido' && body.status && body.status !== 'concluido'
 
-      // Merge: só sobrescreve campos que vieram explicitamente no body
       const toDateStr = (v: unknown): string | null => {
         if (!v) return null
         if (v instanceof Date) return v.toISOString().split('T')[0]
@@ -119,196 +145,156 @@ export async function PUT(
 
       const finalDataPrevista = 'data_prevista' in body
         ? (body.data_prevista || null)
-        : toDateStr(order.data_prevista)
-      const finalObservacoes = 'observacoes' in body
-        ? (body.observacoes ?? null)
-        : order.observacoes
-      const finalNotasInternas = 'notas_internas' in body
-        ? (body.notas_internas ?? null)
-        : order.notas_internas
-      const finalFormaPagamento = 'forma_pagamento' in body
-        ? (body.forma_pagamento ?? null)
-        : order.forma_pagamento
+        : toDateStr(order.dataPrevista)
+      const finalObservacoes = 'observacoes' in body ? (body.observacoes ?? null) : order.observacoes
+      const finalNotasInternas = 'notas_internas' in body ? (body.notas_internas ?? null) : order.notasInternas
+      const finalFormaPagamento = 'forma_pagamento' in body ? (body.forma_pagamento ?? null) : order.formaPagamento
 
-      // Atualizar a ordem
-      const updateResult = await new sql.Request(transaction)
-        .input('id', sql.UniqueIdentifier, id)
-        .input('orgId', sql.UniqueIdentifier, user.organizationId)
-        .input('status', sql.NVarChar, finalStatus)
-        .input('dataPrevista', sql.NVarChar, finalDataPrevista)
-        .input('observacoes', sql.NVarChar, finalObservacoes)
-        .input('notasInternas', sql.NVarChar, finalNotasInternas)
-        .input('formaPagamento', sql.NVarChar, finalFormaPagamento)
-        .input('setConclusao', sql.Bit, isBeingConcluded ? 1 : 0)
-        .input('clearConclusao', sql.Bit, isBeingReopened ? 1 : 0)
-        .input('dataConclusao', sql.DateTime2, isBeingConcluded ? new Date() : null)
-        .query(`
-          UPDATE org_service_orders
-          SET
-            status = @status,
-            data_prevista = CAST(NULLIF(@dataPrevista, '') AS DATE),
-            observacoes = @observacoes,
-            notas_internas = @notasInternas,
-            forma_pagamento = @formaPagamento,
-            data_conclusao = CASE
-              WHEN @setConclusao = 1 THEN @dataConclusao
-              WHEN @clearConclusao = 1 THEN NULL
-              ELSE data_conclusao
-            END
-          OUTPUT INSERTED.*
-          WHERE id = @id AND organization_id = @orgId
-        `)
+      const dataConclusaoValue = isBeingConcluded
+        ? new Date()
+        : isBeingReopened
+          ? null
+          : order.dataConclusao
 
-      const updatedOrder = updateResult.recordset[0]
+      // Update order
+      const [updatedOrder] = await tx
+        .update(orgServiceOrders)
+        .set({
+          status:         finalStatus,
+          dataPrevista:   finalDataPrevista,
+          observacoes:    finalObservacoes,
+          notasInternas:  finalNotasInternas,
+          formaPagamento: finalFormaPagamento,
+          dataConclusao:  dataConclusaoValue,
+        })
+        .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
+        .returning()
+
       let noCashierSession = false
 
-      // Fluxo de pagamento ao concluir a OS
+      // Payment flow on conclusion
       if (finalStatus === 'concluido') {
         const paymentAction = body.payment_action as 'paid' | 'receivable' | undefined
-        const saldoRestante = (order.valor_total || 0) - (order.valor_pago || 0)
+        const saldoRestante = (Number(order.valorTotal) || 0) - (Number(order.valorPago) || 0)
 
         if (saldoRestante > 0) {
           if (paymentAction === 'paid') {
-            // Marcar OS como paga
-            await new sql.Request(transaction)
-              .input('id', sql.UniqueIdentifier, id)
-              .input('orgId', sql.UniqueIdentifier, user.organizationId)
-              .input('valorTotal', sql.Decimal(10, 2), order.valor_total)
-              .query(`
-                UPDATE org_service_orders
-                SET status_pagamento = 'pago', valor_pago = @valorTotal
-                WHERE id = @id AND organization_id = @orgId
-              `)
+            // Mark OS as paid
+            await tx
+              .update(orgServiceOrders)
+              .set({ statusPagamento: 'pago', valorPago: String(order.valorTotal) })
+              .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
-            // Lançar no caixa aberto, se houver
-            const sessaoResult = await new sql.Request(transaction)
-              .input('orgId', sql.UniqueIdentifier, user.organizationId)
-              .query(`
-                SELECT TOP 1 id FROM org_cashier_sessions
-                WHERE organization_id = @orgId AND status = 'aberto'
-                ORDER BY created_at DESC
-              `)
-
-            const descricaoOS = `OS #${order.numero} - ${order.client_nome || 'Cliente'}`
+            const descricaoOS = `OS #${order.numero} - ${order.clienteNome || 'Cliente'}`
             const hoje = new Date().toISOString().split('T')[0]
 
-            // Inserir em org_transactions (ledger financeiro — lido pelo stats/financeiro)
-            await new sql.Request(transaction)
-              .input('orgId', sql.UniqueIdentifier, user.organizationId)
-              .input('descricao', sql.NVarChar, descricaoOS)
-              .input('valor', sql.Decimal(10, 2), saldoRestante)
-              .input('dataTransacao', sql.NVarChar, hoje)
-              .input('observacoes', sql.NVarChar, 'Pagamento recebido na conclusão da OS')
-              .query(`
-                INSERT INTO org_transactions
-                  (organization_id, tipo, descricao, valor, data_transacao, observacoes)
-                VALUES
-                  (@orgId, 'entrada', @descricao, @valor, CAST(@dataTransacao AS DATE), @observacoes)
-              `)
+            // Insert financial transaction
+            await tx.insert(orgTransactions).values({
+              organizationId: user.organizationId,
+              tipo:           'entrada',
+              descricao:      descricaoOS,
+              valor:          String(saldoRestante),
+              dataTransacao:  hoje,
+              observacoes:    'Pagamento recebido na conclusão da OS',
+            })
 
-            if (sessaoResult.recordset.length > 0) {
-              const sessaoId = sessaoResult.recordset[0].id
-              await new sql.Request(transaction)
-                .input('orgId', sql.UniqueIdentifier, user.organizationId)
-                .input('sessaoId', sql.UniqueIdentifier, sessaoId)
-                .input('descricao', sql.NVarChar, descricaoOS)
-                .input('valor', sql.Decimal(10, 2), saldoRestante)
-                .input('orderId', sql.UniqueIdentifier, id)
-                .query(`
-                  INSERT INTO org_cashier_movements
-                    (organization_id, sessao_id, tipo, descricao, valor, referencia_id, referencia_tipo)
-                  VALUES
-                    (@orgId, @sessaoId, 'entrada', @descricao, @valor, @orderId, 'ordem_servico')
-                `)
+            // Insert cashier movement if there's an open session
+            const [openSession] = await tx
+              .select({ id: orgCashierSessions.id })
+              .from(orgCashierSessions)
+              .where(and(
+                eq(orgCashierSessions.organizationId, user.organizationId),
+                eq(orgCashierSessions.status, 'aberto')
+              ))
+              .orderBy(desc(orgCashierSessions.createdAt))
+              .limit(1)
+
+            if (openSession) {
+              await tx.insert(orgCashierMovements).values({
+                organizationId: user.organizationId,
+                sessaoId:       openSession.id,
+                tipo:           'entrada',
+                descricao:      descricaoOS,
+                valor:          String(saldoRestante),
+                referenciaId:   id,
+                referenciaTipo: 'ordem_servico',
+              })
             } else {
               noCashierSession = true
             }
           } else {
-            // payment_action === 'receivable' ou sem payment_action (fallback legado)
-            const existingResult = await new sql.Request(transaction)
-              .input('orderId', sql.UniqueIdentifier, id)
-              .query(`SELECT id FROM org_receivables WHERE service_order_id = @orderId`)
+            // payment_action === 'receivable' or legacy fallback — create receivable if not exists
+            const [existing] = await tx
+              .select({ id: orgReceivables.id })
+              .from(orgReceivables)
+              .where(eq(orgReceivables.serviceOrderId, id))
 
-            if (existingResult.recordset.length === 0) {
+            if (!existing) {
               const dataVencimento = new Date()
               dataVencimento.setDate(dataVencimento.getDate() + 7)
               const dataVencStr = dataVencimento.toISOString().split('T')[0]
 
-              await new sql.Request(transaction)
-                .input('orgId', sql.UniqueIdentifier, user.organizationId)
-                .input('orderId', sql.UniqueIdentifier, id)
-                .input('clientId', sql.UniqueIdentifier, order.client_id || null)
-                .input('descricao', sql.NVarChar, `OS #${order.numero} - ${order.client_nome || 'Cliente'}`)
-                .input('valor', sql.Decimal(10, 2), saldoRestante)
-                .input('dataVenc', sql.NVarChar, dataVencStr)
-                .query(`
-                  INSERT INTO org_receivables
-                    (organization_id, service_order_id, client_id, descricao, valor, data_vencimento, status, observacoes)
-                  VALUES
-                    (@orgId, @orderId, @clientId, @descricao, @valor, CAST(@dataVenc AS DATE),
-                     'pendente', 'Gerado automaticamente na conclusão da ordem de serviço')
-                `)
+              await tx.insert(orgReceivables).values({
+                organizationId: user.organizationId,
+                serviceOrderId: id,
+                clientId:       order.clientId || null,
+                descricao:      `OS #${order.numero} - ${order.clienteNome || 'Cliente'}`,
+                valor:          String(saldoRestante),
+                dataVencimento: dataVencStr,
+                status:         'pendente',
+                observacoes:    'Gerado automaticamente na conclusão da ordem de serviço',
+              })
             }
           }
         }
       }
 
-      // Criar saída de estoque se: (1) está sendo concluída agora, (2) controle de estoque ativo,
-      // (3) há materiais cadastrados e (4) saída ainda não existe para esta OS
+      // Stock exit on conclusion if inventory control is active
       if (isBeingConcluded) {
-        const prefCheck = await new sql.Request(transaction)
-          .input('orgId', sql.UniqueIdentifier, user.organizationId)
-          .query(`SELECT controla_estoque FROM org_system_preferences WHERE organization_id = @orgId`)
+        const [pref] = await tx
+          .select({ controlaEstoque: orgSystemPreferences.controlaEstoque })
+          .from(orgSystemPreferences)
+          .where(eq(orgSystemPreferences.organizationId, user.organizationId))
 
-        const controlaEstoque = !!prefCheck.recordset[0]?.controla_estoque
+        if (pref?.controlaEstoque) {
+          const materials = await tx
+            .select()
+            .from(orgServiceOrderMaterials)
+            .where(eq(orgServiceOrderMaterials.orderId, id))
 
-        if (controlaEstoque) {
-          // mssql não suporta requests paralelos na mesma transação — usar sequencial
-          const materiaisResult = await new sql.Request(transaction)
-            .input('orderId', sql.UniqueIdentifier, id)
-            .query(`SELECT * FROM org_order_materials WHERE order_id = @orderId`)
+          const materiaisComProduto = materials.filter(m => m.productId)
+          if (materiaisComProduto.length > 0) {
+            const [stockExit] = await tx
+              .insert(orgStockExits)
+              .values({
+                organizationId: user.organizationId,
+                serviceOrderId: id,
+                tipo:           'ordem_servico',
+                observacoes:    `Baixa automática — OS #${order.numero}`,
+              })
+              .returning()
 
-          const exitExists = await new sql.Request(transaction)
-            .input('orderId', sql.UniqueIdentifier, id)
-            .query(`SELECT id FROM org_stock_exits WHERE service_order_id = @orderId`)
-
-          const materiais = materiaisResult.recordset.filter(m => m.product_id)
-
-          if (materiais.length > 0 && exitExists.recordset.length === 0) {
-            const exitResult = await new sql.Request(transaction)
-              .input('orgId', sql.UniqueIdentifier, user.organizationId)
-              .input('orderId', sql.UniqueIdentifier, id)
-              .input('obs', sql.NVarChar(sql.MAX), `Saída automática - OS #${order.numero}`)
-              .query(`
-                INSERT INTO org_stock_exits (organization_id, service_order_id, tipo, observacoes)
-                OUTPUT INSERTED.id
-                VALUES (@orgId, @orderId, 'ordem_servico', @obs)
-              `)
-
-            const exitId = exitResult.recordset[0].id
-
-            for (const m of materiais) {
-              await new sql.Request(transaction)
-                .input('exitId', sql.UniqueIdentifier, exitId)
-                .input('productId', sql.UniqueIdentifier, m.product_id)
-                .input('produtoNome', sql.NVarChar(255), m.produto_nome)
-                .input('quantidade', sql.Decimal(10, 3), Number(m.quantidade))
-                .input('unidade', sql.NVarChar(20), m.unidade || 'un')
-                .query(`
-                  INSERT INTO org_stock_exit_items (exit_id, product_id, produto_nome, quantidade, unidade)
-                  VALUES (@exitId, @productId, @produtoNome, @quantidade, @unidade)
-                `)
-            }
+            await tx.insert(orgStockExitItems).values(
+              materiaisComProduto.map(m => ({
+                exitId:      stockExit.id,
+                productId:   m.productId!,
+                produtoNome: m.nome,
+                quantidade:  String(m.quantidade),
+                unidade:     m.unidade ?? 'un',
+              }))
+            )
           }
         }
       }
 
-      await transaction.commit()
-      return NextResponse.json({ ...updatedOrder, no_cashier_session: noCashierSession })
-    } catch (txError) {
-      await transaction.rollback()
-      throw txError
+      return { updatedOrder, noCashierSession }
+    })
+
+    if ('notFound' in result) {
+      return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
     }
+
+    return NextResponse.json({ ...result.updatedOrder, no_cashier_session: result.noCashierSession })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -325,33 +311,24 @@ export async function DELETE(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    // Items, history e notes são deletados por CASCADE
-    const result = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        DELETE FROM org_service_orders
-        OUTPUT DELETED.id
-        WHERE id = @id AND organization_id = @orgId
-      `)
+    const [deleted] = await db
+      .delete(orgServiceOrders)
+      .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
+      .returning({ id: orgServiceOrders.id })
 
-    if (result.recordset.length === 0) {
+    if (!deleted) {
       return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
     }
 
-    // Atualizar métricas
-    await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        UPDATE usage_metrics
-        SET orders_count = CASE WHEN orders_count > 0 THEN orders_count - 1 ELSE 0 END,
-            updated_at = GETDATE()
-        WHERE organization_id = @orgId
-      `)
+    // Update metrics — decrement orders_count (not cumulative)
+    await db
+      .update(usageMetrics)
+      .set({
+        ordersCount: drizzleSql`greatest(${usageMetrics.ordersCount} - 1, 0)`,
+        updatedAt:   new Date(),
+      })
+      .where(eq(usageMetrics.organizationId, user.organizationId))
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

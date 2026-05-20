@@ -1,27 +1,45 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { db } from '@/lib/db'
+import { profiles } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
+    const supabase = await createClient()
 
-    const result = await pool
-      .request()
-      .input('userId', sql.UniqueIdentifier, user.id)
-      .query(`
-        SELECT id, email, full_name, role, is_owner, created_at
-        FROM users
-        WHERE id = @userId
-      `)
+    const [rows, { data: authData }] = await Promise.all([
+      db
+        .select({
+          id:             profiles.id,
+          organizationId: profiles.organizationId,
+          fullName:       profiles.fullName,
+          role:           profiles.role,
+          isOwner:        profiles.isOwner,
+          createdAt:      profiles.createdAt,
+        })
+        .from(profiles)
+        .where(eq(profiles.id, user.id)),
+      supabase.auth.getUser(),
+    ])
 
-    if (result.recordset.length === 0) {
+    if (rows.length === 0) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(result.recordset[0])
+    const profile = rows[0]
+    return NextResponse.json({
+      id:         profile.id,
+      // snake_case para compatibilidade com a página
+      full_name:  profile.fullName ?? '',
+      role:       profile.role,
+      is_owner:   profile.isOwner,
+      created_at: profile.createdAt,
+      // email vem do Supabase Auth
+      email:      authData.user?.email ?? '',
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -35,55 +53,43 @@ export async function PUT(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
+    const supabase = await createClient()
 
-    // Se vier senha nova, verificar a senha atual primeiro
     if (body.new_password) {
-      const currentResult = await pool
-        .request()
-        .input('userId', sql.UniqueIdentifier, user.id)
-        .query(`SELECT password_hash FROM users WHERE id = @userId`)
+      // Update password via Supabase Auth
+      const { error: authError } = await supabase.auth.updateUser({
+        password: body.new_password,
+      })
 
-      const currentHash = currentResult.recordset[0]?.password_hash
-      if (!currentHash) {
-        return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+      if (authError) {
+        return NextResponse.json({ error: authError.message }, { status: 400 })
       }
-
-      const valid = await bcrypt.compare(body.current_password || '', currentHash)
-      if (!valid) {
-        return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 400 })
-      }
-
-      const newHash = await bcrypt.hash(body.new_password, 12)
-
-      const result = await pool
-        .request()
-        .input('userId', sql.UniqueIdentifier, user.id)
-        .input('fullName', sql.NVarChar, body.full_name || user.name)
-        .input('passwordHash', sql.NVarChar, newHash)
-        .query(`
-          UPDATE users
-          SET full_name = @fullName, password_hash = @passwordHash
-          OUTPUT INSERTED.id, INSERTED.email, INSERTED.full_name, INSERTED.role, INSERTED.created_at
-          WHERE id = @userId
-        `)
-
-      return NextResponse.json(result.recordset[0])
     }
 
-    // Apenas atualizar nome
-    const result = await pool
-      .request()
-      .input('userId', sql.UniqueIdentifier, user.id)
-      .input('fullName', sql.NVarChar, body.full_name || user.name)
-      .query(`
-        UPDATE users
-        SET full_name = @fullName
-        OUTPUT INSERTED.id, INSERTED.email, INSERTED.full_name, INSERTED.role, INSERTED.created_at
-        WHERE id = @userId
-      `)
+    const newName = body.full_name || user.name
 
-    return NextResponse.json(result.recordset[0])
+    // Update full_name in Supabase Auth user_metadata
+    await supabase.auth.updateUser({ data: { full_name: newName } })
+
+    // Update full_name in profiles table
+    const [row] = await db
+      .update(profiles)
+      .set({ fullName: newName })
+      .where(eq(profiles.id, user.id))
+      .returning({
+        id:        profiles.id,
+        fullName:  profiles.fullName,
+        role:      profiles.role,
+        createdAt: profiles.createdAt,
+      })
+
+    return NextResponse.json({
+      id:         row.id,
+      full_name:  row.fullName ?? '',
+      role:       row.role,
+      created_at: row.createdAt,
+      email:      (await supabase.auth.getUser()).data.user?.email ?? '',
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

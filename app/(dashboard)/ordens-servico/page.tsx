@@ -198,6 +198,26 @@ export default function OrdensServicoPage() {
           </div>
         </div>
 
+        {/* Banner de limite atingido */}
+        {orderLimit.atLimit && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-4 py-3">
+            <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">!</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                Limite de ordens de serviço atingido ({orderLimit.usage}/{orderLimit.limit})
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">
+                Você atingiu o limite do plano Free. Faça upgrade para o plano Pro para criar mais ordens.
+              </p>
+            </div>
+            <Button size="sm" className="shrink-0 bg-red-600 hover:bg-red-700 text-white h-8 text-xs">
+              Fazer Upgrade
+            </Button>
+          </div>
+        )}
+
         {/* Barra de Ações */}
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgCashiers } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function PUT(
   request: Request,
@@ -10,27 +12,23 @@ export async function PUT(
     const user = await requireAuth()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('nome', sql.NVarChar, body.nome)
-      .input('descricao', sql.NVarChar, body.descricao || null)
-      .input('ativo', sql.Bit, body.ativo !== false ? 1 : 0)
-      .query(`
-        UPDATE org_cashiers
-        SET nome = @nome, descricao = @descricao, ativo = @ativo, updated_at = GETDATE()
-        OUTPUT INSERTED.*
-        WHERE id = @id AND organization_id = @orgId
-      `)
+    const [row] = await db
+      .update(orgCashiers)
+      .set({
+        nome: body.nome,
+        descricao: body.descricao ?? null,
+        ativo: body.ativo !== false,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orgCashiers.id, id), eq(orgCashiers.organizationId, user.organizationId)))
+      .returning()
 
-    if (result.recordset.length === 0) {
+    if (!row) {
       return NextResponse.json({ error: 'Caixa não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(result.recordset[0])
+    return NextResponse.json(row)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -47,19 +45,13 @@ export async function DELETE(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        DELETE FROM org_cashiers
-        OUTPUT DELETED.id
-        WHERE id = @id AND organization_id = @orgId
-      `)
+    const [row] = await db
+      .delete(orgCashiers)
+      .where(and(eq(orgCashiers.id, id), eq(orgCashiers.organizationId, user.organizationId)))
+      .returning({ id: orgCashiers.id })
 
-    if (result.recordset.length === 0) {
+    if (!row) {
       return NextResponse.json({ error: 'Caixa não encontrado' }, { status: 404 })
     }
 

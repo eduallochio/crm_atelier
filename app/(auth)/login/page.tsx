@@ -465,6 +465,12 @@ export default function LoginPage() {
                 {errors.password && <p className="lp-err">{errors.password.message}</p>}
               </div>
 
+              <div style={{ textAlign: 'right', marginTop: '-18px', marginBottom: '28px' }}>
+                <Link href="/esqueci-senha" style={{ fontSize: '12px', color: '#d4a85a', textDecoration: 'none', fontWeight: 400, letterSpacing: '0.02em' }}>
+                  Esqueci minha senha
+                </Link>
+              </div>
+
               <div className="lp-sep" />
 
               <button type="submit" className="lp-btn" disabled={isLoading}>

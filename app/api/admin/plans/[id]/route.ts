@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { plans } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 function handleAuthError(error: unknown) {
   const msg = (error as Error).message
@@ -23,32 +25,25 @@ export async function PUT(
       badge, is_featured, is_active, features, cta_text, cta_url, sort_order,
     } = body
 
-    const pool = await getPool()
-    await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('slug', sql.NVarChar, slug)
-      .input('name', sql.NVarChar, name)
-      .input('description', sql.NVarChar, description || null)
-      .input('price', sql.Decimal(10, 2), parseFloat(price) || 0)
-      .input('price_annual', sql.Decimal(10, 2), price_annual ? parseFloat(price_annual) : null)
-      .input('annual_note', sql.NVarChar, annual_note || null)
-      .input('badge', sql.NVarChar, badge || null)
-      .input('is_featured', sql.Bit, is_featured ? 1 : 0)
-      .input('is_active', sql.Bit, is_active !== false ? 1 : 0)
-      .input('features_json', sql.NVarChar, JSON.stringify(features ?? []))
-      .input('cta_text', sql.NVarChar, cta_text || 'Criar conta')
-      .input('cta_url', sql.NVarChar, cta_url || '/cadastro')
-      .input('sort_order', sql.Int, parseInt(sort_order) || 0)
-      .query(`
-        UPDATE plans SET
-          slug = @slug, name = @name, description = @description,
-          price = @price, price_annual = @price_annual, annual_note = @annual_note,
-          badge = @badge, is_featured = @is_featured, is_active = @is_active,
-          features_json = @features_json, cta_text = @cta_text, cta_url = @cta_url,
-          sort_order = @sort_order, updated_at = GETDATE()
-        WHERE id = @id
-      `)
+    await db
+      .update(plans)
+      .set({
+        slug,
+        name,
+        description: description || null,
+        price: String(parseFloat(price) || 0),
+        priceAnnual: price_annual ? String(parseFloat(price_annual)) : null,
+        annualNote: annual_note || null,
+        badge: badge || null,
+        isFeatured: Boolean(is_featured),
+        isActive: is_active !== false,
+        featuresJson: features ?? [],
+        ctaText: cta_text || 'Criar conta',
+        ctaUrl: cta_url || '/cadastro',
+        sortOrder: parseInt(sort_order) || 0,
+        updatedAt: new Date(),
+      })
+      .where(eq(plans.id, id))
 
     return NextResponse.json({ ok: true })
   } catch (error) {
@@ -64,12 +59,8 @@ export async function DELETE(
   try {
     await requireMaster()
     const { id } = await params
-    const pool = await getPool()
 
-    await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query('DELETE FROM plans WHERE id = @id')
+    await db.delete(plans).where(eq(plans.id, id))
 
     return NextResponse.json({ ok: true })
   } catch (error) {

@@ -1,4 +1,5 @@
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { adminLogs } from '@/lib/db/schema'
 
 interface LogParams {
   action: string
@@ -15,19 +16,14 @@ interface LogParams {
  */
 export async function logAdminAction(params: LogParams): Promise<void> {
   try {
-    const pool = await getPool()
-    await pool
-      .request()
-      .input('action', sql.NVarChar, params.action)
-      .input('resource_type', sql.NVarChar, params.resourceType ?? null)
-      .input('resource_id', sql.NVarChar, params.resourceId ?? null)
-      .input('description', sql.NVarChar, params.description)
-      .input('admin_email', sql.NVarChar, params.adminEmail ?? null)
-      .input('details_json', sql.NVarChar, params.details ? JSON.stringify(params.details) : null)
-      .query(`
-        INSERT INTO admin_logs (action, resource_type, resource_id, description, admin_email, details_json)
-        VALUES (@action, @resource_type, @resource_id, @description, @admin_email, @details_json)
-      `)
+    await db.insert(adminLogs).values({
+      action: params.action,
+      resourceType: params.resourceType ?? null,
+      resourceId: params.resourceId ?? null,
+      description: params.description,
+      adminEmail: params.adminEmail ?? null,
+      detailsJson: params.details ?? null,
+    })
   } catch {
     // Falha silenciosa — logs nunca devem quebrar a operação principal
   }

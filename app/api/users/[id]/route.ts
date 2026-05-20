@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { profiles } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,28 +20,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Cargo inválido' }, { status: 400 })
     }
 
-    const pool = await getPool()
-
     // Não permite alterar o próprio cargo nem o do owner
-    const check = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT id, is_owner FROM users WHERE id = @id AND organization_id = @orgId`)
+    const check = await db
+      .select({ id: profiles.id, isOwner: profiles.isOwner })
+      .from(profiles)
+      .where(and(eq(profiles.id, id), eq(profiles.organizationId, user.organizationId)))
+      .limit(1)
 
-    if (check.recordset.length === 0) {
+    if (check.length === 0) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
-    if (check.recordset[0].is_owner) {
+    if (check[0].isOwner) {
       return NextResponse.json({ error: 'Não é possível alterar o cargo do proprietário' }, { status: 403 })
     }
 
-    await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('role', sql.NVarChar, role)
-      .query(`UPDATE users SET role = @role WHERE id = @id AND organization_id = @orgId`)
+    await db
+      .update(profiles)
+      .set({ role })
+      .where(and(eq(profiles.id, id), eq(profiles.organizationId, user.organizationId)))
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -63,26 +62,25 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Você não pode remover a si mesmo' }, { status: 400 })
     }
 
-    const pool = await getPool()
+    const check = await db
+      .select({ id: profiles.id, isOwner: profiles.isOwner })
+      .from(profiles)
+      .where(and(eq(profiles.id, id), eq(profiles.organizationId, user.organizationId)))
+      .limit(1)
 
-    const check = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT id, is_owner FROM users WHERE id = @id AND organization_id = @orgId`)
-
-    if (check.recordset.length === 0) {
+    if (check.length === 0) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
-    if (check.recordset[0].is_owner) {
+    if (check[0].isOwner) {
       return NextResponse.json({ error: 'Não é possível remover o proprietário' }, { status: 403 })
     }
 
-    await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`DELETE FROM users WHERE id = @id AND organization_id = @orgId`)
+    // Delete from Supabase Auth (cascades to profiles via trigger)
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    await supabase.auth.admin.deleteUser(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

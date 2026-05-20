@@ -74,7 +74,7 @@ const DEFAULT_PLANS: PublicPlan[] = [
     id: 'free',
     slug: 'free',
     name: 'Free',
-    description: 'Para começar sem compromisso',
+    description: 'Para começar',
     price: 0,
     price_annual: null,
     annual_note: null,
@@ -85,20 +85,21 @@ const DEFAULT_PLANS: PublicPlan[] = [
     sort_order: 1,
     features: [
       { text: 'Até 50 clientes', included: true },
-      { text: 'Até 250 ordens de serviço', included: true },
-      { text: 'Dashboard com métricas', included: true },
+      { text: 'Até 2 usuários', included: true },
+      { text: '100 ordens/mês', included: true },
+      { text: '500 MB armazenamento', included: true },
+      { text: 'Dashboard básico', included: true },
       { text: 'Controle de caixa', included: true },
       { text: 'Contas a pagar/receber', included: true },
-      { text: 'Estoque', included: false },
-      { text: 'Relatórios e exportações', included: false },
-      { text: 'Usuários adicionais', included: false },
+      { text: 'Relatórios avançados', included: false },
+      { text: 'Exportação de dados', included: false },
     ],
   },
   {
     id: 'pro',
     slug: 'pro',
     name: 'Pro',
-    description: 'Para ateliês em crescimento',
+    description: 'Para crescer',
     price: 59.9,
     price_annual: 599,
     annual_note: 'ou R$ 599/ano — 2 meses grátis',
@@ -108,14 +109,16 @@ const DEFAULT_PLANS: PublicPlan[] = [
     cta_url: '/cadastro',
     sort_order: 2,
     features: [
-      { text: 'Tudo do plano Free +', included: true },
-      { text: 'Clientes ilimitados', included: true },
-      { text: 'Ordens ilimitadas', included: true },
-      { text: 'Estoque completo', included: true },
-      { text: 'Relatórios e exportação Excel/PDF', included: true },
+      { text: 'Até 200 clientes', included: true },
       { text: 'Até 5 usuários', included: true },
+      { text: '1.000 ordens/mês', included: true },
+      { text: '5 GB armazenamento', included: true },
+      { text: 'Tudo do plano Free +', included: true },
+      { text: 'Relatórios avançados', included: true },
+      { text: 'Exportação Excel/PDF', included: true },
+      { text: 'Dashboards personalizados', included: true },
+      { text: 'Lembretes automáticos', included: true },
       { text: 'Suporte prioritário (12h)', included: true },
-      { text: 'Lembretes automáticos (em breve)', included: true },
     ],
   },
 ]
@@ -550,8 +553,6 @@ export default function HomePage() {
               <div className="gold-line" style={{ marginBottom: 32 }} />
               <div className="stats-grid">
                 {[
-                  { num: '5h', desc: 'economizadas por semana' },
-                  { num: '95%', desc: 'menos erros no caixa' },
                   { num: '250', desc: 'ordens de serviço no plano free' },
                   { num: 'R$ 0', desc: 'para começar hoje' },
                 ].map((s, i) => (
@@ -825,7 +826,7 @@ export default function HomePage() {
                       ['Tudo centralizado', 'Busca instantânea de qualquer informação'],
                       ['Histórico completo', 'Cada cliente com todos os detalhes salvos'],
                       ['Controle financeiro preciso', 'Sabe exatamente quanto entrou e saiu'],
-                      ['5h economizadas por semana', 'Menos tempo em tarefas administrativas'],
+                      ['Menos tempo administrativo', 'Automatize o que é repetitivo e foque no que importa'],
                       ['Decisões baseadas em dados', 'Relatórios claros para crescer com confiança'],
                     ].map(([t, d]) => (
                       <li key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>

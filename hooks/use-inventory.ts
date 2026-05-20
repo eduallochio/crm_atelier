@@ -157,3 +157,84 @@ export function useCreateStockEntry() {
     onError: (e: Error) => toast.error(e.message),
   })
 }
+
+// ─── Stock Exits ──────────────────────────────────────────────────────────────
+
+export interface StockExitItem {
+  id: string
+  exit_id: string
+  product_id: string
+  produto_nome: string
+  quantidade: number
+  unidade: string
+}
+
+export interface StockExit {
+  id: string
+  organization_id: string
+  service_order_id?: string
+  tipo: 'manual' | 'ordem_servico'
+  observacoes?: string
+  created_at: string
+  updated_at: string
+  itens: StockExitItem[]
+}
+
+export function useStockExits() {
+  return useQuery<StockExit[]>({
+    queryKey: ['stock-exits'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory/exits')
+      if (!res.ok) throw new Error('Erro ao buscar saídas')
+      return res.json()
+    },
+  })
+}
+
+export function useCreateStockExit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: {
+      serviceOrderId?: string
+      tipo?: string
+      observacoes?: string
+      itens: { productId: string; produtoNome: string; quantidade: number; unidade?: string }[]
+    }) => {
+      const res = await fetch('/api/inventory/exits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const e = await res.json()
+        throw new Error(e.error)
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['stock-exits'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+      toast.success('Saída registrada com sucesso!')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useDeleteStockExit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/inventory/exits/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const e = await res.json()
+        throw new Error(e.error)
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['stock-exits'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+      toast.success('Saída removida e estoque revertido!')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}

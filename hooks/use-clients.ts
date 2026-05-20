@@ -31,6 +31,7 @@ export function useCreateClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Cliente cadastrado com sucesso!')
     },
     onError: (error: Error) => {
@@ -76,6 +77,7 @@ export function useDeleteClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Cliente removido com sucesso!')
     },
     onError: (error: Error) => {

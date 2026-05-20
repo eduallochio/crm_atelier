@@ -18,7 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter, MoreVertical, Download, Send, RefreshCcw } from 'lucide-react'
+import { Search, Filter, MoreVertical, Download, Send, RefreshCcw, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Invoice {
   id: string
@@ -48,19 +49,57 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
 
   const hasData = invoices.length > 0
 
-  const handleProcessPayment = (invoiceId: string) => {
-    // TODO: Implementar processamento de pagamento
-    console.log('Processar pagamento:', invoiceId)
+  const [processing, setProcessing] = useState<string | null>(null)
+
+  const handleProcessPayment = async (invoiceId: string) => {
+    setProcessing(invoiceId)
+    try {
+      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'process_payment' }),
+      })
+      if (!res.ok) throw new Error('Erro ao processar pagamento')
+      toast.success('Pagamento processado!')
+    } catch {
+      toast.error('Erro ao processar pagamento. Integração Stripe pendente.')
+    } finally {
+      setProcessing(null)
+    }
   }
 
-  const handleRefund = (invoiceId: string) => {
-    // TODO: Implementar reembolso
-    console.log('Reembolsar:', invoiceId)
+  const handleRefund = async (invoiceId: string) => {
+    setProcessing(invoiceId)
+    try {
+      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refund' }),
+      })
+      if (!res.ok) throw new Error('Erro ao processar reembolso')
+      toast.success('Reembolso solicitado!')
+    } catch {
+      toast.error('Erro ao processar reembolso. Integração Stripe pendente.')
+    } finally {
+      setProcessing(null)
+    }
   }
 
-  const handleResend = (invoiceId: string) => {
-    // TODO: Implementar reenvio de fatura
-    console.log('Reenviar fatura:', invoiceId)
+  const handleResend = async (invoiceId: string) => {
+    setProcessing(invoiceId)
+    try {
+      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resend_invoice' }),
+      })
+      if (!res.ok) throw new Error('Erro ao reenviar fatura')
+      toast.success('Fatura reenviada!')
+    } catch {
+      toast.error('Erro ao reenviar fatura. Integração de email pendente.')
+    } finally {
+      setProcessing(null)
+    }
   }
 
   return (
@@ -160,19 +199,37 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {invoice.status === 'pending' && (
-                              <DropdownMenuItem onClick={() => handleProcessPayment(invoice.id)}>
-                                <RefreshCcw className="h-4 w-4 mr-2" />
+                              <DropdownMenuItem
+                                onClick={() => handleProcessPayment(invoice.id)}
+                                disabled={processing === invoice.id}
+                              >
+                                {processing === invoice.id
+                                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  : <RefreshCcw className="h-4 w-4 mr-2" />
+                                }
                                 Processar Pagamento
                               </DropdownMenuItem>
                             )}
                             {invoice.status === 'paid' && (
-                              <DropdownMenuItem onClick={() => handleRefund(invoice.id)}>
-                                <RefreshCcw className="h-4 w-4 mr-2" />
+                              <DropdownMenuItem
+                                onClick={() => handleRefund(invoice.id)}
+                                disabled={processing === invoice.id}
+                              >
+                                {processing === invoice.id
+                                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  : <RefreshCcw className="h-4 w-4 mr-2" />
+                                }
                                 Reembolsar
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => handleResend(invoice.id)}>
-                              <Send className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem
+                              onClick={() => handleResend(invoice.id)}
+                              disabled={processing === invoice.id}
+                            >
+                              {processing === invoice.id
+                                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                : <Send className="h-4 w-4 mr-2" />
+                              }
                               Reenviar Fatura
                             </DropdownMenuItem>
                             <DropdownMenuItem>

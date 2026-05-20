@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { organizations } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
 
-const ACTION_MAP: Record<string, { state: string; action: string; label: string }> = {
-  suspend:    { state: 'suspended', action: 'SUSPEND',    label: 'Suspensa' },
-  reactivate: { state: 'active',    action: 'REACTIVATE', label: 'Reativada' },
-  cancel:     { state: 'cancelled', action: 'CANCEL',     label: 'Cancelada' },
-  trial:      { state: 'trial',     action: 'UPDATE',     label: 'Em teste' },
+const ACTION_MAP: Record<string, { status: string; action: string; label: string }> = {
+  suspend:    { status: 'suspended', action: 'SUSPEND',    label: 'Suspensa' },
+  reactivate: { status: 'active',    action: 'REACTIVATE', label: 'Reativada' },
+  cancel:     { status: 'cancelled', action: 'CANCEL',     label: 'Cancelada' },
+  trial:      { status: 'trialing',  action: 'UPDATE',     label: 'Em teste' },
 }
 
 export async function PUT(
@@ -24,29 +26,27 @@ export async function PUT(
       return NextResponse.json({ error: 'Ação inválida. Use: suspend, reactivate, cancel, trial' }, { status: 400 })
     }
 
-    const pool = await getPool()
+    const orgRows = await db
+      .select({ name: organizations.name, subscriptionStatus: organizations.subscriptionStatus })
+      .from(organizations)
+      .where(eq(organizations.id, id))
+      .limit(1)
 
-    // Buscar org atual
-    const orgResult = await pool.request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query(`SELECT name, state FROM organizations WHERE id = @id`)
-
-    if (!orgResult.recordset.length) {
+    if (orgRows.length === 0) {
       return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
     }
 
-    const org = orgResult.recordset[0]
-    const oldState = org.state as string
+    const org = orgRows[0]
+    const oldState = org.subscriptionStatus ?? 'inactive'
 
-    if (oldState === mapping.state) {
+    if (oldState === mapping.status) {
       return NextResponse.json({ message: 'Estado já é o mesmo' })
     }
 
-    // Atualizar estado
-    await pool.request()
-      .input('id',    sql.UniqueIdentifier, id)
-      .input('state', sql.NVarChar, mapping.state)
-      .query(`UPDATE organizations SET state = @state, updated_at = GETDATE() WHERE id = @id`)
+    await db
+      .update(organizations)
+      .set({ subscriptionStatus: mapping.status, updatedAt: new Date() })
+      .where(eq(organizations.id, id))
 
     await logAdminAction({
       action: mapping.action,
@@ -54,10 +54,10 @@ export async function PUT(
       resourceId: id,
       description: `Organização "${org.name}" ${mapping.label.toLowerCase()} (era: ${oldState})`,
       adminEmail: admin.email,
-      details: { orgId: id, orgName: org.name, oldState, newState: mapping.state },
+      details: { orgId: id, orgName: org.name, oldState, newState: mapping.status },
     })
 
-    return NextResponse.json({ success: true, state: mapping.state })
+    return NextResponse.json({ success: true, state: mapping.status })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })

@@ -1,24 +1,19 @@
 'use server'
 
-import { signIn, signOut } from '@/auth'
-import { getPool, sql } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { AuthError } from 'next-auth'
 
 export async function login(formData: FormData) {
-  try {
-    await signIn('credentials', {
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
-      redirect: false,
-    })
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: 'Email ou senha incorretos.' }
-    }
-    throw error
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  })
+
+  if (error) {
+    return { error: 'Email ou senha incorretos.' }
   }
 
   revalidatePath('/', 'layout')
@@ -26,88 +21,74 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const fullName = formData.get('fullName') as string
+  const supabase = await createClient()
 
-  const pool = await getPool()
+  const email      = formData.get('email')       as string
+  const password   = formData.get('password')    as string
+  const fullName   = formData.get('fullName')    as string
+  const atelierName = formData.get('atelierName') as string | null
+  const document   = formData.get('document')    as string | null
+  const phone      = formData.get('phone')       as string | null
+  const city       = formData.get('city')        as string | null
+  const state      = formData.get('state')       as string | null
 
-  // Verificar se email já existe
-  const existing = await pool
-    .request()
-    .input('email', sql.NVarChar, email)
-    .query('SELECT id FROM users WHERE email = @email')
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: atelierName?.trim() || fullName,
+      },
+    },
+  })
 
-  if (existing.recordset.length > 0) {
-    return { error: 'Este email já está cadastrado.' }
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12)
-
-  // Criar organização + usuário + métricas + customização em uma única transação
-  const transaction = new sql.Transaction(pool)
-
-  try {
-    await transaction.begin()
-
-    const orgSlug = `atelier-${Date.now()}`
-    const orgName = `${fullName} Atelier`
-
-    // 1. Organização
-    const orgResult = await new sql.Request(transaction)
-      .input('name', sql.NVarChar, orgName)
-      .input('slug', sql.NVarChar, orgSlug)
-      .query(`
-        INSERT INTO organizations (name, slug, plan)
-        OUTPUT INSERTED.id
-        VALUES (@name, @slug, 'free')
-      `)
-
-    const orgId: string = orgResult.recordset[0].id
-
-    // 2. Usuário
-    await new sql.Request(transaction)
-      .input('orgId', sql.UniqueIdentifier, orgId)
-      .input('email', sql.NVarChar, email)
-      .input('passwordHash', sql.NVarChar, passwordHash)
-      .input('fullName', sql.NVarChar, fullName)
-      .query(`
-        INSERT INTO users (organization_id, email, password_hash, full_name, [role], is_owner)
-        VALUES (@orgId, @email, @passwordHash, @fullName, 'owner', 1)
-      `)
-
-    // 3. Métricas de uso
-    await new sql.Request(transaction)
-      .input('orgId', sql.UniqueIdentifier, orgId)
-      .query(`
-        INSERT INTO usage_metrics (organization_id, clients_count, orders_count, users_count)
-        VALUES (@orgId, 0, 0, 1)
-      `)
-
-    // 4. Customização padrão
-    await new sql.Request(transaction)
-      .input('orgId', sql.UniqueIdentifier, orgId)
-      .query(`
-        INSERT INTO customization_settings (organization_id, primary_color, secondary_color)
-        VALUES (@orgId, '#3b82f6', '#10b981')
-      `)
-
-    await transaction.commit()
-  } catch (error) {
-    await transaction.rollback()
-    console.error('[signup] Erro ao criar conta:', error)
+  if (error) {
+    if (error.message.includes('already registered')) {
+      return { error: 'Este email já está cadastrado.' }
+    }
     return { error: 'Erro ao criar sua conta. Tente novamente.' }
   }
 
-  // Login automático após cadastro
-  try {
-    await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
-  } catch {
-    redirect('/login')
+  // Após signup, atualiza a organização criada pelo trigger com os dados extras
+  // Aguarda breve instante para o trigger handle_new_user ter tempo de executar
+  if (atelierName || document || phone || city || state) {
+    try {
+      const { db } = await import('@/lib/db')
+      const { organizations, profiles } = await import('@/lib/db/schema')
+      const { eq } = await import('drizzle-orm')
+
+      // Busca o user recém-criado para obter o organization_id via profile
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Aguarda até 2s o trigger criar o profile
+        let orgId: string | null = null
+        for (let i = 0; i < 4; i++) {
+          const [profile] = await db
+            .select({ organizationId: profiles.organizationId })
+            .from(profiles)
+            .where(eq(profiles.id, user.id))
+            .limit(1)
+          if (profile?.organizationId) { orgId = profile.organizationId; break }
+          await new Promise(r => setTimeout(r, 500))
+        }
+
+        if (orgId) {
+          await db
+            .update(organizations)
+            .set({
+              name:      atelierName?.trim() || fullName,
+              cnpj:      document || null,
+              phone:     phone    || null,
+              city:      city     || null,
+              state:     state    || null,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.id, orgId))
+        }
+      }
+    } catch {
+      // Não bloqueia o cadastro se a atualização falhar
+    }
   }
 
   revalidatePath('/', 'layout')
@@ -115,7 +96,64 @@ export async function signup(formData: FormData) {
 }
 
 export async function logout() {
-  await signOut({ redirect: false })
+  const supabase = await createClient()
+  await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/login')
+}
+
+export async function forgotPassword(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  if (!email) return { error: 'Informe seu e-mail.' }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/redefinir-senha`,
+  })
+
+  if (error) return { error: 'Erro ao enviar e-mail. Tente novamente.' }
+
+  return { success: true }
+}
+
+export async function resetPassword(formData: FormData) {
+  const supabase = await createClient()
+  const password = formData.get('password') as string
+  const confirm = formData.get('confirmPassword') as string
+
+  if (!password || password.length < 6)
+    return { error: 'A senha deve ter no mínimo 6 caracteres.' }
+  if (password !== confirm)
+    return { error: 'As senhas não coincidem.' }
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) return { error: 'Erro ao redefinir senha. O link pode ter expirado.' }
+
+  revalidatePath('/', 'layout')
+  redirect('/dashboard')
+}
+
+export async function resendConfirmation(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  if (!email) return { error: 'Informe seu e-mail.' }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${siteUrl}/dashboard`,
+    },
+  })
+
+  if (error) return { error: 'Erro ao reenviar e-mail. Tente novamente.' }
+
+  return { success: true }
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgReceivables, orgPayables, orgTransactions, orgFinancialCategories } from '@/lib/db/schema'
+import { eq, and, gte, lte, lt, isNull, sql as drizzleSql } from 'drizzle-orm'
 
 function getPeriodDates(period: string) {
   const now = new Date()
@@ -35,11 +37,11 @@ function getPeriodDates(period: string) {
   }
 }
 
+const toDateStr = (d: Date) => d.toISOString().split('T')[0]
+
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
-
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'thisMonth'
     const { start: startOfMonth, end: endOfMonth } = getPeriodDates(period)
@@ -48,168 +50,185 @@ export async function GET(request: Request) {
     const in7Days = new Date()
     in7Days.setDate(in7Days.getDate() + 7)
 
-    // Receivables aggregates
-    const recResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('startOfMonth', sql.DateTime2, startOfMonth)
-      .input('endOfMonth', sql.DateTime2, endOfMonth)
-      .input('today', sql.DateTime2, now)
-      .input('in7Days', sql.DateTime2, in7Days)
-      .query(`
-        SELECT
-          ISNULL(SUM(CASE WHEN status = 'recebido' THEN valor ELSE 0 END), 0) AS total_recebido,
-          -- todos os pendentes, independente se atrasados ou não
-          ISNULL(SUM(CASE WHEN status = 'pendente' THEN valor ELSE 0 END), 0) AS total_a_receber,
-          ISNULL(SUM(CASE
-            WHEN status = 'pendente' AND data_vencimento < CAST(GETDATE() AS DATE) THEN valor
-            ELSE 0
-          END), 0) AS receitas_atrasadas,
-          ISNULL(SUM(CASE
-            WHEN status = 'recebido'
-              AND data_recebimento >= @startOfMonth AND data_recebimento <= @endOfMonth
-            THEN valor ELSE 0
-          END), 0) AS entradas_mes,
+    const orgId = user.organizationId
+    const startStr  = toDateStr(startOfMonth)
+    const endStr    = toDateStr(endOfMonth)
+    const todayStr  = toDateStr(now)
+    const in7Str    = toDateStr(in7Days)
+
+    // ── Receivables aggregates ─────────────────────────────────────────────────
+    const [recAgg] = await db
+      .select({
+        totalRecebido: drizzleSql<number>`
+          COALESCE(SUM(CASE WHEN ${orgReceivables.status} = 'recebido' THEN ${orgReceivables.valor}::numeric ELSE 0 END), 0)`,
+        totalAReceber: drizzleSql<number>`
+          COALESCE(SUM(CASE WHEN ${orgReceivables.status} = 'pendente' THEN ${orgReceivables.valor}::numeric ELSE 0 END), 0)`,
+        receitasAtrasadas: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgReceivables.status} = 'pendente'
+              AND ${orgReceivables.dataVencimento} < ${todayStr}::date
+            THEN ${orgReceivables.valor}::numeric ELSE 0 END), 0)`,
+        entradasMes: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgReceivables.status} = 'recebido'
+              AND ${orgReceivables.dataRecebimento} >= ${startStr}::date
+              AND ${orgReceivables.dataRecebimento} <= ${endStr}::date
+            THEN ${orgReceivables.valor}::numeric ELSE 0 END), 0)`,
+        recebiveisVencendo: drizzleSql<number>`
           COUNT(CASE
-            WHEN status = 'pendente'
-              AND data_vencimento >= @today AND data_vencimento <= @in7Days
-            THEN 1 END) AS recebiveis_vencendo
-        FROM org_receivables
-        WHERE organization_id = @orgId
-      `)
+            WHEN ${orgReceivables.status} = 'pendente'
+              AND ${orgReceivables.dataVencimento} >= ${todayStr}::date
+              AND ${orgReceivables.dataVencimento} <= ${in7Str}::date
+            THEN 1 END)`,
+      })
+      .from(orgReceivables)
+      .where(eq(orgReceivables.organizationId, orgId))
 
-    // Payables aggregates
-    const payResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('startOfMonth', sql.DateTime2, startOfMonth)
-      .input('endOfMonth', sql.DateTime2, endOfMonth)
-      .input('today', sql.DateTime2, now)
-      .input('in7Days', sql.DateTime2, in7Days)
-      .query(`
-        SELECT
-          ISNULL(SUM(CASE WHEN status = 'pago' THEN valor ELSE 0 END), 0) AS total_pago,
-          ISNULL(SUM(CASE
-            WHEN status = 'pendente' AND data_vencimento >= CAST(GETDATE() AS DATE) THEN valor
-            ELSE 0
-          END), 0) AS total_a_pagar,
-          ISNULL(SUM(CASE
-            WHEN status = 'pendente' AND data_vencimento < CAST(GETDATE() AS DATE) THEN valor
-            ELSE 0
-          END), 0) AS despesas_atrasadas,
-          ISNULL(SUM(CASE
-            WHEN status = 'pago'
-              AND data_pagamento >= @startOfMonth AND data_pagamento <= @endOfMonth
-            THEN valor ELSE 0
-          END), 0) AS saidas_mes,
+    // ── Payables aggregates ────────────────────────────────────────────────────
+    const [payAgg] = await db
+      .select({
+        totalPago: drizzleSql<number>`
+          COALESCE(SUM(CASE WHEN ${orgPayables.status} = 'pago' THEN ${orgPayables.valor}::numeric ELSE 0 END), 0)`,
+        totalAPagar: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgPayables.status} = 'pendente'
+              AND ${orgPayables.dataVencimento} >= ${todayStr}::date
+            THEN ${orgPayables.valor}::numeric ELSE 0 END), 0)`,
+        despesasAtrasadas: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgPayables.status} = 'pendente'
+              AND ${orgPayables.dataVencimento} < ${todayStr}::date
+            THEN ${orgPayables.valor}::numeric ELSE 0 END), 0)`,
+        saidasMes: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgPayables.status} = 'pago'
+              AND ${orgPayables.dataPagamento} >= ${startStr}::date
+              AND ${orgPayables.dataPagamento} <= ${endStr}::date
+            THEN ${orgPayables.valor}::numeric ELSE 0 END), 0)`,
+        pagaveisVencendo: drizzleSql<number>`
           COUNT(CASE
-            WHEN status = 'pendente'
-              AND data_vencimento >= @today AND data_vencimento <= @in7Days
-            THEN 1 END) AS pagaveis_vencendo
-        FROM org_payables
-        WHERE organization_id = @orgId
-      `)
+            WHEN ${orgPayables.status} = 'pendente'
+              AND ${orgPayables.dataVencimento} >= ${todayStr}::date
+              AND ${orgPayables.dataVencimento} <= ${in7Str}::date
+            THEN 1 END)`,
+      })
+      .from(orgPayables)
+      .where(eq(orgPayables.organizationId, orgId))
 
-    // Transactions diretas (sem vínculo com receivable/payable)
-    // Período: para saldoMes | All-time: para saldoAtual
-    const transResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('startOfMonth', sql.DateTime2, startOfMonth)
-      .input('endOfMonth', sql.DateTime2, endOfMonth)
-      .query(`
-        SELECT
-          ISNULL(SUM(CASE WHEN tipo = 'entrada' AND receivable_id IS NULL
-            AND data_transacao >= @startOfMonth AND data_transacao <= @endOfMonth
-            THEN valor ELSE 0 END), 0) AS entradas_trans,
-          ISNULL(SUM(CASE WHEN tipo = 'saida' AND payable_id IS NULL
-            AND data_transacao >= @startOfMonth AND data_transacao <= @endOfMonth
-            THEN valor ELSE 0 END), 0) AS saidas_trans,
-          ISNULL(SUM(CASE WHEN tipo = 'entrada' AND receivable_id IS NULL THEN valor ELSE 0 END), 0) AS entradas_trans_total,
-          ISNULL(SUM(CASE WHEN tipo = 'saida'   AND payable_id IS NULL    THEN valor ELSE 0 END), 0) AS saidas_trans_total
-        FROM org_transactions
-        WHERE organization_id = @orgId
-      `)
+    // ── Direct transactions (no receivable/payable link) ───────────────────────
+    const [transAgg] = await db
+      .select({
+        entradasTrans: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgTransactions.tipo} = 'entrada'
+              AND ${orgTransactions.receivableId} IS NULL
+              AND ${orgTransactions.dataTransacao} >= ${startStr}::date
+              AND ${orgTransactions.dataTransacao} <= ${endStr}::date
+            THEN ${orgTransactions.valor}::numeric ELSE 0 END), 0)`,
+        saidasTrans: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgTransactions.tipo} = 'saida'
+              AND ${orgTransactions.payableId} IS NULL
+              AND ${orgTransactions.dataTransacao} >= ${startStr}::date
+              AND ${orgTransactions.dataTransacao} <= ${endStr}::date
+            THEN ${orgTransactions.valor}::numeric ELSE 0 END), 0)`,
+        entradasTransTotal: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgTransactions.tipo} = 'entrada' AND ${orgTransactions.receivableId} IS NULL
+            THEN ${orgTransactions.valor}::numeric ELSE 0 END), 0)`,
+        saidasTransTotal: drizzleSql<number>`
+          COALESCE(SUM(CASE
+            WHEN ${orgTransactions.tipo} = 'saida' AND ${orgTransactions.payableId} IS NULL
+            THEN ${orgTransactions.valor}::numeric ELSE 0 END), 0)`,
+      })
+      .from(orgTransactions)
+      .where(eq(orgTransactions.organizationId, orgId))
 
-    const rec   = recResult.recordset[0]
-    const pay   = payResult.recordset[0]
-    const trans = transResult.recordset[0]
+    const totalRecebido     = Number(recAgg.totalRecebido)
+    const totalAReceber     = Number(recAgg.totalAReceber)
+    const receitasAtrasadas = Number(recAgg.receitasAtrasadas)
+    const totalPago         = Number(payAgg.totalPago)
+    const totalAPagar       = Number(payAgg.totalAPagar)
+    const despesasAtrasadas = Number(payAgg.despesasAtrasadas)
 
-    const totalRecebido     = Number(rec.total_recebido)
-    const totalAReceber     = Number(rec.total_a_receber)
-    const receitasAtrasadas = Number(rec.receitas_atrasadas)
-    const totalPago         = Number(pay.total_pago)
-    const totalAPagar       = Number(pay.total_a_pagar)
-    const despesasAtrasadas = Number(pay.despesas_atrasadas)
+    const entradasMes = Number(recAgg.entradasMes) + Number(transAgg.entradasTrans)
+    const saidasMes   = Number(payAgg.saidasMes)   + Number(transAgg.saidasTrans)
+    const saldoTransacoesDiretas = Number(transAgg.entradasTransTotal) - Number(transAgg.saidasTransTotal)
 
-    const entradasMes = Number(rec.entradas_mes) + Number(trans.entradas_trans)
-    const saidasMes   = Number(pay.saidas_mes)   + Number(trans.saidas_trans)
-
-    // saldoAtual inclui receivables recebidos + payables pagos + transações diretas (all-time)
-    const saldoTransacoesDiretas = Number(trans.entradas_trans_total) - Number(trans.saidas_trans_total)
-
-    // Fluxo de caixa: últimos 6 meses (fixo, independente do filtro de período)
+    // ── Cash flow: last 6 months ───────────────────────────────────────────────
     const fluxoCaixa = []
     for (let i = 5; i >= 0; i--) {
       const d = new Date()
       d.setMonth(d.getMonth() - i)
-      const primeiro = new Date(d.getFullYear(), d.getMonth(), 1)
-      const ultimo   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59)
+      const primeiro = toDateStr(new Date(d.getFullYear(), d.getMonth(), 1))
+      const ultimo   = toDateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0))
 
-      const cfResult = await pool
-        .request()
-        .input('orgId',    sql.UniqueIdentifier, user.organizationId)
-        .input('primeiro', sql.DateTime2,        primeiro)
-        .input('ultimo',   sql.DateTime2,        ultimo)
-        .query(`
-          SELECT
-            (SELECT ISNULL(SUM(valor), 0) FROM org_receivables
-              WHERE organization_id = @orgId AND status = 'recebido'
-              AND data_recebimento >= @primeiro AND data_recebimento <= @ultimo) +
-            (SELECT ISNULL(SUM(valor), 0) FROM org_transactions
-              WHERE organization_id = @orgId AND tipo = 'entrada'
-              AND receivable_id IS NULL
-              AND data_transacao >= @primeiro AND data_transacao <= @ultimo) AS entradas,
-            (SELECT ISNULL(SUM(valor), 0) FROM org_payables
-              WHERE organization_id = @orgId AND status = 'pago'
-              AND data_pagamento >= @primeiro AND data_pagamento <= @ultimo) +
-            (SELECT ISNULL(SUM(valor), 0) FROM org_transactions
-              WHERE organization_id = @orgId AND tipo = 'saida'
-              AND payable_id IS NULL
-              AND data_transacao >= @primeiro AND data_transacao <= @ultimo) AS saidas
-        `)
+      const [cf] = await db
+        .select({
+          entradas: drizzleSql<number>`
+            (
+              SELECT COALESCE(SUM(valor::numeric), 0)
+              FROM org_receivables
+              WHERE organization_id = ${orgId}::uuid
+                AND status = 'recebido'
+                AND data_recebimento >= ${primeiro}::date
+                AND data_recebimento <= ${ultimo}::date
+            ) + (
+              SELECT COALESCE(SUM(valor::numeric), 0)
+              FROM org_transactions
+              WHERE organization_id = ${orgId}::uuid
+                AND tipo = 'entrada'
+                AND receivable_id IS NULL
+                AND data_transacao >= ${primeiro}::date
+                AND data_transacao <= ${ultimo}::date
+            )
+          `,
+          saidas: drizzleSql<number>`
+            (
+              SELECT COALESCE(SUM(valor::numeric), 0)
+              FROM org_payables
+              WHERE organization_id = ${orgId}::uuid
+                AND status = 'pago'
+                AND data_pagamento >= ${primeiro}::date
+                AND data_pagamento <= ${ultimo}::date
+            ) + (
+              SELECT COALESCE(SUM(valor::numeric), 0)
+              FROM org_transactions
+              WHERE organization_id = ${orgId}::uuid
+                AND tipo = 'saida'
+                AND payable_id IS NULL
+                AND data_transacao >= ${primeiro}::date
+                AND data_transacao <= ${ultimo}::date
+            )
+          `,
+        })
+        .from(drizzleSql`(SELECT 1) AS _dual`)
 
-      const { entradas, saidas } = cfResult.recordset[0]
+      const entradas = Number(cf.entradas)
+      const saidas   = Number(cf.saidas)
       const mes         = d.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })
       const mesCompleto = d.toLocaleString('pt-BR', { month: 'long',  year: 'numeric' })
-      fluxoCaixa.push({
-        mes,
-        mesCompleto,
-        entradas: Number(entradas),
-        saidas:   Number(saidas),
-        saldo:    Number(entradas) - Number(saidas),
-      })
+      fluxoCaixa.push({ mes, mesCompleto, entradas, saidas, saldo: entradas - saidas })
     }
 
-    // Despesas por categoria — usa category_id FK (se preenchido) ou campo texto 'categoria'
-    const catResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT
-          COALESCE(cat.nome, NULLIF(p.categoria, ''), 'Sem categoria') AS categoria_nome,
-          ISNULL(cat.cor, '#6b7280') AS categoria_cor,
-          SUM(p.valor) AS total
-        FROM org_payables p
-        LEFT JOIN org_financial_categories cat ON cat.id = p.category_id
-        WHERE p.organization_id = @orgId AND p.status = 'pago'
-        GROUP BY cat.nome, cat.cor, p.categoria
-        ORDER BY total DESC
-      `)
+    // ── Expenses by category ───────────────────────────────────────────────────
+    const catRows = await db
+      .select({
+        categoriaNome: drizzleSql<string>`
+          COALESCE(${orgFinancialCategories.nome}, NULLIF(${orgPayables.categoria}, ''), 'Sem categoria')`,
+        categoriaCor: drizzleSql<string>`
+          COALESCE(${orgFinancialCategories.cor}, '#6b7280')`,
+        total: drizzleSql<number>`SUM(${orgPayables.valor}::numeric)`,
+      })
+      .from(orgPayables)
+      .leftJoin(orgFinancialCategories, eq(orgFinancialCategories.id, orgPayables.categoryId))
+      .where(and(eq(orgPayables.organizationId, orgId), eq(orgPayables.status, 'pago')))
+      .groupBy(orgFinancialCategories.nome, orgFinancialCategories.cor, orgPayables.categoria)
+      .orderBy(drizzleSql`SUM(${orgPayables.valor}::numeric) DESC`)
 
-    const despesasPorCategoria = catResult.recordset.map((r: Record<string, unknown>) => ({
-      nome:  r.categoria_nome,
-      cor:   r.categoria_cor,
+    const despesasPorCategoria = catRows.map((r) => ({
+      nome:  r.categoriaNome,
+      cor:   r.categoriaCor,
       total: Number(r.total),
     }))
 
@@ -220,13 +239,13 @@ export async function GET(request: Request) {
       totalPago,
       totalAPagar,
       despesasAtrasadas,
-      saldoAtual:          totalRecebido + saldoTransacoesDiretas - totalPago,
-      saldoProjetado:      (totalRecebido + saldoTransacoesDiretas + totalAReceber) - (totalPago + totalAPagar),
+      saldoAtual:         totalRecebido + saldoTransacoesDiretas - totalPago,
+      saldoProjetado:     (totalRecebido + saldoTransacoesDiretas + totalAReceber) - (totalPago + totalAPagar),
       entradasMes,
       saidasMes,
-      saldoMes:            entradasMes - saidasMes,
-      recebiveisVencendo:  Number(rec.recebiveis_vencendo),
-      pagaveisVencendo:    Number(pay.pagaveis_vencendo),
+      saldoMes:           entradasMes - saidasMes,
+      recebiveisVencendo: Number(recAgg.recebiveisVencendo),
+      pagaveisVencendo:   Number(payAgg.pagaveisVencendo),
       fluxoCaixa,
       despesasPorCategoria,
     })

@@ -35,6 +35,7 @@ import {
   HelpCircle,
   Package,
   PackageOpen,
+  PackageMinus,
   BarChart3,
   BookOpen,
   Bell,
@@ -42,6 +43,7 @@ import {
 } from 'lucide-react'
 import { logout } from '@/app/(auth)/actions'
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ThemeToggle } from './theme-toggle'
 
 type MenuItem = {
@@ -103,6 +105,7 @@ const navigation: NavigationSection[] = [
         subitems: [
           { name: 'Produtos', href: '/estoque', icon: Package },
           { name: 'Entradas', href: '/estoque/entradas', icon: PackageOpen },
+          { name: 'Saídas', href: '/estoque/saidas', icon: PackageMinus },
           { name: 'Relatórios', href: '/estoque/relatorios', icon: BarChart3 },
           { name: 'Fornecedores', href: '/fornecedores', icon: Truck },
         ],
@@ -122,17 +125,27 @@ export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
-  const [userProfile, setUserProfile] = useState<{
-    name: string
-    email: string
-    organization: string
-  } | null>(null)
-  const [orgSettings, setOrgSettings] = useState<{
-    name: string
-    logo_url?: string
-  } | null>(null)
-  const [badges, setBadges] = useState<Record<string, number>>({})
-  const [alerts, setAlerts] = useState<Record<string, number>>({})
+
+  // staleTime alto: /api/me só re-busca após 5 min, não a cada navegação
+  const { data: meData } = useQuery({
+    queryKey: ['me'],
+    queryFn: async () => {
+      const res = await fetch('/api/me')
+      if (!res.ok) return null
+      return res.json()
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime:    10 * 60 * 1000,
+  })
+
+  const userProfile = meData ? {
+    name: meData.name,
+    email: meData.email,
+    organization: meData.organizationName,
+  } : null
+  const orgSettings = meData ? { name: meData.organizationName, logo_url: meData.logoUrl } : null
+  const badges: Record<string, number> = meData?.badges ?? {}
+  const alerts: Record<string, number> = meData?.alerts ?? {}
 
   // Auto-expand submenu for active sub-routes
   useEffect(() => {
@@ -144,23 +157,6 @@ export function Sidebar() {
       })
     })
   }, [pathname])
-
-  useEffect(() => {
-    async function loadMe() {
-      try {
-        const res = await fetch('/api/me')
-        if (!res.ok) return
-        const data = await res.json()
-        setUserProfile({ name: data.name, email: data.email, organization: data.organizationName })
-        setOrgSettings({ name: data.organizationName, logo_url: data.logoUrl })
-        setBadges(data.badges || {})
-        setAlerts(data.alerts || {})
-      } catch (e) {
-        console.error('[Sidebar]', e)
-      }
-    }
-    loadMe()
-  }, [])
 
   const totalAlerts = Object.values(alerts).reduce((sum, v) => sum + v, 0)
   const alertItems = [
@@ -176,7 +172,7 @@ export function Sidebar() {
   const initials = userProfile?.name
     ?.split(' ')
     .slice(0, 2)
-    .map(w => w[0])
+    .map((w: string) => w[0])
     .join('')
     .toUpperCase() || '?'
 

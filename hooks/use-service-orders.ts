@@ -43,6 +43,7 @@ export function useCreateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Ordem de serviço criada com sucesso!')
     },
     onError: (error: Error) => {
@@ -94,6 +95,7 @@ export function useDeleteServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Ordem de serviço removida com sucesso!')
     },
     onError: (error: Error) => {

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { UserPlus, Trash2, Shield, User, Crown, Loader2, Eye, EyeOff } from 'lucide-react'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
 
 interface OrgUser {
   id: string
@@ -114,6 +115,8 @@ export function UsersManagementForm() {
   }
 
   const owner = users.find(u => u.is_owner)
+  const { data: planData } = usePlanUsage()
+  const isFree = planData?.plan === 'free'
 
   return (
     <div className="space-y-6">
@@ -311,7 +314,7 @@ export function UsersManagementForm() {
       )}
 
       {/* Free plan notice */}
-      {owner && users.length === 1 && (
+      {isFree && owner && users.length === 1 && (
         <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
           <span className="text-lg">✨</span>
           <div>

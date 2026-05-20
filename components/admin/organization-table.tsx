@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro'
+  plan: string
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number
@@ -142,7 +142,7 @@ export function OrganizationTable({
                   {org.mrr > 0 ? `R$ ${org.mrr.toFixed(2)}` : '-'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {format(new Date(org.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                  {org.created_at ? format(new Date(org.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">

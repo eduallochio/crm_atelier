@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, RefreshCw, FileText, Calendar } from 'lucide-react'
+import { Search, RefreshCw, FileText, Calendar, Eye, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -52,6 +52,73 @@ function ActionBadge({ action }: { action: string }) {
   )
 }
 
+function LogDetailModal({ log, onClose }: { log: AdminLog; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-white">Detalhes do Log</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white text-xl leading-none">×</button>
+        </div>
+        <div className="p-5 space-y-4 text-sm">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Ação</p>
+              <ActionBadge action={log.action} />
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Data/Hora</p>
+              <p className="text-zinc-300 font-medium">
+                {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+              </p>
+            </div>
+            {log.admin_email && (
+              <div className="col-span-2">
+                <p className="text-xs text-zinc-500 mb-1">Admin</p>
+                <p className="text-zinc-300 font-medium">{log.admin_email}</p>
+              </div>
+            )}
+            {log.resource_type && (
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Recurso</p>
+                <p className="text-zinc-300">{log.resource_type}</p>
+              </div>
+            )}
+            {log.resource_id && (
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">ID</p>
+                <p className="text-zinc-400 font-mono text-xs break-all">{log.resource_id}</p>
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-zinc-500 mb-1">Descrição</p>
+            <p className="text-zinc-300">{log.description}</p>
+          </div>
+          {log.details && (
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Dados Adicionais</p>
+              <pre className="bg-zinc-800 rounded-md p-3 text-xs text-zinc-300 overflow-x-auto whitespace-pre-wrap">
+                {JSON.stringify(log.details, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function exportLogJson(log: AdminLog) {
+  const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `log-${log.id.slice(0, 8)}-${new Date(log.created_at).toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [availableActions, setAvailableActions] = useState<string[]>([])
@@ -59,6 +126,7 @@ export default function AdminLogsPage() {
   const [search, setSearch] = useState('')
   const [filterAction, setFilterAction] = useState('')
   const [since, setSince] = useState('')
+  const [selectedLog, setSelectedLog] = useState<AdminLog | null>(null)
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -189,6 +257,7 @@ export default function AdminLogsPage() {
                     <th className="text-left px-4 py-3 font-medium">Descrição</th>
                     <th className="text-left px-4 py-3 font-medium">Recurso</th>
                     <th className="text-left px-4 py-3 font-medium">Admin</th>
+                    <th className="px-4 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,6 +290,24 @@ export default function AdminLogsPage() {
                       <td className="px-4 py-3 text-zinc-500 text-xs truncate max-w-[160px]">
                         {log.admin_email ?? <span className="text-zinc-700">—</span>}
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setSelectedLog(log)}
+                            className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-200 transition-colors"
+                            title="Ver detalhes"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => exportLogJson(log)}
+                            className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-200 transition-colors"
+                            title="Exportar JSON"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -229,6 +316,10 @@ export default function AdminLogsPage() {
           )}
         </CardContent>
       </Card>
+
+      {selectedLog && (
+        <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+      )}
     </div>
   )
 }

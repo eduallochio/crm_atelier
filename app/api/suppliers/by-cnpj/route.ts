@@ -1,30 +1,33 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgSuppliers } from '@/lib/db/schema'
+import { eq, and, sql as drizzleSql } from 'drizzle-orm'
 
-/** GET /api/suppliers/by-cnpj?cnpj=12345678000190 → supplier ou null */
+/** GET /api/suppliers/by-cnpj?cnpj=12345678000190 → supplier or null */
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
     const { searchParams } = new URL(request.url)
-    const cnpj = searchParams.get('cnpj')?.replace(/\D/g, '') // remove pontuação
+    const cnpj = searchParams.get('cnpj')?.replace(/\D/g, '') // strip punctuation
 
     if (!cnpj) {
       return NextResponse.json(null)
     }
 
-    const pool = await getPool()
-    const result = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('cnpj', sql.NVarChar(20), cnpj)
-      .query(`
-        SELECT TOP 1 * FROM org_suppliers
-        WHERE organization_id = @orgId
-          AND REPLACE(REPLACE(REPLACE(REPLACE(cnpj,'.',''),'/',''),'-',''),' ','') = @cnpj
-          AND ativo = 1
-      `)
+    const [row] = await db
+      .select()
+      .from(orgSuppliers)
+      .where(
+        and(
+          eq(orgSuppliers.organizationId, user.organizationId),
+          eq(orgSuppliers.ativo, true),
+          drizzleSql`regexp_replace(${orgSuppliers.cnpj}, '[^0-9]', '', 'g') = ${cnpj}`
+        )
+      )
+      .limit(1)
 
-    return NextResponse.json(result.recordset[0] ?? null)
+    return NextResponse.json(row ?? null)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

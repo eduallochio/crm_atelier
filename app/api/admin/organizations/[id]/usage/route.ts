@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgClients, orgServiceOrders, orgServices, profiles } from '@/lib/db/schema'
+import { eq, and, gte, sql as drizzleSql, count } from 'drizzle-orm'
 
 export async function GET(
   _request: Request,
@@ -9,84 +11,83 @@ export async function GET(
   try {
     await requireMaster()
     const { id } = await params
-    const pool = await getPool()
 
-    // ── Totais ──────────────────────────────────────────────────────────────
-    const totalsResult = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, id)
-      .query(`
-        SELECT
-          (SELECT COUNT(*) FROM org_clients        WHERE organization_id = @orgId) AS total_clients,
-          (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId) AS total_orders,
-          (SELECT COUNT(*) FROM org_services       WHERE organization_id = @orgId AND ativo = 1) AS total_services,
-          (SELECT COUNT(*) FROM users              WHERE organization_id = @orgId)                        AS total_users,
-          (SELECT COUNT(*) FROM org_service_orders
-           WHERE organization_id = @orgId
-             AND MONTH(created_at) = MONTH(GETDATE())
-             AND YEAR(created_at)  = YEAR(GETDATE()))                                                     AS orders_this_month
-      `)
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
-    const t = totalsResult.recordset[0]
+    // Totals
+    const [totalClients, totalOrders, totalServices, totalUsers, ordersThisMonth] = await Promise.all([
+      db.select({ count: count() }).from(orgClients).where(eq(orgClients.organizationId, id)),
+      db.select({ count: count() }).from(orgServiceOrders).where(eq(orgServiceOrders.organizationId, id)),
+      db.select({ count: count() }).from(orgServices).where(and(eq(orgServices.organizationId, id), eq(orgServices.ativo, true))),
+      db.select({ count: count() }).from(profiles).where(eq(profiles.organizationId, id)),
+      db.select({ count: count() }).from(orgServiceOrders).where(
+        and(eq(orgServiceOrders.organizationId, id), gte(orgServiceOrders.createdAt, startOfMonth))
+      ),
+    ])
 
-    // ── Crescimento mensal (últimos 6 meses) ─────────────────────────────────
-    const monthlyResult = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, id)
-      .query(`
-        SELECT
-          FORMAT(ym, 'MMM', 'pt-BR') AS month_label,
-          FORMAT(ym, 'yyyy-MM')       AS ym,
-          SUM(new_clients)            AS new_clients,
-          SUM(new_orders)             AS new_orders
-        FROM (
-          SELECT
-            DATEFROMPARTS(YEAR(created_at), MONTH(created_at), 1) AS ym,
-            1 AS new_clients, 0 AS new_orders
-          FROM org_clients
-          WHERE organization_id = @orgId
-            AND created_at >= DATEADD(month, -6, GETDATE())
-          UNION ALL
-          SELECT
-            DATEFROMPARTS(YEAR(created_at), MONTH(created_at), 1) AS ym,
-            0 AS new_clients, 1 AS new_orders
-          FROM org_service_orders
-          WHERE organization_id = @orgId
-            AND created_at >= DATEADD(month, -6, GETDATE())
-        ) AS combined
-        GROUP BY DATEFROMPARTS(YEAR(ym), MONTH(ym), 1),
-                 FORMAT(ym, 'MMM', 'pt-BR'),
-                 FORMAT(ym, 'yyyy-MM')
-        ORDER BY ym ASC
-      `)
+    // Monthly growth (last 6 months) — clients and orders combined
+    const clientGrowth = await db
+      .select({
+        ym:         drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+        monthLabel: drizzleSql<string>`TO_CHAR(created_at, 'Mon')`,
+        newClients: count(),
+      })
+      .from(orgClients)
+      .where(and(eq(orgClients.organizationId, id), gte(orgClients.createdAt, sixMonthsAgo)))
+      .groupBy(drizzleSql`DATE_TRUNC('month', created_at)`)
+      .orderBy(drizzleSql`DATE_TRUNC('month', created_at) ASC`)
 
-    // ── Ordens por status ────────────────────────────────────────────────────
-    const statusResult = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, id)
-      .query(`
-        SELECT status, COUNT(*) AS cnt
-        FROM org_service_orders
-        WHERE organization_id = @orgId
-        GROUP BY status
-      `)
+    const orderGrowth = await db
+      .select({
+        ym:        drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+        newOrders: count(),
+      })
+      .from(orgServiceOrders)
+      .where(and(eq(orgServiceOrders.organizationId, id), gte(orgServiceOrders.createdAt, sixMonthsAgo)))
+      .groupBy(drizzleSql`DATE_TRUNC('month', created_at)`)
+      .orderBy(drizzleSql`DATE_TRUNC('month', created_at) ASC`)
 
-    const statusMap: Record<string, number> = {}
-    for (const r of statusResult.recordset) {
-      statusMap[r.status as string] = Number(r.cnt)
+    // Merge into monthly array
+    const monthMap: Record<string, { month: string; newClients: number; newOrders: number }> = {}
+    for (const r of clientGrowth) {
+      monthMap[r.ym] = { month: r.monthLabel, newClients: Number(r.newClients), newOrders: 0 }
+    }
+    for (const r of orderGrowth) {
+      if (monthMap[r.ym]) {
+        monthMap[r.ym].newOrders = Number(r.newOrders)
+      } else {
+        monthMap[r.ym] = { month: r.ym, newClients: 0, newOrders: Number(r.newOrders) }
+      }
+    }
+    const monthly = Object.values(monthMap)
+
+    // Orders by status
+    const statusRows = await db
+      .select({
+        status: orgServiceOrders.status,
+        cnt:    count(),
+      })
+      .from(orgServiceOrders)
+      .where(eq(orgServiceOrders.organizationId, id))
+      .groupBy(orgServiceOrders.status)
+
+    const ordersByStatus: Record<string, number> = {}
+    for (const r of statusRows) {
+      ordersByStatus[r.status] = Number(r.cnt)
     }
 
     return NextResponse.json({
       totals: {
-        clients:        Number(t.total_clients),
-        orders:         Number(t.total_orders),
-        services:       Number(t.total_services),
-        users:          Number(t.total_users),
-        ordersThisMonth:Number(t.orders_this_month),
+        clients:         Number(totalClients[0]?.count ?? 0),
+        orders:          Number(totalOrders[0]?.count ?? 0),
+        services:        Number(totalServices[0]?.count ?? 0),
+        users:           Number(totalUsers[0]?.count ?? 0),
+        ordersThisMonth: Number(ordersThisMonth[0]?.count ?? 0),
       },
-      monthly: monthlyResult.recordset.map((r) => ({
-        month:      r.month_label as string,
-        newClients: Number(r.new_clients),
-        newOrders:  Number(r.new_orders),
-      })),
-      ordersByStatus: statusMap,
+      monthly,
+      ordersByStatus,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {

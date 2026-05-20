@@ -1,30 +1,31 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgSystemPreferences } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 const DEFAULTS = {
-  date_format: 'dd/MM/yyyy',
-  time_format: '24h',
-  currency: 'BRL',
-  timezone: 'America/Sao_Paulo',
-  language: 'pt-BR',
-  theme: 'light',
-  compact_mode: false,
-  show_tooltips: true,
-  controla_estoque: false,
+  dateFormat:   'dd/MM/yyyy',
+  timeFormat:   '24h',
+  currency:     'BRL',
+  timezone:     'America/Sao_Paulo',
+  language:     'pt-BR',
+  theme:        'light',
+  compactMode:  false,
+  showTooltips: true,
 }
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT * FROM org_system_preferences WHERE organization_id = @orgId`)
+    const result = await db
+      .select()
+      .from(orgSystemPreferences)
+      .where(eq(orgSystemPreferences.organizationId, user.organizationId))
+      .limit(1)
 
-    if (result.recordset.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json({
         id: '',
         organization_id: user.organizationId,
@@ -33,7 +34,7 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json(result.recordset[0])
+    return NextResponse.json(result[0])
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -47,52 +48,44 @@ export async function PUT(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
-    await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('dateFormat', sql.NVarChar, body.date_format ?? 'dd/MM/yyyy')
-      .input('timeFormat', sql.NVarChar, body.time_format ?? '24h')
-      .input('currency', sql.NVarChar, body.currency ?? 'BRL')
-      .input('timezone', sql.NVarChar, body.timezone ?? 'America/Sao_Paulo')
-      .input('language', sql.NVarChar, body.language ?? 'pt-BR')
-      .input('theme', sql.NVarChar, body.theme ?? 'light')
-      .input('compactMode', sql.Bit, body.compact_mode ? 1 : 0)
-      .input('showTooltips', sql.Bit, body.show_tooltips !== false ? 1 : 0)
-      .input('controlaEstoque', sql.Bit, body.controla_estoque ? 1 : 0)
-      .query(`
-        UPDATE org_system_preferences
-        SET
-          date_format = @dateFormat,
-          time_format = @timeFormat,
-          currency = @currency,
-          timezone = @timezone,
-          [language] = @language,
-          theme = @theme,
-          compact_mode = @compactMode,
-          show_tooltips = @showTooltips,
-          controla_estoque = @controlaEstoque,
-          updated_at = GETDATE()
-        WHERE organization_id = @orgId
+    const values = {
+      organizationId: user.organizationId,
+      dateFormat:     body.date_format ?? 'dd/MM/yyyy',
+      timeFormat:     body.time_format ?? '24h',
+      currency:       body.currency    ?? 'BRL',
+      timezone:       body.timezone    ?? 'America/Sao_Paulo',
+      language:       body.language    ?? 'pt-BR',
+      theme:          body.theme       ?? 'light',
+      compactMode:    !!body.compact_mode,
+      showTooltips:   body.show_tooltips !== false,
+    }
 
-        IF @@ROWCOUNT = 0
-          INSERT INTO org_system_preferences (
-            organization_id, date_format, time_format, currency, timezone,
-            [language], theme, compact_mode, show_tooltips, controla_estoque
-          )
-          VALUES (
-            @orgId, @dateFormat, @timeFormat, @currency, @timezone,
-            @language, @theme, @compactMode, @showTooltips, @controlaEstoque
-          )
-      `)
+    await db
+      .insert(orgSystemPreferences)
+      .values(values)
+      .onConflictDoUpdate({
+        target: orgSystemPreferences.organizationId,
+        set: {
+          dateFormat:   values.dateFormat,
+          timeFormat:   values.timeFormat,
+          currency:     values.currency,
+          timezone:     values.timezone,
+          language:     values.language,
+          theme:        values.theme,
+          compactMode:  values.compactMode,
+          showTooltips: values.showTooltips,
+          updatedAt:    new Date(),
+        },
+      })
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT * FROM org_system_preferences WHERE organization_id = @orgId`)
+    const result = await db
+      .select()
+      .from(orgSystemPreferences)
+      .where(eq(orgSystemPreferences.organizationId, user.organizationId))
+      .limit(1)
 
-    return NextResponse.json(result.recordset[0])
+    return NextResponse.json(result[0])
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

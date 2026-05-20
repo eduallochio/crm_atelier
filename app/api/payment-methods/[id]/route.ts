@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgPaymentMethods } from '@/lib/db/schema'
+import { and, eq } from 'drizzle-orm'
+
+function mapRow(row: typeof orgPaymentMethods.$inferSelect) {
+  return {
+    id:              row.id,
+    organization_id: row.organizationId,
+    name:            row.nome,
+    code:            row.tipo ?? '',
+    enabled:         row.ativo,
+    display_order:   row.sortOrder,
+    created_at:      row.createdAt,
+  }
+}
 
 export async function PUT(
   request: Request,
@@ -10,48 +24,28 @@ export async function PUT(
     const user = await requireAuth()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('id',          sql.UniqueIdentifier, id)
-      .input('orgId',       sql.UniqueIdentifier, user.organizationId)
-      .input('nome',        sql.NVarChar, body.name)
-      .input('tipo',        sql.NVarChar, body.code || null)
-      .input('ativo',       sql.Bit,      body.enabled !== undefined ? (body.enabled ? 1 : 0) : 1)
-      .input('isDefault',   sql.Bit,      body.is_default ?? false)
-      .input('displayOrder',sql.Int,      body.display_order ?? 0)
-      .input('icon',        sql.NVarChar, body.icon  || null)
-      .input('color',       sql.NVarChar, body.color || null)
-      .query(`
-        UPDATE org_payment_methods
-        SET
-          nome          = ISNULL(@nome, nome),
-          tipo          = @tipo,
-          ativo         = @ativo,
-          is_default    = @isDefault,
-          display_order = @displayOrder,
-          icon          = @icon,
-          color         = @color,
-          updated_at    = GETDATE()
-        OUTPUT
-          INSERTED.id, INSERTED.organization_id,
-          INSERTED.nome AS name,
-          ISNULL(INSERTED.tipo,'') AS code,
-          INSERTED.ativo AS enabled,
-          CAST(ISNULL(INSERTED.is_default,0) AS BIT) AS is_default,
-          ISNULL(INSERTED.display_order,0) AS display_order,
-          INSERTED.icon, INSERTED.color,
-          INSERTED.created_at,
-          ISNULL(INSERTED.updated_at, INSERTED.created_at) AS updated_at
-        WHERE id = @id AND organization_id = @orgId
-      `)
+    const updated = await db
+      .update(orgPaymentMethods)
+      .set({
+        nome:      body.name      ?? undefined,
+        tipo:      body.code      ?? null,
+        ativo:     body.enabled   !== undefined ? !!body.enabled : true,
+        sortOrder: body.display_order ?? 0,
+      })
+      .where(
+        and(
+          eq(orgPaymentMethods.id, id),
+          eq(orgPaymentMethods.organizationId, user.organizationId)
+        )
+      )
+      .returning()
 
-    if (result.recordset.length === 0) {
+    if (updated.length === 0) {
       return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(result.recordset[0])
+    return NextResponse.json(mapRow(updated[0]))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -68,13 +62,15 @@ export async function DELETE(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    await pool
-      .request()
-      .input('id',    sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`DELETE FROM org_payment_methods WHERE id = @id AND organization_id = @orgId`)
+    await db
+      .delete(orgPaymentMethods)
+      .where(
+        and(
+          eq(orgPaymentMethods.id, id),
+          eq(orgPaymentMethods.organizationId, user.organizationId)
+        )
+      )
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

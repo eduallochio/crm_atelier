@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { adminLogs } from '@/lib/db/schema'
+import { eq, gte, ilike, or, desc, asc, and } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,63 +15,52 @@ export async function GET(request: NextRequest) {
     const search       = searchParams.get('search') || ''
     const limit        = Math.min(parseInt(searchParams.get('limit') || '100'), 500)
 
-    const pool = await getPool()
-    const req  = pool.request().input('limit', sql.Int, limit)
+    const conditions = []
 
-    let where = 'WHERE 1=1'
-    if (action) {
-      req.input('action', sql.NVarChar, action)
-      where += ' AND action = @action'
-    }
-    if (resourceType) {
-      req.input('resource_type', sql.NVarChar, resourceType)
-      where += ' AND resource_type = @resource_type'
-    }
-    if (since) {
-      req.input('since', sql.DateTime2, new Date(since))
-      where += ' AND created_at >= @since'
-    }
+    if (action) conditions.push(eq(adminLogs.action, action))
+    if (resourceType) conditions.push(eq(adminLogs.resourceType, resourceType))
+    if (since) conditions.push(gte(adminLogs.createdAt, new Date(since)))
     if (search) {
-      req.input('search', sql.NVarChar, `%${search}%`)
-      where += ' AND (description LIKE @search OR admin_email LIKE @search)'
+      conditions.push(
+        or(
+          ilike(adminLogs.description, `%${search}%`),
+          ilike(adminLogs.adminEmail, `%${search}%`),
+        )
+      )
     }
 
-    const result = await req.query(`
-      SELECT TOP (@limit)
-        id, action, resource_type, resource_id, description,
-        admin_email, details_json, created_at
-      FROM admin_logs
-      ${where}
-      ORDER BY created_at DESC
-    `)
+    const rows = await db
+      .select()
+      .from(adminLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(adminLogs.createdAt))
+      .limit(limit)
 
-    const logs = result.recordset.map((r) => ({
-      id:            r.id,
-      action:        r.action,
-      resource_type: r.resource_type,
-      resource_id:   r.resource_id,
-      description:   r.description,
-      admin_email:   r.admin_email,
-      details:       r.details_json ? JSON.parse(r.details_json) : null,
-      created_at:    r.created_at,
+    const logs = rows.map((r) => ({
+      id: r.id,
+      action: r.action,
+      resource_type: r.resourceType,
+      resource_id: r.resourceId,
+      description: r.description,
+      admin_email: r.adminEmail,
+      details: r.detailsJson,
+      created_at: r.createdAt,
     }))
 
-    // Distinct actions para filtro
-    const actionsResult = await pool.request().query(
-      `SELECT DISTINCT action FROM admin_logs ORDER BY action ASC`
-    )
-    const availableActions = actionsResult.recordset.map((r) => r.action as string)
+    // Distinct actions for filter
+    const actionsResult = await db
+      .selectDistinct({ action: adminLogs.action })
+      .from(adminLogs)
+      .orderBy(asc(adminLogs.action))
+
+    const availableActions = actionsResult.map((r) => r.action).filter(Boolean) as string[]
 
     return NextResponse.json({ logs, availableActions })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    // Tabela pode não existir ainda
-    if ((error as Error).message?.includes('Invalid object name')) {
-      return NextResponse.json({ logs: [], availableActions: [] })
-    }
     console.error('[GET /api/admin/logs]', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ logs: [], availableActions: [] })
   }
 }

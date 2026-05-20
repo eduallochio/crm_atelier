@@ -186,7 +186,7 @@ export function NotesTab({ organizationId }: NotesTabProps) {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Por <span className="font-medium">{note.admin_email}</span>
                       {' • '}
-                      {format(new Date(note.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {note.created_at ? format(new Date(note.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                     </p>
                   </div>
                   <Button 

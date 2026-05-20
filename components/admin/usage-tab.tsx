@@ -8,7 +8,7 @@ interface UsageTabProps {
   organization: {
     id: string
     name: string
-    plan: 'free' | 'pro'
+    plan: string
     created_at: string
   }
 }

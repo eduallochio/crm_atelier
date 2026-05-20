@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { organizations } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
 
 export async function PUT(
@@ -17,29 +19,28 @@ export async function PUT(
       return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
     }
 
-    const pool = await getPool()
-
     // Buscar org atual para log
-    const orgResult = await pool.request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query(`SELECT name, [plan] FROM organizations WHERE id = @id`)
+    const orgRows = await db
+      .select({ name: organizations.name, plan: organizations.plan })
+      .from(organizations)
+      .where(eq(organizations.id, id))
+      .limit(1)
 
-    if (!orgResult.recordset.length) {
+    if (orgRows.length === 0) {
       return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
     }
 
-    const org = orgResult.recordset[0]
-    const oldPlan = org.plan as string
+    const org = orgRows[0]
+    const oldPlan = org.plan
 
     if (oldPlan === plan) {
       return NextResponse.json({ message: 'Plano já é o mesmo' })
     }
 
-    // Atualizar plano
-    await pool.request()
-      .input('id',  sql.UniqueIdentifier, id)
-      .input('plan', sql.NVarChar, plan)
-      .query(`UPDATE organizations SET [plan] = @plan, updated_at = GETDATE() WHERE id = @id`)
+    await db
+      .update(organizations)
+      .set({ plan, updatedAt: new Date() })
+      .where(eq(organizations.id, id))
 
     await logAdminAction({
       action: 'CHANGE_PLAN',

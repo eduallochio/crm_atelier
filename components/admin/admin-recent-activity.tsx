@@ -63,7 +63,7 @@ export function AdminRecentActivity() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900 dark:text-white truncate">{log.description}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {format(new Date(log.created_at), "d MMM 'às' HH:mm", { locale: ptBR })}
+                  {log.created_at ? format(new Date(log.created_at), "d MMM 'às' HH:mm", { locale: ptBR }) : '—'}
                   {log.admin_email && <span className="ml-1 opacity-60">· {log.admin_email}</span>}
                 </p>
               </div>

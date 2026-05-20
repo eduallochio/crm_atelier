@@ -1,5 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Windows reserved device names (inválidos no Windows)
+nul
+con
+prn
+aux
+
 # dependencies
 /node_modules
 /.pnp
@@ -47,3 +53,6 @@ banco
 banco-adm
 .github/
 docs-banco/
+
+# Supabase migration workspace (SQL drafts, dumps, segredos)
+supabase-migration/

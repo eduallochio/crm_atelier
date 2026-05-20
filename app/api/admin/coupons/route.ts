@@ -1,18 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { coupons } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 
 export async function GET() {
   try {
     await requireMaster()
-    const pool = await getPool()
-    const result = await pool.request().query(`
-      SELECT id, code, description, discount_type, discount_value,
-             max_uses, uses_count, expires_at, is_active, applicable_plans, created_at
-      FROM coupons
-      ORDER BY created_at DESC
-    `)
-    return NextResponse.json(result.recordset)
+
+    const rows = await db
+      .select()
+      .from(coupons)
+      .orderBy(desc(coupons.createdAt))
+
+    const result = rows.map((c) => ({
+      id: c.id,
+      code: c.code,
+      description: c.description,
+      discount_type: c.discountType,
+      discount_value: parseFloat(c.discountValue),
+      max_uses: c.maxUses,
+      uses_count: c.usesCount,
+      expires_at: c.expiresAt,
+      is_active: c.isActive,
+      applicable_plans: c.applicablePlans,
+      created_at: c.createdAt,
+    }))
+
+    return NextResponse.json(result)
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
@@ -33,31 +48,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campos obrigatórios: code, discount_type, discount_value' }, { status: 400 })
     }
 
-    const pool = await getPool()
-
     // Check duplicate code
-    const exists = await pool.request()
-      .input('code', sql.NVarChar, code.toUpperCase())
-      .query('SELECT id FROM coupons WHERE code = @code')
-    if (exists.recordset.length > 0) {
+    const existing = await db
+      .select({ id: coupons.id })
+      .from(coupons)
+      .where(eq(coupons.code, code.toUpperCase()))
+      .limit(1)
+
+    if (existing.length > 0) {
       return NextResponse.json({ error: 'Código de cupom já existe' }, { status: 409 })
     }
 
-    const result = await pool.request()
-      .input('code',             sql.NVarChar,    code.toUpperCase())
-      .input('description',      sql.NVarChar,    description || null)
-      .input('discount_type',    sql.NVarChar,    discount_type)
-      .input('discount_value',   sql.Decimal(10, 2), Number(discount_value))
-      .input('max_uses',         sql.Int,         max_uses != null ? Number(max_uses) : null)
-      .input('expires_at',       sql.DateTime2,   expires_at ? new Date(expires_at) : null)
-      .input('applicable_plans', sql.NVarChar,    applicable_plans ? JSON.stringify(applicable_plans) : null)
-      .query(`
-        INSERT INTO coupons (code, description, discount_type, discount_value, max_uses, expires_at, applicable_plans)
-        OUTPUT INSERTED.*
-        VALUES (@code, @description, @discount_type, @discount_value, @max_uses, @expires_at, @applicable_plans)
-      `)
+    const inserted = await db.insert(coupons).values({
+      code: code.toUpperCase(),
+      description: description || null,
+      discountType: discount_type,
+      discountValue: String(Number(discount_value)),
+      maxUses: max_uses != null ? Number(max_uses) : null,
+      expiresAt: expires_at ? new Date(expires_at) : null,
+      applicablePlans: applicable_plans ?? null,
+    }).returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    const c = inserted[0]
+    return NextResponse.json({
+      id: c.id,
+      code: c.code,
+      description: c.description,
+      discount_type: c.discountType,
+      discount_value: parseFloat(c.discountValue),
+      max_uses: c.maxUses,
+      uses_count: c.usesCount,
+      expires_at: c.expiresAt,
+      is_active: c.isActive,
+      applicable_plans: c.applicablePlans,
+      created_at: c.createdAt,
+    }, { status: 201 })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {

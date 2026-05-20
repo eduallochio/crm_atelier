@@ -10,7 +10,7 @@ import { BulkActionsModal } from '@/components/admin/bulk-actions-modal'
 interface Organization {
   id: string
   name: string
-  plan: 'free' | 'pro'
+  plan: string
   state: 'active' | 'trial' | 'cancelled' | 'suspended'
   created_at: string
   users_count: number

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { adminLogs } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 
 export async function GET(
   _request: Request,
@@ -9,21 +11,27 @@ export async function GET(
   try {
     await requireMaster()
     const { id } = await params
-    const pool = await getPool()
 
     try {
-      const result = await pool
-        .request()
-        .input('orgId', sql.NVarChar, id)
-        .query(`
-          SELECT TOP 50
-            id, action, resource_type, resource_id,
-            description, admin_email, details_json, created_at
-          FROM admin_logs
-          WHERE resource_id = @orgId
-          ORDER BY created_at DESC
-        `)
-      return NextResponse.json(result.recordset)
+      const rows = await db
+        .select()
+        .from(adminLogs)
+        .where(eq(adminLogs.resourceId, id))
+        .orderBy(desc(adminLogs.createdAt))
+        .limit(50)
+
+      const result = rows.map((r) => ({
+        id:            r.id,
+        action:        r.action,
+        resource_type: r.resourceType,
+        resource_id:   r.resourceId,
+        description:   r.description,
+        admin_email:   r.adminEmail,
+        details_json:  r.detailsJson,
+        created_at:    r.createdAt,
+      }))
+
+      return NextResponse.json(result)
     } catch {
       return NextResponse.json([])
     }

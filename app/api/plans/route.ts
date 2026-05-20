@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getPool } from '@/lib/db'
+import { db } from '@/lib/db'
+import { plans } from '@/lib/db/schema'
+import { eq, asc } from 'drizzle-orm'
 
 export interface PublicPlan {
   id: string
@@ -19,32 +21,29 @@ export interface PublicPlan {
 
 export async function GET() {
   try {
-    const pool = await getPool()
-    const result = await pool.request().query(`
-      SELECT id, slug, name, description, price, price_annual, annual_note,
-             badge, is_featured, features_json, cta_text, cta_url, sort_order
-      FROM plans
-      WHERE is_active = 1
-      ORDER BY sort_order ASC
-    `)
+    const rows = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.isActive, true))
+      .orderBy(asc(plans.sortOrder))
 
-    const plans: PublicPlan[] = result.recordset.map((p) => ({
+    const result: PublicPlan[] = rows.map((p) => ({
       id: p.id,
       slug: p.slug,
       name: p.name,
       description: p.description,
       price: parseFloat(p.price),
-      price_annual: p.price_annual ? parseFloat(p.price_annual) : null,
-      annual_note: p.annual_note,
+      price_annual: p.priceAnnual ? parseFloat(p.priceAnnual) : null,
+      annual_note: p.annualNote,
       badge: p.badge,
-      is_featured: p.is_featured === true || p.is_featured === 1,
-      cta_text: p.cta_text ?? 'Criar conta',
-      cta_url: p.cta_url ?? '/cadastro',
-      sort_order: p.sort_order,
-      features: p.features_json ? JSON.parse(p.features_json) : [],
+      is_featured: p.isFeatured,
+      cta_text: p.ctaText ?? 'Criar conta',
+      cta_url: p.ctaUrl ?? '/cadastro',
+      sort_order: p.sortOrder,
+      features: Array.isArray(p.featuresJson) ? (p.featuresJson as { text: string; included: boolean }[]) : [],
     }))
 
-    return NextResponse.json(plans, {
+    return NextResponse.json(result, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     })
   } catch (error) {

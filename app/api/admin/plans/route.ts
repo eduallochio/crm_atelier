@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { plans } from '@/lib/db/schema'
+import { asc } from 'drizzle-orm'
 
 function handleAuthError(error: unknown) {
   const msg = (error as Error).message
@@ -13,26 +15,32 @@ function handleAuthError(error: unknown) {
 export async function GET() {
   try {
     await requireMaster()
-    const pool = await getPool()
-    const result = await pool.request().query(`
-      SELECT id, slug, name, description, price, price_annual, annual_note,
-             badge, is_featured, is_active, features_json, cta_text, cta_url, sort_order,
-             created_at, updated_at
-      FROM plans
-      ORDER BY sort_order ASC
-    `)
 
-    const plans = result.recordset.map((p) => ({
-      ...p,
+    const rows = await db
+      .select()
+      .from(plans)
+      .orderBy(asc(plans.sortOrder))
+
+    const result = rows.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      description: p.description,
       price: parseFloat(p.price),
-      price_annual: p.price_annual ? parseFloat(p.price_annual) : null,
-      is_featured: p.is_featured === true || p.is_featured === 1,
-      is_active: p.is_active === true || p.is_active === 1,
-      features: p.features_json ? JSON.parse(p.features_json) : [],
-      features_json: undefined,
+      price_annual: p.priceAnnual ? parseFloat(p.priceAnnual) : null,
+      annual_note: p.annualNote,
+      badge: p.badge,
+      is_featured: p.isFeatured,
+      is_active: p.isActive,
+      features: Array.isArray(p.featuresJson) ? p.featuresJson : [],
+      cta_text: p.ctaText,
+      cta_url: p.ctaUrl,
+      sort_order: p.sortOrder,
+      created_at: p.createdAt,
+      updated_at: p.updatedAt,
     }))
 
-    return NextResponse.json(plans)
+    return NextResponse.json(result)
   } catch (error) {
     return handleAuthError(error) ?? (console.error('[admin/plans] GET:', error),
       NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
@@ -48,33 +56,23 @@ export async function POST(request: NextRequest) {
       badge, is_featured, is_active, features, cta_text, cta_url, sort_order,
     } = body
 
-    const pool = await getPool()
-    const result = await pool
-      .request()
-      .input('slug', sql.NVarChar, slug)
-      .input('name', sql.NVarChar, name)
-      .input('description', sql.NVarChar, description || null)
-      .input('price', sql.Decimal(10, 2), parseFloat(price) || 0)
-      .input('price_annual', sql.Decimal(10, 2), price_annual ? parseFloat(price_annual) : null)
-      .input('annual_note', sql.NVarChar, annual_note || null)
-      .input('badge', sql.NVarChar, badge || null)
-      .input('is_featured', sql.Bit, is_featured ? 1 : 0)
-      .input('is_active', sql.Bit, is_active !== false ? 1 : 0)
-      .input('features_json', sql.NVarChar, JSON.stringify(features ?? []))
-      .input('cta_text', sql.NVarChar, cta_text || 'Criar conta')
-      .input('cta_url', sql.NVarChar, cta_url || '/cadastro')
-      .input('sort_order', sql.Int, parseInt(sort_order) || 0)
-      .query(`
-        INSERT INTO plans
-          (slug, name, description, price, price_annual, annual_note, badge,
-           is_featured, is_active, features_json, cta_text, cta_url, sort_order)
-        OUTPUT INSERTED.id
-        VALUES
-          (@slug, @name, @description, @price, @price_annual, @annual_note, @badge,
-           @is_featured, @is_active, @features_json, @cta_text, @cta_url, @sort_order)
-      `)
+    const inserted = await db.insert(plans).values({
+      slug,
+      name,
+      description: description || null,
+      price: String(parseFloat(price) || 0),
+      priceAnnual: price_annual ? String(parseFloat(price_annual)) : null,
+      annualNote: annual_note || null,
+      badge: badge || null,
+      isFeatured: Boolean(is_featured),
+      isActive: is_active !== false,
+      featuresJson: features ?? [],
+      ctaText: cta_text || 'Criar conta',
+      ctaUrl: cta_url || '/cadastro',
+      sortOrder: parseInt(sort_order) || 0,
+    }).returning({ id: plans.id })
 
-    return NextResponse.json({ id: result.recordset[0].id }, { status: 201 })
+    return NextResponse.json({ id: inserted[0].id }, { status: 201 })
   } catch (error) {
     return handleAuthError(error) ?? (console.error('[admin/plans] POST:', error),
       NextResponse.json({ error: 'Erro interno' }, { status: 500 }))

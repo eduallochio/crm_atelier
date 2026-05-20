@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgCashiers } from '@/lib/db/schema'
+import { eq, asc } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT * FROM org_cashiers
-        WHERE organization_id = @orgId
-        ORDER BY nome ASC
-      `)
+    const rows = await db
+      .select()
+      .from(orgCashiers)
+      .where(eq(orgCashiers.organizationId, user.organizationId))
+      .orderBy(asc(orgCashiers.nome))
 
-    return NextResponse.json(result.recordset)
+    return NextResponse.json(rows)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -30,21 +28,18 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('nome', sql.NVarChar, body.nome)
-      .input('descricao', sql.NVarChar, body.descricao || null)
-      .input('ativo', sql.Bit, body.ativo !== false ? 1 : 0)
-      .query(`
-        INSERT INTO org_cashiers (organization_id, nome, descricao, ativo)
-        OUTPUT INSERTED.*
-        VALUES (@orgId, @nome, @descricao, @ativo)
-      `)
+    const [row] = await db
+      .insert(orgCashiers)
+      .values({
+        organizationId: user.organizationId,
+        nome: body.nome,
+        descricao: body.descricao ?? null,
+        ativo: body.ativo !== false,
+      })
+      .returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

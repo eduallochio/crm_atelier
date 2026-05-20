@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgServiceOrders, orgServiceOrderItems } from '@/lib/db/schema'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 
 export async function GET(
   _request: Request,
@@ -9,20 +11,17 @@ export async function GET(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const ordersResult = await pool
-      .request()
-      .input('clientId', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT o.*
-        FROM org_service_orders o
-        WHERE o.client_id = @clientId AND o.organization_id = @orgId
-        ORDER BY o.created_at DESC
-      `)
-
-    const orders = ordersResult.recordset
+    const orders = await db
+      .select()
+      .from(orgServiceOrders)
+      .where(
+        and(
+          eq(orgServiceOrders.clientId, id),
+          eq(orgServiceOrders.organizationId, user.organizationId)
+        )
+      )
+      .orderBy(desc(orgServiceOrders.createdAt))
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -31,36 +30,32 @@ export async function GET(
       })
     }
 
-    // Fetch items for all orders via JOIN (safe, no string interpolation)
-    const itemsResult = await pool
-      .request()
-      .input('clientId2', sql.UniqueIdentifier, id)
-      .input('orgId2', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT i.*
-        FROM org_service_order_items i
-        INNER JOIN org_service_orders o ON o.id = i.order_id
-        WHERE o.client_id = @clientId2 AND o.organization_id = @orgId2
-      `)
+    const orderIds = orders.map((o) => o.id)
 
-    const itemsByOrder = new Map<string, unknown[]>()
-    for (const item of itemsResult.recordset) {
-      const list = itemsByOrder.get(item.order_id) || []
+    const items = await db
+      .select()
+      .from(orgServiceOrderItems)
+      .where(inArray(orgServiceOrderItems.orderId, orderIds))
+
+    const itemsByOrder = new Map<string, typeof items>()
+    for (const item of items) {
+      const list = itemsByOrder.get(item.orderId) ?? []
       list.push(item)
-      itemsByOrder.set(item.order_id, list)
+      itemsByOrder.set(item.orderId, list)
     }
 
-    const ordersWithItems = orders.map((o: Record<string, unknown>) => ({
+    const ordersWithItems = orders.map((o) => ({
       ...o,
-      items: itemsByOrder.get(o.id as string) || [],
+      items: itemsByOrder.get(o.id) ?? [],
     }))
 
-    const totalSpent = orders.reduce((sum: number, o: Record<string, unknown>) => {
+    const totalSpent = orders.reduce((sum, o) => {
       if (o.status === 'cancelado') return sum
-      return sum + ((o.valor_total as number) || 0)
+      return sum + Number(o.valorTotal ?? 0)
     }, 0)
-    const openOrders = orders.filter((o: Record<string, unknown>) =>
-      ['pendente', 'em_andamento'].includes(o.status as string)
+
+    const openOrders = orders.filter((o) =>
+      ['pendente', 'em_andamento'].includes(o.status)
     ).length
 
     return NextResponse.json({
@@ -68,7 +63,7 @@ export async function GET(
       stats: {
         totalSpent,
         totalOrders: orders.length,
-        lastOrder: ordersWithItems[0] || null,
+        lastOrder: ordersWithItems[0] ?? null,
         openOrders,
       },
     })

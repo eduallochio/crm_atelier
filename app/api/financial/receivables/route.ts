@@ -1,34 +1,44 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgReceivables, orgPaymentMethods } from '@/lib/db/schema'
+import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT
-          r.id, r.organization_id, r.service_order_id, r.client_id,
-          r.category_id, r.payment_method_id, r.descricao, r.valor,
-          r.data_vencimento, r.data_recebimento, r.observacoes,
-          r.created_at, r.updated_at,
-          pm.nome AS forma_pagamento,
+    const rows = await db
+      .select({
+        id:              orgReceivables.id,
+        organizationId:  orgReceivables.organizationId,
+        serviceOrderId:  orgReceivables.serviceOrderId,
+        clientId:        orgReceivables.clientId,
+        categoryId:      orgReceivables.categoryId,
+        paymentMethodId: orgReceivables.paymentMethodId,
+        descricao:       orgReceivables.descricao,
+        valor:           orgReceivables.valor,
+        dataVencimento:  orgReceivables.dataVencimento,
+        dataRecebimento: orgReceivables.dataRecebimento,
+        observacoes:     orgReceivables.observacoes,
+        createdAt:       orgReceivables.createdAt,
+        updatedAt:       orgReceivables.updatedAt,
+        formaPagamento:  orgPaymentMethods.nome,
+        status: drizzleSql<string>`
           CASE
-            WHEN r.status = 'pendente' AND r.data_vencimento < CAST(GETDATE() AS DATE)
+            WHEN ${orgReceivables.status} = 'pendente'
+              AND ${orgReceivables.dataVencimento} < CURRENT_DATE
             THEN 'atrasado'
-            ELSE r.status
-          END AS status
-        FROM org_receivables r
-        LEFT JOIN org_payment_methods pm ON pm.id = r.payment_method_id
-        WHERE r.organization_id = @orgId
-        ORDER BY r.data_vencimento DESC
-      `)
+            ELSE ${orgReceivables.status}
+          END
+        `,
+      })
+      .from(orgReceivables)
+      .leftJoin(orgPaymentMethods, eq(orgPaymentMethods.id, orgReceivables.paymentMethodId))
+      .where(eq(orgReceivables.organizationId, user.organizationId))
+      .orderBy(desc(orgReceivables.dataVencimento))
 
-    return NextResponse.json(result.recordset)
+    return NextResponse.json(rows)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -42,39 +52,27 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const pool = await getPool()
 
     const valor = parseFloat(String(body.valor || 0).replace(',', '.'))
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('serviceOrderId', sql.UniqueIdentifier, body.service_order_id || null)
-      .input('clientId', sql.UniqueIdentifier, body.client_id || null)
-      .input('categoryId', sql.UniqueIdentifier, body.category_id || null)
-      .input('paymentMethodId', sql.UniqueIdentifier, body.payment_method_id || null)
-      .input('descricao', sql.NVarChar, body.descricao)
-      .input('valor', sql.Decimal(10, 2), valor)
-      .input('dataVenc', sql.NVarChar, body.data_vencimento)
-      .input('dataReceb', sql.NVarChar, body.data_recebimento || null)
-      .input('status', sql.NVarChar, body.status || 'pendente')
-      .input('observacoes', sql.NVarChar, body.observacoes || null)
-      .query(`
-        INSERT INTO org_receivables (
-          organization_id, service_order_id, client_id, category_id, payment_method_id,
-          descricao, valor, data_vencimento, data_recebimento, status, observacoes
-        )
-        OUTPUT INSERTED.*
-        VALUES (
-          @orgId, @serviceOrderId, @clientId, @categoryId, @paymentMethodId,
-          @descricao, @valor,
-          CAST(@dataVenc AS DATE),
-          CAST(NULLIF(@dataReceb, '') AS DATE),
-          @status, @observacoes
-        )
-      `)
+    const [row] = await db
+      .insert(orgReceivables)
+      .values({
+        organizationId:  user.organizationId,
+        serviceOrderId:  body.service_order_id || null,
+        clientId:        body.client_id || null,
+        categoryId:      body.category_id || null,
+        paymentMethodId: body.payment_method_id || null,
+        descricao:       body.descricao,
+        valor:           String(valor),
+        dataVencimento:  body.data_vencimento,
+        dataRecebimento: body.data_recebimento || null,
+        status:          body.status || 'pendente',
+        observacoes:     body.observacoes || null,
+      })
+      .returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

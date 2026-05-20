@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgCashierMovements } from '@/lib/db/schema'
+import { eq, and, desc } from 'drizzle-orm'
 
 export async function GET(
   _request: Request,
@@ -9,20 +11,19 @@ export async function GET(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('sessaoId', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT m.*
-        FROM org_cashier_movements m
-        WHERE m.sessao_id = @sessaoId AND m.organization_id = @orgId
-        ORDER BY m.created_at DESC
-      `)
+    const rows = await db
+      .select()
+      .from(orgCashierMovements)
+      .where(
+        and(
+          eq(orgCashierMovements.sessaoId, id),
+          eq(orgCashierMovements.organizationId, user.organizationId)
+        )
+      )
+      .orderBy(desc(orgCashierMovements.createdAt))
 
-    return NextResponse.json(result.recordset)
+    return NextResponse.json(rows)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -40,33 +41,20 @@ export async function POST(
     const user = await requireAuth()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('sessaoId', sql.UniqueIdentifier, id)
-      .input('tipo', sql.NVarChar, body.tipo)
-      .input('valor', sql.Decimal(10, 2), body.valor)
-      .input('descricao', sql.NVarChar, body.descricao)
-      .input('metodoPagamentoId', sql.UniqueIdentifier, body.metodo_pagamento_id || null)
-      .input('referenciaId', sql.UniqueIdentifier, body.referencia_id || null)
-      .input('referenciaTipo', sql.NVarChar, body.referencia_tipo || null)
-      .input('usuarioId', sql.UniqueIdentifier, user.id || null)
-      .input('observacoes', sql.NVarChar, body.observacoes || null)
-      .query(`
-        INSERT INTO org_cashier_movements (
-          organization_id, sessao_id, tipo, valor, descricao,
-          metodo_pagamento_id, referencia_id, referencia_tipo, usuario_id, observacoes
-        )
-        OUTPUT INSERTED.*
-        VALUES (
-          @orgId, @sessaoId, @tipo, @valor, @descricao,
-          @metodoPagamentoId, @referenciaId, @referenciaTipo, @usuarioId, @observacoes
-        )
-      `)
+    const [row] = await db
+      .insert(orgCashierMovements)
+      .values({
+        organizationId: user.organizationId,
+        sessaoId: id,
+        tipo: body.tipo,
+        valor: String(body.valor),
+        descricao: body.descricao,
+        observacoes: body.observacoes ?? null,
+      })
+      .returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

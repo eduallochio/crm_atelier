@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { orgServiceOrderItems, orgServiceOrders, orgClients } from '@/lib/db/schema'
+import { eq, and, desc } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
 
 export async function GET(
   _request: Request,
@@ -9,41 +11,55 @@ export async function GET(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('serviceId', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT
-          i.*,
-          o.id AS order_id,
-          o.numero AS order_numero,
-          o.data_abertura AS order_data_abertura,
-          o.status AS order_status,
-          c.nome AS client_nome
-        FROM org_service_order_items i
-        INNER JOIN org_service_orders o ON o.id = i.order_id AND o.organization_id = @orgId
-        LEFT JOIN org_clients c ON c.id = o.client_id
-        WHERE i.service_id = @serviceId
-        ORDER BY i.created_at DESC
-      `)
+    const rows = await db
+      .select({
+        // item fields
+        itemId:           orgServiceOrderItems.id,
+        orderId:          orgServiceOrderItems.orderId,
+        serviceId:        orgServiceOrderItems.serviceId,
+        serviceNome:      orgServiceOrderItems.serviceNome,
+        quantidade:       orgServiceOrderItems.quantidade,
+        valorUnitario:    orgServiceOrderItems.valorUnitario,
+        valorTotal:       orgServiceOrderItems.valorTotal,
+        itemCreatedAt:    orgServiceOrderItems.createdAt,
+        // order fields
+        orderNumero:      orgServiceOrders.numero,
+        orderDataAbertura: orgServiceOrders.dataAbertura,
+        orderStatus:      orgServiceOrders.status,
+        // client fields
+        clientNome:       orgClients.nome,
+      })
+      .from(orgServiceOrderItems)
+      .innerJoin(orgServiceOrders, and(
+        eq(orgServiceOrders.id, orgServiceOrderItems.orderId),
+        eq(orgServiceOrders.organizationId, user.organizationId)
+      ))
+      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .where(eq(orgServiceOrderItems.serviceId, id))
+      .orderBy(desc(orgServiceOrderItems.createdAt))
 
-    const items = result.recordset.map((row: Record<string, unknown>) => ({
-      ...row,
+    const items = rows.map(row => ({
+      id:            row.itemId,
+      order_id:      row.orderId,
+      service_id:    row.serviceId,
+      service_nome:  row.serviceNome,
+      quantidade:    row.quantidade,
+      valor_unitario: row.valorUnitario,
+      valor_total:   row.valorTotal,
+      created_at:    row.itemCreatedAt,
       order: {
-        id: row.order_id,
-        numero: row.order_numero,
-        data_abertura: row.order_data_abertura,
-        status: row.order_status,
-        client: { nome: row.client_nome },
+        id:            row.orderId,
+        numero:        row.orderNumero,
+        data_abertura: row.orderDataAbertura,
+        status:        row.orderStatus,
+        client:        { nome: row.clientNome },
       },
     }))
 
-    const totalUses = items.reduce((sum: number, item: Record<string, unknown>) => sum + ((item.quantidade as number) || 0), 0)
-    const totalRevenue = items.reduce((sum: number, item: Record<string, unknown>) => sum + ((item.valor_total as number) || 0), 0)
-    const lastUsed = (result.recordset[0]?.created_at as string) || null
+    const totalUses = items.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0)
+    const totalRevenue = items.reduce((sum, item) => sum + (Number(item.valor_total) || 0), 0)
+    const lastUsed = rows[0]?.itemCreatedAt?.toISOString() ?? null
 
     return NextResponse.json({ items, totalUses, totalRevenue, lastUsed })
   } catch (error) {

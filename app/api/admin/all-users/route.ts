@@ -1,22 +1,59 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { db } from '@/lib/db'
+import { profiles, organizations } from '@/lib/db/schema'
+import { eq, desc, and } from 'drizzle-orm'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function GET() {
   try {
     await requireMaster()
-    const pool = await getPool()
-    const result = await pool.request().query(`
-      SELECT
-        u.id, u.email, u.full_name, u.role, u.is_owner, u.is_master,
-        u.created_at,
-        o.name AS org_name, o.[plan] AS org_plan, o.state AS org_state, o.id AS org_id
-      FROM users u
-      JOIN organizations o ON o.id = u.organization_id
-      ORDER BY u.created_at DESC
-    `)
-    return NextResponse.json(result.recordset)
+
+    const profileRows = await db
+      .select({
+        id: profiles.id,
+        fullName: profiles.fullName,
+        role: profiles.role,
+        isOwner: profiles.isOwner,
+        isMaster: profiles.isMaster,
+        createdAt: profiles.createdAt,
+        organizationId: profiles.organizationId,
+        orgName: organizations.name,
+        orgPlan: organizations.plan,
+        orgState: organizations.subscriptionStatus,
+      })
+      .from(profiles)
+      .innerJoin(organizations, eq(organizations.id, profiles.organizationId))
+      .orderBy(desc(profiles.createdAt))
+
+    // Get emails from Supabase auth
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data } = await supabase.auth.admin.listUsers()
+    const emailMap: Record<string, string> = {}
+    if (data?.users) {
+      for (const u of data.users) {
+        emailMap[u.id] = u.email ?? ''
+      }
+    }
+
+    const result = profileRows.map((p) => ({
+      id: p.id,
+      email: emailMap[p.id] ?? '',
+      full_name: p.fullName,
+      role: p.role,
+      is_owner: p.isOwner,
+      is_master: p.isMaster,
+      created_at: p.createdAt,
+      org_id: p.organizationId,
+      org_name: p.orgName,
+      org_plan: p.orgPlan,
+      org_state: p.orgState,
+    }))
+
+    return NextResponse.json(result)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -31,31 +68,37 @@ export async function PUT(request: Request) {
     await requireMaster()
     const body = await request.json()
     const { id, action, new_password } = body
-    const pool = await getPool()
+
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     if (action === 'reset_password') {
-      if (!new_password || new_password.length < 6) {
+      if (!new_password || (new_password as string).length < 6) {
         return NextResponse.json({ error: 'Senha deve ter ao menos 6 caracteres' }, { status: 400 })
       }
-      const hash = await bcrypt.hash(new_password as string, 12)
-      await pool.request()
-        .input('id', sql.UniqueIdentifier, id)
-        .input('hash', sql.NVarChar, hash)
-        .query('UPDATE users SET password_hash = @hash WHERE id = @id')
+      const { error } = await supabase.auth.admin.updateUserById(id, {
+        password: new_password as string,
+      })
+      if (error) throw error
       return NextResponse.json({ ok: true })
     }
 
     if (action === 'deactivate') {
-      await pool.request()
-        .input('id', sql.UniqueIdentifier, id)
-        .query("UPDATE users SET role = 'deactivated' WHERE id = @id AND is_master = 0")
+      // Deactivate non-master users by setting role to deactivated
+      await db
+        .update(profiles)
+        .set({ role: 'deactivated' })
+        .where(and(eq(profiles.id, id), eq(profiles.isMaster, false)))
       return NextResponse.json({ ok: true })
     }
 
     if (action === 'reactivate') {
-      await pool.request()
-        .input('id', sql.UniqueIdentifier, id)
-        .query("UPDATE users SET role = 'member' WHERE id = @id")
+      await db
+        .update(profiles)
+        .set({ role: 'member' })
+        .where(eq(profiles.id, id))
       return NextResponse.json({ ok: true })
     }
 

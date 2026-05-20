@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgPaymentMethods } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function DELETE(
   _request: Request,
@@ -9,19 +11,18 @@ export async function DELETE(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        DELETE FROM org_payment_methods
-        OUTPUT DELETED.id
-        WHERE id = @id AND organization_id = @orgId
-      `)
+    const [row] = await db
+      .delete(orgPaymentMethods)
+      .where(
+        and(
+          eq(orgPaymentMethods.id, id),
+          eq(orgPaymentMethods.organizationId, user.organizationId)
+        )
+      )
+      .returning({ id: orgPaymentMethods.id })
 
-    if (result.recordset.length === 0) {
+    if (!row) {
       return NextResponse.json({ error: 'Método de pagamento não encontrado' }, { status: 404 })
     }
 

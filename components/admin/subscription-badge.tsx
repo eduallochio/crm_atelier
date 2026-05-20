@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 interface PlanBadgeProps {
-  plan: 'free' | 'pro'
+  plan: string
 }
 
 export function PlanBadge({ plan }: PlanBadgeProps) {

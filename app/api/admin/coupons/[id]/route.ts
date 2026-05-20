@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { coupons, couponUsages } from '@/lib/db/schema'
+import { eq, and, ne } from 'drizzle-orm'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,48 +11,54 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json()
     const { code, description, discount_type, discount_value, max_uses, expires_at, is_active, applicable_plans } = body
 
-    const pool = await getPool()
-
     // Check duplicate code (excluding self)
     if (code) {
-      const exists = await pool.request()
-        .input('code', sql.NVarChar, code.toUpperCase())
-        .input('id',   sql.UniqueIdentifier, id)
-        .query('SELECT id FROM coupons WHERE code = @code AND id <> @id')
-      if (exists.recordset.length > 0) {
+      const existing = await db
+        .select({ id: coupons.id })
+        .from(coupons)
+        .where(and(eq(coupons.code, code.toUpperCase()), ne(coupons.id, id)))
+        .limit(1)
+
+      if (existing.length > 0) {
         return NextResponse.json({ error: 'Código de cupom já existe' }, { status: 409 })
       }
     }
 
-    const result = await pool.request()
-      .input('id',               sql.UniqueIdentifier, id)
-      .input('code',             sql.NVarChar,         code?.toUpperCase() ?? null)
-      .input('description',      sql.NVarChar,         description ?? null)
-      .input('discount_type',    sql.NVarChar,         discount_type ?? null)
-      .input('discount_value',   sql.Decimal(10, 2),   discount_value != null ? Number(discount_value) : null)
-      .input('max_uses',         sql.Int,              max_uses != null ? Number(max_uses) : null)
-      .input('expires_at',       sql.DateTime2,        expires_at ? new Date(expires_at) : null)
-      .input('is_active',        sql.Bit,              is_active != null ? (is_active ? 1 : 0) : null)
-      .input('applicable_plans', sql.NVarChar,         applicable_plans != null ? JSON.stringify(applicable_plans) : null)
-      .query(`
-        UPDATE coupons SET
-          code             = COALESCE(@code, code),
-          description      = COALESCE(@description, description),
-          discount_type    = COALESCE(@discount_type, discount_type),
-          discount_value   = COALESCE(@discount_value, discount_value),
-          max_uses         = CASE WHEN @max_uses IS NOT NULL THEN @max_uses ELSE max_uses END,
-          expires_at       = CASE WHEN @expires_at IS NOT NULL THEN @expires_at ELSE expires_at END,
-          is_active        = COALESCE(@is_active, is_active),
-          applicable_plans = CASE WHEN @applicable_plans IS NOT NULL THEN @applicable_plans ELSE applicable_plans END
-        OUTPUT INSERTED.*
-        WHERE id = @id
-      `)
+    // Build update values — only include fields that were provided
+    const updateValues: Partial<typeof coupons.$inferInsert> = {}
+    if (code !== undefined) updateValues.code = code.toUpperCase()
+    if (description !== undefined) updateValues.description = description ?? null
+    if (discount_type !== undefined) updateValues.discountType = discount_type
+    if (discount_value != null) updateValues.discountValue = String(Number(discount_value))
+    if (max_uses !== undefined) updateValues.maxUses = max_uses != null ? Number(max_uses) : null
+    if (expires_at !== undefined) updateValues.expiresAt = expires_at ? new Date(expires_at) : null
+    if (is_active !== undefined) updateValues.isActive = Boolean(is_active)
+    if (applicable_plans !== undefined) updateValues.applicablePlans = applicable_plans ?? null
 
-    if (result.recordset.length === 0) {
+    const updated = await db
+      .update(coupons)
+      .set(updateValues)
+      .where(eq(coupons.id, id))
+      .returning()
+
+    if (updated.length === 0) {
       return NextResponse.json({ error: 'Cupom não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(result.recordset[0])
+    const c = updated[0]
+    return NextResponse.json({
+      id: c.id,
+      code: c.code,
+      description: c.description,
+      discount_type: c.discountType,
+      discount_value: parseFloat(c.discountValue),
+      max_uses: c.maxUses,
+      uses_count: c.usesCount,
+      expires_at: c.expiresAt,
+      is_active: c.isActive,
+      applicable_plans: c.applicablePlans,
+      created_at: c.createdAt,
+    })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
@@ -65,18 +73,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   try {
     await requireMaster()
     const { id } = await params
-    const pool = await getPool()
 
     // Remove usages first
-    await pool.request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query('DELETE FROM coupon_usages WHERE coupon_id = @id')
+    await db.delete(couponUsages).where(eq(couponUsages.couponId, id))
 
-    const result = await pool.request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query('DELETE FROM coupons OUTPUT DELETED.id WHERE id = @id')
+    const deleted = await db
+      .delete(coupons)
+      .where(eq(coupons.id, id))
+      .returning({ id: coupons.id })
 
-    if (result.recordset.length === 0) {
+    if (deleted.length === 0) {
       return NextResponse.json({ error: 'Cupom não encontrado' }, { status: 404 })
     }
 

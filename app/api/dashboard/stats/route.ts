@@ -1,98 +1,122 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import {
+  organizations,
+  orgClients,
+  orgServiceOrders,
+  profiles,
+  orgReceivables,
+  orgPayables,
+} from '@/lib/db/schema'
+import {
+  eq,
+  and,
+  sql as drizzleSql,
+  desc,
+  asc,
+  isNull,
+  isNotNull,
+  gte,
+  lte,
+  lt,
+  or,
+} from 'drizzle-orm'
+import { hasLifetimeLicense } from '@/lib/plan-limits'
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
+    const orgId = user.organizationId
 
-    // Métricas reais contadas diretamente nas tabelas (evita dessincronia com usage_metrics)
-    const metricsResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT
-          (SELECT COUNT(*) FROM org_clients    WHERE organization_id = @orgId) AS clients_count,
-          (SELECT COUNT(*) FROM org_service_orders WHERE organization_id = @orgId)                    AS orders_count,
-          (SELECT COUNT(*) FROM users          WHERE organization_id = @orgId)                        AS users_count
-      `)
+    // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
+    const [clientsCount, ordersCount, usersCount] = await Promise.all([
+      db.select({ count: drizzleSql<number>`count(*)::int` })
+        .from(orgClients)
+        .where(eq(orgClients.organizationId, orgId)),
+      db.select({ count: drizzleSql<number>`count(*)::int` })
+        .from(orgServiceOrders)
+        .where(eq(orgServiceOrders.organizationId, orgId)),
+      db.select({ count: drizzleSql<number>`count(*)::int` })
+        .from(profiles)
+        .where(eq(profiles.organizationId, orgId)),
+    ])
 
-    const metrics = metricsResult.recordset[0] ?? {
-      clients_count: 0,
-      orders_count: 0,
-      users_count: 1,
+    const metrics = {
+      clients_count: clientsCount[0]?.count ?? 0,
+      orders_count: ordersCount[0]?.count ?? 0,
+      users_count: usersCount[0]?.count ?? 1,
     }
 
-    // Receita do mês atual (ordens concluídas)
+    // ── Receita do mês atual ─────────────────────────────────────────────────
     const now = new Date()
-    const currentMonth = now.getMonth() + 1
-    const currentYear = now.getFullYear()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-    const revenueResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('month', sql.Int, currentMonth)
-      .input('year', sql.Int, currentYear)
-      .query(`
-        SELECT ISNULL(SUM(valor_total), 0) AS monthly_revenue
-        FROM org_service_orders
-        WHERE organization_id = @orgId
-          AND status = 'concluido'
-          AND data_conclusao IS NOT NULL
-          AND MONTH(data_conclusao) = @month
-          AND YEAR(data_conclusao) = @year
-      `)
+    const revenueResult = await db
+      .select({ revenue: drizzleSql<string>`COALESCE(SUM(valor_total), 0)` })
+      .from(orgServiceOrders)
+      .where(
+        and(
+          eq(orgServiceOrders.organizationId, orgId),
+          eq(orgServiceOrders.status, 'concluido'),
+          isNotNull(orgServiceOrders.dataConclusao),
+          gte(orgServiceOrders.dataConclusao, startOfMonth),
+          lt(orgServiceOrders.dataConclusao, startOfNextMonth),
+        )
+      )
 
-    const monthlyRevenue = revenueResult.recordset[0]?.monthly_revenue ?? 0
+    const monthlyRevenue = parseFloat(revenueResult[0]?.revenue ?? '0')
 
-    // Plano da organização
-    const orgResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`SELECT [plan] FROM organizations WHERE id = @orgId`)
+    // ── Plano da organização ─────────────────────────────────────────────────
+    const [orgResult, lifetime] = await Promise.all([
+      db.select({ plan: organizations.plan })
+        .from(organizations)
+        .where(eq(organizations.id, orgId))
+        .limit(1),
+      hasLifetimeLicense(orgId),
+    ])
 
-    const plan = orgResult.recordset[0]?.plan ?? 'free'
+    const plan = lifetime ? 'enterprise' : (orgResult[0]?.plan ?? 'free')
 
-    // Atividades recentes: últimos 5 clientes + 5 ordens
-    const recentClientsResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT TOP 5 id, nome, created_at
-        FROM org_clients
-        WHERE organization_id = @orgId
-        ORDER BY created_at DESC
-      `)
-
-    const recentOrdersResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT TOP 5 o.id, o.numero, o.created_at, o.status, c.nome AS client_nome
-        FROM org_service_orders o
-        LEFT JOIN org_clients c ON c.id = o.client_id
-        WHERE o.organization_id = @orgId
-        ORDER BY o.created_at DESC
-      `)
+    // ── Atividades recentes ──────────────────────────────────────────────────
+    const [recentClients, recentOrders] = await Promise.all([
+      db.select({ id: orgClients.id, nome: orgClients.nome, createdAt: orgClients.createdAt })
+        .from(orgClients)
+        .where(eq(orgClients.organizationId, orgId))
+        .orderBy(desc(orgClients.createdAt))
+        .limit(5),
+      db.select({
+          id: orgServiceOrders.id,
+          numero: orgServiceOrders.numero,
+          createdAt: orgServiceOrders.createdAt,
+          status: orgServiceOrders.status,
+          clientNome: orgClients.nome,
+        })
+        .from(orgServiceOrders)
+        .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+        .where(eq(orgServiceOrders.organizationId, orgId))
+        .orderBy(desc(orgServiceOrders.createdAt))
+        .limit(5),
+    ])
 
     const activities = [
-      ...recentClientsResult.recordset.map((c: { id: string; nome: string; created_at: string }) => ({
+      ...recentClients.map((c) => ({
         id: `client-${c.id}`,
         type: 'client',
         title: 'Novo cliente cadastrado',
         description: c.nome,
-        timestamp: c.created_at,
+        timestamp: c.createdAt?.toISOString() ?? '',
       })),
-      ...recentOrdersResult.recordset.map((o: { id: string; numero: number; created_at: string; status: string; client_nome: string }) => ({
+      ...recentOrders.map((o) => ({
         id: `order-${o.id}`,
         type: o.status === 'concluido' ? 'order_completed' : 'order',
         title: o.status === 'concluido' ? 'Ordem concluída' : 'Nova ordem criada',
-        description: `${o.numero} - ${o.client_nome || 'Cliente não informado'}`,
-        timestamp: o.created_at,
+        description: `${o.numero} - ${o.clientNome || 'Cliente não informado'}`,
+        timestamp: o.createdAt?.toISOString() ?? '',
         metadata: {
           orderNumber: o.numero,
-          clientName: o.client_nome,
+          clientName: o.clientNome,
           status: o.status,
         },
       })),
@@ -100,145 +124,174 @@ export async function GET() {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 10)
 
-    // ── Saúde financeira ──────────────────────────────────────────
-    const todayDate = new Date()
-    todayDate.setHours(0, 0, 0, 0)
-    const next7d = new Date(todayDate)
+    // ── Saúde financeira ─────────────────────────────────────────────────────
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const next7d = new Date(today)
     next7d.setDate(next7d.getDate() + 7)
-    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
-    const prevYear  = currentMonth === 1 ? currentYear - 1 : currentYear
+    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const startOfCurrMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const financialHealthResult = await pool
-      .request()
-      .input('orgId',      sql.UniqueIdentifier, user.organizationId)
-      .input('today',      sql.Date, todayDate)
-      .input('next7d',     sql.Date, next7d)
-      .input('prevMonth',  sql.Int,  prevMonth)
-      .input('prevYear',   sql.Int,  prevYear)
-      .query(`
-        SELECT
-          -- A receber: pendente (não vencido)
-          (SELECT ISNULL(SUM(valor), 0) FROM org_receivables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) >= @today) AS receivables_pending,
+    const [
+      receivablesPending,
+      receivablesOverdue,
+      payablesPending,
+      payablesOverdue,
+      receivables7d,
+      payables7d,
+      pipelineValue,
+      prevMonthRevenue,
+    ] = await Promise.all([
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgReceivables)
+        .where(and(
+          eq(orgReceivables.organizationId, orgId),
+          eq(orgReceivables.status, 'pendente'),
+          gte(orgReceivables.dataVencimento, today.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgReceivables)
+        .where(and(
+          eq(orgReceivables.organizationId, orgId),
+          eq(orgReceivables.status, 'pendente'),
+          lt(orgReceivables.dataVencimento, today.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgPayables)
+        .where(and(
+          eq(orgPayables.organizationId, orgId),
+          eq(orgPayables.status, 'pendente'),
+          gte(orgPayables.dataVencimento, today.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgPayables)
+        .where(and(
+          eq(orgPayables.organizationId, orgId),
+          eq(orgPayables.status, 'pendente'),
+          lt(orgPayables.dataVencimento, today.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgReceivables)
+        .where(and(
+          eq(orgReceivables.organizationId, orgId),
+          eq(orgReceivables.status, 'pendente'),
+          gte(orgReceivables.dataVencimento, today.toISOString().slice(0, 10)),
+          lte(orgReceivables.dataVencimento, next7d.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor), 0)` })
+        .from(orgPayables)
+        .where(and(
+          eq(orgPayables.organizationId, orgId),
+          eq(orgPayables.status, 'pendente'),
+          gte(orgPayables.dataVencimento, today.toISOString().slice(0, 10)),
+          lte(orgPayables.dataVencimento, next7d.toISOString().slice(0, 10)),
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor_total), 0)` })
+        .from(orgServiceOrders)
+        .where(and(
+          eq(orgServiceOrders.organizationId, orgId),
+          drizzleSql`status IN ('pendente', 'em_andamento')`,
+        )),
+      db.select({ total: drizzleSql<string>`COALESCE(SUM(valor_total), 0)` })
+        .from(orgServiceOrders)
+        .where(and(
+          eq(orgServiceOrders.organizationId, orgId),
+          eq(orgServiceOrders.status, 'concluido'),
+          gte(orgServiceOrders.dataConclusao, startOfPrevMonth),
+          lt(orgServiceOrders.dataConclusao, startOfCurrMonth),
+        )),
+    ])
 
-          -- A receber: vencido
-          (SELECT ISNULL(SUM(valor), 0) FROM org_receivables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) < @today) AS receivables_overdue,
-
-          -- A pagar: pendente (não vencido)
-          (SELECT ISNULL(SUM(valor), 0) FROM org_payables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) >= @today) AS payables_pending,
-
-          -- A pagar: vencido
-          (SELECT ISNULL(SUM(valor), 0) FROM org_payables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) < @today) AS payables_overdue,
-
-          -- Próximos 7 dias: a receber
-          (SELECT ISNULL(SUM(valor), 0) FROM org_receivables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) BETWEEN @today AND @next7d) AS receivables_7d,
-
-          -- Próximos 7 dias: a pagar
-          (SELECT ISNULL(SUM(valor), 0) FROM org_payables
-           WHERE organization_id = @orgId AND status = 'pendente'
-             AND CAST(data_vencimento AS DATE) BETWEEN @today AND @next7d) AS payables_7d,
-
-          -- Pipeline: valor das ordens em aberto
-          (SELECT ISNULL(SUM(valor_total), 0) FROM org_service_orders
-           WHERE organization_id = @orgId
-             AND status IN ('pendente', 'em_andamento')) AS pipeline_value,
-
-          -- Receita mês anterior
-          (SELECT ISNULL(SUM(valor_total), 0) FROM org_service_orders
-           WHERE organization_id = @orgId AND status = 'concluido'
-             AND MONTH(data_conclusao) = @prevMonth
-             AND YEAR(data_conclusao) = @prevYear) AS prev_month_revenue
-      `)
-
-    const financialHealth = financialHealthResult.recordset[0] ?? {
-      receivables_pending: 0, receivables_overdue: 0,
-      payables_pending: 0,    payables_overdue: 0,
-      receivables_7d: 0,      payables_7d: 0,
-      pipeline_value: 0,      prev_month_revenue: 0,
+    const financialHealth = {
+      receivables_pending: parseFloat(receivablesPending[0]?.total ?? '0'),
+      receivables_overdue: parseFloat(receivablesOverdue[0]?.total ?? '0'),
+      payables_pending: parseFloat(payablesPending[0]?.total ?? '0'),
+      payables_overdue: parseFloat(payablesOverdue[0]?.total ?? '0'),
+      receivables_7d: parseFloat(receivables7d[0]?.total ?? '0'),
+      payables_7d: parseFloat(payables7d[0]?.total ?? '0'),
+      pipeline_value: parseFloat(pipelineValue[0]?.total ?? '0'),
+      prev_month_revenue: parseFloat(prevMonthRevenue[0]?.total ?? '0'),
     }
 
-    // ── Top clientes por receita ───────────────────────────────
-    const topClientsResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT TOP 5
-          c.id,
-          c.nome,
-          COUNT(o.id)                    AS order_count,
-          ISNULL(SUM(o.valor_total), 0)  AS total_revenue,
-          MAX(o.created_at)              AS last_order_date
-        FROM org_clients c
-        INNER JOIN org_service_orders o
-          ON o.client_id = c.id
-          AND o.organization_id = @orgId
-          AND o.status = 'concluido'
-        WHERE c.organization_id = @orgId
-        GROUP BY c.id, c.nome
-        ORDER BY total_revenue DESC
-      `)
+    // ── Top clientes por receita ─────────────────────────────────────────────
+    const topClients = await db
+      .select({
+        id: orgClients.id,
+        nome: orgClients.nome,
+        order_count: drizzleSql<number>`count(${orgServiceOrders.id})::int`,
+        total_revenue: drizzleSql<string>`COALESCE(SUM(${orgServiceOrders.valorTotal}), 0)`,
+        last_order_date: drizzleSql<string>`MAX(${orgServiceOrders.createdAt})`,
+      })
+      .from(orgClients)
+      .innerJoin(
+        orgServiceOrders,
+        and(
+          eq(orgServiceOrders.clientId, orgClients.id),
+          eq(orgServiceOrders.organizationId, orgId),
+          eq(orgServiceOrders.status, 'concluido'),
+        )
+      )
+      .where(eq(orgClients.organizationId, orgId))
+      .groupBy(orgClients.id, orgClients.nome)
+      .orderBy(drizzleSql`SUM(${orgServiceOrders.valorTotal}) DESC`)
+      .limit(5)
 
-    const topClients = topClientsResult.recordset
+    // ── Clientes inativos (sem ordem nos últimos 60 dias) ────────────────────
+    const sixtyDaysAgo = new Date()
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-    // ── Clientes inativos (sem ordem nos últimos 60 dias) ─────
-    const inactiveResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT COUNT(*) AS inactive_count
-        FROM org_clients c
-        WHERE c.organization_id = @orgId
-          AND NOT EXISTS (
+    const inactiveResult = await db
+      .select({ count: drizzleSql<number>`count(*)::int` })
+      .from(orgClients)
+      .where(
+        and(
+          eq(orgClients.organizationId, orgId),
+          drizzleSql`NOT EXISTS (
             SELECT 1 FROM org_service_orders o
-            WHERE o.client_id = c.id
-              AND o.organization_id = @orgId
-              AND o.created_at >= DATEADD(DAY, -60, GETDATE())
-          )
-      `)
+            WHERE o.client_id = ${orgClients.id}
+              AND o.organization_id = ${orgId}
+              AND o.created_at >= ${sixtyDaysAgo.toISOString()}
+          )`,
+        )
+      )
 
-    const inactiveClientsCount = inactiveResult.recordset[0]?.inactive_count ?? 0
+    const inactiveClientsCount = inactiveResult[0]?.count ?? 0
 
-    // Ordens urgentes (próximas 7 dias, pendente/em_andamento)
+    // ── Ordens urgentes (próximas 7 dias, pendente/em_andamento) ────────────
     const deadline = new Date()
     deadline.setDate(deadline.getDate() + 7)
 
-    const urgentResult = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('deadline', sql.DateTime2, deadline)
-      .query(`
-        SELECT TOP 5
-          o.id, o.numero, o.data_prevista, o.status, o.valor_total,
-          c.nome AS client_nome
-        FROM org_service_orders o
-        LEFT JOIN org_clients c ON c.id = o.client_id
-        WHERE o.organization_id = @orgId
-          AND o.status IN ('pendente', 'em_andamento')
-          AND o.data_prevista IS NOT NULL
-          AND o.data_prevista <= @deadline
-        ORDER BY o.data_prevista ASC
-      `)
-
-    const urgentOrders = urgentResult.recordset.map((o: Record<string, unknown>) => ({
-      ...o,
-      client: { nome: o.client_nome },
-    }))
+    const urgentOrders = await db
+      .select({
+        id: orgServiceOrders.id,
+        numero: orgServiceOrders.numero,
+        dataPrevista: orgServiceOrders.dataPrevista,
+        status: orgServiceOrders.status,
+        valorTotal: orgServiceOrders.valorTotal,
+        clientNome: orgClients.nome,
+      })
+      .from(orgServiceOrders)
+      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .where(
+        and(
+          eq(orgServiceOrders.organizationId, orgId),
+          drizzleSql`${orgServiceOrders.status} IN ('pendente', 'em_andamento')`,
+          isNotNull(orgServiceOrders.dataPrevista),
+          lte(orgServiceOrders.dataPrevista, deadline.toISOString().slice(0, 10)),
+        )
+      )
+      .orderBy(asc(orgServiceOrders.dataPrevista))
+      .limit(5)
 
     return NextResponse.json({
       metrics,
       monthly_revenue: monthlyRevenue,
       plan,
       recent_activities: activities,
-      urgent_orders: urgentOrders,
+      urgent_orders: urgentOrders.map((o) => ({
+        ...o,
+        client: { nome: o.clientNome },
+      })),
       financial_health: financialHealth,
       top_clients: topClients,
       inactive_clients_count: inactiveClientsCount,

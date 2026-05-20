@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "lifetime_license" boolean DEFAULT false NOT NULL;

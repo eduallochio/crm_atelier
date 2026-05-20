@@ -87,7 +87,7 @@ export function AdminHeader() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">{log.description}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {format(new Date(log.created_at), "d MMM 'às' HH:mm", { locale: ptBR })}
+                          {log.created_at ? format(new Date(log.created_at), "d MMM 'às' HH:mm", { locale: ptBR }) : '—'}
                           {log.admin_email && <span className="ml-1 opacity-70">· {log.admin_email}</span>}
                         </p>
                       </div>

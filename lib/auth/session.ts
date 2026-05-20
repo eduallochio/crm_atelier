@@ -1,4 +1,7 @@
-import { auth } from '@/auth'
+import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
+import { profiles } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export type SessionUser = {
   id: string
@@ -13,11 +16,41 @@ export type SessionUser = {
 /**
  * Retorna o usuário da sessão atual ou null.
  * Use em Server Components e API Routes.
+ *
+ * O organization_id é buscado da tabela profiles (não do user_metadata),
+ * pois o trigger handle_new_user não popula o user_metadata do Supabase Auth.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const session = await auth()
-  if (!session?.user?.id) return null
-  return session.user as SessionUser
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  // Busca o profile para obter organization_id, role e is_owner
+  const [profile] = await db
+    .select({
+      organizationId: profiles.organizationId,
+      role:           profiles.role,
+      isOwner:        profiles.isOwner,
+      fullName:       profiles.fullName,
+    })
+    .from(profiles)
+    .where(eq(profiles.id, user.id))
+    .limit(1)
+
+  if (!profile) return null
+
+  return {
+    id:             user.id,
+    email:          user.email ?? '',
+    name:           profile.fullName ?? user.user_metadata?.full_name ?? '',
+    organizationId: profile.organizationId,
+    role:           profile.role,
+    isOwner:        profile.isOwner,
+    isMaster:       user.app_metadata?.is_master === true,
+  }
 }
 
 /**

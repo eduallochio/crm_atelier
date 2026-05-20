@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { orgServiceOrderNotes, orgServiceOrders } from '@/lib/db/schema'
+import { eq, and, desc } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
 
 export async function GET(
   _request: Request,
@@ -9,21 +11,25 @@ export async function GET(
   try {
     const user = await requireAuth()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orderId', sql.UniqueIdentifier, id)
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT n.*
-        FROM org_service_order_notes n
-        INNER JOIN org_service_orders o ON o.id = n.order_id
-        WHERE n.order_id = @orderId AND o.organization_id = @orgId
-        ORDER BY n.created_at DESC
-      `)
+    const notes = await db
+      .select({
+        id:             orgServiceOrderNotes.id,
+        orderId:        orgServiceOrderNotes.orderId,
+        organizationId: orgServiceOrderNotes.organizationId,
+        userEmail:      orgServiceOrderNotes.userEmail,
+        nota:           orgServiceOrderNotes.nota,
+        createdAt:      orgServiceOrderNotes.createdAt,
+      })
+      .from(orgServiceOrderNotes)
+      .innerJoin(orgServiceOrders, eq(orgServiceOrders.id, orgServiceOrderNotes.orderId))
+      .where(and(
+        eq(orgServiceOrderNotes.orderId, id),
+        eq(orgServiceOrders.organizationId, user.organizationId)
+      ))
+      .orderBy(desc(orgServiceOrderNotes.createdAt))
 
-    return NextResponse.json(result.recordset)
+    return NextResponse.json(notes)
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -41,21 +47,18 @@ export async function POST(
     const user = await requireAuth()
     const body = await request.json()
     const { id } = await params
-    const pool = await getPool()
 
-    const result = await pool
-      .request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('orderId', sql.UniqueIdentifier, id)
-      .input('userEmail', sql.NVarChar, user.email || '')
-      .input('nota', sql.NVarChar, body.nota)
-      .query(`
-        INSERT INTO org_service_order_notes (organization_id, order_id, user_email, nota)
-        OUTPUT INSERTED.*
-        VALUES (@orgId, @orderId, @userEmail, @nota)
-      `)
+    const [note] = await db
+      .insert(orgServiceOrderNotes)
+      .values({
+        orderId:        id,
+        organizationId: user.organizationId,
+        userEmail:      user.email || '',
+        nota:           body.nota,
+      })
+      .returning()
 
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    return NextResponse.json(note, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

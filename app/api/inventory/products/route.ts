@@ -1,32 +1,33 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { getPool, sql } from '@/lib/db'
+import { db } from '@/lib/db'
+import { orgProducts, organizations } from '@/lib/db/schema'
+import { eq, and, asc } from 'drizzle-orm'
+
+async function checkPlan(organizationId: string) {
+  const [org] = await db
+    .select({ plan: organizations.plan })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+  if (org?.plan === 'free') throw new Error('FORBIDDEN')
+}
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
-    const orgResult = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query('SELECT [plan] FROM organizations WHERE id = @orgId')
-    const plan = orgResult.recordset[0]?.plan
-    if (plan === 'free') {
-      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    }
+    await checkPlan(user.organizationId)
 
-    const result = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query(`
-        SELECT id, nome, descricao, categoria, unidade,
-               quantidade_atual, quantidade_minima, preco_custo,
-               codigo_barras, ativo, created_at, updated_at
-        FROM org_products
-        WHERE organization_id = @orgId
-        ORDER BY nome
-      `)
-    return NextResponse.json(result.recordset)
+    const products = await db
+      .select()
+      .from(orgProducts)
+      .where(eq(orgProducts.organizationId, user.organizationId))
+      .orderBy(asc(orgProducts.nome))
+
+    return NextResponse.json(products)
   } catch (error) {
-    if ((error as Error).message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const msg = (error as Error).message
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     console.error('[GET /api/inventory/products]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -35,45 +36,40 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
-    const pool = await getPool()
-    const orgResult = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .query('SELECT [plan] FROM organizations WHERE id = @orgId')
-    if (orgResult.recordset[0]?.plan === 'free') {
-      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    }
+    await checkPlan(user.organizationId)
+
     const body = await request.json()
     const {
       nome,
       descricao,
-      categoria,
       unidade = 'un',
-      quantidade_atual = 0,
-      quantidade_minima = 0,
-      preco_custo,
-      codigo_barras,
+      quantidadeAtual = 0,
+      quantidadeMinima = 0,
+      precoCusto,
+      codigoBarras,
     } = body
+
     if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
-    const result = await pool.request()
-      .input('orgId', sql.UniqueIdentifier, user.organizationId)
-      .input('nome', sql.NVarChar(255), nome)
-      .input('descricao', sql.NVarChar(sql.MAX), descricao || null)
-      .input('categoria', sql.NVarChar(100), categoria || null)
-      .input('unidade', sql.NVarChar(20), unidade)
-      .input('quantidade_atual', sql.Decimal(10, 3), Number(quantidade_atual))
-      .input('quantidade_minima', sql.Decimal(10, 3), Number(quantidade_minima))
-      .input('preco_custo', sql.Decimal(10, 2), preco_custo ? Number(preco_custo) : null)
-      .input('codigo_barras', sql.NVarChar(100), codigo_barras || null)
-      .query(`
-        INSERT INTO org_products
-          (organization_id, nome, descricao, categoria, unidade, quantidade_atual, quantidade_minima, preco_custo, codigo_barras)
-        OUTPUT INSERTED.*
-        VALUES (@orgId, @nome, @descricao, @categoria, @unidade, @quantidade_atual, @quantidade_minima, @preco_custo, @codigo_barras)
-      `)
-    return NextResponse.json(result.recordset[0], { status: 201 })
+    const [product] = await db
+      .insert(orgProducts)
+      .values({
+        organizationId: user.organizationId,
+        nome,
+        descricao: descricao ?? null,
+        unidade,
+        quantidadeAtual: String(quantidadeAtual ?? 0),
+        quantidadeMinima: String(quantidadeMinima ?? 0),
+        precoCusto: precoCusto != null ? String(precoCusto) : null,
+        codigoBarras: codigoBarras ?? null,
+      })
+      .returning()
+
+    return NextResponse.json(product, { status: 201 })
   } catch (error) {
-    if ((error as Error).message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const msg = (error as Error).message
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     console.error('[POST /api/inventory/products]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

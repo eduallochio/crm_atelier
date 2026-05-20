@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { getPool, sql } from '@/lib/db'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
-const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000001'
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 /**
  * POST /api/setup/master
- * Cria o usuário master do sistema.
+ * Cria o usuário master do sistema via Supabase Admin API.
  * Protegido por SETUP_SECRET definido em .env.local.
  *
  * Body: { secret: string, email: string, password: string, fullName?: string }
@@ -14,67 +18,46 @@ const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000001'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { secret, email, password, fullName = 'Administrador Master' } = body
+    const { secret, email, password, fullName = 'Master Admin' } = body
 
-    // Verificação do secret de setup
     const setupSecret = process.env.SETUP_SECRET
     if (!setupSecret) {
-      return NextResponse.json(
-        { error: 'SETUP_SECRET não configurado no servidor.' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'SETUP_SECRET não configurado no servidor.' }, { status: 500 })
     }
     if (secret !== setupSecret) {
       return NextResponse.json({ error: 'Secret inválido.' }, { status: 403 })
     }
-
     if (!email || !password) {
-      return NextResponse.json(
-        { error: 'email e password são obrigatórios.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'email e password são obrigatórios.' }, { status: 400 })
     }
 
-    const pool = await getPool()
+    const adminSupabase = getAdminClient()
 
-    // Garante que a coluna is_master existe (idempotente)
-    await pool.request().query(`
-      IF NOT EXISTS (
-        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'is_master'
-      )
-      BEGIN
-        ALTER TABLE users ADD is_master BIT NOT NULL DEFAULT 0;
-      END
-    `)
+    // Check if user already exists by listing users and finding by email
+    const { data: listData, error: listError } = await adminSupabase.auth.admin.listUsers()
+    if (listError) {
+      console.error('[POST /api/setup/master] listUsers error', listError)
+      return NextResponse.json({ error: listError.message }, { status: 500 })
+    }
 
-    // Garante que a organização master existe (idempotente)
-    await pool.request()
-      .input('orgId', sql.UniqueIdentifier, SYSTEM_ORG_ID)
-      .query(`
-        IF NOT EXISTS (SELECT 1 FROM organizations WHERE id = @orgId)
-        BEGIN
-          INSERT INTO organizations (id, name, slug, [plan], subscription_status)
-          VALUES (@orgId, 'Sistema Master', 'system-master', 'pro', 'active');
-        END
-      `)
+    const existingUser = listData.users.find(u => u.email === email)
 
-    // Verifica se já existe um usuário master
-    const existing = await pool.request()
-      .input('email', sql.NVarChar, email)
-      .query(`SELECT id FROM users WHERE email = @email`)
+    if (existingUser) {
+      // Promote existing user to master
+      const { error: updateError } = await adminSupabase.auth.admin.updateUserById(existingUser.id, {
+        password,
+        app_metadata: { is_master: true },
+      })
+      if (updateError) {
+        console.error('[POST /api/setup/master] updateUserById error', updateError)
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
 
-    if (existing.recordset.length > 0) {
-      // Promove o usuário existente a master e atualiza a senha
-      const passwordHash = await bcrypt.hash(password, 12)
-      await pool.request()
-        .input('email', sql.NVarChar, email)
-        .input('passwordHash', sql.NVarChar, passwordHash)
-        .query(`
-          UPDATE users
-          SET is_master = 1, [role] = 'owner', is_owner = 1, password_hash = @passwordHash
-          WHERE email = @email
-        `)
+      // Update profiles table if it exists
+      await adminSupabase
+        .from('profiles')
+        .update({ is_master: true, role: 'owner' })
+        .eq('id', existingUser.id)
 
       return NextResponse.json({
         ok: true,
@@ -83,27 +66,47 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Cria novo usuário master
-    const passwordHash = await bcrypt.hash(password, 12)
+    // Create new master user
+    const { data, error: createError } = await adminSupabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    })
 
-    await pool.request()
-      .input('orgId', sql.UniqueIdentifier, SYSTEM_ORG_ID)
-      .input('email', sql.NVarChar, email)
-      .input('passwordHash', sql.NVarChar, passwordHash)
-      .input('fullName', sql.NVarChar, fullName)
-      .query(`
-        INSERT INTO users (id, organization_id, email, password_hash, full_name, [role], is_owner, is_master)
-        VALUES (NEWID(), @orgId, @email, @passwordHash, @fullName, 'owner', 1, 1)
-      `)
+    if (createError || !data.user) {
+      console.error('[POST /api/setup/master] createUser error', createError)
+      return NextResponse.json({ error: createError?.message ?? 'Falha ao criar usuário' }, { status: 500 })
+    }
+
+    // Set master flag in app_metadata
+    const { error: metaError } = await adminSupabase.auth.admin.updateUserById(data.user.id, {
+      app_metadata: { is_master: true },
+    })
+    if (metaError) {
+      console.error('[POST /api/setup/master] updateUserById metadata error', metaError)
+      return NextResponse.json({ error: metaError.message }, { status: 500 })
+    }
+
+    // Insert into profiles with isMaster=true (best-effort — trigger may have already created it)
+    await adminSupabase
+      .from('profiles')
+      .upsert({
+        id: data.user.id,
+        email,
+        full_name: fullName,
+        role: 'owner',
+        is_master: true,
+      }, { onConflict: 'id' })
 
     return NextResponse.json({
       ok: true,
       message: `Usuário master ${email} criado com sucesso.`,
       action: 'created',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[POST /api/setup/master]', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
   }
 }
 
@@ -114,26 +117,22 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const pool = await getPool()
+    const adminSupabase = getAdminClient()
 
-    // Verifica se a coluna existe antes de consultar
-    const colExists = await pool.request().query(`
-      SELECT 1 AS col_exists FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'is_master'
-    `)
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select('id')
+      .eq('is_master', true)
+      .limit(1)
 
-    if (colExists.recordset.length === 0) {
-      return NextResponse.json({ hasMaster: false, reason: 'Coluna is_master não existe ainda.' })
+    if (error) {
+      // profiles table may not have is_master column yet
+      return NextResponse.json({ hasMaster: false, reason: error.message })
     }
 
-    const result = await pool.request().query(`
-      SELECT COUNT(*) AS master_count FROM users WHERE is_master = 1
-    `)
-
-    const count = Number(result.recordset[0].master_count)
-    return NextResponse.json({ hasMaster: count > 0, count })
-  } catch (error: any) {
+    return NextResponse.json({ hasMaster: (data?.length ?? 0) > 0, count: data?.length ?? 0 })
+  } catch (error: unknown) {
     console.error('[GET /api/setup/master]', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
   }
 }

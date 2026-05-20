@@ -173,9 +173,9 @@ export default function AjudaPage() {
                 <p className="text-xs font-semibold text-green-700 mb-1">Plano Free</p>
                 <p className="text-[12px] text-green-600">50 clientes · 20 serviços · 100 ordens por mês</p>
               </div>
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                <p className="text-xs font-semibold text-indigo-700 mb-1">Plano Enterprise</p>
-                <p className="text-[12px] text-indigo-600">Clientes, serviços e ordens ilimitados</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-700 mb-1">Plano Pro</p>
+                <p className="text-[12px] text-blue-600">200 clientes · 5 usuários · 1.000 ordens por mês</p>
               </div>
             </div>
             <Screenshot src="/manual/dashboard.png" alt="Menu lateral do sistema" label="[Captura de tela do menu lateral (sidebar) com todos os módulos visíveis]" />
