@@ -98,7 +98,7 @@ export function GlobalSearch({ clients = [], orders = [], services = [] }: Globa
         id: service.id,
         type: 'service' as const,
         title: service.nome,
-        subtitle: `R$ ${service.preco?.toFixed(2) || '0.00'}`,
+        subtitle: `R$ ${Number(service.preco ?? 0).toFixed(2)}`,
         url: `/servicos?id=${service.id}`,
       })),
   ]
