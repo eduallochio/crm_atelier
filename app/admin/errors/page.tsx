@@ -89,6 +89,19 @@ export default function AdminErrorsPage() {
     onError: () => toast.error('Erro ao remover'),
   })
 
+  const clearResolved = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/admin/errors', { method: 'DELETE' })
+      if (!res.ok) throw new Error('Falha')
+      return res.json()
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['admin-errors'] })
+      toast.success(`${data.deleted} erro(s) removido(s)`)
+    },
+    onError: () => toast.error('Erro ao limpar'),
+  })
+
   const toggleExpand = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev)
@@ -112,10 +125,24 @@ export default function AdminErrorsPage() {
             Erros capturados automaticamente do frontend
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          {errors.some(e => e.resolved) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900"
+              onClick={() => clearResolved.mutate()}
+              disabled={clearResolved.isPending}
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpar resolvidos
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

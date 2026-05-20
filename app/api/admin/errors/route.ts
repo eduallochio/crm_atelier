@@ -59,3 +59,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+
+// DELETE — apaga todos os erros resolvidos
+export async function DELETE() {
+  try {
+    await requireMaster()
+    const result = await db
+      .delete(adminErrorLogs)
+      .where(eq(adminErrorLogs.resolved, true))
+      .returning({ id: adminErrorLogs.id })
+    return NextResponse.json({ deleted: result.length })
+  } catch (error) {
+    if ((error as Error).message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    if ((error as Error).message === 'FORBIDDEN')    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+    console.error('[DELETE /api/admin/errors]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
