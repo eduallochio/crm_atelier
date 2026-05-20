@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { adminSystemSettings } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS: Record<string, string> = {
   site_name:            'Meu Atelier',
@@ -49,7 +50,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/system-settings]', error)
+    logServerError('[GET /api/admin/system-settings]', error); console.error('[GET /api/admin/system-settings]', error)
     return NextResponse.json({
       site_name: DEFAULTS.site_name,
       support_email: DEFAULTS.support_email,
@@ -109,7 +110,7 @@ export async function PUT(request: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[PUT /api/admin/system-settings]', error)
+    logServerError('[PUT /api/admin/system-settings]', error); console.error('[PUT /api/admin/system-settings]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

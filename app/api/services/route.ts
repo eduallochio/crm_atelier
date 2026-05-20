@@ -4,6 +4,7 @@ import { orgServices, organizations } from '@/lib/db/schema'
 import { eq, and, count } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 import { getPlanLimits, limitExceededResponse } from '@/lib/plan-limits'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -25,7 +26,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/services]', error)
+    logServerError('[GET /api/services]', error); console.error('[GET /api/services]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/services]', error)
+    logServerError('[POST /api/services]', error); console.error('[POST /api/services]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

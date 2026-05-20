@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import {
+import { logServerError } from '@/lib/log-error'
   orgServiceOrders,
   orgServiceOrderItems,
   orgClients,
@@ -95,7 +96,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/orders]', error)
+    logServerError('[GET /api/orders]', error); console.error('[GET /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -232,7 +233,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/orders]', error)
+    logServerError('[POST /api/orders]', error); console.error('[POST /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

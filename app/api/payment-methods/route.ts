@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgPaymentMethods } from '@/lib/db/schema'
 import { asc, eq, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = [
   { nome: 'Dinheiro',          tipo: 'dinheiro',       sortOrder: 1 },
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/payment-methods]', error)
+    logServerError('[GET /api/payment-methods]', error); console.error('[GET /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/payment-methods]', error)
+    logServerError('[POST /api/payment-methods]', error); console.error('[POST /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { adminLogs } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 // admin_notes table does not exist in the Drizzle schema.
 // Notes are stored as admin_logs entries with action = 'NOTE' and resource_type = 'org_note'.
@@ -89,7 +90,7 @@ export async function POST(
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/admin/organizations/:id/notes]', error)
+    logServerError('[POST /api/admin/organizations/:id/notes]', error); console.error('[POST /api/admin/organizations/:id/notes]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

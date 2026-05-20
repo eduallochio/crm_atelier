@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { organizations, usageMetrics, orgServices, adminSystemSettings } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
   max_clients_free: 50,
@@ -84,7 +85,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/plan-usage]', error)
+    logServerError('[GET /api/plan-usage]', error); console.error('[GET /api/plan-usage]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

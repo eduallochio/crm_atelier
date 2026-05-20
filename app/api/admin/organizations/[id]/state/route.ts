@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
+import { logServerError } from '@/lib/log-error'
 
 const ACTION_MAP: Record<string, { status: string; action: string; label: string }> = {
   suspend:    { status: 'suspended', action: 'SUSPEND',    label: 'Suspensa' },
@@ -62,7 +63,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[PUT /api/admin/organizations/[id]/state]', error)
+    logServerError('[PUT /api/admin/organizations/[id]/state]', error); console.error('[PUT /api/admin/organizations/[id]/state]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

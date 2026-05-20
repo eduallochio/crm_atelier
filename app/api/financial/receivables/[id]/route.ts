@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgReceivables, orgTransactions, orgServiceOrders } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const toDateStr = (v: unknown): string | null => {
   if (!v) return null
@@ -102,7 +103,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/financial/receivables/:id]', error)
+    logServerError('[PUT /api/financial/receivables/:id]', error); console.error('[PUT /api/financial/receivables/:id]', error)
     return NextResponse.json({ error: 'Erro interno', details: (error as Error).message }, { status: 500 })
   }
 }
@@ -167,7 +168,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/financial/receivables/:id]', error)
+    logServerError('[DELETE /api/financial/receivables/:id]', error); console.error('[DELETE /api/financial/receivables/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { plans } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 function handleAuthError(error: unknown) {
   const msg = (error as Error).message
@@ -47,7 +48,7 @@ export async function PUT(
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    return handleAuthError(error) ?? (console.error('[admin/plans/[id]] PUT:', error),
+    return handleAuthError(error) ?? (logServerError('[admin/plans/[id]] PUT:', error); console.error('[admin/plans/[id]] PUT:', error),
       NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
   }
 }
@@ -64,7 +65,7 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    return handleAuthError(error) ?? (console.error('[admin/plans/[id]] DELETE:', error),
+    return handleAuthError(error) ?? (logServerError('[admin/plans/[id]] DELETE:', error); console.error('[admin/plans/[id]] DELETE:', error),
       NextResponse.json({ error: 'Erro interno' }, { status: 500 }))
   }
 }

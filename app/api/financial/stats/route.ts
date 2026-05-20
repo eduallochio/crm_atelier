@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgReceivables, orgPayables, orgTransactions, orgFinancialCategories } from '@/lib/db/schema'
 import { eq, and, gte, lte, lt, isNull, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 function getPeriodDates(period: string) {
   const now = new Date()
@@ -253,7 +254,7 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/financial/stats]', error)
+    logServerError('[GET /api/financial/stats]', error); console.error('[GET /api/financial/stats]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

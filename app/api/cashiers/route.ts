@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashiers } from '@/lib/db/schema'
 import { eq, asc } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -19,7 +20,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/cashiers]', error)
+    logServerError('[GET /api/cashiers]', error); console.error('[GET /api/cashiers]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/cashiers]', error)
+    logServerError('[POST /api/cashiers]', error); console.error('[POST /api/cashiers]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

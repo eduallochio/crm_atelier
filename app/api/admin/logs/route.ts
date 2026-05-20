@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { adminLogs } from '@/lib/db/schema'
 import { eq, gte, ilike, or, desc, asc, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/logs]', error)
+    logServerError('[GET /api/admin/logs]', error); console.error('[GET /api/admin/logs]', error)
     return NextResponse.json({ logs: [], availableActions: [] })
   }
 }

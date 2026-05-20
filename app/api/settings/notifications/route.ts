@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgNotificationSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
   notifyClientBirthday:      true,
@@ -42,7 +43,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/settings/notifications]', error)
+    logServerError('[GET /api/settings/notifications]', error); console.error('[GET /api/settings/notifications]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -99,7 +100,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/settings/notifications]', error)
+    logServerError('[PUT /api/settings/notifications]', error); console.error('[PUT /api/settings/notifications]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

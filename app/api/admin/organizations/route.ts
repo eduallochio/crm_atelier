@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, orgClients, plans } from '@/lib/db/schema'
 import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -43,7 +44,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/admin/organizations]', error)
+    logServerError('[GET /api/admin/organizations]', error); console.error('[GET /api/admin/organizations]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

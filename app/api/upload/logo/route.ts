@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 // Usa service role para bypass de RLS no Storage
 function getStorageClient() {
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       })
 
     if (error) {
-      console.error('[upload/logo] Storage error:', error)
+      logServerError('[upload/logo] Storage error:', error); console.error('[upload/logo] Storage error:', error)
       return NextResponse.json({ error: 'Erro ao salvar arquivo' }, { status: 500 })
     }
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/upload/logo]', error)
+    logServerError('[POST /api/upload/logo]', error); console.error('[POST /api/upload/logo]', error)
     return NextResponse.json({ error: 'Erro ao fazer upload' }, { status: 500 })
   }
 }

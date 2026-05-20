@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -44,7 +45,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/users/[id]]', error)
+    logServerError('[PUT /api/users/[id]]', error); console.error('[PUT /api/users/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -87,7 +88,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/users/[id]]', error)
+    logServerError('[DELETE /api/users/[id]]', error); console.error('[DELETE /api/users/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { organizations, profiles, adminSystemSettings } from '@/lib/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
   max_users_free: 1,
@@ -74,7 +75,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/users]', error)
+    logServerError('[GET /api/users]', error); console.error('[GET /api/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -163,7 +164,7 @@ export async function POST(req: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/users]', error)
+    logServerError('[POST /api/users]', error); console.error('[POST /api/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgProducts, organizations } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 async function checkPlanAndProduct(organizationId: string, productId: string) {
   const [org] = await db
@@ -31,7 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
-    console.error('[GET /api/inventory/products/[id]]', error)
+    logServerError('[GET /api/inventory/products/[id]]', error); console.error('[GET /api/inventory/products/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -66,7 +67,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
-    console.error('[PUT /api/inventory/products/[id]]', error)
+    logServerError('[PUT /api/inventory/products/[id]]', error); console.error('[PUT /api/inventory/products/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -88,7 +89,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
-    console.error('[DELETE /api/inventory/products/[id]]', error)
+    logServerError('[DELETE /api/inventory/products/[id]]', error); console.error('[DELETE /api/inventory/products/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

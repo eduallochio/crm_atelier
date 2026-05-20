@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -30,7 +31,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/settings/organization]', error)
+    logServerError('[GET /api/settings/organization]', error); console.error('[GET /api/settings/organization]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -74,7 +75,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/settings/organization]', error)
+    logServerError('[PUT /api/settings/organization]', error); console.error('[PUT /api/settings/organization]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

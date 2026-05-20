@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { pageEvents } from '@/lib/db/schema'
 import { gte, sql as drizzleSql, count, isNotNull, ne } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -116,7 +117,7 @@ export async function GET() {
     ) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/events]', error)
+    logServerError('[GET /api/admin/events]', error); console.error('[GET /api/admin/events]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

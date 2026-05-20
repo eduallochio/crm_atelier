@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import {
+import { logServerError } from '@/lib/log-error'
   organizations,
   orgClients,
   orgServiceOrders,
@@ -300,7 +301,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/dashboard/stats]', error)
+    logServerError('[GET /api/dashboard/stats]', error); console.error('[GET /api/dashboard/stats]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

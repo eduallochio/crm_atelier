@@ -5,6 +5,7 @@ import { profiles, organizations } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -46,7 +47,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/users]', error)
+    logServerError('[GET /api/admin/users]', error); console.error('[GET /api/admin/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[POST /api/admin/users]', error)
+    logServerError('[POST /api/admin/users]', error); console.error('[POST /api/admin/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -204,7 +205,7 @@ export async function DELETE(request: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[DELETE /api/admin/users]', error)
+    logServerError('[DELETE /api/admin/users]', error); console.error('[DELETE /api/admin/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

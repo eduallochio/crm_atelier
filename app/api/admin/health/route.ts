@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { organizations, profiles, adminLogs } from '@/lib/db/schema'
 import { desc, count, sql as drizzleSql } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 // Limites do plano Free do Supabase
 const SUPABASE_FREE_LIMITS = {
@@ -172,7 +173,7 @@ export async function GET() {
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/health]', error)
+    logServerError('[GET /api/admin/health]', error); console.error('[GET /api/admin/health]', error)
     return NextResponse.json({ status: 'error', error: msg, checked_at: new Date().toISOString() }, { status: 500 })
   }
 }

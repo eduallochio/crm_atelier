@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { orgServiceOrderMaterials, orgServiceOrders } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
+import { logServerError } from '@/lib/log-error'
 
 /** GET /api/orders/[id]/materials → list materials for the order */
 export async function GET(
@@ -33,7 +34,7 @@ export async function GET(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED')
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    console.error('[GET /api/orders/[id]/materials]', error)
+    logServerError('[GET /api/orders/[id]/materials]', error); console.error('[GET /api/orders/[id]/materials]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -94,7 +95,7 @@ export async function PUT(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED')
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    console.error('[PUT /api/orders/[id]/materials]', error)
+    logServerError('[PUT /api/orders/[id]/materials]', error); console.error('[PUT /api/orders/[id]/materials]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

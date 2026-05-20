@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashierMovements } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET(
   _request: Request,
@@ -28,7 +29,7 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/cashiers/sessions/:id/movements]', error)
+    logServerError('[GET /api/cashiers/sessions/:id/movements]', error); console.error('[GET /api/cashiers/sessions/:id/movements]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -59,7 +60,7 @@ export async function POST(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/cashiers/sessions/:id/movements]', error)
+    logServerError('[POST /api/cashiers/sessions/:id/movements]', error); console.error('[POST /api/cashiers/sessions/:id/movements]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

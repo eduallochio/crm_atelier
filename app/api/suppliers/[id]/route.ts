@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgSuppliers } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function PUT(
   request: Request,
@@ -43,7 +44,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/suppliers/:id]', error)
+    logServerError('[PUT /api/suppliers/:id]', error); console.error('[PUT /api/suppliers/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -77,7 +78,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/suppliers/:id]', error)
+    logServerError('[DELETE /api/suppliers/:id]', error); console.error('[DELETE /api/suppliers/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

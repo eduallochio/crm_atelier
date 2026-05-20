@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { pageEvents } from '@/lib/db/schema'
+import { logServerError } from '@/lib/log-error'
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     // Nunca retorna erro para não quebrar o frontend
-    console.error('[POST /api/events]', error)
+    logServerError('[POST /api/events]', error); console.error('[POST /api/events]', error)
   }
 
   return NextResponse.json({ ok: true })

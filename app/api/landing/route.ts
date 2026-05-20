@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { adminSystemSettings } from '@/lib/db/schema'
 import { inArray } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const KEYS = [
   'hero_title', 'hero_subtitle', 'hero_cta_primary', 'hero_cta_secondary',
@@ -29,7 +30,7 @@ export async function GET() {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     })
   } catch (error) {
-    console.error('[GET /api/landing]', error)
+    logServerError('[GET /api/landing]', error); console.error('[GET /api/landing]', error)
     return NextResponse.json({}, { status: 200 }) // retorna vazio em vez de erro (usa defaults)
   }
 }

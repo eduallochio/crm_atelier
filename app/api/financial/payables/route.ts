@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgPayables, orgSuppliers } from '@/lib/db/schema'
 import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -43,7 +44,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/financial/payables]', error)
+    logServerError('[GET /api/financial/payables]', error); console.error('[GET /api/financial/payables]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[POST /api/financial/payables]', error)
+    logServerError('[POST /api/financial/payables]', error); console.error('[POST /api/financial/payables]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

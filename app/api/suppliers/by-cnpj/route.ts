@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgSuppliers } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 /** GET /api/suppliers/by-cnpj?cnpj=12345678000190 → supplier or null */
 export async function GET(request: Request) {
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/suppliers/by-cnpj]', error)
+    logServerError('[GET /api/suppliers/by-cnpj]', error); console.error('[GET /api/suppliers/by-cnpj]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

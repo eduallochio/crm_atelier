@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgFinancialSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
   payment_methods: { dinheiro: true, pix: true, credito: true, debito: true, outros: true },
@@ -42,7 +43,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/settings/financial]', error)
+    logServerError('[GET /api/settings/financial]', error); console.error('[GET /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -97,7 +98,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/settings/financial]', error)
+    logServerError('[PUT /api/settings/financial]', error); console.error('[PUT /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

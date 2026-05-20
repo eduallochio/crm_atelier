@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgOrderSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
   orderPrefix:          'OS',
@@ -40,7 +41,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/settings/orders]', error)
+    logServerError('[GET /api/settings/orders]', error); console.error('[GET /api/settings/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -93,7 +94,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/settings/orders]', error)
+    logServerError('[PUT /api/settings/orders]', error); console.error('[PUT /api/settings/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

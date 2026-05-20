@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { profiles, organizations } from '@/lib/db/schema'
 import { eq, desc, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -58,7 +59,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/all-users]', error)
+    logServerError('[GET /api/admin/all-users]', error); console.error('[GET /api/admin/all-users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -107,7 +108,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[PUT /api/admin/all-users]', error)
+    logServerError('[PUT /api/admin/all-users]', error); console.error('[PUT /api/admin/all-users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

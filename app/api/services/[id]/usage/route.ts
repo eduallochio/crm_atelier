@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { orgServiceOrderItems, orgServiceOrders, orgClients } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET(
   _request: Request,
@@ -66,7 +67,7 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/services/:id/usage]', error)
+    logServerError('[GET /api/services/:id/usage]', error); console.error('[GET /api/services/:id/usage]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

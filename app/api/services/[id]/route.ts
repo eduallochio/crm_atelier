@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { orgServices } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
+import { logServerError } from '@/lib/log-error'
 
 export async function PUT(
   request: Request,
@@ -54,7 +55,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/services/:id]', error)
+    logServerError('[PUT /api/services/:id]', error); console.error('[PUT /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -84,7 +85,7 @@ export async function PATCH(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PATCH /api/services/:id]', error)
+    logServerError('[PATCH /api/services/:id]', error); console.error('[PATCH /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -111,7 +112,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/services/:id]', error)
+    logServerError('[DELETE /api/services/:id]', error); console.error('[DELETE /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

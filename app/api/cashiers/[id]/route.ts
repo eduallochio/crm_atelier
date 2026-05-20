@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashiers } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function PUT(
   request: Request,
@@ -33,7 +34,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/cashiers/:id]', error)
+    logServerError('[PUT /api/cashiers/:id]', error); console.error('[PUT /api/cashiers/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -60,7 +61,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/cashiers/:id]', error)
+    logServerError('[DELETE /api/cashiers/:id]', error); console.error('[DELETE /api/cashiers/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

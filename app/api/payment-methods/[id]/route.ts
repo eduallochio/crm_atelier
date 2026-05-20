@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgPaymentMethods } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 function mapRow(row: typeof orgPaymentMethods.$inferSelect) {
   return {
@@ -50,7 +51,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/payment-methods/:id]', error)
+    logServerError('[PUT /api/payment-methods/:id]', error); console.error('[PUT /api/payment-methods/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -77,7 +78,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[DELETE /api/payment-methods/:id]', error)
+    logServerError('[DELETE /api/payment-methods/:id]', error); console.error('[DELETE /api/payment-methods/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

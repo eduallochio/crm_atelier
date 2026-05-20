@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { coupons, couponUsages } from '@/lib/db/schema'
 import { eq, and, ne } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -64,7 +65,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[PUT /api/admin/coupons/[id]]', error)
+    logServerError('[PUT /api/admin/coupons/[id]]', error); console.error('[PUT /api/admin/coupons/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -92,7 +93,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[DELETE /api/admin/coupons/[id]]', error)
+    logServerError('[DELETE /api/admin/coupons/[id]]', error); console.error('[DELETE /api/admin/coupons/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

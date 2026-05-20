@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createClient } from '@/lib/supabase/server'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -44,7 +45,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[GET /api/profile]', error)
+    logServerError('[GET /api/profile]', error); console.error('[GET /api/profile]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -94,7 +95,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    console.error('[PUT /api/profile]', error)
+    logServerError('[PUT /api/profile]', error); console.error('[PUT /api/profile]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

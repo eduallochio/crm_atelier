@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, orgProducts, organizations } from '@/lib/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 async function checkPlan(organizationId: string) {
   const [org] = await db
@@ -41,7 +42,7 @@ export async function GET() {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    console.error('[GET /api/inventory/exits]', error)
+    logServerError('[GET /api/inventory/exits]', error); console.error('[GET /api/inventory/exits]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     if (msg.includes('Estoque insuficiente')) return NextResponse.json({ error: msg }, { status: 422 })
-    console.error('[POST /api/inventory/exits]', error)
+    logServerError('[POST /api/inventory/exits]', error); console.error('[POST /api/inventory/exits]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

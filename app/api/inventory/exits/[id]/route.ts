@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, organizations } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -31,7 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    console.error('[GET /api/inventory/exits/[id]]', error)
+    logServerError('[GET /api/inventory/exits/[id]]', error); console.error('[GET /api/inventory/exits/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -53,7 +54,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    console.error('[DELETE /api/inventory/exits/[id]]', error)
+    logServerError('[DELETE /api/inventory/exits/[id]]', error); console.error('[DELETE /api/inventory/exits/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { logServerError } from '@/lib/log-error'
 
 function getAdminClient() {
   return createServiceClient(
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       action: 'created',
     })
   } catch (error: unknown) {
-    console.error('[POST /api/setup/master]', error)
+    logServerError('[POST /api/setup/master]', error); console.error('[POST /api/setup/master]', error)
     return NextResponse.json({ error: (error as Error).message }, { status: 500 })
   }
 }
@@ -132,7 +133,7 @@ export async function GET() {
 
     return NextResponse.json({ hasMaster: (data?.length ?? 0) > 0, count: data?.length ?? 0 })
   } catch (error: unknown) {
-    console.error('[GET /api/setup/master]', error)
+    logServerError('[GET /api/setup/master]', error); console.error('[GET /api/setup/master]', error)
     return NextResponse.json({ error: (error as Error).message }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgProducts, organizations } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 async function checkPlan(organizationId: string) {
   const [org] = await db
@@ -28,7 +29,7 @@ export async function GET() {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    console.error('[GET /api/inventory/products]', error)
+    logServerError('[GET /api/inventory/products]', error); console.error('[GET /api/inventory/products]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    console.error('[POST /api/inventory/products]', error)
+    logServerError('[POST /api/inventory/products]', error); console.error('[POST /api/inventory/products]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

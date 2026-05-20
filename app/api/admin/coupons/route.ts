@@ -3,6 +3,7 @@ import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { coupons } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
@@ -33,7 +34,7 @@ export async function GET() {
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[GET /api/admin/coupons]', error)
+    logServerError('[GET /api/admin/coupons]', error); console.error('[GET /api/admin/coupons]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     if (msg === 'UNAUTHORIZED' || msg === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    console.error('[POST /api/admin/coupons]', error)
+    logServerError('[POST /api/admin/coupons]', error); console.error('[POST /api/admin/coupons]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
