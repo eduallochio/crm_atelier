@@ -23,11 +23,24 @@ export function ThemeToggle() {
 
   const currentTheme = preferences?.theme || 'auto'
 
+  const applyTheme = (theme: 'light' | 'dark' | 'auto') => {
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+    if (theme === 'auto') {
+      root.classList.add(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    } else {
+      root.classList.add(theme)
+    }
+  }
+
   const handleThemeChange = async (theme: 'light' | 'dark' | 'auto') => {
     if (!preferences?.organization_id) {
       toast.error('Erro ao alterar tema')
       return
     }
+
+    // Aplica imediatamente no DOM sem esperar o banco
+    applyTheme(theme)
 
     try {
       await updatePreferences.mutateAsync({

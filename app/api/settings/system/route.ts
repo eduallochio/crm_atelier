@@ -30,11 +30,26 @@ export async function GET() {
         id: '',
         organization_id: user.organizationId,
         ...DEFAULTS,
+        controla_estoque: false,
         updated_at: new Date().toISOString(),
       })
     }
 
-    return NextResponse.json(result[0])
+    const r = result[0]
+    return NextResponse.json({
+      id:               r.id,
+      organization_id:  r.organizationId,
+      date_format:      r.dateFormat,
+      time_format:      r.timeFormat,
+      currency:         r.currency,
+      timezone:         r.timezone,
+      language:         r.language,
+      theme:            r.theme,
+      compact_mode:     r.compactMode,
+      show_tooltips:    r.showTooltips,
+      controla_estoque: r.controlaEstoque,
+      updated_at:       r.updatedAt,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -85,7 +100,21 @@ export async function PUT(request: Request) {
       .where(eq(orgSystemPreferences.organizationId, user.organizationId))
       .limit(1)
 
-    return NextResponse.json(result[0])
+    const r = result[0]
+    return NextResponse.json({
+      id:               r.id,
+      organization_id:  r.organizationId,
+      date_format:      r.dateFormat,
+      time_format:      r.timeFormat,
+      currency:         r.currency,
+      timezone:         r.timezone,
+      language:         r.language,
+      theme:            r.theme,
+      compact_mode:     r.compactMode,
+      show_tooltips:    r.showTooltips,
+      controla_estoque: r.controlaEstoque,
+      updated_at:       r.updatedAt,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
