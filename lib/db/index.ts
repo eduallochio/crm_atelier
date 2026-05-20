@@ -20,7 +20,10 @@ declare global {
 
 function createQueryClient() {
   return postgres(process.env.DATABASE_URL!, {
-    prepare: false, // obrigatório para Supabase pgBouncer (transaction mode)
+    prepare: false,   // obrigatório para pgBouncer transaction mode (porta 6543)
+    max: 1,           // serverless: uma conexão por instância
+    connect_timeout: 10,
+    idle_timeout: 20,
   })
 }
 

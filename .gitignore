@@ -10,6 +10,9 @@ aux
 .env.vercel
 .env.production
 
+# Arquivos de design Pencil
+pencil/
+
 # dependencies
 /node_modules
 /.pnp
