@@ -171,7 +171,7 @@ export default function AjudaPage() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-green-700 mb-1">Plano Free</p>
-                <p className="text-[12px] text-green-600">50 clientes · 20 serviços · 100 ordens por mês</p>
+                <p className="text-[12px] text-green-600">50 clientes · 2 usuários · 100 ordens por mês</p>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-700 mb-1">Plano Pro</p>
@@ -378,10 +378,18 @@ export default function AjudaPage() {
             </div>
             <Screenshot src="/manual/financeiro-caixa.png" alt="Caixa com sessão aberta" label="[Captura de tela do Caixa com sessão aberta e movimentações]" />
 
-            <h3 className="font-semibold text-[14px] text-gray-700 mt-4 mb-2">Contas a Receber — geração automática</h3>
-            <p className="text-[13px] text-gray-600 leading-relaxed mb-3">
-              Quando uma OS é marcada como <strong>Concluída</strong>, uma conta a receber é criada automaticamente com o valor total da OS, vinculada ao cliente e com a forma de pagamento registrada. Você não precisa lançar manualmente.
+            <h3 className="font-semibold text-[14px] text-gray-700 mt-4 mb-2">Contas a Receber — fluxo de conclusão da OS</h3>
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-2">
+              Ao concluir uma OS com saldo em aberto, o sistema exibe um dialog perguntando se o cliente já pagou:
             </p>
+            <div className="space-y-2 mb-3">
+              <Step n={1} text="Selecione a forma de pagamento (Pix, Dinheiro, Cartão etc.) no seletor exibido." />
+              <Step n={2} text="'Sim — Lançar no caixa': marca a OS como paga e registra a entrada diretamente no caixa aberto." />
+              <Step n={3} text="'Não — Gerar conta a receber': cria uma conta a receber com vencimento em 7 dias para cobrar depois." />
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-[12px] text-blue-700 mb-3">
+              <strong>Dica:</strong> Se não há caixa aberto ao escolher "Lançar no caixa", a OS é marcada como paga mas o valor não é registrado no caixa — abra o caixa antes de concluir OS pagas na hora.
+            </div>
 
             <h3 className="font-semibold text-[14px] text-gray-700 mt-4 mb-2">Cards de Resumo clicáveis (Pagar e Receber)</h3>
             <p className="text-[13px] text-gray-600 leading-relaxed mb-2">
@@ -551,7 +559,7 @@ export default function AjudaPage() {
               </div>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[12px] text-amber-700 mb-4">
-              <strong>Plano Free:</strong> Permite apenas 1 usuário (o proprietário). Faça upgrade para adicionar membros à equipe.
+              <strong>Plano Free:</strong> Permite até 2 usuários. Faça upgrade para o plano Pro para adicionar até 5 membros à equipe.
             </div>
             <Screenshot src="/manual/configuracoes-usuarios.png" alt="Aba Usuários nas Configurações" label="[Captura de tela da aba Usuários nas Configurações com lista de membros e formulário]" />
 
@@ -589,7 +597,7 @@ export default function AjudaPage() {
                 },
                 {
                   q: 'Posso ter mais de um usuário no sistema?',
-                  a: 'Sim. Acesse Configurações → aba "Usuários" e clique em "Novo Usuário". Informe nome, e-mail, senha e cargo (Admin ou Membro). O novo usuário pode fazer login imediatamente. No plano Free o limite é 1 usuário.',
+                  a: 'Sim. Acesse Configurações → aba "Usuários" e clique em "Novo Usuário". Informe nome, e-mail, senha e cargo (Admin ou Membro). O novo usuário pode fazer login imediatamente. No plano Free o limite é 2 usuários; no Pro até 5.',
                 },
                 {
                   q: 'Como definir uma meta mensal de receita?',
