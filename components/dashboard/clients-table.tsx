@@ -203,11 +203,13 @@ export function ClientsTable({ clients, onEdit, onViewOrders }: ClientsTableProp
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {(() => {
-                    const [y, m, d] = client.data_cadastro.split('T')[0].split('-')
-                    return new Date(Number(y), Number(m) - 1, Number(d))
-                      .toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-                  })()}
+                    {client.data_cadastro
+                      ? (() => {
+                          const [y, m, d] = client.data_cadastro.split('T')[0].split('-')
+                          return new Date(Number(y), Number(m) - 1, Number(d))
+                            .toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+                        })()
+                      : '—'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <TooltipProvider>
