@@ -517,7 +517,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     {selectedServiceId
                       ? (() => {
                           const service = activeServices.find((s) => s.id === selectedServiceId)
-                          return service ? `${service.nome} - R$ ${service.preco.toFixed(2)}` : "Selecione um serviço..."
+                          return service ? `${service.nome} - R$ ${Number(service.preco).toFixed(2)}` : "Selecione um serviço..."
                         })()
                       : "Selecione um serviço..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -558,7 +558,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                               <div className="flex flex-col">
                                 <span>{service.nome}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  R$ {service.preco.toFixed(2)}
+                                  R$ {Number(service.preco).toFixed(2)}
                                   {service.categoria && ` • ${service.categoria}`}
                                 </span>
                               </div>
