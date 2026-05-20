@@ -19,6 +19,7 @@ import {
   Activity,
   UserCog,
   Tag,
+  Bug,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -29,6 +30,7 @@ const menuGroups = [
       { label: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
       { label: 'Análises', icon: TrendingUp, href: '/admin/analytics' },
       { label: 'Logs', icon: FileText, href: '/admin/logs' },
+      { label: 'Erros do Sistema', icon: Bug, href: '/admin/errors' },
       { label: 'Saúde do Sistema', icon: Activity, href: '/admin/health' },
     ],
   },

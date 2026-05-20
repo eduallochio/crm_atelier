@@ -647,7 +647,27 @@ export const orgStockExitItems = pgTable('org_stock_exit_items', {
   index('idx_stock_exit_items_product').on(t.productId),
 ])
 
-// ─── 37. PAGE EVENTS ──────────────────────────────────────────────────────────
+// ─── 37. ADMIN ERROR LOGS ─────────────────────────────────────────────────────
+
+export const adminErrorLogs = pgTable('admin_error_logs', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  userId:         uuid('user_id'),
+  message:        text('message').notNull(),
+  stack:          text('stack'),
+  componentStack: text('component_stack'),
+  errorType:      text('error_type').notNull().default('runtime'),
+  severity:       text('severity').notNull().default('error'),
+  url:            text('url'),
+  userAgent:      text('user_agent'),
+  extra:          jsonb('extra'),
+  resolved:       boolean('resolved').notNull().default(false),
+  resolvedAt:     timestamp('resolved_at', { withTimezone: true }),
+  resolutionNote: text('resolution_note'),
+  createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ─── 38. PAGE EVENTS ──────────────────────────────────────────────────────────
 
 export const pageEvents = pgTable('page_events', {
   id:        uuid('id').primaryKey().defaultRandom(),
@@ -675,6 +695,8 @@ export type OrgServiceOrderItem    = typeof orgServiceOrderItems.$inferSelect
 export type OrgFinancialCategory   = typeof orgFinancialCategories.$inferSelect
 export type OrgPaymentMethod       = typeof orgPaymentMethods.$inferSelect
 export type OrgSupplier            = typeof orgSuppliers.$inferSelect
+export type AdminErrorLog          = typeof adminErrorLogs.$inferSelect
+export type NewAdminErrorLog       = typeof adminErrorLogs.$inferInsert
 export type OrgReceivable          = typeof orgReceivables.$inferSelect
 export type NewOrgReceivable       = typeof orgReceivables.$inferInsert
 export type OrgPayable             = typeof orgPayables.$inferSelect

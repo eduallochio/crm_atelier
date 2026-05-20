@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState, useEffect } from 'react'
 import { useSystemPreferences } from '@/hooks/use-settings'
+import { ErrorBoundary, useGlobalErrorReporter } from '@/components/error-boundary'
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: preferences } = useSystemPreferences()
@@ -37,6 +38,11 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function GlobalErrorReporter({ children }: { children: React.ReactNode }) {
+  useGlobalErrorReporter()
+  return <>{children}</>
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -54,9 +60,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        {children}
-      </ThemeProvider>
+      <ErrorBoundary>
+        <GlobalErrorReporter>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </GlobalErrorReporter>
+      </ErrorBoundary>
       {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
