@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
+import { useActivePaymentMethods } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { generateThermalPDF } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
@@ -51,8 +52,10 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const [bulkDeletePending, setBulkDeletePending] = useState(false)
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
   const [pendingConcluir, setPendingConcluir] = useState<{ id: string; saldo: number } | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
   const deleteOrder = useDeleteServiceOrder()
   const updateOrder = useUpdateServiceOrder()
+  const { data: paymentMethods = [] } = useActivePaymentMethods()
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -152,8 +155,9 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     if (newStatus === 'concluido') {
       const order = orders.find(o => o.id === orderId)
       if (order) {
-        const saldo = (order.valor_total || 0) - (order.valor_pago || 0)
+        const saldo = Number(order.valor_total || 0) - Number(order.valor_pago || 0)
         if (saldo > 0) {
+          setSelectedPaymentMethod('')
           setPendingConcluir({ id: orderId, saldo })
           return
         }
@@ -164,10 +168,14 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
 
   const confirmConcluirPago = async () => {
     if (!pendingConcluir) return
+    if (!selectedPaymentMethod) {
+      toast.error('Selecione a forma de pagamento')
+      return
+    }
     try {
       const result = await updateOrder.mutateAsync({
         id: pendingConcluir.id,
-        input: { status: 'concluido', payment_action: 'paid' },
+        input: { status: 'concluido', payment_action: 'paid', forma_pagamento: selectedPaymentMethod },
       })
       if (result.no_cashier_session) {
         toast.warning('OS concluída como paga, mas não há caixa aberto. O valor não foi lançado no caixa.')
@@ -378,7 +386,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 <button
                   type="button"
                   title="Clique para registrar pagamento"
-                  onClick={() => setPendingConcluir({ id: order.id, saldo: (order.valor_total || 0) - (order.valor_pago || 0) })}
+                  onClick={() => { setSelectedPaymentMethod(''); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                   className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors"
                 >
                   <Banknote className="h-3 w-3" />
@@ -496,7 +504,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         <button
                           type="button"
                           title="Clique para registrar pagamento"
-                          onClick={() => setPendingConcluir({ id: order.id, saldo: (order.valor_total || 0) - (order.valor_pago || 0) })}
+                          onClick={() => { setSelectedPaymentMethod(''); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                           className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors"
                         >
                           <Banknote className="h-3 w-3" />
@@ -693,15 +701,32 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
             </p>
           </div>
 
-          <DialogDescription className="text-sm font-medium text-foreground mb-4">
+          <DialogDescription className="text-sm font-medium text-foreground mb-3">
             A OS foi paga pelo cliente?
           </DialogDescription>
+
+          {/* Forma de pagamento */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Forma de pagamento
+            </label>
+            <select
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Selecione...</option>
+              {paymentMethods.map((m) => (
+                <option key={m.id} value={m.code}>{m.name}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="flex flex-col gap-2">
             <Button
               className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white h-10"
               onClick={confirmConcluirPago}
-              disabled={updateOrder.isPending}
+              disabled={updateOrder.isPending || !selectedPaymentMethod}
             >
               <CheckCircle2 className="h-4 w-4" />
               Sim — Lançar no caixa

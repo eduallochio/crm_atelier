@@ -148,7 +148,7 @@ export async function PUT(
         : toDateStr(order.dataPrevista)
       const finalObservacoes = 'observacoes' in body ? (body.observacoes ?? null) : order.observacoes
       const finalNotasInternas = 'notas_internas' in body ? (body.notas_internas ?? null) : order.notasInternas
-      const finalFormaPagamento = 'forma_pagamento' in body ? (body.forma_pagamento ?? null) : order.formaPagamento
+      const finalFormaPagamento = 'forma_pagamento' in body ? (body.forma_pagamento ?? null) : (order.formaPagamento ?? null)
 
       const dataConclusaoValue = isBeingConcluded
         ? new Date()
@@ -179,10 +179,14 @@ export async function PUT(
 
         if (saldoRestante > 0) {
           if (paymentAction === 'paid') {
-            // Mark OS as paid
+            // Mark OS as paid, save forma_pagamento if provided
             await tx
               .update(orgServiceOrders)
-              .set({ statusPagamento: 'pago', valorPago: String(order.valorTotal) })
+              .set({
+                statusPagamento: 'pago',
+                valorPago: String(order.valorTotal),
+                ...(finalFormaPagamento ? { formaPagamento: finalFormaPagamento } : {}),
+              })
               .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
             const descricaoOS = `OS #${order.numero} - ${order.clienteNome || 'Cliente'}`
