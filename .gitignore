@@ -6,6 +6,10 @@ con
 prn
 aux
 
+# Arquivos de ambiente com credenciais
+.env.vercel
+.env.production
+
 # dependencies
 /node_modules
 /.pnp
@@ -48,7 +52,6 @@ yarn-error.log*
 next-env.d.ts
 
 docs
-supabase/
 banco
 banco-adm
 .github/
