@@ -230,7 +230,7 @@ export function Sidebar() {
                 const alert  = alerts[item.href] || 0
 
                 const sharedItemClass = cn(
-                  'w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-[14px] font-medium',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium',
                   'transition-all duration-150 group relative',
                   highlighted ? theme.itemActive : theme.itemInactive
                 )
@@ -247,7 +247,7 @@ export function Sidebar() {
                         {highlighted && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-[#c8714a]" />
                         )}
-                        <item.icon className={cn('h-[18px] w-[18px] shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
+                        <item.icon className={cn('h-5 w-5 shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
                         <span className="flex-1 text-left">{item.name}</span>
                         {alert > 0 && (
                           <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-red-500/20 text-red-400">
@@ -275,7 +275,7 @@ export function Sidebar() {
                         {isActive && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-[#c8714a]" />
                         )}
-                        <item.icon className={cn('h-[18px] w-[18px] shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
+                        <item.icon className={cn('h-5 w-5 shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
                         <span className="flex-1">{item.name}</span>
                         {alert > 0 && (
                           <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-red-500/20 text-red-400">
@@ -304,7 +304,7 @@ export function Sidebar() {
                               href={sub.href}
                               onClick={() => setIsMobileMenuOpen(false)}
                               className={cn(
-                                'flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] font-medium',
+                                'flex items-center gap-2.5 px-3 py-2 rounded-md text-[14px] font-medium',
                                 'transition-all duration-150 group relative',
                                 isSubItemActive
                                   ? 'text-[#c8714a] bg-[#c8714a]/[0.10]'
@@ -314,7 +314,7 @@ export function Sidebar() {
                               {isSubItemActive && (
                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[14px] rounded-r-full bg-[#c8714a]" />
                               )}
-                              <sub.icon className={cn('h-4 w-4 shrink-0',
+                              <sub.icon className={cn('h-[18px] w-[18px] shrink-0',
                                 isSubItemActive ? 'text-[#c8714a]' : 'text-[#666] group-hover:text-white'
                               )} />
                               <span className="flex-1">{sub.name}</span>
