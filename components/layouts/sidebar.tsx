@@ -191,15 +191,17 @@ export function Sidebar() {
     >
       {/* ── Header ── */}
       <div className={cn('flex items-center gap-3 h-[62px] px-4 shrink-0', theme.header)}>
-        {orgSettings?.logo_url ? (
-          <Image src={orgSettings.logo_url} alt="Logo" width={36} height={36}
-            className="h-9 w-9 object-contain rounded-xl shrink-0" />
-        ) : (
-          <div className="h-9 w-9 rounded-xl shrink-0 flex items-center justify-center font-bold text-sm shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #c8714a, #d4a85a)', color: '#1a0f00' }}>
-            <Scissors className="h-4 w-4" />
+        {/* Ícone fixo — logo da org sobreposta se existir */}
+        <div className="relative h-9 w-9 shrink-0">
+          <div className="h-9 w-9 rounded-xl flex items-center justify-center shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #c8714a, #d4a85a)' }}>
+            <Scissors className="h-4 w-4" style={{ color: '#1a0f00' }} />
           </div>
-        )}
+          {orgSettings?.logo_url && (
+            <Image src={orgSettings.logo_url} alt="Logo" width={36} height={36}
+              className="absolute inset-0 h-9 w-9 object-contain rounded-xl" />
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <h1 className={cn('text-[14px] font-bold truncate leading-tight', theme.orgName)}
             style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}>
