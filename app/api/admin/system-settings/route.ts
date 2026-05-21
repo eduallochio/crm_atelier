@@ -7,8 +7,8 @@ import { logAdminAction } from '@/lib/admin-log'
 import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS: Record<string, string> = {
-  site_name:            'Meu Atelier',
-  support_email:        'suporte@meuatelier.com',
+  site_name:            'Meu Atelier Sistema',
+  support_email:        'suporte@meuateliersistema.com.br',
   max_users_free:       '3',
   max_clients_free:     '50',
   max_services_free:    '20',

@@ -30,8 +30,8 @@ interface SystemSettingsData {
 }
 
 const DEFAULTS: SystemSettingsData = {
-  siteName: 'Meu Atelier',
-  supportEmail: 'suporte@meuatelier.com',
+  siteName: 'Meu Atelier Sistema',
+  supportEmail: 'suporte@meuateliersistema.com.br',
   maxUsersPerOrg: 3,
   maxClientsPerOrg: 50,
   maxServicesPerOrg: 20,

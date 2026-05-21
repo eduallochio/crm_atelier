@@ -38,14 +38,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://meuatelier.com.br'),
+  metadataBase: new URL('https://meuateliersistema.com.br'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: "Meu Atelier - Sistema de Gestão para Ateliês",
     description: "Sistema completo de gestão para ateliês: controle de clientes, ordens de serviço, financeiro e muito mais. Grátis para começar.",
-    url: 'https://meuatelier.com.br',
+    url: 'https://meuateliersistema.com.br',
     siteName: 'Meu Atelier',
     locale: 'pt_BR',
     type: 'website',

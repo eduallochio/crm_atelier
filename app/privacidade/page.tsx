@@ -80,7 +80,7 @@ export default function PrivacidadePage() {
               Para questões sobre proteção de dados, entre em contato com nosso Encarregado:
             </p>
             <div className="bg-gray-50 rounded-lg p-6 space-y-2">
-              <p><strong>Email:</strong> dpo@meuatelier.com.br</p>
+              <p><strong>Email:</strong> dpo@meuateliersistema.com.br</p>
               <p><strong>Tempo de resposta:</strong> Até 15 dias úteis</p>
             </div>
           </section>
@@ -239,8 +239,8 @@ export default function PrivacidadePage() {
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6">
               <p className="text-sm text-gray-800">
                 <strong>Como exercer seus direitos:</strong> Entre em contato com{' '}
-                <a href="mailto:dpo@meuatelier.com.br" className="text-blue-600 hover:underline">
-                  dpo@meuatelier.com.br
+                <a href="mailto:dpo@meuateliersistema.com.br" className="text-blue-600 hover:underline">
+                  dpo@meuateliersistema.com.br
                 </a>{' '}
                 ou acesse <Link href="/lgpd" className="text-blue-600 hover:underline">nossa página LGPD</Link>.
               </p>
@@ -297,9 +297,9 @@ export default function PrivacidadePage() {
           <section id="contato" className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-900">13. Contato</h2>
             <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 space-y-3">
-              <p className="text-gray-700"><strong>Email DPO:</strong> dpo@meuatelier.com.br</p>
+              <p className="text-gray-700"><strong>Email DPO:</strong> dpo@meuateliersistema.com.br</p>
               <p className="text-gray-700"><strong>Suporte:</strong> contato@omegasistem.com.br</p>
-              <p className="text-gray-700"><strong>LGPD:</strong> <Link href="/lgpd" className="text-blue-600 hover:underline">meuatelier.com.br/lgpd</Link></p>
+              <p className="text-gray-700"><strong>LGPD:</strong> <Link href="/lgpd" className="text-blue-600 hover:underline">meuateliersistema.com.br/lgpd</Link></p>
             </div>
           </section>
 
