@@ -121,10 +121,10 @@ const navigation: NavigationSection[] = [
 const theme = {
   sidebar:      'bg-[#0f0f0f] border-r border-white/[0.06]',
   header:       'border-b border-white/[0.06]',
-  sectionLabel: 'text-[#3a3a3a]',
-  itemInactive: 'text-[#888] hover:text-[#d0d0d0] hover:bg-white/[0.05]',
+  sectionLabel: 'text-[#444]',
+  itemInactive: 'text-[#aaa] hover:text-white hover:bg-white/[0.06]',
   itemActive:   'text-[#c8714a] bg-[#c8714a]/[0.12]',
-  iconInactive: 'text-[#505050] group-hover:text-[#888]',
+  iconInactive: 'text-[#666] group-hover:text-white',
   iconActive:   'text-[#c8714a]',
   subBorder:    'border-white/[0.07]',
   footerBorder: 'border-white/[0.07]',
@@ -308,14 +308,14 @@ export function Sidebar() {
                                 'transition-all duration-150 group relative',
                                 isSubItemActive
                                   ? 'text-[#c8714a] bg-[#c8714a]/[0.10]'
-                                  : 'text-[#666] hover:text-[#bbb] hover:bg-white/[0.04]'
+                                  : 'text-[#888] hover:text-white hover:bg-white/[0.05]'
                               )}
                             >
                               {isSubItemActive && (
                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[14px] rounded-r-full bg-[#c8714a]" />
                               )}
                               <sub.icon className={cn('h-3.5 w-3.5 shrink-0',
-                                isSubItemActive ? 'text-[#c8714a]' : 'text-[#444] group-hover:text-[#777]'
+                                isSubItemActive ? 'text-[#c8714a]' : 'text-[#666] group-hover:text-white'
                               )} />
                               <span className="flex-1">{sub.name}</span>
                               {subAlert > 0 && (
@@ -355,7 +355,7 @@ export function Sidebar() {
           )}
           <button
             onClick={() => window.dispatchEvent(new Event('start-tour'))}
-            className="flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[12px] font-medium text-[#444] hover:text-[#888] hover:bg-white/[0.04] transition-colors w-full text-left"
+            className="flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[12px] font-medium text-[#555] hover:text-[#aaa] hover:bg-white/[0.04] transition-colors w-full text-left"
           >
             <HelpCircle className="h-3.5 w-3.5 shrink-0" />
             Ver tour do sistema
