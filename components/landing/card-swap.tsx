@@ -446,7 +446,7 @@ export default function CardSwap({
                   <rect x="1" y="5" width="10" height="8" rx="2" stroke="#7a5830" strokeWidth="1.5"/>
                   <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke="#7a5830" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
-                meuatelier.com.br
+                meuateliersistema.com.br
               </div>
             </div>
             <div className="cs-body">
