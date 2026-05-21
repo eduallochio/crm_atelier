@@ -1,323 +1,238 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield, Lock, Eye, Download, Trash2, FileText } from 'lucide-react'
 
 export const metadata = {
-  title: 'Política de Privacidade - Meu Atelier',
-  description: 'Política de Privacidade e Proteção de Dados do Meu Atelier conforme LGPD',
+  title: 'Política de Privacidade - Meu Atelier Sistema',
+  description: 'Política de Privacidade e Proteção de Dados do Meu Atelier Sistema conforme LGPD',
+}
+
+const terra  = '#c8714a'
+const dourado = '#d4a85a'
+
+function Section({ id, icon: Icon, title, children }: { id?: string; icon?: React.ElementType; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 32, marginTop: 32 }}>
+      <h2 style={{ color: '#f0e6d0', fontSize: 20, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {Icon && <Icon size={18} style={{ color: terra, flexShrink: 0 }} />}
+        {title}
+      </h2>
+      <div style={{ color: '#aaa', fontSize: 14, lineHeight: 1.8 }}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function InfoBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '16px 20px', marginTop: 12, color: '#ccc', fontSize: 14, lineHeight: 1.8 }}>
+      {children}
+    </div>
+  )
+}
+
+function Ul({ items }: { items: string[] }) {
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((item, i) => (
+        <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ color: terra, marginTop: 2, flexShrink: 0 }}>›</span>
+          <span dangerouslySetInnerHTML={{ __html: item }} />
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export default function PrivacidadePage() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <Link href="/">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar ao Início
-          </Button>
+    <div style={{ minHeight: '100vh', background: '#0f0a06', color: '#aaa', fontFamily: 'Inter, sans-serif' }}>
+      {/* Nav */}
+      <nav style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#888', textDecoration: 'none', fontSize: 13, transition: 'color .15s' }}>
+          <ArrowLeft size={16} />
+          Voltar
         </Link>
+        <span style={{ color: '#333' }}>|</span>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <span style={{ color: dourado, fontWeight: 700, fontSize: 15, fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
+            Meu Atelier Sistema
+          </span>
+        </Link>
+      </nav>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 space-y-8">
-          <div className="border-b pb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Política de Privacidade
-              </h1>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '48px 24px 80px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: `rgba(200,113,74,0.15)`, border: `1px solid rgba(200,113,74,0.3)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={20} style={{ color: terra }} />
             </div>
-            <p className="text-gray-600 text-lg">
-              Última atualização: 10 de janeiro de 2026
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Esta política está em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018)
-            </p>
+            <h1 style={{ color: '#f0e6d0', fontSize: 28, fontWeight: 800, margin: 0, fontFamily: "'Playfair Display', serif" }}>
+              Política de Privacidade
+            </h1>
           </div>
+          <p style={{ color: '#555', fontSize: 13, margin: 0 }}>Última atualização: 10 de janeiro de 2026 · LGPD — Lei 13.709/2018</p>
+        </div>
 
-          {/* Índice */}
-          <div className="bg-blue-50 rounded-lg p-6">
-            <h2 className="font-semibold text-lg mb-4 text-blue-900">Índice</h2>
-            <ol className="space-y-2 text-sm text-blue-800">
-              <li><a href="#controlador" className="hover:underline">1. Identificação do Controlador</a></li>
-              <li><a href="#dpo" className="hover:underline">2. Encarregado de Dados (DPO)</a></li>
-              <li><a href="#dados" className="hover:underline">3. Dados Coletados</a></li>
-              <li><a href="#finalidades" className="hover:underline">4. Finalidades do Tratamento</a></li>
-              <li><a href="#base-legal" className="hover:underline">5. Base Legal</a></li>
-              <li><a href="#compartilhamento" className="hover:underline">6. Compartilhamento de Dados</a></li>
-              <li><a href="#retencao" className="hover:underline">7. Retenção de Dados</a></li>
-              <li><a href="#direitos" className="hover:underline">8. Seus Direitos</a></li>
-              <li><a href="#seguranca" className="hover:underline">9. Segurança</a></li>
-              <li><a href="#internacional" className="hover:underline">10. Transferência Internacional</a></li>
-              <li><a href="#cookies" className="hover:underline">11. Cookies</a></li>
-              <li><a href="#alteracoes" className="hover:underline">12. Alterações</a></li>
-              <li><a href="#contato" className="hover:underline">13. Contato</a></li>
-            </ol>
-          </div>
-
-          {/* 1. Controlador */}
-          <section id="controlador" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-600" />
-              1. Identificação do Controlador
-            </h2>
-            <p className="text-gray-700 leading-relaxed">
-              O <strong>Meu Atelier</strong> é desenvolvido e operado por:
-            </p>
-            <div className="bg-gray-50 rounded-lg p-6 space-y-2">
-              <p><strong>Razão Social:</strong> Omega Sistem</p>
-              <p><strong>Website:</strong> <a href="https://omegasistem.com.br" className="text-blue-600 hover:underline">omegasistem.com.br</a></p>
-              <p><strong>Email:</strong> contato@omegasistem.com.br</p>
-            </div>
-          </section>
-
-          {/* 2. DPO */}
-          <section id="dpo" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Eye className="h-6 w-6 text-blue-600" />
-              2. Encarregado de Dados (DPO)
-            </h2>
-            <p className="text-gray-700 leading-relaxed">
-              Para questões sobre proteção de dados, entre em contato com nosso Encarregado:
-            </p>
-            <div className="bg-gray-50 rounded-lg p-6 space-y-2">
-              <p><strong>Email:</strong> dpo@meuateliersistema.com.br</p>
-              <p><strong>Tempo de resposta:</strong> Até 15 dias úteis</p>
-            </div>
-          </section>
-
-          {/* 3. Dados Coletados */}
-          <section id="dados" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Lock className="h-6 w-6 text-blue-600" />
-              3. Dados Coletados
-            </h2>
-            
-            <h3 className="text-xl font-semibold text-gray-800 mt-6">3.1. Dados de Cadastro (Usuários do Sistema)</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Nome completo</li>
-              <li>Email</li>
-              <li>Senha (armazenada com criptografia)</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-6">3.2. Dados de Clientes (Inseridos por Você)</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Nome</li>
-              <li>Telefone</li>
-              <li>Email</li>
-              <li>Endereço completo (rua, cidade, estado, CEP)</li>
-              <li>Data de nascimento (opcional - dado sensível)</li>
-              <li>Instagram</li>
-              <li>Notas e observações</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-6">3.3. Dados da Organização</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Nome fantasia</li>
-              <li>CNPJ (opcional)</li>
-              <li>Email e telefone</li>
-              <li>Endereço</li>
-              <li>Logo (opcional)</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-6">3.4. Dados Técnicos Automáticos</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Endereço IP</li>
-              <li>Tipo de navegador</li>
-              <li>Sistema operacional</li>
-              <li>Cookies essenciais (autenticação)</li>
-              <li>Logs de acesso</li>
-            </ul>
-          </section>
-
-          {/* 4. Finalidades */}
-          <section id="finalidades" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">4. Finalidades do Tratamento</h2>
-            <p className="text-gray-700">Utilizamos seus dados para:</p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li><strong>Prestação do serviço:</strong> Gerenciar seu ateliê, clientes e ordens de serviço</li>
-              <li><strong>Autenticação:</strong> Garantir acesso seguro à sua conta</li>
-              <li><strong>Suporte:</strong> Responder dúvidas e resolver problemas</li>
-              <li><strong>Lembretes:</strong> Notificar aniversários, pagamentos e prazos (se ativado)</li>
-              <li><strong>Melhoria:</strong> Analisar uso do sistema para melhorias</li>
-              <li><strong>Segurança:</strong> Prevenir fraudes e abusos</li>
-              <li><strong>Conformidade legal:</strong> Cumprir obrigações fiscais e legais</li>
-            </ul>
-          </section>
-
-          {/* 5. Base Legal */}
-          <section id="base-legal" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">5. Base Legal</h2>
-            <p className="text-gray-700">O tratamento de dados é fundamentado em:</p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li><strong>Consentimento (Art. 7º, I):</strong> Para dados opcionais e notificações</li>
-              <li><strong>Execução de contrato (Art. 7º, V):</strong> Para prestação do serviço</li>
-              <li><strong>Legítimo interesse (Art. 7º, IX):</strong> Para segurança e melhorias</li>
-              <li><strong>Obrigação legal (Art. 7º, II):</strong> Para conformidade fiscal</li>
-            </ul>
-          </section>
-
-          {/* 6. Compartilhamento */}
-          <section id="compartilhamento" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">6. Compartilhamento de Dados</h2>
-            <p className="text-gray-700">Compartilhamos dados apenas com:</p>
-            
-            <div className="space-y-4 mt-4">
-              <div className="border-l-4 border-blue-500 pl-4">
-                <h4 className="font-semibold text-gray-900">Supabase (Banco de Dados)</h4>
-                <p className="text-sm text-gray-600">Armazenamento seguro com criptografia</p>
-              </div>
-              
-              <div className="border-l-4 border-green-500 pl-4">
-                <h4 className="font-semibold text-gray-900">Vercel (Hospedagem)</h4>
-                <p className="text-sm text-gray-600">Infraestrutura de servidor</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 mt-4 italic">
-              ⚠️ Não vendemos, alugamos ou compartilhamos dados com terceiros para marketing.
-            </p>
-          </section>
-
-          {/* 7. Retenção */}
-          <section id="retencao" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">7. Retenção de Dados</h2>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li><strong>Dados de conta ativa:</strong> Enquanto a conta existir</li>
-              <li><strong>Dados após cancelamento:</strong> 30 dias para recuperação, depois anonimizados</li>
-              <li><strong>Dados fiscais:</strong> 5 anos (obrigação legal)</li>
-              <li><strong>Logs de segurança:</strong> 6 meses</li>
-            </ul>
-          </section>
-
-          {/* 8. Direitos */}
-          <section id="direitos" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">8. Seus Direitos (Art. 18, LGPD)</h2>
-            <p className="text-gray-700">Você tem direito a:</p>
-            
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Download className="h-5 w-5 text-blue-600 mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Acessar seus dados</h4>
-                    <p className="text-sm text-gray-600">Obter cópia de todos os dados armazenados</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-green-600 mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Corrigir dados</h4>
-                    <p className="text-sm text-gray-600">Atualizar informações incorretas</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Trash2 className="h-5 w-5 text-purple-600 mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Excluir dados</h4>
-                    <p className="text-sm text-gray-600">Solicitar anonimização ou exclusão</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Download className="h-5 w-5 text-orange-600 mt-1 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Portabilidade</h4>
-                    <p className="text-sm text-gray-600">Exportar dados em formato estruturado</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6">
-              <p className="text-sm text-gray-800">
-                <strong>Como exercer seus direitos:</strong> Entre em contato com{' '}
-                <a href="mailto:dpo@meuateliersistema.com.br" className="text-blue-600 hover:underline">
-                  dpo@meuateliersistema.com.br
-                </a>{' '}
-                ou acesse <Link href="/lgpd" className="text-blue-600 hover:underline">nossa página LGPD</Link>.
-              </p>
-            </div>
-          </section>
-
-          {/* 9. Segurança */}
-          <section id="seguranca" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">9. Segurança</h2>
-            <p className="text-gray-700">Medidas de proteção implementadas:</p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>✅ Criptografia SSL/TLS em trânsito</li>
-              <li>✅ Senhas com hash bcrypt</li>
-              <li>✅ Row Level Security (RLS) - isolamento entre organizações</li>
-              <li>✅ Backup automático diário</li>
-              <li>✅ Autenticação via Supabase Auth</li>
-              <li>✅ Logs de auditoria</li>
-            </ul>
-          </section>
-
-          {/* 10. Transferência Internacional */}
-          <section id="internacional" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">10. Transferência Internacional</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Seus dados podem ser armazenados em servidores localizados nos <strong>Estados Unidos</strong> (Supabase Inc.). 
-              Garantimos que todos os prestadores seguem padrões adequados de segurança conforme a LGPD e possuem 
-              cláusulas contratuais apropriadas (Standard Contractual Clauses).
-            </p>
-          </section>
-
-          {/* 11. Cookies */}
-          <section id="cookies" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">11. Cookies</h2>
-            <p className="text-gray-700">Utilizamos cookies para:</p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li><strong>Essenciais:</strong> Manter você autenticado</li>
-              <li><strong>Preferências:</strong> Lembrar tema escuro/claro</li>
-            </ul>
-            <p className="text-sm text-gray-600 mt-4">
-              Você pode gerenciar cookies nas configurações do seu navegador.
-            </p>
-          </section>
-
-          {/* 12. Alterações */}
-          <section id="alteracoes" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">12. Alterações nesta Política</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Podemos atualizar esta política periodicamente. Notificaremos alterações significativas por email 
-              ou aviso no sistema. Recomendamos revisão periódica.
-            </p>
-          </section>
-
-          {/* 13. Contato */}
-          <section id="contato" className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">13. Contato</h2>
-            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 space-y-3">
-              <p className="text-gray-700"><strong>Email DPO:</strong> dpo@meuateliersistema.com.br</p>
-              <p className="text-gray-700"><strong>Suporte:</strong> contato@omegasistem.com.br</p>
-              <p className="text-gray-700"><strong>LGPD:</strong> <Link href="/lgpd" className="text-blue-600 hover:underline">meuateliersistema.com.br/lgpd</Link></p>
-            </div>
-          </section>
-
-          {/* Footer */}
-          <div className="border-t pt-6 mt-12 text-center">
-            <p className="text-sm text-gray-500">
-              Esta política está em conformidade com a Lei 13.709/2018 (LGPD)
-            </p>
-            <div className="flex justify-center gap-4 mt-4">
-              <Link href="/termos">
-                <Button variant="outline" size="sm">Ver Termos de Uso</Button>
-              </Link>
-              <Link href="/lgpd">
-                <Button variant="outline" size="sm">Exercer Direitos LGPD</Button>
-              </Link>
-            </div>
+        {/* Índice */}
+        <div style={{ background: 'rgba(200,113,74,0.06)', border: '1px solid rgba(200,113,74,0.15)', borderRadius: 12, padding: '20px 24px', marginBottom: 8 }}>
+          <p style={{ color: dourado, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Índice</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px' }}>
+            {[
+              ['#controlador', '1. Identificação do Controlador'],
+              ['#dpo', '2. Encarregado de Dados (DPO)'],
+              ['#dados', '3. Dados Coletados'],
+              ['#finalidades', '4. Finalidades do Tratamento'],
+              ['#base-legal', '5. Base Legal'],
+              ['#compartilhamento', '6. Compartilhamento'],
+              ['#retencao', '7. Retenção de Dados'],
+              ['#direitos', '8. Seus Direitos'],
+              ['#seguranca', '9. Segurança'],
+              ['#cookies', '10. Cookies'],
+              ['#alteracoes', '11. Alterações'],
+              ['#contato', '12. Contato'],
+            ].map(([href, label]) => (
+              <a key={href} href={href} style={{ color: '#888', fontSize: 13, textDecoration: 'none' }}>{label}</a>
+            ))}
           </div>
         </div>
+
+        <Section id="controlador" icon={FileText} title="1. Identificação do Controlador">
+          <p>O <strong style={{ color: '#f0e6d0' }}>Meu Atelier Sistema</strong> é desenvolvido e operado por:</p>
+          <InfoBox>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Razão Social:</strong> Omega Sistem</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://omegasistem.com.br" style={{ color: terra }}>omegasistem.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> contato@omegasistem.com.br</p>
+          </InfoBox>
+        </Section>
+
+        <Section id="dpo" icon={Eye} title="2. Encarregado de Dados (DPO)">
+          <p>Para questões sobre proteção de dados, entre em contato com nosso Encarregado:</p>
+          <InfoBox>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Prazo de resposta:</strong> Até 15 dias úteis</p>
+          </InfoBox>
+        </Section>
+
+        <Section id="dados" icon={Lock} title="3. Dados Coletados">
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>3.1 Dados de Cadastro</strong></p>
+          <Ul items={['Nome completo', 'Email', 'Senha (armazenada com criptografia bcrypt)']} />
+          <p style={{ marginTop: 16, marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>3.2 Dados de Clientes (inseridos por você)</strong></p>
+          <Ul items={['Nome, telefone, email', 'Endereço completo', 'Data de nascimento (opcional)', 'Notas e observações']} />
+          <p style={{ marginTop: 16, marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>3.3 Dados da Organização</strong></p>
+          <Ul items={['Nome fantasia, CNPJ (opcional)', 'Email e telefone', 'Endereço, logo']} />
+          <p style={{ marginTop: 16, marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>3.4 Dados Técnicos Automáticos</strong></p>
+          <Ul items={['Endereço IP', 'Tipo de navegador e sistema operacional', 'Cookies essenciais de autenticação', 'Logs de acesso']} />
+        </Section>
+
+        <Section id="finalidades" title="4. Finalidades do Tratamento">
+          <Ul items={[
+            '<strong style="color:#f0e6d0">Prestação do serviço:</strong> Gerenciar clientes, OS e finanças',
+            '<strong style="color:#f0e6d0">Autenticação:</strong> Garantir acesso seguro à conta',
+            '<strong style="color:#f0e6d0">Suporte:</strong> Responder dúvidas e resolver problemas',
+            '<strong style="color:#f0e6d0">Segurança:</strong> Prevenir fraudes e abusos',
+            '<strong style="color:#f0e6d0">Melhoria:</strong> Analisar uso para evoluir o sistema',
+          ]} />
+        </Section>
+
+        <Section id="base-legal" title="5. Base Legal">
+          <Ul items={[
+            '<strong style="color:#f0e6d0">Consentimento (Art. 7º, I):</strong> Para dados opcionais',
+            '<strong style="color:#f0e6d0">Execução de contrato (Art. 7º, V):</strong> Para prestação do serviço',
+            '<strong style="color:#f0e6d0">Legítimo interesse (Art. 7º, IX):</strong> Para segurança e melhorias',
+            '<strong style="color:#f0e6d0">Obrigação legal (Art. 7º, II):</strong> Para conformidade fiscal',
+          ]} />
+        </Section>
+
+        <Section id="compartilhamento" title="6. Compartilhamento de Dados">
+          <p style={{ marginBottom: 12 }}>Compartilhamos dados apenas com infraestrutura essencial:</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              ['Supabase', 'Banco de dados com criptografia e isolamento por organização'],
+              ['Vercel', 'Hospedagem e CDN'],
+              ['Stripe', 'Processamento de pagamentos (quando aplicável)'],
+            ].map(([name, desc]) => (
+              <div key={name} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '12px 16px' }}>
+                <span style={{ color: terra, fontWeight: 700, minWidth: 70, fontSize: 13 }}>{name}</span>
+                <span style={{ fontSize: 13 }}>{desc}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ marginTop: 16, fontSize: 13, color: '#666' }}>⚠ Não vendemos, alugamos ou compartilhamos dados com terceiros para marketing.</p>
+        </Section>
+
+        <Section id="retencao" title="7. Retenção de Dados">
+          <Ul items={[
+            '<strong style="color:#f0e6d0">Conta ativa:</strong> enquanto a conta existir',
+            '<strong style="color:#f0e6d0">Após cancelamento:</strong> 30 dias para recuperação, depois anonimizados',
+            '<strong style="color:#f0e6d0">Dados fiscais:</strong> 5 anos (obrigação legal)',
+            '<strong style="color:#f0e6d0">Logs de segurança:</strong> 6 meses',
+          ]} />
+        </Section>
+
+        <Section id="direitos" icon={Download} title="8. Seus Direitos (Art. 18, LGPD)">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+            {[
+              [Download, 'Acessar dados', 'Obter cópia de todos os dados'],
+              [FileText, 'Corrigir dados', 'Atualizar informações incorretas'],
+              [Trash2, 'Excluir dados', 'Solicitar anonimização ou exclusão'],
+              [Download, 'Portabilidade', 'Exportar dados em formato estruturado'],
+            ].map(([Icon, title, desc], i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
+                  <Icon size={14} style={{ color: terra }} />
+                  <span style={{ color: '#f0e6d0', fontWeight: 600, fontSize: 13 }}>{title as string}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#666' }}>{desc as string}</p>
+              </div>
+            ))}
+          </div>
+          <InfoBox>
+            <strong style={{ color: '#f0e6d0' }}>Como exercer seus direitos:</strong> Envie email para{' '}
+            <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a>{' '}
+            ou acesse <Link href="/lgpd" style={{ color: terra }}>nossa página LGPD</Link>.
+          </InfoBox>
+        </Section>
+
+        <Section id="seguranca" icon={Shield} title="9. Segurança">
+          <Ul items={[
+            'Criptografia SSL/TLS em trânsito',
+            'Senhas com hash bcrypt',
+            'Row Level Security (RLS) — isolamento entre organizações',
+            'Backup automático diário',
+            'Autenticação via Supabase Auth',
+            'Logout automático por inatividade (30 minutos)',
+          ]} />
+        </Section>
+
+        <Section id="cookies" title="10. Cookies">
+          <Ul items={[
+            '<strong style="color:#f0e6d0">Essenciais:</strong> Manter autenticação ativa',
+            '<strong style="color:#f0e6d0">Preferências:</strong> Lembrar tema escuro/claro',
+          ]} />
+          <p style={{ marginTop: 12, fontSize: 13 }}>Não utilizamos cookies de rastreamento, analytics ou publicidade.</p>
+        </Section>
+
+        <Section id="alteracoes" title="11. Alterações nesta Política">
+          <p>Podemos atualizar esta política periodicamente. Notificaremos alterações significativas por email ou aviso no sistema. A data de última atualização estará sempre visível no topo desta página.</p>
+        </Section>
+
+        <Section id="contato" title="12. Contato">
+          <InfoBox>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>DPO (Proteção de Dados):</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Suporte:</strong> contato@omegasistem.com.br</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>LGPD:</strong> <Link href="/lgpd" style={{ color: terra }}>meuateliersistema.com.br/lgpd</Link></p>
+          </InfoBox>
+        </Section>
+
+        {/* Footer */}
+        <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <Link href="/termos" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Termos de Uso</Link>
+          <Link href="/lgpd" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Direitos LGPD</Link>
+          <Link href="/" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Voltar ao Início</Link>
+        </div>
+        <p style={{ marginTop: 16, color: '#333', fontSize: 12 }}>© {new Date().getFullYear()} Meu Atelier Sistema · Em conformidade com a Lei 13.709/2018 (LGPD)</p>
       </div>
     </div>
   )

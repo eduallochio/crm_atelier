@@ -1,259 +1,217 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Scale, Shield, Ban, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, FileText, Shield, Ban, AlertTriangle, Scale } from 'lucide-react'
 
 export const metadata = {
-  title: 'Termos de Uso - Meu Atelier',
-  description: 'Termos e Condições de Uso do Meu Atelier',
+  title: 'Termos de Uso - Meu Atelier Sistema',
+  description: 'Termos e Condições de Uso do Meu Atelier Sistema',
+}
+
+const terra   = '#c8714a'
+const dourado = '#d4a85a'
+
+function Section({ icon: Icon, title, children }: { icon?: React.ElementType; title: string; children: React.ReactNode }) {
+  return (
+    <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 32, marginTop: 32 }}>
+      <h2 style={{ color: '#f0e6d0', fontSize: 20, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {Icon && <Icon size={18} style={{ color: terra, flexShrink: 0 }} />}
+        {title}
+      </h2>
+      <div style={{ color: '#aaa', fontSize: 14, lineHeight: 1.8 }}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function InfoBox({ children, warning }: { children: React.ReactNode; warning?: boolean }) {
+  return (
+    <div style={{
+      background: warning ? 'rgba(200,113,74,0.08)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${warning ? 'rgba(200,113,74,0.25)' : 'rgba(255,255,255,0.08)'}`,
+      borderRadius: 10,
+      padding: '16px 20px',
+      marginTop: 12,
+      color: '#ccc',
+      fontSize: 14,
+      lineHeight: 1.8,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function Ul({ items }: { items: string[] }) {
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((item, i) => (
+        <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ color: terra, marginTop: 2, flexShrink: 0 }}>›</span>
+          <span dangerouslySetInnerHTML={{ __html: item }} />
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export default function TermosPage() {
   return (
-    <div className="min-h-screen bg-linear-to-r from-gray-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <Link href="/">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar ao Início
-          </Button>
+    <div style={{ minHeight: '100vh', background: '#0f0a06', color: '#aaa', fontFamily: 'Inter, sans-serif' }}>
+      {/* Nav */}
+      <nav style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#888', textDecoration: 'none', fontSize: 13 }}>
+          <ArrowLeft size={16} />
+          Voltar
         </Link>
+        <span style={{ color: '#333' }}>|</span>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <span style={{ color: dourado, fontWeight: 700, fontSize: 15, fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
+            Meu Atelier Sistema
+          </span>
+        </Link>
+      </nav>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 space-y-8">
-          <div className="border-b pb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Scale className="h-8 w-8 text-blue-600" />
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Termos de Uso
-              </h1>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '48px 24px 80px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(200,113,74,0.15)', border: '1px solid rgba(200,113,74,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Scale size={20} style={{ color: terra }} />
             </div>
-            <p className="text-gray-600 text-lg">
-              Última atualização: 10 de janeiro de 2026
-            </p>
+            <h1 style={{ color: '#f0e6d0', fontSize: 28, fontWeight: 800, margin: 0, fontFamily: "'Playfair Display', serif" }}>
+              Termos de Uso
+            </h1>
           </div>
+          <p style={{ color: '#555', fontSize: 13, margin: 0 }}>Última atualização: 10 de janeiro de 2026</p>
+        </div>
 
-          {/* Aceitação */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-600" />
-              1. Aceitação dos Termos
-            </h2>
-            <p className="text-gray-700 leading-relaxed">
-              Ao acessar e usar o <strong>Meu Atelier</strong>, você concorda com estes Termos de Uso e com nossa{' '}
-              <Link href="/privacidade" className="text-blue-600 hover:underline">Política de Privacidade</Link>.
-              Se você não concordar, não use o serviço.
-            </p>
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <p className="text-sm text-gray-800">
-                <strong>Importante:</strong> Ao criar uma conta, você confirma ter lido e aceito integralmente estes termos.
-              </p>
+        {/* Aviso de aceitação */}
+        <InfoBox warning>
+          <strong style={{ color: '#f0e6d0' }}>Importante:</strong> Ao criar uma conta, você confirma ter lido e aceito integralmente estes Termos de Uso e nossa{' '}
+          <Link href="/privacidade" style={{ color: terra }}>Política de Privacidade</Link>.
+          Se não concordar, não utilize o serviço.
+        </InfoBox>
+
+        <Section icon={FileText} title="1. Aceitação dos Termos">
+          <p>Ao acessar e usar o <strong style={{ color: '#f0e6d0' }}>Meu Atelier Sistema</strong>, você concorda com estes Termos de Uso. O uso continuado após qualquer alteração constitui aceitação das novas condições.</p>
+        </Section>
+
+        <Section title="2. Descrição do Serviço">
+          <p style={{ marginBottom: 12 }}>O <strong style={{ color: '#f0e6d0' }}>Meu Atelier Sistema</strong> é uma plataforma SaaS para gestão de ateliês, oferecendo:</p>
+          <Ul items={[
+            'Cadastro e gestão de clientes',
+            'Controle de ordens de serviço',
+            'Gerenciamento financeiro (caixa, contas a pagar/receber)',
+            'Catálogo de serviços e estoque',
+            'Dashboards e relatórios',
+            'Notificações e lembretes',
+          ]} />
+        </Section>
+
+        <Section title="3. Elegibilidade">
+          <p style={{ marginBottom: 12 }}>Para usar o sistema, você deve:</p>
+          <Ul items={[
+            'Ter pelo menos 18 anos de idade',
+            'Possuir capacidade legal para celebrar contratos',
+            'Fornecer informações verdadeiras e completas',
+            'Não ter sido previamente banido do serviço',
+          ]} />
+        </Section>
+
+        <Section icon={Shield} title="4. Conta e Segurança">
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>4.1 Criação de conta</strong></p>
+          <Ul items={[
+            'Você é responsável por manter sua senha segura',
+            'Não compartilhe credenciais com terceiros',
+            'Notifique-nos imediatamente sobre uso não autorizado',
+            'Uma conta por pessoa/organização',
+          ]} />
+          <p style={{ marginTop: 16 }}><strong style={{ color: '#f0e6d0' }}>4.2 Responsabilidade:</strong> Você é totalmente responsável por todas as atividades realizadas em sua conta.</p>
+        </Section>
+
+        <Section title="5. Planos e Pagamentos">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '16px' }}>
+              <p style={{ color: '#f0e6d0', fontWeight: 700, margin: '0 0 8px' }}>Plano Free</p>
+              <Ul items={['Gratuito permanentemente', 'Até 50 clientes', 'Recursos básicos']} />
             </div>
-          </section>
-
-          {/* Descrição do Serviço */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">2. Descrição do Serviço</h2>
-            <p className="text-gray-700 leading-relaxed">
-              O Meu Atelier é uma plataforma SaaS (Software as a Service) para gestão de ateliês de costura e artesanato, 
-              oferecendo funcionalidades de:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Cadastro e gestão de clientes</li>
-              <li>Controle de ordens de serviço</li>
-              <li>Gerenciamento financeiro (caixa, contas a pagar/receber)</li>
-              <li>Catálogo de serviços</li>
-              <li>Dashboards e relatórios</li>
-              <li>Notificações e lembretes</li>
-            </ul>
-          </section>
-
-          {/* Elegibilidade */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">3. Elegibilidade</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Para usar o Meu Atelier, você deve:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Ter pelo menos 18 anos de idade</li>
-              <li>Possuir capacidade legal para celebrar contratos</li>
-              <li>Fornecer informações verdadeiras e completas</li>
-              <li>Não ter sido previamente banido do serviço</li>
-            </ul>
-          </section>
-
-          {/* Conta e Segurança */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Shield className="h-6 w-6 text-blue-600" />
-              4. Conta e Segurança
-            </h2>
-            
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">4.1. Criação de Conta</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Você é responsável por manter sua senha segura</li>
-              <li>Não compartilhe credenciais com terceiros</li>
-              <li>Notifique-nos imediatamente sobre uso não autorizado</li>
-              <li>Uma conta por pessoa/organização</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">4.2. Responsabilidade</h3>
-            <p className="text-gray-700">
-              Você é totalmente responsável por todas as atividades realizadas em sua conta.
-            </p>
-          </section>
-
-          {/* Planos e Pagamentos */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">5. Planos e Pagamentos</h2>
-            
-            <h3 className="text-xl font-semibold text-gray-800">5.1. Plano Free</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Gratuito permanentemente</li>
-              <li>Até 50 clientes cadastrados</li>
-              <li>Recursos básicos incluídos</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">5.2. Plano Pro</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Cobrança mensal de R$ 59,90</li>
-              <li>Até 200 clientes cadastrados</li>
-              <li>Recursos avançados incluídos</li>
-              <li>Cancelamento a qualquer momento</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">5.3. Política de Cancelamento</h3>
-            <p className="text-gray-700">
-              Você pode cancelar seu plano pago a qualquer momento. Não há reembolso proporcional. 
-              O acesso aos recursos pagos permanece até o fim do período já pago.
-            </p>
-          </section>
-
-          {/* Uso Aceitável */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Ban className="h-6 w-6 text-red-600" />
-              6. Uso Aceitável
-            </h2>
-            <p className="text-gray-700">Você concorda em NÃO:</p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Violar leis ou regulamentos</li>
-              <li>Fazer engenharia reversa do software</li>
-              <li>Tentar acessar sistemas não autorizados</li>
-              <li>Enviar spam ou conteúdo malicioso</li>
-              <li>Usar o serviço para atividades ilegais</li>
-              <li>Revender ou sublicenciar o serviço</li>
-              <li>Interferir no funcionamento do sistema</li>
-              <li>Coletar dados de outros usuários sem consentimento</li>
-            </ul>
-          </section>
-
-          {/* Propriedade Intelectual */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">7. Propriedade Intelectual</h2>
-            
-            <h3 className="text-xl font-semibold text-gray-800">7.1. Nossa Propriedade</h3>
-            <p className="text-gray-700">
-              O Meu Atelier, incluindo código, design, marca e conteúdo, é propriedade exclusiva da Omega Sistem. 
-              Todos os direitos reservados.
-            </p>
-
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">7.2. Seus Dados</h3>
-            <p className="text-gray-700">
-              Você mantém propriedade total sobre os dados inseridos no sistema (clientes, ordens, etc.). 
-              Concedemos uma licença limitada para armazenar e processar esses dados apenas para prestação do serviço.
-            </p>
-          </section>
-
-          {/* Limitação de Responsabilidade */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
-              8. Limitação de Responsabilidade
-            </h2>
-            
-            <div className="bg-red-50 border-l-4 border-red-400 p-4">
-              <p className="text-sm text-gray-800 font-semibold mb-2">IMPORTANTE:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                <li>O serviço é fornecido &quot;como está&quot;, sem garantias</li>
-                <li>Não garantimos disponibilidade 100% do tempo</li>
-                <li>Não somos responsáveis por perda de dados causada por você</li>
-                <li>Faça backups regulares de informações críticas</li>
-                <li>Não somos responsáveis por decisões tomadas com base nos relatórios</li>
-              </ul>
+            <div style={{ background: 'rgba(200,113,74,0.06)', border: '1px solid rgba(200,113,74,0.2)', borderRadius: 10, padding: '16px' }}>
+              <p style={{ color: dourado, fontWeight: 700, margin: '0 0 8px' }}>Plano Pro</p>
+              <Ul items={['R$ 59,90/mês', 'Até 200 clientes', 'Recursos avançados', 'Cancele a qualquer momento']} />
             </div>
+          </div>
+          <p><strong style={{ color: '#f0e6d0' }}>Cancelamento:</strong> Você pode cancelar a qualquer momento. Não há reembolso proporcional. O acesso permanece até o fim do período pago.</p>
+        </Section>
 
-            <p className="text-gray-700 leading-relaxed mt-4">
-              Nossa responsabilidade total está limitada ao valor pago nos últimos 12 meses.
-            </p>
-          </section>
+        <Section icon={Ban} title="6. Uso Aceitável">
+          <p style={{ marginBottom: 12 }}>Você concorda em <strong style={{ color: '#f0e6d0' }}>NÃO</strong>:</p>
+          <Ul items={[
+            'Violar leis ou regulamentos brasileiros',
+            'Fazer engenharia reversa do software',
+            'Tentar acessar sistemas não autorizados',
+            'Enviar spam ou conteúdo malicioso',
+            'Usar o serviço para atividades ilegais',
+            'Revender ou sublicenciar o serviço',
+            'Interferir no funcionamento do sistema',
+            'Coletar dados de outros usuários sem consentimento',
+          ]} />
+        </Section>
 
-          {/* Rescisão */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">9. Rescisão</h2>
-            
-            <h3 className="text-xl font-semibold text-gray-800">9.1. Por Você</h3>
-            <p className="text-gray-700">
-              Você pode cancelar sua conta a qualquer momento através das configurações ou contato com suporte.
-            </p>
+        <Section title="7. Propriedade Intelectual">
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>Nossa propriedade:</strong> O Meu Atelier Sistema, incluindo código, design, marca e conteúdo, é propriedade exclusiva da Omega Sistem. Todos os direitos reservados.</p>
+          <p><strong style={{ color: '#f0e6d0' }}>Seus dados:</strong> Você mantém propriedade total sobre os dados inseridos (clientes, ordens, etc.). Concedemos uma licença limitada para armazená-los e processá-los apenas para prestação do serviço.</p>
+        </Section>
 
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">9.2. Por Nós</h3>
-            <p className="text-gray-700">
-              Podemos suspender ou encerrar sua conta se:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-              <li>Você violar estes Termos de Uso</li>
-              <li>Houver suspeita de fraude ou uso ilegal</li>
-              <li>Houver inadimplência de pagamento (planos pagos)</li>
-              <li>Por decisão comercial (com aviso prévio de 30 dias)</li>
-            </ul>
+        <Section icon={AlertTriangle} title="8. Limitação de Responsabilidade">
+          <InfoBox warning>
+            <p style={{ color: '#f0e6d0', fontWeight: 700, margin: '0 0 8px' }}>Importante</p>
+            <Ul items={[
+              'O serviço é fornecido "como está", sem garantias expressas',
+              'Não garantimos disponibilidade 100% do tempo',
+              'Não somos responsáveis por perda de dados causada pelo usuário',
+              'Recomendamos backup regular de informações críticas',
+              'Nossa responsabilidade total está limitada ao valor pago nos últimos 12 meses',
+            ]} />
+          </InfoBox>
+        </Section>
 
-            <h3 className="text-xl font-semibold text-gray-800 mt-4">9.3. Após Cancelamento</h3>
-            <p className="text-gray-700">
-              Seus dados ficam disponíveis por 30 dias para recuperação. Após isso, são anonimizados conforme LGPD.
-            </p>
-          </section>
+        <Section title="9. Rescisão">
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>Por você:</strong> Cancele sua conta a qualquer momento nas configurações ou pelo suporte.</p>
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>Por nós:</strong> Podemos suspender ou encerrar sua conta se:</p>
+          <Ul items={[
+            'Você violar estes Termos de Uso',
+            'Houver suspeita de fraude ou uso ilegal',
+            'Houver inadimplência (planos pagos)',
+            'Por decisão comercial (com aviso prévio de 30 dias)',
+          ]} />
+          <p style={{ marginTop: 16 }}><strong style={{ color: '#f0e6d0' }}>Após cancelamento:</strong> Seus dados ficam disponíveis por 30 dias para recuperação, depois são anonimizados conforme LGPD.</p>
+        </Section>
 
-          {/* Modificações */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">10. Modificações</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Podemos modificar estes termos a qualquer momento. Mudanças significativas serão notificadas por email 
-              com 15 dias de antecedência. O uso continuado após as mudanças constitui aceitação.
-            </p>
-          </section>
+        <Section title="10. Modificações">
+          <p>Podemos modificar estes termos a qualquer momento. Mudanças significativas serão notificadas por email com 15 dias de antecedência.</p>
+        </Section>
 
-          {/* Lei Aplicável */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">11. Lei Aplicável e Foro</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Estes termos são regidos pelas leis da República Federativa do Brasil. 
-              Qualquer disputa será resolvida no foro da sua comarca de residência.
-            </p>
-          </section>
+        <Section icon={Scale} title="11. Lei Aplicável e Foro">
+          <p>Estes termos são regidos pelas leis da República Federativa do Brasil. Qualquer disputa será resolvida no foro da comarca de residência do usuário.</p>
+        </Section>
 
-          {/* Contato */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">12. Contato</h2>
-            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 space-y-3">
-              <p className="text-gray-700"><strong>Suporte:</strong> contato@omegasistem.com.br</p>
-              <p className="text-gray-700"><strong>Website:</strong> <a href="https://omegasistem.com.br" className="text-blue-600 hover:underline">omegasistem.com.br</a></p>
-            </div>
-          </section>
+        <Section title="12. Contato">
+          <InfoBox>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Suporte:</strong> contato@omegasistem.com.br</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://omegasistem.com.br" style={{ color: terra }}>omegasistem.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>LGPD:</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+          </InfoBox>
+        </Section>
 
-          {/* Footer */}
-          <div className="border-t pt-6 mt-12 text-center">
-            <p className="text-sm text-gray-500 mb-4">
-              Ao usar o Meu Atelier, você concorda com estes Termos de Uso
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link href="/privacidade">
-                <Button variant="outline" size="sm">Política de Privacidade</Button>
-              </Link>
-              <Link href="/lgpd">
-                <Button variant="outline" size="sm">Direitos LGPD</Button>
-              </Link>
-            </div>
+        {/* Footer */}
+        <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <p style={{ color: '#555', fontSize: 13, marginBottom: 16 }}>Ao usar o Meu Atelier Sistema, você concorda com estes Termos de Uso.</p>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Link href="/privacidade" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Política de Privacidade</Link>
+            <Link href="/lgpd" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Direitos LGPD</Link>
+            <Link href="/" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Voltar ao Início</Link>
           </div>
         </div>
+        <p style={{ marginTop: 16, color: '#333', fontSize: 12 }}>© {new Date().getFullYear()} Meu Atelier Sistema · Omega Sistem</p>
       </div>
     </div>
   )
