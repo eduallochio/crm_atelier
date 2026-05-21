@@ -233,7 +233,7 @@ export default function AdminErrorsPage() {
                         </span>
                       )}
                       <span className="text-xs text-gray-400 ml-auto">
-                        {format(new Date(err.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {err.created_at ? format(new Date(err.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                       </span>
                     </div>
 
