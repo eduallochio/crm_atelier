@@ -21,7 +21,11 @@ DECLARE
 BEGIN
   -- Gera slug único baseado no nome
   base_slug := lower(regexp_replace(
-    COALESCE(NEW.raw_user_meta_data->>'full_name', 'atelier'),
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data->>'atelier_name', ''),
+      NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+      'atelier'
+    ),
     '[^a-z0-9]+', '-', 'g'
   ));
   base_slug := trim(both '-' from base_slug);
@@ -34,12 +38,20 @@ BEGIN
     final_slug := base_slug || '-' || counter;
   END LOOP;
 
-  -- Cria organização
-  INSERT INTO public.organizations (name, slug, plan)
+  -- Cria organização (usa atelier_name se disponível, senão full_name)
+  INSERT INTO public.organizations (name, slug, plan, cnpj, phone, city, state)
   VALUES (
-    COALESCE(NEW.raw_user_meta_data->>'full_name', 'Meu Ateliê'),
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data->>'atelier_name', ''),
+      NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+      'Meu Ateliê'
+    ),
     final_slug,
-    'free'
+    'free',
+    NULLIF(NEW.raw_user_meta_data->>'document', ''),
+    NULLIF(NEW.raw_user_meta_data->>'phone', ''),
+    NULLIF(NEW.raw_user_meta_data->>'city', ''),
+    NULLIF(NEW.raw_user_meta_data->>'state', '')
   )
   RETURNING id INTO new_org_id;
 

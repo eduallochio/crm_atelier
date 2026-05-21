@@ -32,12 +32,17 @@ export async function signup(formData: FormData) {
   const city       = formData.get('city')        as string | null
   const state      = formData.get('state')       as string | null
 
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: atelierName?.trim() || fullName,
+        full_name:    fullName,
+        atelier_name: atelierName?.trim() || fullName,
+        document:     document  || null,
+        phone:        phone     || null,
+        city:         city      || null,
+        state:        state     || null,
       },
     },
   })
@@ -49,42 +54,44 @@ export async function signup(formData: FormData) {
     return { error: 'Erro ao criar sua conta. Tente novamente.' }
   }
 
-  // Após signup, atualiza a organização criada pelo trigger com os dados extras
-  // Aguarda breve instante para o trigger handle_new_user ter tempo de executar
-  if (atelierName || document || phone || city || state) {
+  // Atualiza a organização com os dados extras usando o service role
+  // (funciona mesmo com confirmação de email pendente)
+  const userId = signUpData.user?.id
+  if (userId && (atelierName || document || phone || city || state)) {
     try {
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+      const adminSupabase = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
       const { db } = await import('@/lib/db')
       const { organizations, profiles } = await import('@/lib/db/schema')
       const { eq } = await import('drizzle-orm')
 
-      // Busca o user recém-criado para obter o organization_id via profile
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // Aguarda até 2s o trigger criar o profile
-        let orgId: string | null = null
-        for (let i = 0; i < 4; i++) {
-          const [profile] = await db
-            .select({ organizationId: profiles.organizationId })
-            .from(profiles)
-            .where(eq(profiles.id, user.id))
-            .limit(1)
-          if (profile?.organizationId) { orgId = profile.organizationId; break }
-          await new Promise(r => setTimeout(r, 500))
-        }
+      // Aguarda até 3s o trigger handle_new_user criar o profile
+      let orgId: string | null = null
+      for (let i = 0; i < 6; i++) {
+        const [profile] = await db
+          .select({ organizationId: profiles.organizationId })
+          .from(profiles)
+          .where(eq(profiles.id, userId))
+          .limit(1)
+        if (profile?.organizationId) { orgId = profile.organizationId; break }
+        await new Promise(r => setTimeout(r, 500))
+      }
 
-        if (orgId) {
-          await db
-            .update(organizations)
-            .set({
-              name:      atelierName?.trim() || fullName,
-              cnpj:      document || null,
-              phone:     phone    || null,
-              city:      city     || null,
-              state:     state    || null,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.id, orgId))
-        }
+      if (orgId) {
+        await db
+          .update(organizations)
+          .set({
+            name:      atelierName?.trim() || fullName,
+            cnpj:      document || null,
+            phone:     phone    || null,
+            city:      city     || null,
+            state:     state    || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.id, orgId))
       }
     } catch {
       // Não bloqueia o cadastro se a atualização falhar
