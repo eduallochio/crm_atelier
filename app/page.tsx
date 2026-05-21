@@ -147,7 +147,7 @@ export default function HomePage() {
   const c = {
     heroTitle:    cms.hero_title    || 'Gerencie seu ateliê com eficiência',
     heroSubtitle: cms.hero_subtitle || 'Gerencie clientes, ordens de serviço e finanças em um único lugar.\nFeito especialmente para costureiras e proprietárias de ateliê.',
-    footerTagline: cms.footer_tagline || 'Meu Atelier',
+    footerTagline: cms.footer_tagline || 'Meu Atelier Sistema',
   }
 
   // fecha menu ao clicar fora
@@ -820,7 +820,7 @@ export default function HomePage() {
 
               <Reveal delay={100}>
                 <div className="comparison-card" style={{ background: '#2C1810', padding: '40px', height: '100%' }}>
-                  <p style={{ fontSize: 11, letterSpacing: '0.12em', color: 'var(--terra)', textTransform: 'uppercase', marginBottom: 20 }}>Com Meu Atelier</p>
+                  <p style={{ fontSize: 11, letterSpacing: '0.12em', color: 'var(--terra)', textTransform: 'uppercase', marginBottom: 20 }}>Com Meu Atelier Sistema</p>
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {[
                       ['Tudo centralizado', 'Busca instantânea de qualquer informação'],
@@ -1051,7 +1051,7 @@ export default function HomePage() {
               </button>
             </div>
             <p style={{ fontSize: 12, color: 'rgba(247,240,230,0.25)', margin: 0 }}>
-              © {new Date().getFullYear()} Meu Atelier
+              © {new Date().getFullYear()} Meu Atelier Sistema
             </p>
           </div>
         </footer>
