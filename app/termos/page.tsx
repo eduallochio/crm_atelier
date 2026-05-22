@@ -136,7 +136,7 @@ export default function TermosPage() {
             </div>
             <div style={{ background: 'rgba(200,113,74,0.06)', border: '1px solid rgba(200,113,74,0.2)', borderRadius: 10, padding: '16px' }}>
               <p style={{ color: dourado, fontWeight: 700, margin: '0 0 8px' }}>Plano Pro</p>
-              <Ul items={['R$ 59,90/mês', 'Até 200 clientes', 'Recursos avançados', 'Cancele a qualquer momento']} />
+              <Ul items={['R$ 59,90/mês', 'Clientes ilimitados', 'Até 3 usuários', 'Recursos avançados', 'Cancele a qualquer momento']} />
             </div>
           </div>
           <p><strong style={{ color: '#f0e6d0' }}>Cancelamento:</strong> Você pode cancelar a qualquer momento. Não há reembolso proporcional. O acesso permanece até o fim do período pago.</p>

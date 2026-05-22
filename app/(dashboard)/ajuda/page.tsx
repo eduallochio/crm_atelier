@@ -175,7 +175,7 @@ export default function AjudaPage() {
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-700 mb-1">Plano Pro</p>
-                <p className="text-[12px] text-blue-600">200 clientes · 5 usuários · 1.000 ordens por mês</p>
+                <p className="text-[12px] text-blue-600">Clientes ilimitados · 3 usuários · Ordens ilimitadas</p>
               </div>
             </div>
             <Screenshot src="/manual/dashboard.png" alt="Menu lateral do sistema" label="[Captura de tela do menu lateral (sidebar) com todos os módulos visíveis]" />
@@ -559,7 +559,7 @@ export default function AjudaPage() {
               </div>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[12px] text-amber-700 mb-4">
-              <strong>Plano Free:</strong> Permite até 2 usuários. Faça upgrade para o plano Pro para adicionar até 5 membros à equipe.
+              <strong>Plano Free:</strong> Permite até 2 usuários. Faça upgrade para o plano Pro para adicionar até 3 membros à equipe.
             </div>
             <Screenshot src="/manual/configuracoes-usuarios.png" alt="Aba Usuários nas Configurações" label="[Captura de tela da aba Usuários nas Configurações com lista de membros e formulário]" />
 
@@ -597,7 +597,7 @@ export default function AjudaPage() {
                 },
                 {
                   q: 'Posso ter mais de um usuário no sistema?',
-                  a: 'Sim. Acesse Configurações → aba "Usuários" e clique em "Novo Usuário". Informe nome, e-mail, senha e cargo (Admin ou Membro). O novo usuário pode fazer login imediatamente. No plano Free o limite é 2 usuários; no Pro até 5.',
+                  a: 'Sim. Acesse Configurações → aba "Usuários" e clique em "Novo Usuário". Informe nome, e-mail, senha e cargo (Admin ou Membro). O novo usuário pode fazer login imediatamente. No plano Free o limite é 2 usuários; no Pro até 3.',
                 },
                 {
                   q: 'Como definir uma meta mensal de receita?',

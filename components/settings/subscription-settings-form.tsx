@@ -46,9 +46,9 @@ const PLANS = [
     badge: 'bg-[#c8714a]/10 text-[#c8714a]',
     highlight: true,
     features: [
-      'Até 200 clientes',
-      'Até 1.000 ordens de serviço/mês',
-      'Até 5 usuários',
+      'Clientes ilimitados',
+      'Ordens de serviço ilimitadas',
+      'Até 3 usuários',
       'Exportação Excel e PDF',
       'Controle de estoque',
       'Suporte prioritário',

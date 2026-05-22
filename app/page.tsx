@@ -109,9 +109,9 @@ const DEFAULT_PLANS: PublicPlan[] = [
     cta_url: '/cadastro',
     sort_order: 2,
     features: [
-      { text: 'Até 200 clientes', included: true },
-      { text: 'Até 5 usuários', included: true },
-      { text: '1.000 ordens/mês', included: true },
+      { text: 'Clientes ilimitados', included: true },
+      { text: 'Até 3 usuários', included: true },
+      { text: 'Ordens ilimitadas', included: true },
       { text: '5 GB armazenamento', included: true },
       { text: 'Tudo do plano Free +', included: true },
       { text: 'Relatórios avançados', included: true },

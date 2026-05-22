@@ -9,17 +9,25 @@ const LIFETIME_CNPJS = new Set([
 ])
 
 export interface PlanLimits {
-  max_clients_free: number
+  max_clients_free:  number
   max_services_free: number
-  max_orders_free: number
-  max_users_free: number
+  max_orders_free:   number
+  max_users_free:    number
+  max_clients_pro:   number
+  max_services_pro:  number
+  max_orders_pro:    number
+  max_users_pro:     number
 }
 
 const DEFAULTS: PlanLimits = {
-  max_clients_free: 50,
+  max_clients_free:  50,
   max_services_free: 20,
-  max_orders_free:  100,  // alinhado com seeds: Free = 100 ordens/mês
-  max_users_free:   2,    // alinhado com seeds: Free = 2 usuários
+  max_orders_free:   100,
+  max_users_free:    2,
+  max_clients_pro:   999999, // ilimitado
+  max_services_pro:  999999,
+  max_orders_pro:    999999,
+  max_users_pro:     3,
 }
 
 let cached: { limits: PlanLimits; at: number } | null = null
@@ -38,6 +46,10 @@ export async function getPlanLimits(): Promise<PlanLimits> {
           'max_services_free',
           'max_orders_free',
           'max_users_free',
+          'max_clients_pro',
+          'max_services_pro',
+          'max_orders_pro',
+          'max_users_pro',
         ])
       )
 
