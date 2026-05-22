@@ -1,0 +1,46 @@
+{
+  "name": "Meu Atelier Sistema",
+  "short_name": "Meu Atelier",
+  "description": "Sistema de gestão para ateliês de costura e artesanato",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f0a06",
+  "theme_color": "#c8714a",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard do Meu Atelier Sistema"
+    }
+  ]
+}
