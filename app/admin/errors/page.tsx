@@ -5,14 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Trash2,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Bug,
-  Filter,
+  AlertTriangle, CheckCircle2, Trash2, RefreshCw,
+  ChevronDown, ChevronRight, Bug, Filter,
+  ChevronsUpDown, Square, CheckSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -39,18 +34,21 @@ const severityColors: Record<string, string> = {
   critical: 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400',
   error:    'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400',
   warning:  'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-400',
+  server:   'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400',
 }
 
 const typeLabels: Record<string, string> = {
   boundary:          'Boundary',
   runtime:           'Runtime',
   unhandled_promise: 'Promise',
+  server:            'Servidor',
 }
 
 export default function AdminErrorsPage() {
   const qc = useQueryClient()
-  const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('open')
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [filter, setFilter]       = useState<'all' | 'open' | 'resolved'>('open')
+  const [expanded, setExpanded]   = useState<Set<string>>(new Set())
+  const [selected, setSelected]   = useState<Set<string>>(new Set())
 
   const { data: errors = [], isLoading, isError, error: queryError, refetch } = useQuery<ErrorLog[]>({
     queryKey: ['admin-errors', filter],
@@ -102,6 +100,39 @@ export default function AdminErrorsPage() {
     onError: () => toast.error('Erro ao limpar'),
   })
 
+  // Ações em lote
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/admin/errors/${id}`, { method: 'DELETE' })
+      ))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-errors'] })
+      setSelected(new Set())
+      toast.success('Erros removidos')
+    },
+    onError: () => toast.error('Erro ao remover'),
+  })
+
+  const bulkResolve = useMutation({
+    mutationFn: async ({ ids, resolved }: { ids: string[]; resolved: boolean }) => {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/admin/errors/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resolved }),
+        })
+      ))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-errors'] })
+      setSelected(new Set())
+      toast.success('Erros atualizados')
+    },
+    onError: () => toast.error('Erro ao atualizar'),
+  })
+
   const toggleExpand = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev)
@@ -110,7 +141,30 @@ export default function AdminErrorsPage() {
     })
   }
 
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const allSelected  = errors.length > 0 && selected.size === errors.length
+  const someSelected = selected.size > 0 && !allSelected
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(errors.map(e => e.id)))
+    }
+  }
+
+  const expandAll  = () => setExpanded(new Set(errors.map(e => e.id)))
+  const collapseAll = () => setExpanded(new Set())
+
   const openCount = errors.filter(e => !e.resolved).length
+  const selectedIds = Array.from(selected)
 
   return (
     <div className="p-6 space-y-6">
@@ -122,14 +176,13 @@ export default function AdminErrorsPage() {
             Erros do Sistema
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Erros capturados automaticamente do frontend
+            Erros capturados automaticamente do frontend e servidor
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {errors.some(e => e.resolved) && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900"
               onClick={() => clearResolved.mutate()}
               disabled={clearResolved.isPending}
@@ -148,9 +201,9 @@ export default function AdminErrorsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total', value: errors.length, color: 'text-gray-700 dark:text-gray-200' },
-          { label: 'Em aberto', value: openCount, color: 'text-red-600 dark:text-red-400' },
-          { label: 'Resolvidos', value: errors.length - openCount, color: 'text-green-600 dark:text-green-400' },
+          { label: 'Total',      value: errors.length,              color: 'text-gray-700 dark:text-gray-200' },
+          { label: 'Em aberto',  value: openCount,                  color: 'text-red-600 dark:text-red-400'   },
+          { label: 'Resolvidos', value: errors.length - openCount,  color: 'text-green-600 dark:text-green-400' },
         ].map(s => (
           <div key={s.label} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
             <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
@@ -159,13 +212,13 @@ export default function AdminErrorsPage() {
         ))}
       </div>
 
-      {/* Filtros */}
-      <div className="flex items-center gap-2">
+      {/* Filtros + controles */}
+      <div className="flex items-center gap-2 flex-wrap">
         <Filter className="w-4 h-4 text-gray-400" />
         {(['open', 'all', 'resolved'] as const).map(f => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => { setFilter(f); setSelected(new Set()) }}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               filter === f
                 ? 'bg-blue-600 text-white'
@@ -175,7 +228,60 @@ export default function AdminErrorsPage() {
             {f === 'open' ? 'Em aberto' : f === 'resolved' ? 'Resolvidos' : 'Todos'}
           </button>
         ))}
+
+        {errors.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={expandAll}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ChevronsUpDown className="w-3.5 h-3.5" />
+              Expandir todos
+            </button>
+            <button
+              onClick={collapseAll}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Recolher todos
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Barra de ações em lote */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2.5">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+            {selected.size} selecionado{selected.size > 1 ? 's' : ''}
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              size="sm" variant="outline"
+              className="h-7 text-xs gap-1.5 text-green-600 border-green-300 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950/30"
+              onClick={() => bulkResolve.mutate({ ids: selectedIds, resolved: true })}
+              disabled={bulkResolve.isPending}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Marcar resolvidos
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              className="h-7 text-xs gap-1.5 text-red-600 border-red-300 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
+              onClick={() => bulkDelete.mutate(selectedIds)}
+              disabled={bulkDelete.isPending}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Apagar selecionados
+            </Button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lista */}
       {isLoading ? (
@@ -199,20 +305,44 @@ export default function AdminErrorsPage() {
           <p className="text-sm">Nenhum erro encontrado</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
+          {/* Cabeçalho de seleção */}
+          <div className="flex items-center gap-3 px-4 py-2">
+            <button onClick={toggleSelectAll} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              {allSelected
+                ? <CheckSquare className="w-4 h-4 text-blue-600" />
+                : someSelected
+                ? <CheckSquare className="w-4 h-4 text-blue-400" />
+                : <Square className="w-4 h-4" />}
+            </button>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {allSelected ? 'Desmarcar todos' : `Selecionar todos (${errors.length})`}
+            </span>
+          </div>
+
           {errors.map(err => {
-            const isOpen = expanded.has(err.id)
+            const isOpen  = expanded.has(err.id)
+            const isSel   = selected.has(err.id)
             return (
               <div
                 key={err.id}
-                className={`bg-white dark:bg-gray-900 rounded-lg border ${
-                  err.resolved
+                className={`bg-white dark:bg-gray-900 rounded-lg border transition-all ${
+                  isSel
+                    ? 'border-blue-400 dark:border-blue-600 ring-1 ring-blue-200 dark:ring-blue-900'
+                    : err.resolved
                     ? 'border-gray-200 dark:border-gray-800 opacity-60'
                     : 'border-red-200 dark:border-red-900'
                 }`}
               >
-                {/* Linha principal */}
                 <div className="flex items-start gap-3 p-4">
+                  {/* Checkbox */}
+                  <button onClick={() => toggleSelect(err.id)} className="mt-0.5 shrink-0 text-gray-400 hover:text-blue-500">
+                    {isSel
+                      ? <CheckSquare className="w-4 h-4 text-blue-600" />
+                      : <Square className="w-4 h-4" />}
+                  </button>
+
+                  {/* Expand */}
                   <button onClick={() => toggleExpand(err.id)} className="mt-0.5 shrink-0">
                     {isOpen
                       ? <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -236,16 +366,11 @@ export default function AdminErrorsPage() {
                         {err.created_at ? format(new Date(err.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                       </span>
                     </div>
-
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {err.message}
-                    </p>
-                    {err.url && (
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{err.url}</p>
-                    )}
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{err.message}</p>
+                    {err.url && <p className="text-xs text-gray-400 truncate mt-0.5">{err.url}</p>}
                   </div>
 
-                  {/* Ações */}
+                  {/* Ações individuais */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => resolve.mutate({ id: err.id, resolved: !err.resolved })}
