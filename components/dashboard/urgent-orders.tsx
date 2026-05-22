@@ -149,7 +149,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
                         {parseLocalDate(order.data_prevista).toLocaleDateString('pt-BR')}
                       </span>
                       <span className="text-[11px] font-semibold text-foreground">
-                        R$ {order.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {Number(order.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
