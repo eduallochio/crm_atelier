@@ -45,8 +45,8 @@ export function ReceivablesTable({ receivables, isLoading, onSort, sortField, so
     })
   }
 
-  const formatDate = (date: string) => {
-    // Usa apenas a parte da data (sem horário) para evitar offset de timezone
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return '—'
     const d = date.split('T')[0]
     const [year, month, day] = d.split('-')
     return `${day}/${month}/${year}`

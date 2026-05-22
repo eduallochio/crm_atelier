@@ -64,12 +64,14 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     }
   }
 
-  const parseLocalDate = (dateStr: string): Date => {
+  const parseLocalDate = (dateStr: string | null | undefined): Date => {
+    if (!dateStr) return new Date()
     const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
     return new Date(y, m - 1, d)
   }
 
-  const fmtDate = (dateStr: string) => {
+  const fmtDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '—'
     const [y, m, d] = dateStr.split('T')[0].split('-')
     return `${d}/${m}/${y}`
   }

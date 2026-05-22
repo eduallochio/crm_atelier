@@ -45,7 +45,8 @@ export default function OrdensServicoPage() {
     setViewDialogOpen(true)
   }
 
-  const parseLocalDate = (dateStr: string): Date => {
+  const parseLocalDate = (dateStr: string | null | undefined): Date => {
+    if (!dateStr) return new Date()
     const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
     return new Date(y, m - 1, d)
   }

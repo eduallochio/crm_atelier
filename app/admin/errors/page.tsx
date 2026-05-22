@@ -50,6 +50,23 @@ export default function AdminErrorsPage() {
   const [expanded, setExpanded]   = useState<Set<string>>(new Set())
   const [selected, setSelected]   = useState<Set<string>>(new Set())
 
+  // Busca nomes das organizações para exibir no lugar do UUID
+  const { data: orgs = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['admin-orgs-minimal'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/organizations')
+      if (!res.ok) return []
+      const data = await res.json()
+      return (data.organizations ?? data).map((o: any) => ({ id: o.id, name: o.name }))
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const orgName = (id: string | null) => {
+    if (!id) return null
+    return orgs.find(o => o.id === id)?.name ?? id.slice(0, 8) + '...'
+  }
+
   const { data: errors = [], isLoading, isError, error: queryError, refetch } = useQuery<ErrorLog[]>({
     queryKey: ['admin-errors', filter],
     queryFn: async () => {
@@ -367,7 +384,14 @@ export default function AdminErrorsPage() {
                       </span>
                     </div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{err.message}</p>
-                    {err.url && <p className="text-xs text-gray-400 truncate mt-0.5">{err.url}</p>}
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {err.organization_id && (
+                        <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">
+                          {orgName(err.organization_id)}
+                        </span>
+                      )}
+                      {err.url && <p className="text-xs text-gray-400 truncate">{err.url}</p>}
+                    </div>
                   </div>
 
                   {/* Ações individuais */}
@@ -415,8 +439,10 @@ export default function AdminErrorsPage() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       {err.organization_id && (
                         <div>
-                          <span className="text-gray-400">Org ID: </span>
-                          <span className="text-gray-700 dark:text-gray-300 font-mono">{err.organization_id}</span>
+                          <span className="text-gray-400">Organização: </span>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                            {orgName(err.organization_id)}
+                          </span>
                         </div>
                       )}
                       {err.user_agent && (
