@@ -45,7 +45,8 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
     })
   }
 
-  const formatDate = (date: string) => {
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return '—'
     const d = date.split('T')[0]
     const [year, month, day] = d.split('-')
     return `${day}/${month}/${year}`
