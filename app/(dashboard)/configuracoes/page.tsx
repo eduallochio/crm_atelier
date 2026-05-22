@@ -8,7 +8,8 @@ import { NotificationSettingsForm } from '@/components/settings/notification-set
 import { OrderSettingsForm } from '@/components/settings/order-settings-form'
 import { SystemSettingsForm } from '@/components/settings/system-settings-form'
 import { UsersManagementForm } from '@/components/settings/users-management-form'
-import { Building2, DollarSign, Bell, FileText, Settings, Users } from 'lucide-react'
+import { SubscriptionSettingsForm } from '@/components/settings/subscription-settings-form'
+import { Building2, DollarSign, Bell, FileText, Settings, Users, CreditCard } from 'lucide-react'
 
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('empresa')
@@ -23,7 +24,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-8">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-8">
           <TabsTrigger value="empresa" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Empresa</span>
@@ -47,6 +48,10 @@ export default function ConfiguracoesPage() {
           <TabsTrigger value="sistema" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Sistema</span>
+          </TabsTrigger>
+          <TabsTrigger value="assinatura" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">Assinatura</span>
           </TabsTrigger>
         </TabsList>
 
@@ -108,6 +113,16 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
           <SystemSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="assinatura">
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Assinatura e Pagamento</h2>
+            <p className="text-muted-foreground mb-6">
+              Gerencie seu plano, acompanhe o uso dos recursos e realize o upgrade quando precisar
+            </p>
+          </div>
+          <SubscriptionSettingsForm />
         </TabsContent>
       </Tabs>
     </div>
