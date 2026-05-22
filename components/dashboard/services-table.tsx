@@ -75,7 +75,7 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                 <div className="flex items-center gap-3 mt-2">
                   <span className="flex items-center text-base font-semibold text-green-600 dark:text-green-400">
                     <DollarSign className="h-4 w-4" />
-                    {service.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {Number(service.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                   {service.tempo_estimado && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -181,7 +181,7 @@ export function ServicesTable({ services, onEdit, onDuplicate }: ServicesTablePr
                   <td className="px-6 py-4">
                     <div className="flex items-center text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
-                      {service.preco.toLocaleString('pt-BR', {
+                      {Number(service.preco).toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

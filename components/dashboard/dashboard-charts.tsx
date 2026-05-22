@@ -150,7 +150,7 @@ export function DashboardCharts({ ordersData, servicesData }: DashboardChartsPro
                     {peakMonth.mes}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    R$ {peakMonth.valor.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    R$ {Number(peakMonth.valor).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                   </p>
                 </div>
               )}

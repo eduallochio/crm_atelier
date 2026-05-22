@@ -56,7 +56,7 @@ export function TopClients({ clients }: TopClientsProps) {
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-muted-foreground">
-                    R$ {client.revenue.toLocaleString('pt-BR')}
+                    R$ {Number(client.revenue).toLocaleString('pt-BR')}
                   </span>
                   {client.growth !== 0 && (
                     <span className={`flex items-center gap-1 ${

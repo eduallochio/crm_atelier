@@ -375,7 +375,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 <div className="text-right shrink-0">
                   <div className="flex items-center text-base font-semibold text-green-600 dark:text-green-400">
                     <DollarSign className="h-4 w-4" />
-                    {order.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {Number(order.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                   {order.items && order.items.length > 0 && (
                     <div className="text-xs text-muted-foreground">{order.items.length} {order.items.length === 1 ? 'item' : 'itens'}</div>
@@ -392,7 +392,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors"
                 >
                   <Banknote className="h-3 w-3" />
-                  R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
+                  R$ {(Number(order.valor_total || 0) - Number(order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
                 </button>
               )}
 
@@ -510,7 +510,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors"
                         >
                           <Banknote className="h-3 w-3" />
-                          R$ {((order.valor_total || 0) - (order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pendente
+                          R$ {(Number(order.valor_total || 0) - Number(order.valor_pago || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pendente
                         </button>
                       )}
                     </div>
@@ -564,7 +564,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
-                      {order.valor_total.toLocaleString('pt-BR', {
+                      {Number(order.valor_total).toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

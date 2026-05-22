@@ -100,7 +100,7 @@ export default function DashboardPage() {
   const monthlyRevenue = stats?.monthly_revenue ?? 0
   const recentActivities = stats?.recent_activities ?? []
   const urgentOrders = stats?.urgent_orders ?? []
-  const plan = stats?.plan ?? 'free'
+  const plan = stats?.plan ?? null
   const financialHealth = stats?.financial_health
   const topClients = stats?.top_clients ?? []
   const inactiveClientsCount = stats?.inactive_clients_count ?? 0

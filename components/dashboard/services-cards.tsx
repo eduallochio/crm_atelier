@@ -109,7 +109,7 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center text-lg font-semibold text-green-600 dark:text-green-400">
                       <DollarSign className="h-4 w-4" />
-                      {service.preco.toLocaleString('pt-BR', {
+                      {Number(service.preco).toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

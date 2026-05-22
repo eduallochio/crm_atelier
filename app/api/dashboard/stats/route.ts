@@ -290,7 +290,11 @@ export async function GET() {
       plan,
       recent_activities: activities,
       urgent_orders: urgentOrders.map((o) => ({
-        ...o,
+        id: o.id,
+        numero: o.numero,
+        data_prevista: o.dataPrevista,
+        status: o.status,
+        valor_total: Number(o.valorTotal ?? 0),
         client: { nome: o.clientNome },
       })),
       financial_health: financialHealth,
