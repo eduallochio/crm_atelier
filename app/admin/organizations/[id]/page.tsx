@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanBadge, StateBadge } from '@/components/admin/subscription-badge'
 import { toast } from 'sonner'
@@ -34,6 +34,22 @@ export default function OrganizationDetailPage() {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [impersonating, setImpersonating] = useState(false)
+
+  async function impersonate() {
+    setImpersonating(true)
+    try {
+      const res = await fetch(`/api/admin/organizations/${orgId}/impersonate`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao gerar acesso')
+      window.open(data.url, '_blank')
+      toast.success('Abrindo sessão da organização em nova aba')
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setImpersonating(false)
+    }
+  }
 
   async function changeState(action: 'suspend' | 'reactivate' | 'cancel') {
     setActionLoading(true)
@@ -129,6 +145,21 @@ export default function OrganizationDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Entrar como org — exclusivo master */}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={impersonating}
+              onClick={impersonate}
+              className="gap-2 text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950/40"
+              title="Abre o dashboard desta organização em nova aba"
+            >
+              {impersonating
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <LogIn className="w-4 h-4" />}
+              Entrar como org
+            </Button>
+
             {organization.state === 'suspended' ? (
               <Button
                 variant="outline"
