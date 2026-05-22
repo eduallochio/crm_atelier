@@ -367,7 +367,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={!showPreview}>
       <DialogContent className="sm:max-w-175 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
@@ -929,7 +929,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             </Button>
             <Button type="submit" disabled={isLoading || items.length === 0}>
               <Eye className="h-4 w-4 mr-2" />
-              {isLoading ? 'Criando...' : 'Visualizar Preview'}
+              {isLoading ? 'Gerando...' : 'Gerar OS'}
             </Button>
           </div>
         </form>
