@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
+import { validateImageUpload } from '@/lib/utils/validate-upload'
 
 function getStorageClient() {
   return createServiceClient(
@@ -21,15 +22,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Formato inválido. Envie uma imagem.' }, { status: 400 })
+    const validation = await validateImageUpload(file, 10)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
-
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Tamanho máximo: 10MB' }, { status: 400 })
-    }
-
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const { ext } = validation
     const random = Math.random().toString(36).slice(2, 8)
     const path = `orders/${user.organizationId}/${Date.now()}-${random}.${ext}`
 

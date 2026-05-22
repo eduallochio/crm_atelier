@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
+import { validateImageUpload } from '@/lib/utils/validate-upload'
 
 // Usa service role para bypass de RLS no Storage
 function getStorageClient() {
@@ -22,15 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Formato inválido. Envie uma imagem.' }, { status: 400 })
+    const validation = await validateImageUpload(file, 2)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
-
-    if (file.size > 2 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Tamanho máximo: 2MB' }, { status: 400 })
-    }
-
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+    const { ext } = validation
     const path = `logos/${user.organizationId}/logo-${Date.now()}.${ext}`
 
     const supabase = getStorageClient()

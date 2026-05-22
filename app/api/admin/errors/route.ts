@@ -4,12 +4,42 @@ import { adminErrorLogs } from '@/lib/db/schema'
 import { desc, eq, and } from 'drizzle-orm'
 import { requireMaster, getSessionUser } from '@/lib/auth/session'
 
-// POST — recebe erro do frontend (não exige auth, usa service role para gravar)
+// Contador simples de tentativas por IP para evitar flood (in-memory, suficiente para serverless)
+const errorFloodMap = new Map<string, { count: number; resetAt: number }>()
+const FLOOD_LIMIT = 20
+const FLOOD_WINDOW_MS = 60_000 // 1 minuto
+
+function isFlooding(ip: string): boolean {
+  const now = Date.now()
+  const entry = errorFloodMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    errorFloodMap.set(ip, { count: 1, resetAt: now + FLOOD_WINDOW_MS })
+    return false
+  }
+  entry.count++
+  return entry.count > FLOOD_LIMIT
+}
+
+// POST — recebe erro do frontend
+// Exige usuário autenticado OU token interno INTERNAL_ERROR_TOKEN
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    if (isFlooding(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
+    // Aceita usuário autenticado ou token interno (para erros de SSR/server-side)
+    const internalToken = request.headers.get('x-internal-token')
+    const validInternal = internalToken && internalToken === process.env.INTERNAL_ERROR_TOKEN
 
     const user = await getSessionUser().catch(() => null)
+
+    if (!user && !validInternal) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
 
     await db.insert(adminErrorLogs).values({
       organizationId: user?.organizationId ?? null,

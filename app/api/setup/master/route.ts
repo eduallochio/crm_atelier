@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
 
+// Rate limit: máximo 5 tentativas por IP a cada 15 minutos
+const attempts = new Map<string, { count: number; resetAt: number }>()
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = attempts.get(ip)
+  if (!entry || now > entry.resetAt) {
+    attempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 })
+    return true
+  }
+  if (entry.count >= 5) return false
+  entry.count++
+  return true
+}
+
 function getAdminClient() {
   return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +33,11 @@ function getAdminClient() {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
+    }
+
     const body = await request.json()
     const { secret, email, password, fullName = 'Master Admin' } = body
 
@@ -27,6 +47,15 @@ export async function POST(request: NextRequest) {
     }
     if (secret !== setupSecret) {
       return NextResponse.json({ error: 'Secret inválido.' }, { status: 403 })
+    }
+
+    // Bloqueia em produção se o master já existir
+    if (process.env.NODE_ENV === 'production') {
+      const adminSupabase = getAdminClient()
+      const { data } = await adminSupabase.from('profiles').select('id').eq('is_master', true).limit(1)
+      if (data && data.length > 0) {
+        return NextResponse.json({ error: 'Setup já realizado. Endpoint desabilitado.' }, { status: 403 })
+      }
     }
     if (!email || !password) {
       return NextResponse.json({ error: 'email e password são obrigatórios.' }, { status: 400 })
