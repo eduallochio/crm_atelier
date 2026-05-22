@@ -121,10 +121,10 @@ export default function PagarPage() {
 
   // Estatísticas filtradas
   const stats = useMemo(() => ({
-    total: filteredPayables.reduce((sum, p) => sum + (p.valor || 0), 0),
-    pendente: filteredPayables.filter(p => p.status === 'pendente').reduce((sum, p) => sum + (p.valor || 0), 0),
-    pago: filteredPayables.filter(p => p.status === 'pago').reduce((sum, p) => sum + (p.valor || 0), 0),
-    atrasado: filteredPayables.filter(p => p.status === 'atrasado').reduce((sum, p) => sum + (p.valor || 0), 0),
+    total: filteredPayables.reduce((sum, p) => sum + Number(p.valor || 0), 0),
+    pendente: filteredPayables.filter(p => p.status === 'pendente').reduce((sum, p) => sum + Number(p.valor || 0), 0),
+    pago: filteredPayables.filter(p => p.status === 'pago').reduce((sum, p) => sum + Number(p.valor || 0), 0),
+    atrasado: filteredPayables.filter(p => p.status === 'atrasado').reduce((sum, p) => sum + Number(p.valor || 0), 0),
     count: filteredPayables.length,
     totalCount: payables?.length || 0,
   }), [filteredPayables, payables])
