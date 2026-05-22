@@ -6,6 +6,30 @@ import { requireAuth } from '@/lib/auth/session'
 import { getPlanLimits, limitExceededResponse } from '@/lib/plan-limits'
 import { logServerError } from '@/lib/log-error'
 
+type OrgService = typeof orgServices.$inferSelect
+
+function mapService(s: OrgService) {
+  return {
+    id:                   s.id,
+    organization_id:      s.organizationId,
+    nome:                 s.nome,
+    descricao:            s.descricao,
+    preco:                Number(s.preco ?? 0),
+    categoria:            s.categoria,
+    tempo_estimado:       s.tempoEstimado,
+    tempo_minimo:         s.tempoMinimo,
+    tempo_maximo:         s.tempoMaximo,
+    observacoes_tecnicas: s.observacoesTecnicas,
+    nivel_dificuldade:    s.nivelDificuldade,
+    custo_materiais:      Number(s.custoMateriais ?? 0),
+    ativo:                s.ativo,
+    created_at:           s.createdAt,
+    materiais_produtos:   s.materiaisJson
+      ? (Array.isArray(s.materiaisJson) ? s.materiaisJson : [])
+      : (s.materiais ? JSON.parse(s.materiais as string) : []),
+  }
+}
+
 export async function GET() {
   try {
     const user = await requireAuth()
@@ -17,8 +41,23 @@ export async function GET() {
       .orderBy(orgServices.createdAt)
 
     const mapped = services.map(s => ({
-      ...s,
-      materiais_produtos: s.materiais ? JSON.parse(s.materiais) : [],
+      id:                   s.id,
+      organization_id:      s.organizationId,
+      nome:                 s.nome,
+      descricao:            s.descricao,
+      preco:                Number(s.preco ?? 0),
+      categoria:            s.categoria,
+      tempo_estimado:       s.tempoEstimado,
+      tempo_minimo:         s.tempoMinimo,
+      tempo_maximo:         s.tempoMaximo,
+      observacoes_tecnicas: s.observacoesTecnicas,
+      nivel_dificuldade:    s.nivelDificuldade,
+      custo_materiais:      Number(s.custoMateriais ?? 0),
+      ativo:                s.ativo,
+      created_at:           s.createdAt,
+      materiais_produtos:   s.materiaisJson
+        ? (Array.isArray(s.materiaisJson) ? s.materiaisJson : [])
+        : (s.materiais ? JSON.parse(s.materiais) : []),
     }))
 
     return NextResponse.json(mapped)
@@ -79,6 +118,7 @@ export async function POST(request: Request) {
         tempoEstimado:       body.tempo_estimado || null,
         custoMateriais:      custoMateriais,
         materiais:           materiaisJson,
+        materiaisJson:       materiais_produtos.length > 0 ? materiais_produtos : null,
         observacoesTecnicas: body.observacoes_tecnicas || null,
         nivelDificuldade:    body.nivel_dificuldade || null,
         tempoMinimo:         body.tempo_minimo || null,
@@ -87,10 +127,7 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json({
-      ...inserted,
-      materiais_produtos: inserted.materiais ? JSON.parse(inserted.materiais) : [],
-    }, { status: 201 })
+    return NextResponse.json(mapService(inserted), { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

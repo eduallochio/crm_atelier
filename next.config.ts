@@ -23,6 +23,8 @@ const securityHeaders = [
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "manifest-src 'self'",
+      "worker-src 'self'",
     ].join('; '),
   },
 ]
@@ -43,6 +45,23 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      // Manifest PWA — Content-Type correto
+      {
+        source: '/manifest.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/manifest+json' },
+        ],
+      },
+      // Service Worker — permite escopo correto
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type',             value: 'application/javascript' },
+          { key: 'Service-Worker-Allowed',   value: '/' },
+          { key: 'Cache-Control',            value: 'no-cache' },
+        ],
+      },
+      // Headers de segurança em todas as rotas
       {
         source: '/(.*)',
         headers: securityHeaders,

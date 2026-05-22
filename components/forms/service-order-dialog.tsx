@@ -135,6 +135,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const descontoPercentual = watch('desconto_percentual') || 0
   const valorEntrada = watch('valor_entrada') || 0
 
+  // Sincroniza o state de items com o react-hook-form — força number para valor_unitario/valor_total
+  useEffect(() => {
+    setValue('items', items.map(item => ({
+      ...item,
+      valor_unitario: Number(item.valor_unitario),
+      valor_total:    Number(item.valor_total),
+    })))
+  }, [items, setValue])
+
   useEffect(() => {
     if (open) {
       // Pré-preenche observações com aviso padrão se configurado
@@ -176,13 +185,13 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     const service = services.find(s => s.id === selectedServiceId)
     if (!service) return
 
-    const valor_unitario = service.preco
-    const valor_total = valor_unitario * quantidade
+    const valor_unitario = Number(service.preco) || 0
+    const valor_total   = valor_unitario * Number(quantidade)
 
     const newItem: ServiceOrderItemInput = {
-      service_id: service.id,
-      service_nome: service.nome,
-      quantidade,
+      service_id:    service.id,
+      service_nome:  service.nome ?? '',
+      quantidade:    Number(quantidade),
       valor_unitario,
       valor_total,
     }
@@ -226,7 +235,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     setValue('items', updatedItems)
   }
 
-  const total = items.reduce((sum, item) => sum + item.valor_total, 0)
+  const total = items.reduce((sum, item) => sum + Number(item.valor_total), 0)
   
   // Calcular desconto
   let valorDesconto = 0
@@ -287,9 +296,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         order_id: 'preview',
         service_id: item.service_id,
         service_nome: item.service_nome,
-        quantidade: item.quantidade,
-        valor_unitario: item.valor_unitario,
-        valor_total: item.valor_total,
+        quantidade: Number(item.quantidade),
+        valor_unitario: Number(item.valor_unitario),
+        valor_total: Number(item.valor_total),
         created_at: new Date().toISOString(),
       }))
     }
@@ -358,16 +367,19 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         toast.success(gerarPDF ? 'Ordem criada e PDF gerado!' : 'Ordem criada com sucesso!')
       }
 
+      setPreviewData(null) // limpa antes de fechar para não reabrir o form
       setShowPreview(false)
       onOpenChange(false)
     } catch (error) {
       console.error('Erro ao salvar ordem:', error)
+      toast.error('Erro ao salvar ordem de serviço')
+      throw error
     }
   }
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange} modal={!showPreview}>
+    <Dialog open={open && !showPreview} onOpenChange={(v) => { if (!showPreview) onOpenChange(v) }}>
       <DialogContent className="sm:max-w-175 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
@@ -376,7 +388,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           {/* Cliente */}
           <div className="space-y-2">
             <Label htmlFor="client_id">
@@ -927,7 +939,11 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || items.length === 0}>
+            <Button
+              type="button"
+              disabled={isLoading || items.length === 0}
+              onClick={() => handleSubmit(onSubmit)()}
+            >
               <Eye className="h-4 w-4 mr-2" />
               {isLoading ? 'Gerando...' : 'Gerar OS'}
             </Button>
@@ -939,7 +955,13 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     {/* Dialog de Preview - Fora do dialog principal */}
     <OrderPreviewDialog
       open={showPreview}
-      onOpenChange={setShowPreview}
+      onOpenChange={(v) => {
+          setShowPreview(v)
+          if (!v && previewData) {
+            // Reabre o form para o usuário poder editar
+            onOpenChange(true)
+          }
+        }}
       order={previewData?.previewOrder || null}
       organizationName="Meu Atelier"
       onConfirm={handleConfirmSave}

@@ -45,15 +45,15 @@ export default function ServicosPage() {
   }
 
   const handleDuplicate = (service: Service) => {
-    // Criar um novo serviço baseado no existente, mas com nome modificado
-    const duplicatedService: Partial<Service> = {
+    // Passa null como selectedService (modo criação) mas pré-preenche via prop separada
+    // Copia apenas dados editáveis, sem id/organization_id/created_at
+    setSelectedService({
       ...service,
-      id: undefined as any, // Será criado um novo ID
+      id: '',           // id vazio → service-dialog detecta como novo (isEditing = !!service?.id)
       nome: `${service.nome} (Cópia)`,
-      created_at: undefined as any,
-    }
-    
-    setSelectedService(duplicatedService as Service)
+      created_at: '',
+      organization_id: '',
+    })
     setDialogOpen(true)
   }
 
@@ -101,9 +101,9 @@ export default function ServicosPage() {
     if (sortBy === 'name') {
       return a.nome.localeCompare(b.nome)
     } else if (sortBy === 'price-asc') {
-      return a.preco - b.preco
+      return Number(a.preco) - Number(b.preco)
     } else if (sortBy === 'price-desc') {
-      return b.preco - a.preco
+      return Number(b.preco) - Number(a.preco)
     } else if (sortBy === 'most-used') {
       const usageA = stats?.serviceUsage.find(u => u.id === a.id)?.count || 0
       const usageB = stats?.serviceUsage.find(u => u.id === b.id)?.count || 0

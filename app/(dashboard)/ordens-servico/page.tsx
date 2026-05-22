@@ -303,7 +303,7 @@ export default function OrdensServicoPage() {
       />
 
       {/* Dialog de Visualizar Ordem */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+      <Dialog open={viewDialogOpen && !showPreview} onOpenChange={(v) => { if (!showPreview) setViewDialogOpen(v) }}>
         <DialogContent className="sm:max-w-200 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
@@ -351,8 +351,8 @@ export default function OrdensServicoPage() {
 
                 {/* Situação do Pagamento */}
                 {(() => {
-                  const valorPago = currentSelectedOrder.valor_pago || 0
-                  const saldo = (currentSelectedOrder.valor_total || 0) - valorPago
+                  const valorPago = Number(currentSelectedOrder.valor_pago) || 0
+                  const saldo = (Number(currentSelectedOrder.valor_total) || 0) - valorPago
                   const isPago = currentSelectedOrder.status_pagamento === 'pago'
                   const isParcial = currentSelectedOrder.status_pagamento === 'parcial'
                   return (
@@ -376,7 +376,7 @@ export default function OrdensServicoPage() {
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
                           <p className="text-muted-foreground">Total</p>
-                          <p className="font-semibold">R$ {(currentSelectedOrder.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          <p className="font-semibold">R$ {(Number(currentSelectedOrder.valor_total) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Pago</p>
@@ -463,7 +463,7 @@ export default function OrdensServicoPage() {
       {/* Dialog de Preview */}
       <OrderPreviewDialog
         open={showPreview}
-        onOpenChange={setShowPreview}
+        onOpenChange={(v) => { setShowPreview(v); if (!v) setViewDialogOpen(true) }}
         order={currentSelectedOrder}
         organizationName="Meu Atelier"
         showConfirmButton={false}

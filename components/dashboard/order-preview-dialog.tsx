@@ -1,19 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Printer, X, MessageCircle } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Printer, X, MessageCircle, Loader2 } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { generateThermalPreview, generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import { useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -22,7 +15,7 @@ interface OrderPreviewDialogProps {
   onOpenChange: (open: boolean) => void
   order: ServiceOrder | null
   organizationName?: string
-  onConfirm?: () => void
+  onConfirm?: () => Promise<void> | void
   confirmButtonText?: string
   showConfirmButton?: boolean
 }
@@ -104,23 +97,43 @@ export function OrderPreviewDialog({
     }
   }
 
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm()
+  const [confirming, setConfirming] = useState(false)
+
+  const handleConfirm = async () => {
+    if (!onConfirm) return
+    setConfirming(true)
+    try {
+      await onConfirm()
+    } finally {
+      setConfirming(false)
+      onOpenChange(false)
     }
-    onOpenChange(false)
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-      <DialogContent className="flex flex-col w-[calc(100vw-2rem)] max-w-lg max-h-[92vh] p-0 gap-0 overflow-hidden">
+  if (!open) return null
+
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        onClick={() => onOpenChange(false)}
+      />
+      <div className="relative flex flex-col w-full max-w-lg max-h-[92vh] bg-background rounded-xl shadow-2xl border border-border overflow-hidden">
         {/* Header fixo */}
-        <DialogHeader className="shrink-0 px-6 pt-5 pb-3 border-b border-border">
-          <DialogTitle>Preview da Ordem de Serviço</DialogTitle>
-          <DialogDescription>
-            Visualização de como ficará a impressão térmica
-          </DialogDescription>
-        </DialogHeader>
+        <div className="shrink-0 px-6 pt-5 pb-3 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Preview da Ordem de Serviço</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Visualização de como ficará a impressão</p>
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
 
         {/* Preview com scroll independente */}
         {orderWithPaymentName && (
@@ -174,15 +187,19 @@ export function OrderPreviewDialog({
                   type="button"
                   size="sm"
                   onClick={handleConfirm}
-                  className="ml-auto"
+                  disabled={confirming}
+                  className="ml-auto gap-2"
                 >
-                  {confirmButtonText}
+                  {confirming && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {confirming ? 'Salvando...' : confirmButtonText}
                 </Button>
               )}
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   )
+
+  return createPortal(content, document.body)
 }

@@ -9,7 +9,7 @@ import {
   usageMetrics,
   orgTransactions,
 } from '@/lib/db/schema'
-import { eq, and, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 
@@ -57,7 +57,7 @@ export async function GET() {
     const allItems = await db
       .select()
       .from(orgServiceOrderItems)
-      .where(drizzleSql`${orgServiceOrderItems.orderId} = ANY(${orderIds})`)
+      .where(inArray(orgServiceOrderItems.orderId, orderIds))
 
     const itemsByOrder: Record<string, typeof allItems> = {}
     for (const item of allItems) {
@@ -71,12 +71,12 @@ export async function GET() {
       organization_id:     row.organizationId,
       client_id:           row.clientId,
       status:              row.status,
-      valor_total:         row.valorTotal,
-      valor_entrada:       row.valorEntrada,
-      valor_pago:          row.valorPago,
+      valor_total:         Number(row.valorTotal ?? 0),
+      valor_entrada:       Number(row.valorEntrada ?? 0),
+      valor_pago:          Number(row.valorPago ?? 0),
       status_pagamento:    row.statusPagamento,
-      desconto_valor:      row.descontoValor,
-      desconto_percentual: row.descontoPercentual,
+      desconto_valor:      Number(row.descontoValor ?? 0),
+      desconto_percentual: Number(row.descontoPercentual ?? 0),
       data_abertura:       row.dataAbertura,
       data_prevista:       row.dataPrevista,
       data_conclusao:      row.dataConclusao,
@@ -88,7 +88,16 @@ export async function GET() {
       client: row.clienteCId
         ? { id: row.clienteCId, nome: row.clienteNome, telefone: row.clienteTelefone, email: row.clienteEmail }
         : null,
-      items: itemsByOrder[row.id] || [],
+      items: (itemsByOrder[row.id] || []).map((i: any) => ({
+        id:             i.id,
+        order_id:       i.orderId,
+        service_id:     i.serviceId,
+        service_nome:   i.serviceNome,
+        quantidade:     Number(i.quantidade ?? 1),
+        valor_unitario: Number(i.valorUnitario ?? 0),
+        valor_total:    Number(i.valorTotal ?? 0),
+        created_at:     i.createdAt,
+      })),
     }))
 
     return NextResponse.json(orders)

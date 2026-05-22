@@ -106,7 +106,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
   useEffect(() => {
     if (open) {
       const parsed: ServiceMaterial[] = service?.materiais_produtos ?? []
-      setMateriais(parsed)
+      setMateriais(service ? parsed : []) // limpa materiais ao criar novo
       setSelectedProductId('')
       setMaterialQtd(1)
       setProductSearch('')
@@ -177,13 +177,17 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
   }
 
   const onSubmit = async (data: ServiceInput) => {
-    const payload: ServiceInput = { ...data, materiais_produtos: materiais }
-    if (isEditing) {
-      await updateService.mutateAsync({ id: service.id, input: payload })
-    } else {
-      await createService.mutateAsync(payload)
+    try {
+      const payload: ServiceInput = { ...data, materiais_produtos: materiais }
+      if (isEditing) {
+        await updateService.mutateAsync({ id: service.id, input: payload })
+      } else {
+        await createService.mutateAsync(payload)
+      }
+      onOpenChange(false)
+    } catch {
+      // erro já tratado pelo hook com toast
     }
-    onOpenChange(false)
   }
 
   const isLoading = createService.isPending || updateService.isPending

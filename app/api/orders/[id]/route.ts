@@ -70,12 +70,12 @@ export async function GET(
       organization_id:     orderRow.organizationId,
       client_id:           orderRow.clientId,
       status:              orderRow.status,
-      valor_total:         orderRow.valorTotal,
-      valor_entrada:       orderRow.valorEntrada,
-      valor_pago:          orderRow.valorPago,
+      valor_total:         Number(orderRow.valorTotal ?? 0),
+      valor_entrada:       Number(orderRow.valorEntrada ?? 0),
+      valor_pago:          Number(orderRow.valorPago ?? 0),
       status_pagamento:    orderRow.statusPagamento,
-      desconto_valor:      orderRow.descontoValor,
-      desconto_percentual: orderRow.descontoPercentual,
+      desconto_valor:      Number(orderRow.descontoValor ?? 0),
+      desconto_percentual: Number(orderRow.descontoPercentual ?? 0),
       data_abertura:       orderRow.dataAbertura,
       data_prevista:       orderRow.dataPrevista,
       data_conclusao:      orderRow.dataConclusao,
@@ -87,7 +87,16 @@ export async function GET(
       client: orderRow.clienteCId
         ? { id: orderRow.clienteCId, nome: orderRow.clienteNome, telefone: orderRow.clienteTelefone, email: orderRow.clienteEmail }
         : null,
-      items,
+      items: items.map(i => ({
+        id:             i.id,
+        order_id:       i.orderId,
+        service_id:     i.serviceId,
+        service_nome:   i.serviceNome,
+        quantidade:     Number(i.quantidade ?? 1),
+        valor_unitario: Number(i.valorUnitario ?? 0),
+        valor_total:    Number(i.valorTotal ?? 0),
+        created_at:     i.createdAt,
+      })),
     }
 
     return NextResponse.json(order)

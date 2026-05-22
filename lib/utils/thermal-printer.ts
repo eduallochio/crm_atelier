@@ -18,7 +18,25 @@ export interface OrganizationData {
  * Gera PDF otimizado para impressora térmica (80mm)
  * Layout compacto e vertical, ideal para cupons não fiscais
  */
+function normalizeOrder(order: ServiceOrder): ServiceOrder {
+  return {
+    ...order,
+    valor_total:         Number(order.valor_total ?? 0),
+    valor_entrada:       Number(order.valor_entrada ?? 0),
+    valor_pago:          Number(order.valor_pago ?? 0),
+    desconto_valor:      Number(order.desconto_valor ?? 0),
+    desconto_percentual: Number(order.desconto_percentual ?? 0),
+    items: order.items?.map(i => ({
+      ...i,
+      quantidade:     Number(i.quantidade ?? 1),
+      valor_unitario: Number(i.valor_unitario ?? 0),
+      valor_total:    Number(i.valor_total ?? 0),
+    })),
+  }
+}
+
 export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData) {
+  order = normalizeOrder(order)
   // Impressora térmica 80mm = ~75mm útil
   const doc = new jsPDF({
     unit: 'mm',
@@ -159,8 +177,8 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     // Quantidade e valores
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
-    doc.text(`${item.quantidade} x R$ ${item.valor_unitario.toFixed(2)}`, margin + 2, y)
-    doc.text(`R$ ${item.valor_total.toFixed(2)}`, width - margin, y, { align: 'right' })
+    doc.text(`${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}`, margin + 2, y)
+    doc.text(`R$ ${Number(item.valor_total).toFixed(2)}`, width - margin, y, { align: 'right' })
     y += 5
 
     subtotal += item.valor_total
@@ -272,6 +290,7 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
  * Gera preview HTML da ordem para impressora térmica
  */
 export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
+  order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
     em_andamento: 'Em Andamento',
@@ -343,8 +362,8 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           <div style="margin-bottom: 8px;">
             <div style="font-weight: bold; font-size: 11px;">${item.service_nome}</div>
             <div style="display: flex; justify-content: space-between; font-size: 10px; margin-left: 4px;">
-              <span>${item.quantidade} x R$ ${item.valor_unitario.toFixed(2)}</span>
-              <span>R$ ${item.valor_total.toFixed(2)}</span>
+              <span>${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}</span>
+              <span>R$ ${Number(item.valor_total).toFixed(2)}</span>
             </div>
           </div>
         `).join('') || '<div style="font-size: 11px;">Nenhum serviço adicionado</div>'}
@@ -418,6 +437,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
  * Usa formatação suportada pelo WhatsApp (*negrito*, _itálico_)
  */
 export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
+  order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
     em_andamento: 'Em Andamento',
@@ -484,7 +504,7 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   lines.push(`*SERVIÇOS*`)
   order.items?.forEach(item => {
     lines.push(`• *${item.service_nome}*`)
-    lines.push(`  ${item.quantidade}x R$ ${item.valor_unitario.toFixed(2)} = R$ ${item.valor_total.toFixed(2)}`)
+    lines.push(`  ${item.quantidade}x R$ ${Number(item.valor_unitario).toFixed(2)} = R$ ${Number(item.valor_total).toFixed(2)}`)
   })
   if (!order.items?.length) lines.push('Nenhum serviço adicionado')
   lines.push(sep)
