@@ -70,9 +70,9 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
       form.reset({
         supplier_id: payable.supplier_id || '',
         category_id: payable.category_id || '',
-        descricao: payable.descricao,
-        valor: payable.valor.toString(),
-        data_vencimento: payable.data_vencimento,
+        descricao: payable.descricao || '',
+        valor: payable.valor?.toString() || '',
+        data_vencimento: payable.data_vencimento || '',
         data_pagamento: payable.data_pagamento || '',
         status: payable.status,
         categoria: payable.categoria || '',
