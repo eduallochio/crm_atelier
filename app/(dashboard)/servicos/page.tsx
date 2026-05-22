@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Package, CheckCircle, XCircle, DollarSign, TrendingUp, LayoutGrid, List, Filter } from 'lucide-react'
+import { Plus, Search, Package, CheckCircle, XCircle, DollarSign, TrendingUp, LayoutGrid, List, Filter, Info, X } from 'lucide-react'
 import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
@@ -24,9 +24,15 @@ export default function ServicosPage() {
   const [sortBy, setSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'most-used'>('name')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
 
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
   const { data: services = [], isLoading } = useServices()
   const { data: stats } = useServiceStats()
   const serviceLimit = usePlanLimit('services')
+
+  // Mostra banner quando há serviços sem preço definido (preco = 0 ou null)
+  const servicesWithoutPrice = services.filter(s => s.ativo && (!s.preco || Number(s.preco) === 0))
+  const showPriceBanner = !bannerDismissed && servicesWithoutPrice.length > 0
 
   const handleEdit = (service: Service) => {
     setSelectedService(service)
@@ -118,6 +124,30 @@ export default function ServicosPage() {
       />
       
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+
+        {/* Banner de serviços pré-cadastrados sem preço */}
+        {showPriceBanner && (
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3.5">
+            <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
+                Serviços pré-cadastrados aguardando preço
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                Preparamos <strong>{servicesWithoutPrice.length} serviço{servicesWithoutPrice.length > 1 ? 's' : ''}</strong> comuns de ateliê para você ({servicesWithoutPrice.map(s => s.nome).join(', ')}).
+                Clique em cada um para informar o valor e começar a usá-los nas ordens de serviço.
+              </p>
+            </div>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="p-1 rounded-md text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shrink-0"
+              title="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Total */}
