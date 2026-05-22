@@ -4,10 +4,6 @@ import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
-})
-
 // Mapeia price_id do Stripe → slug do plano no banco
 function planFromPriceId(priceId: string): string {
   const map: Record<string, string> = {
@@ -20,6 +16,10 @@ function planFromPriceId(priceId: string): string {
 }
 
 export async function POST(request: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2025-12-15.clover',
+  })
+
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
 
