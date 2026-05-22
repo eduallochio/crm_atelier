@@ -8,14 +8,14 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 type PlanUsage = {
-  plan: string
+  plan:          string
   clients_count: number
-  orders_count: number
-  users_count: number
+  orders_count:  number
+  users_count:   number
   limits: {
     max_clients: number
-    max_orders: number
-    max_users: number
+    max_orders:  number
+    max_users:   number
   }
 }
 
@@ -118,21 +118,22 @@ export function SubscriptionSettingsForm() {
           <div className="space-y-4">
             {[
               { label: 'Clientes', used: usage.clients_count, max: usage.limits.max_clients },
-              { label: 'Ordens/mês', used: usage.orders_count, max: usage.limits.max_orders },
-              { label: 'Usuários', used: usage.users_count, max: usage.limits.max_users },
+              { label: 'Ordens',   used: usage.orders_count,  max: usage.limits.max_orders  },
+              { label: 'Usuários', used: usage.users_count,   max: usage.limits.max_users   },
             ].map(({ label, used, max }) => {
-              const p = pct(used, max)
+              const unlimited = max >= 999999
+              const p = unlimited ? Math.min((used / 100) * 10, 30) : pct(used, max)
               return (
                 <div key={label}>
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="text-muted-foreground">{label}</span>
-                    <span className={cn('font-medium', p >= 90 ? 'text-red-500' : p >= 70 ? 'text-amber-500' : 'text-foreground')}>
-                      {used} / {max}
+                    <span className={cn('font-medium', !unlimited && p >= 90 ? 'text-red-500' : !unlimited && p >= 70 ? 'text-amber-500' : 'text-foreground')}>
+                      {used} / {unlimited ? 'Ilimitado' : max}
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={cn('h-full rounded-full transition-all', p >= 90 ? 'bg-red-500' : p >= 70 ? 'bg-amber-500' : 'bg-[#c8714a]')}
+                      className={cn('h-full rounded-full transition-all', !unlimited && p >= 90 ? 'bg-red-500' : !unlimited && p >= 70 ? 'bg-amber-500' : 'bg-[#c8714a]')}
                       style={{ width: `${p}%` }}
                     />
                   </div>

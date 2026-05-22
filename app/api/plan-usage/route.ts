@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, usageMetrics, orgServices, adminSystemSettings } from '@/lib/db/schema'
-import { eq, inArray } from 'drizzle-orm'
+import { organizations, usageMetrics, profiles, adminSystemSettings } from '@/lib/db/schema'
+import { eq, count, inArray } from 'drizzle-orm'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
-  max_clients_free: 50,
+  max_clients_free:  50,
   max_services_free: 20,
-  max_orders_free: 250,
-  max_users_free: 1,
+  max_orders_free:   100,
+  max_users_free:    2,
+  max_clients_pro:   999999,
+  max_services_pro:  999999,
+  max_orders_pro:    999999,
+  max_users_pro:     3,
 }
 
 async function getPlanLimits() {
@@ -18,14 +22,7 @@ async function getPlanLimits() {
     const rows = await db
       .select({ key: adminSystemSettings.key, value: adminSystemSettings.value })
       .from(adminSystemSettings)
-      .where(
-        inArray(adminSystemSettings.key, [
-          'max_clients_free',
-          'max_services_free',
-          'max_orders_free',
-          'max_users_free',
-        ])
-      )
+      .where(inArray(adminSystemSettings.key, Object.keys(DEFAULTS)))
 
     const limits = { ...DEFAULTS }
     for (const row of rows) {
@@ -45,47 +42,51 @@ export async function GET() {
     const user = await requireAuth()
     const orgId = user.organizationId
 
-    const [orgRows, metricsRows, servicesCount, limits, lifetime] = await Promise.all([
+    const [orgRow, metrics, usersCount, limits, lifetime] = await Promise.all([
       db.select({ plan: organizations.plan })
         .from(organizations)
         .where(eq(organizations.id, orgId))
         .limit(1),
+
       db.select({
-          totalClientsEver: usageMetrics.totalClientsEver,
-          totalOrdersEver: usageMetrics.totalOrdersEver,
+          clientsCount: usageMetrics.clientsCount,
+          ordersCount:  usageMetrics.ordersCount,
         })
         .from(usageMetrics)
         .where(eq(usageMetrics.organizationId, orgId))
         .limit(1),
-      db.select({ count: eq(orgServices.organizationId, orgId) })
-        .from(orgServices)
-        .where(eq(orgServices.organizationId, orgId)),
+
+      db.select({ count: count() })
+        .from(profiles)
+        .where(eq(profiles.organizationId, orgId)),
+
       getPlanLimits(),
       hasLifetimeLicense(orgId),
     ])
 
-    const plan = lifetime ? 'enterprise' : (orgRows[0]?.plan ?? 'free')
-    const metrics = metricsRows[0]
+    const plan = lifetime ? 'pro' : (orgRow[0]?.plan ?? 'free')
+    const isPro = plan !== 'free'
+
+    const clientsCount = Number(metrics[0]?.clientsCount ?? 0)
+    const ordersCount  = Number(metrics[0]?.ordersCount  ?? 0)
+    const users        = Number(usersCount[0]?.count ?? 1)
 
     return NextResponse.json({
       plan,
-      usage: {
-        clients: Number(metrics?.totalClientsEver ?? 0),
-        services: servicesCount.length,
-        orders: Number(metrics?.totalOrdersEver ?? 0),
-      },
+      clients_count: clientsCount,
+      orders_count:  ordersCount,
+      users_count:   users,
       limits: {
-        clients: limits.max_clients_free,
-        services: limits.max_services_free,
-        orders: limits.max_orders_free,
-        users: limits.max_users_free,
+        max_clients: isPro ? limits.max_clients_pro : limits.max_clients_free,
+        max_orders:  isPro ? limits.max_orders_pro  : limits.max_orders_free,
+        max_users:   isPro ? limits.max_users_pro   : limits.max_users_free,
       },
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/plan-usage]', error); console.error('[GET /api/plan-usage]', error)
+    logServerError('[GET /api/plan-usage]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
