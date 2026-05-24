@@ -139,49 +139,73 @@ export default function DashboardPage() {
   return (
     <div>
       {/* ── Greeting Banner ── */}
-      <div className="bg-card border-b border-border/60 px-4 sm:px-6 lg:px-8 py-5 pl-16 lg:pl-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 sm:mr-52 lg:mr-56">
-          <div className="pr-40 sm:pr-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+      <div className="bg-card border-b border-border/60">
+
+        {/* Mobile layout */}
+        <div className="sm:hidden pb-4 space-y-3">
+          {/* Linha de saudação — recuada para não colidir com hamburguer (esq) e ícones (dir) */}
+          <div className="px-4 pt-3.5 pl-14 pr-36">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-none mb-0.5">
               {dateStr}
             </p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
-              {greeting || `Bem-vindo!`}
+            <h1 className="text-lg font-bold text-foreground leading-tight">
+              {greeting || 'Bem-vindo!'}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Visão geral do seu ateliê</p>
+            <p className="text-xs text-muted-foreground">Visão geral do seu ateliê</p>
           </div>
 
-          {/* Desktop: busca + divisor + botões em linha */}
-          <div className="hidden sm:flex items-center gap-3 shrink-0">
-            <div className="w-52 lg:w-64">
-              <GlobalSearch clients={clients} orders={orders} services={services} />
-            </div>
-            <div className="h-8 w-px bg-border/60 shrink-0" />
-            <Button onClick={() => setClientDialogOpen(true)} size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
-              <UserPlus className="h-4 w-4" />
-              Novo Cliente
-            </Button>
-            <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
-              <Plus className="h-4 w-4" />
-              Nova Ordem
-            </Button>
-          </div>
-
-          {/* Mobile: busca em cima, botões lado a lado embaixo */}
-          <div className="flex sm:hidden flex-col gap-3">
+          {/* Busca e botões abaixo, padding normal */}
+          <div className="px-4 space-y-3">
             <GlobalSearch clients={clients} orders={orders} services={services} />
-            <div className="flex gap-3">
-              <Button onClick={() => setClientDialogOpen(true)} size="sm" className="flex-1 gap-2 h-10 font-medium">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => setClientDialogOpen(true)}
+                className="h-12 text-sm font-semibold gap-2"
+              >
                 <UserPlus className="h-4 w-4" />
                 Novo Cliente
               </Button>
-              <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="flex-1 gap-2 h-10 font-medium">
+              <Button
+                onClick={() => setOrderDialogOpen(true)}
+                variant="outline"
+                className="h-12 text-sm font-semibold gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 Nova Ordem
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Desktop layout */}
+        <div className="hidden sm:block px-6 lg:px-8 py-5">
+          <div className="flex items-center justify-between gap-4 sm:mr-52 lg:mr-56">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                {dateStr}
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+                {greeting || 'Bem-vindo!'}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">Visão geral do seu ateliê</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="w-52 lg:w-64">
+                <GlobalSearch clients={clients} orders={orders} services={services} />
+              </div>
+              <div className="h-8 w-px bg-border/60 shrink-0" />
+              <Button onClick={() => setClientDialogOpen(true)} size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
+                <UserPlus className="h-4 w-4" />
+                Novo Cliente
+              </Button>
+              <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
+                <Plus className="h-4 w-4" />
+                Nova Ordem
+              </Button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
