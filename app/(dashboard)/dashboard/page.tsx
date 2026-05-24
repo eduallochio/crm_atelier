@@ -82,7 +82,6 @@ export default function DashboardPage() {
       if (!res.ok) return []
       return res.json()
     },
-    staleTime: 10 * 60 * 1000,
   })
 
   // Clientes para busca global (usa API já migrada)
