@@ -132,7 +132,55 @@ export function ReceivablesTable({ receivables, isLoading, onSort, sortField, so
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* View mobile: cards */}
+      <div className="sm:hidden divide-y divide-border">
+        {receivables.map((receivable) => (
+          <div key={receivable.id} className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{receivable.descricao}</p>
+                {receivable.observacoes && <p className="text-xs text-muted-foreground truncate">{receivable.observacoes}</p>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {getStatusBadge(receivable.status)}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {receivable.status !== 'recebido' && (
+                      <DropdownMenuItem onClick={() => handleMarkAsReceived(receivable)}>
+                        <Check className="h-4 w-4 mr-2" />
+                        Marcar como Recebido
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setEditReceivable(receivable)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDeleteId(receivable.id)} className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-bold text-foreground">{formatCurrency(receivable.valor)}</span>
+              <span className="text-muted-foreground text-xs">Vence: {formatDate(receivable.data_vencimento)}</span>
+            </div>
+            {receivable.data_recebimento && (
+              <p className="text-xs text-muted-foreground">Recebido em: {formatDate(receivable.data_recebimento)}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* View desktop: tabela */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>

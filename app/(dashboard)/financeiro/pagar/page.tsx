@@ -204,25 +204,26 @@ export default function PagarPage() {
         description="Gerenciamento de pagamentos"
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Barra de Ações */}
-        <div className="flex items-center justify-between bg-card rounded-lg border border-border p-4">
-          <Button variant="outline" onClick={() => router.push('/financeiro')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+        <div className="flex items-center justify-between bg-card rounded-lg border border-border p-3 sm:p-4 gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.push('/financeiro')}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Voltar</span>
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Exportar Excel
+          <div className="flex gap-1.5 sm:gap-2">
+            <Button variant="outline" size="sm" onClick={exportToExcel} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : 'Exportar Excel'}>
+              <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar Excel</span>
             </Button>
-            <Button variant="outline" onClick={exportToPDF} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : undefined}>
-              <FileText className="h-4 w-4 mr-2" />
-              Exportar PDF
+            <Button variant="outline" size="sm" onClick={exportToPDF} disabled={isFree} title={isFree ? 'Disponível no plano Pro' : 'Exportar PDF'}>
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar PDF</span>
             </Button>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Conta a Pagar
+            <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nova Conta a Pagar</span>
+              <span className="sm:hidden">Nova</span>
             </Button>
           </div>
         </div>
@@ -380,14 +381,14 @@ export default function PagarPage() {
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   placeholder="Data inicial"
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
                 <Input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   placeholder="Data final"
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
               </div>
             </div>

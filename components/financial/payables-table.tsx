@@ -126,7 +126,55 @@ export function PayablesTable({ payables, isLoading, onSort, sortField, sortOrde
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* View mobile: cards */}
+      <div className="sm:hidden divide-y divide-border">
+        {payables.map((payable) => (
+          <div key={payable.id} className="p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{payable.descricao}</p>
+                {payable.fornecedor && <p className="text-xs text-muted-foreground truncate">{payable.fornecedor}</p>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {getStatusBadge(payable.status)}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {payable.status !== 'pago' && (
+                      <DropdownMenuItem onClick={() => handleMarkAsPaid(payable.id)}>
+                        <Check className="h-4 w-4 mr-2" />
+                        Marcar como Pago
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setEditPayable(payable)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDeleteId(payable.id)} className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-bold text-foreground">{formatCurrency(payable.valor)}</span>
+              <span className="text-muted-foreground text-xs">Vence: {formatDate(payable.data_vencimento)}</span>
+            </div>
+            {payable.data_pagamento && (
+              <p className="text-xs text-muted-foreground">Pago em: {formatDate(payable.data_pagamento)}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* View desktop: tabela */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
