@@ -165,6 +165,7 @@ export function MonthlyGoal({ currentRevenue, isLoading }: MonthlyGoalProps) {
               <input
                 ref={inputRef}
                 type="text"
+                inputMode="decimal"
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}

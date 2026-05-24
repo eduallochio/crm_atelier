@@ -322,6 +322,7 @@ export function OrganizationSettingsForm() {
                 id="cnpj"
                 {...form.register('cnpj')}
                 placeholder="00.000.000/0000-00"
+                inputMode="numeric"
                 disabled={!isEditing || isLoadingCnpj}
               />
               <Button
@@ -405,6 +406,7 @@ export function OrganizationSettingsForm() {
                 id="zip_code"
                 {...form.register('zip_code')}
                 placeholder="00000-000"
+                inputMode="numeric"
                 maxLength={9}
                 onBlur={handleCepBlur}
                 disabled={!isEditing}

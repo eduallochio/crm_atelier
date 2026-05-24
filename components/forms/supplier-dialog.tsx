@@ -234,7 +234,7 @@ export function SupplierDialog({ open, onOpenChange, supplier, onSaved }: Suppli
                       <FormItem>
                         <FormLabel>CPF/CNPJ</FormLabel>
                         <FormControl>
-                          <Input placeholder="000.000.000-00" {...field} />
+                          <Input placeholder="000.000.000-00" inputMode="numeric" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -250,7 +250,7 @@ export function SupplierDialog({ open, onOpenChange, supplier, onSaved }: Suppli
                       <FormItem>
                         <FormLabel>Telefone</FormLabel>
                         <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} />
+                          <Input placeholder="(00) 00000-0000" inputMode="tel" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -302,7 +302,7 @@ export function SupplierDialog({ open, onOpenChange, supplier, onSaved }: Suppli
                       <FormItem>
                         <FormLabel>CEP</FormLabel>
                         <FormControl>
-                          <Input placeholder="00000-000" {...field} />
+                          <Input placeholder="00000-000" inputMode="numeric" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

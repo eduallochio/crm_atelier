@@ -252,6 +252,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
               <Input
                 id="preco"
                 placeholder="0,00"
+                inputMode="decimal"
                 {...register('preco')}
                 disabled={isLoading}
                 onChange={(e) => {

@@ -123,6 +123,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
                     <FormControl>
                       <Input
                         placeholder="0,00"
+                        inputMode="decimal"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^\d,]/g, '')

@@ -18,9 +18,26 @@ export default async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/termos') ||
     nextUrl.pathname.startsWith('/privacidade')
 
-  // Rotas de API e públicas: apenas atualiza sessão, sem redirecionamento
-  if (isApiRoute || isPublicRoute) {
+  // Rotas de API: apenas atualiza sessão, sem redirecionamento
+  if (isApiRoute) {
     return await updateSession(request).then((r) => r.supabaseResponse)
+  }
+
+  // Rotas públicas (lgpd, termos, privacidade): sempre acessíveis
+  const isStrictPublic =
+    nextUrl.pathname.startsWith('/lgpd') ||
+    nextUrl.pathname.startsWith('/termos') ||
+    nextUrl.pathname.startsWith('/privacidade')
+
+  if (isStrictPublic) {
+    return await updateSession(request).then((r) => r.supabaseResponse)
+  }
+
+  // Landing page (/): usuário logado vai direto ao dashboard
+  if (nextUrl.pathname === '/') {
+    const { supabaseResponse: res, user: u } = await updateSession(request)
+    if (u) return NextResponse.redirect(new URL('/dashboard', nextUrl))
+    return res
   }
 
   const { supabaseResponse, user } = await updateSession(request)

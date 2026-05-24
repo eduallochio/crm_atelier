@@ -189,6 +189,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
                     <FormControl>
                       <Input
                         placeholder="0,00"
+                        inputMode="decimal"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^\d,]/g, '')

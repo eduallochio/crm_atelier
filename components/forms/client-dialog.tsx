@@ -172,6 +172,7 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
             <Input
               id="telefone"
               placeholder="(00) 00000-0000"
+              inputMode="tel"
               {...register('telefone')}
               disabled={isLoading}
             />
@@ -232,6 +233,7 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
                   <Input
                     id="cep"
                     placeholder="00000-000"
+                    inputMode="numeric"
                     {...register('cep')}
                     disabled={isLoading || buscandoCep}
                     maxLength={9}
