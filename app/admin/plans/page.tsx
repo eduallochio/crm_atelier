@@ -195,6 +195,10 @@ export default function AdminPlansPage() {
                 <Input type="number" min="0" step="0.01" value={form.price_annual ?? ''} onChange={(e) => setForm(p => ({ ...p, price_annual: e.target.value ? Number(e.target.value) : null }))} />
               </div>
             </div>
+            <div className="space-y-1">
+              <Label>Nota do preço anual</Label>
+              <Input placeholder="Ex: ou R$ 479/ano — 2 meses grátis" value={form.annual_note ?? ''} onChange={(e) => setForm(p => ({ ...p, annual_note: e.target.value || null }))} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Badge</Label>
