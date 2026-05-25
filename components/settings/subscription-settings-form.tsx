@@ -21,53 +21,55 @@ type PlanUsage = {
   }
 }
 
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Gratuito',
-    price: 'R$ 0',
-    period: 'para sempre',
+type DbPlan = {
+  id:           string
+  slug:         string
+  name:         string
+  price:        number
+  price_annual: number | null
+  annual_note:  string | null
+  badge:        string | null
+  is_featured:  boolean
+  is_active:    boolean
+  features:     { text: string; included: boolean }[]
+  cta_text:     string
+}
+
+const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge: string }> = {
+  free: {
     icon: Zap,
     color: 'border-gray-200 dark:border-gray-700',
     badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-    features: [
-      'Até 50 clientes',
-      'Até 20 serviços cadastrados',
-      'Até 100 ordens de serviço/mês',
-      'Até 2 usuários',
-      'Dashboard e relatórios básicos',
-      'Suporte por email',
-    ],
   },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 'R$ 59,90',
-    period: 'por mês',
+  pro: {
     icon: Crown,
     color: 'border-[#c8714a] dark:border-[#c8714a]',
     badge: 'bg-[#c8714a]/10 text-[#c8714a]',
-    highlight: true,
-    features: [
-      'Clientes ilimitados',
-      'Serviços ilimitados',
-      'Ordens de serviço ilimitadas',
-      'Até 3 usuários',
-      'Exportação Excel e PDF',
-      'Controle de estoque',
-      'Suporte prioritário',
-    ],
   },
-]
+}
+
+function fmtPrice(price: number) {
+  if (price === 0) return 'R$ 0'
+  return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 export function SubscriptionSettingsForm() {
   const [upgrading, setUpgrading] = useState(false)
 
-  const { data: usage, isLoading } = useQuery<PlanUsage>({
+  const { data: usage, isLoading: loadingUsage } = useQuery<PlanUsage>({
     queryKey: ['plan-usage'],
     queryFn: async () => {
       const res = await fetch('/api/plan-usage')
       if (!res.ok) return null
+      return res.json()
+    },
+  })
+
+  const { data: dbPlans = [], isLoading: loadingPlans } = useQuery<DbPlan[]>({
+    queryKey: ['plans-public'],
+    queryFn: async () => {
+      const res = await fetch('/api/plans')
+      if (!res.ok) return []
       return res.json()
     },
   })
@@ -78,7 +80,6 @@ export function SubscriptionSettingsForm() {
   async function handleUpgrade() {
     setUpgrading(true)
     try {
-      // Abre WhatsApp para contato com o suporte (Asaas ainda não integrado)
       const msg = encodeURIComponent(
         'Olá! Gostaria de fazer upgrade para o plano Pro do Meu Atelier Sistema.'
       )
@@ -92,6 +93,8 @@ export function SubscriptionSettingsForm() {
   function pct(used: number, max: number) {
     return Math.min(Math.round((used / max) * 100), 100)
   }
+
+  const activePlans = dbPlans.filter(p => p.is_active)
 
   return (
     <div className="space-y-8">
@@ -112,8 +115,7 @@ export function SubscriptionSettingsForm() {
           </span>
         </div>
 
-        {/* Uso dos recursos */}
-        {isLoading ? (
+        {loadingUsage ? (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando uso...
@@ -152,57 +154,69 @@ export function SubscriptionSettingsForm() {
       {/* Planos */}
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">Planos disponíveis</h3>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {PLANS.map((plan) => {
-            const Icon = plan.icon
-            const isCurrent = currentPlan === plan.id
-            return (
-              <div key={plan.id} className={cn(
-                'relative rounded-2xl border-2 p-6 flex flex-col gap-4 transition-all',
-                plan.color,
-                isCurrent ? 'bg-muted/40' : 'bg-card hover:shadow-md'
-              )}>
-                {isCurrent && (
-                  <span className="absolute -top-3 left-4 text-[11px] font-bold px-3 py-1 rounded-full bg-foreground text-background">
-                    Plano atual
-                  </span>
-                )}
-                <div className="flex items-center gap-3">
-                  <div className={cn('p-2 rounded-xl', plan.badge)}>
-                    <Icon className="h-5 w-5" />
+        {loadingPlans ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando planos...
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4">
+            {activePlans.map((plan) => {
+              const style = PLAN_STYLE[plan.slug] ?? PLAN_STYLE['free']
+              const Icon = style.icon
+              const isCurrent = currentPlan === plan.slug
+              const includedFeatures = plan.features.filter(f => f.included)
+              return (
+                <div key={plan.id} className={cn(
+                  'relative rounded-2xl border-2 p-6 flex flex-col gap-4 transition-all',
+                  style.color,
+                  isCurrent ? 'bg-muted/40' : 'bg-card hover:shadow-md'
+                )}>
+                  {isCurrent && (
+                    <span className="absolute -top-3 left-4 text-[11px] font-bold px-3 py-1 rounded-full bg-foreground text-background">
+                      Plano atual
+                    </span>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className={cn('p-2 rounded-xl', style.badge)}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground">{plan.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="text-xl font-bold text-foreground">{fmtPrice(plan.price)}</span>
+                        {' '}{plan.price === 0 ? 'para sempre' : 'por mês'}
+                      </p>
+                      {plan.annual_note && (
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">{plan.annual_note}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-foreground">{plan.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="text-xl font-bold text-foreground">{plan.price}</span>
-                      {' '}{plan.period}
-                    </p>
-                  </div>
+
+                  <ul className="space-y-2 flex-1">
+                    {includedFeatures.map((f) => (
+                      <li key={f.text} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                        {f.text}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {!isCurrent && plan.slug === 'pro' && (
+                    <Button
+                      className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white"
+                      onClick={handleUpgrade}
+                      disabled={upgrading}
+                    >
+                      {upgrading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}
+                      Fazer upgrade
+                    </Button>
+                  )}
                 </div>
-
-                <ul className="space-y-2 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {!isCurrent && plan.id === 'pro' && (
-                  <Button
-                    className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white"
-                    onClick={handleUpgrade}
-                    disabled={upgrading}
-                  >
-                    {upgrading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}
-                    Fazer upgrade
-                  </Button>
-                )}
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Informações de pagamento */}
