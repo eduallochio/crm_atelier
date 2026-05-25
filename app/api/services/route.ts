@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { orgServices, organizations } from '@/lib/db/schema'
 import { eq, and, count } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
-import { getPlanLimits, limitExceededResponse } from '@/lib/plan-limits'
+import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 import { logServerError } from '@/lib/log-error'
 
 type OrgService = typeof orgServices.$inferSelect
@@ -76,9 +76,9 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Verificar limite do plano
-    const [orgRow, servicesCountRow, limits] = await Promise.all([
+    const [orgRow, servicesCountRow, limits, lifetime] = await Promise.all([
       db
-        .select({ plan: organizations.plan })
+        .select({ plan: organizations.plan, cnpj: organizations.cnpj })
         .from(organizations)
         .where(eq(organizations.id, user.organizationId))
         .then(r => r[0]),
@@ -88,9 +88,10 @@ export async function POST(request: Request) {
         .where(eq(orgServices.organizationId, user.organizationId))
         .then(r => r[0]),
       getPlanLimits(),
+      hasLifetimeLicense(user.organizationId),
     ])
 
-    if (orgRow?.plan === 'free' && (servicesCountRow?.count ?? 0) >= limits.max_services_free) {
+    if (!lifetime && orgRow?.plan === 'free' && (servicesCountRow?.count ?? 0) >= limits.max_services_free) {
       return NextResponse.json(
         limitExceededResponse('serviços', limits.max_services_free),
         { status: 403 }
