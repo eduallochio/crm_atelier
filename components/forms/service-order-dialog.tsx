@@ -264,7 +264,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     // Preparar dados para preview
     const previewOrder = {
       id: 'preview',
-      numero: 999999, // Número temporário para preview
+      numero: 0, // 0 = preview (exibe "PRÉVIA" no lugar do número)
       organization_id: 'temp',
       client_id: data.client_id,
       status: data.status,

@@ -88,7 +88,7 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   // CABEÇALHO
   addCenteredText(organizationName, 14, true)
   addCenteredText('ORDEM DE SERVIÇO', 12, true)
-  addCenteredText(`#${order.numero.toString().padStart(6, '0')}`, 11, true)
+  addCenteredText(order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`, 11, true)
   addLine()
 
   // DATA E HORA
@@ -317,7 +317,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       <div style="text-align: center; margin-bottom: 16px;">
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${organizationName}</div>
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ORDEM DE SERVIÇO</div>
-        <div style="font-size: 13px; font-weight: bold;">#${order.numero.toString().padStart(6, '0')}</div>
+        <div style="font-size: 13px; font-weight: bold;">${order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`}</div>
       </div>
       
       <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
