@@ -168,7 +168,7 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="telefone">Telefone</Label>
+            <Label htmlFor="telefone">Telefone <span className="text-red-500">*</span></Label>
             <Input
               id="telefone"
               placeholder="(00) 00000-0000"
