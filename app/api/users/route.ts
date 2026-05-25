@@ -5,6 +5,7 @@ import { organizations, profiles, adminSystemSettings } from '@/lib/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
+import { hasLifetimeLicense } from '@/lib/plan-limits'
 
 const DEFAULTS = {
   max_users_free: 1,
@@ -99,17 +100,18 @@ export async function POST(req: Request) {
     const safeRole = validRoles.includes(role) ? role : 'member'
 
     // Verificar limite do plano
-    const [orgRows, maxUsers] = await Promise.all([
+    const [orgRows, maxUsers, lifetime] = await Promise.all([
       db.select({ plan: organizations.plan })
         .from(organizations)
         .where(eq(organizations.id, user.organizationId))
         .limit(1),
       getMaxUsersFree(),
+      hasLifetimeLicense(user.organizationId),
     ])
 
     const plan = orgRows[0]?.plan ?? 'free'
 
-    if (plan === 'free') {
+    if (!lifetime && plan === 'free') {
       const countRows = await db
         .select({ count: profiles.id })
         .from(profiles)
