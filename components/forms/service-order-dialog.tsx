@@ -476,13 +476,17 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_prevista">Data Prevista</Label>
+              <Label htmlFor="data_prevista">Data Prevista <span className="text-red-500">*</span></Label>
               <Input
                 id="data_prevista"
                 type="date"
                 {...register('data_prevista')}
                 disabled={isLoading}
+                className={errors.data_prevista ? 'border-red-500' : ''}
               />
+              {errors.data_prevista && (
+                <p className="text-sm text-red-500">{errors.data_prevista.message}</p>
+              )}
             </div>
           </div>
 
@@ -942,6 +946,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
               onClick={() => handleSubmit(onSubmit, (erros) => {
                 const msgs: string[] = []
                 if (erros.client_id) msgs.push('Selecione um cliente')
+                if (erros.data_prevista) msgs.push('Informe a data prevista')
                 if (erros.items || items.length === 0) msgs.push('Adicione pelo menos um serviço')
                 if (msgs.length > 0) toast.error('Campos obrigatórios: ' + msgs.join(' • '))
               })()}

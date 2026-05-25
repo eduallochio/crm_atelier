@@ -11,7 +11,7 @@ export const serviceOrderItemSchema = z.object({
 export const serviceOrderSchema = z.object({
   client_id: z.string().uuid('Selecione um cliente'),
   status: z.enum(['pendente', 'em_andamento', 'concluido', 'cancelado']),
-  data_prevista: z.string().optional(),
+  data_prevista: z.string().min(1, 'Data prevista é obrigatória'),
   forma_pagamento: z.string().optional(),
   observacoes: z.string().optional(),
   valor_entrada: z.number().min(0, 'Valor de entrada deve ser positivo').default(0),
