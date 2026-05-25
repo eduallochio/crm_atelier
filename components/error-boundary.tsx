@@ -39,10 +39,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    if (error.message === 'NEXT_REDIRECT' || error.message?.startsWith('NEXT_')) {
+      return { hasError: false, error: null }
+    }
     return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
+    if (error.message === 'NEXT_REDIRECT' || error.message?.startsWith('NEXT_')) return
     reportError(error, info.componentStack ?? undefined, 'boundary')
   }
 
@@ -82,17 +86,15 @@ export class ErrorBoundary extends React.Component<Props, State> {
 export function useGlobalErrorReporter() {
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      reportError(
-        new Error(event.message),
-        undefined,
-        'runtime'
-      )
+      if (event.message === 'NEXT_REDIRECT' || event.message?.startsWith('NEXT_')) return
+      reportError(new Error(event.message), undefined, 'runtime')
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason instanceof Error
         ? event.reason
         : new Error(String(event.reason))
+      if (error.message === 'NEXT_REDIRECT' || error.message?.startsWith('NEXT_')) return
       reportError(error, undefined, 'unhandled_promise')
     }
 
