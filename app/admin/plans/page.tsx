@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Loader2, Check, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -240,6 +240,22 @@ export default function AdminPlansPage() {
                       {f.included ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-gray-300" />}
                     </button>
                     <span className={`flex-1 text-sm ${!f.included ? 'line-through text-gray-400' : ''}`}>{f.text}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <button type="button" disabled={i === 0} onClick={() => setForm(prev => {
+                        const next = [...prev.features]
+                        ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+                        return { ...prev, features: next }
+                      })}>
+                        <ArrowUp className={`w-3 h-3 ${i === 0 ? 'text-gray-200 dark:text-gray-700' : 'text-gray-400 hover:text-gray-600'}`} />
+                      </button>
+                      <button type="button" disabled={i === form.features.length - 1} onClick={() => setForm(prev => {
+                        const next = [...prev.features]
+                        ;[next[i], next[i + 1]] = [next[i + 1], next[i]]
+                        return { ...prev, features: next }
+                      })}>
+                        <ArrowDown className={`w-3 h-3 ${i === form.features.length - 1 ? 'text-gray-200 dark:text-gray-700' : 'text-gray-400 hover:text-gray-600'}`} />
+                      </button>
+                    </div>
                     <button type="button" onClick={() => setForm(prev => ({ ...prev, features: prev.features.filter((_, idx) => idx !== i) }))}>
                       <Trash2 className="w-3.5 h-3.5 text-red-400" />
                     </button>
