@@ -411,7 +411,7 @@ export function Sidebar() {
         {/* Bell */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm" aria-label="Alertas">
+            <button suppressHydrationWarning className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm" aria-label="Alertas">
               <Bell className="h-4 w-4 text-muted-foreground" />
               {totalAlerts > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
@@ -454,7 +454,7 @@ export function Sidebar() {
         {userProfile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button data-tour="user-menu"
+              <button suppressHydrationWarning data-tour="user-menu"
                 className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-border/70 bg-card hover:bg-accent transition-all shadow-sm">
                 <Avatar className="w-6 h-6">
                   <AvatarFallback className="text-[10px] font-bold"
