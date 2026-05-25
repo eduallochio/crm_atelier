@@ -251,10 +251,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const isLoading = createOrder.isPending
 
   const onSubmit = async (data: ServiceOrderInput) => {
-    if (items.length === 0) {
-      toast.error('Adicione pelo menos um serviço')
-      return
-    }
+    if (items.length === 0) return
 
     // Buscar dados do cliente selecionado
     const selectedClient = clients.find(c => c.id === data.client_id)
@@ -941,8 +938,13 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             </Button>
             <Button
               type="button"
-              disabled={isLoading || items.length === 0}
-              onClick={() => handleSubmit(onSubmit)()}
+              disabled={isLoading}
+              onClick={() => handleSubmit(onSubmit, (erros) => {
+                const msgs: string[] = []
+                if (erros.client_id) msgs.push('Selecione um cliente')
+                if (erros.items || items.length === 0) msgs.push('Adicione pelo menos um serviço')
+                if (msgs.length > 0) toast.error('Campos obrigatórios: ' + msgs.join(' • '))
+              })()}
             >
               <Eye className="h-4 w-4 mr-2" />
               {isLoading ? 'Gerando...' : 'Gerar OS'}
