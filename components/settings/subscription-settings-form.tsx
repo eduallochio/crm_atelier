@@ -30,7 +30,6 @@ type DbPlan = {
   annual_note:  string | null
   badge:        string | null
   is_featured:  boolean
-  is_active:    boolean
   features:     { text: string; included: boolean }[]
   cta_text:     string
 }
@@ -94,7 +93,7 @@ export function SubscriptionSettingsForm() {
     return Math.min(Math.round((used / max) * 100), 100)
   }
 
-  const activePlans = dbPlans.filter(p => p.is_active)
+  const activePlans = dbPlans
 
   return (
     <div className="space-y-8">
