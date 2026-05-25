@@ -66,7 +66,8 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
     window.open(url, '_blank')
   }
 
-  const calculateAge = (birthDate: string) => {
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return null
     const today = new Date()
     const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
@@ -109,7 +110,7 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Cliente desde {format(new Date(client.data_cadastro), "dd/MM/yyyy", { locale: ptBR })}
+                  Cliente desde {client.data_cadastro ? format(new Date(client.data_cadastro), "dd/MM/yyyy", { locale: ptBR }) : '—'}
                 </p>
               </div>
             </div>
