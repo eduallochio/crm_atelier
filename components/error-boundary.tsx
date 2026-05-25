@@ -52,6 +52,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const isDev = process.env.NODE_ENV === 'development'
       return (
         <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
@@ -60,7 +61,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <div>
             <p className="font-semibold text-foreground mb-1">Algo deu errado</p>
             <p className="text-sm text-muted-foreground max-w-sm">
-              {this.state.error?.message || 'Ocorreu um erro inesperado. Nossa equipe foi notificada.'}
+              {isDev
+                ? (this.state.error?.message || 'Erro inesperado')
+                : 'Ocorreu um erro inesperado. Nossa equipe foi notificada.'}
             </p>
           </div>
           <Button
