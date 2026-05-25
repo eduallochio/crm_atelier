@@ -8,14 +8,16 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 type PlanUsage = {
-  plan:          string
-  clients_count: number
-  orders_count:  number
-  users_count:   number
+  plan:           string
+  clients_count:  number
+  orders_count:   number
+  users_count:    number
+  services_count: number
   limits: {
-    max_clients: number
-    max_orders:  number
-    max_users:   number
+    max_clients:  number
+    max_orders:   number
+    max_users:    number
+    max_services: number
   }
 }
 
@@ -30,6 +32,7 @@ const PLANS = [
     badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
     features: [
       'Até 50 clientes',
+      'Até 20 serviços cadastrados',
       'Até 100 ordens de serviço/mês',
       'Até 2 usuários',
       'Dashboard e relatórios básicos',
@@ -47,6 +50,7 @@ const PLANS = [
     highlight: true,
     features: [
       'Clientes ilimitados',
+      'Serviços ilimitados',
       'Ordens de serviço ilimitadas',
       'Até 3 usuários',
       'Exportação Excel e PDF',
@@ -117,9 +121,10 @@ export function SubscriptionSettingsForm() {
         ) : usage ? (
           <div className="space-y-4">
             {[
-              { label: 'Clientes', used: usage.clients_count, max: usage.limits.max_clients },
-              { label: 'Ordens',   used: usage.orders_count,  max: usage.limits.max_orders  },
-              { label: 'Usuários', used: usage.users_count,   max: usage.limits.max_users   },
+              { label: 'Clientes',  used: usage.clients_count,  max: usage.limits.max_clients  },
+              { label: 'Serviços',  used: usage.services_count, max: usage.limits.max_services },
+              { label: 'Ordens',    used: usage.orders_count,   max: usage.limits.max_orders   },
+              { label: 'Usuários',  used: usage.users_count,    max: usage.limits.max_users    },
             ].map(({ label, used, max }) => {
               const unlimited = max >= 999999
               const p = unlimited ? Math.min((used / 100) * 10, 30) : pct(used, max)

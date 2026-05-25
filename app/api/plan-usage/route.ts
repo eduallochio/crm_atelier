@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, usageMetrics, profiles, adminSystemSettings } from '@/lib/db/schema'
+import { organizations, usageMetrics, profiles, adminSystemSettings, orgServices } from '@/lib/db/schema'
 import { eq, count, inArray } from 'drizzle-orm'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 import { logServerError } from '@/lib/log-error'
@@ -42,7 +42,7 @@ export async function GET() {
     const user = await requireAuth()
     const orgId = user.organizationId
 
-    const [orgRow, metrics, usersCount, limits, lifetime] = await Promise.all([
+    const [orgRow, metrics, usersCount, servicesCount, limits, lifetime] = await Promise.all([
       db.select({ plan: organizations.plan })
         .from(organizations)
         .where(eq(organizations.id, orgId))
@@ -60,6 +60,10 @@ export async function GET() {
         .from(profiles)
         .where(eq(profiles.organizationId, orgId)),
 
+      db.select({ count: count() })
+        .from(orgServices)
+        .where(eq(orgServices.organizationId, orgId)),
+
       getPlanLimits(),
       hasLifetimeLicense(orgId),
     ])
@@ -67,19 +71,22 @@ export async function GET() {
     const plan = lifetime ? 'pro' : (orgRow[0]?.plan ?? 'free')
     const isPro = plan !== 'free'
 
-    const clientsCount = Number(metrics[0]?.clientsCount ?? 0)
-    const ordersCount  = Number(metrics[0]?.ordersCount  ?? 0)
-    const users        = Number(usersCount[0]?.count ?? 1)
+    const clientsCount  = Number(metrics[0]?.clientsCount ?? 0)
+    const ordersCount   = Number(metrics[0]?.ordersCount  ?? 0)
+    const users         = Number(usersCount[0]?.count ?? 1)
+    const services      = Number(servicesCount[0]?.count ?? 0)
 
     return NextResponse.json({
       plan,
-      clients_count: clientsCount,
-      orders_count:  ordersCount,
-      users_count:   users,
+      clients_count:  clientsCount,
+      orders_count:   ordersCount,
+      users_count:    users,
+      services_count: services,
       limits: {
-        max_clients: isPro ? limits.max_clients_pro : limits.max_clients_free,
-        max_orders:  isPro ? limits.max_orders_pro  : limits.max_orders_free,
-        max_users:   isPro ? limits.max_users_pro   : limits.max_users_free,
+        max_clients:  isPro ? limits.max_clients_pro  : limits.max_clients_free,
+        max_orders:   isPro ? limits.max_orders_pro   : limits.max_orders_free,
+        max_users:    isPro ? limits.max_users_pro    : limits.max_users_free,
+        max_services: isPro ? limits.max_services_pro : limits.max_services_free,
       },
     })
   } catch (error) {
