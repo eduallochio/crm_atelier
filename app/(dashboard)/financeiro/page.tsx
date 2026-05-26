@@ -95,8 +95,9 @@ export default function FinanceiroPage() {
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Saldo Atual */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
-            <div className={`absolute top-0 left-0 right-0 h-[3px] ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className={`absolute inset-0 opacity-[0.07] dark:opacity-[0.12] pointer-events-none ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full opacity-20 blur-2xl pointer-events-none ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
             <div className="p-5 pt-6">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo Atual</p>
@@ -113,8 +114,9 @@ export default function FinanceiroPage() {
           </div>
 
           {/* A Receber */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-5 pt-6">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Receber</p>
@@ -135,8 +137,9 @@ export default function FinanceiroPage() {
           </div>
 
           {/* A Pagar */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-orange-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-orange-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-orange-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-5 pt-6">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Pagar</p>
@@ -157,8 +160,9 @@ export default function FinanceiroPage() {
           </div>
 
           {/* Saldo do Mês */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
-            <div className={`absolute top-0 left-0 right-0 h-[3px] ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className={`absolute inset-0 opacity-[0.07] dark:opacity-[0.12] pointer-events-none ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full opacity-20 blur-2xl pointer-events-none ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
             <div className="p-5 pt-6">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo do Mês</p>
