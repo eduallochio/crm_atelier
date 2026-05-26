@@ -309,8 +309,10 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
           return (
             <div
               key={order.id}
-              className={`bg-card border rounded-lg p-4 ${overdue ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20' : 'border-border'}`}
+              className={`relative bg-card border rounded-2xl overflow-hidden p-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ${overdue ? 'border-red-300 dark:border-red-800' : 'border-border/40'}`}
             >
+              <div className={`absolute inset-0 opacity-[0.05] dark:opacity-[0.10] pointer-events-none ${overdue ? 'bg-red-500' : 'bg-green-500'}`} />
+              <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full opacity-15 blur-2xl pointer-events-none ${overdue ? 'bg-red-500' : 'bg-green-500'}`} />
               {/* Header */}
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex flex-wrap items-center gap-2">

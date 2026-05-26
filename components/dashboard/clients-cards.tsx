@@ -95,8 +95,10 @@ export function ClientsCards({ clients, onEdit, onViewOrders }: ClientsCardsProp
         {clients.map((client) => (
           <div
             key={client.id}
-            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow"
+            className="relative bg-card rounded-2xl border border-border/40 overflow-hidden p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
           >
+            <div className="absolute inset-0 bg-blue-500 opacity-[0.05] dark:opacity-[0.10] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-15 blur-2xl pointer-events-none" />
             {/* Header do Card */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
