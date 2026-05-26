@@ -119,8 +119,9 @@ export default function OrdensServicoPage() {
         {/* Estatísticas */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
           {/* Total */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-slate-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-slate-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-slate-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
               <div className="flex items-start justify-between mb-2 sm:mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
@@ -135,8 +136,9 @@ export default function OrdensServicoPage() {
           </div>
 
           {/* Pendente */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-amber-400" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-amber-400 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-amber-400 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
               <div className="flex items-start justify-between mb-2 sm:mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pendente</p>
@@ -151,8 +153,9 @@ export default function OrdensServicoPage() {
           </div>
 
           {/* Em Andamento */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
               <div className="flex items-start justify-between mb-2 sm:mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Andamento</p>
@@ -167,8 +170,9 @@ export default function OrdensServicoPage() {
           </div>
 
           {/* Concluído */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute inset-0 bg-emerald-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-emerald-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
               <div className="flex items-start justify-between mb-2 sm:mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Concluído</p>
@@ -183,8 +187,9 @@ export default function OrdensServicoPage() {
           </div>
 
           {/* Atrasadas */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 col-span-3 sm:col-span-1">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-red-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-3 sm:col-span-1">
+            <div className="absolute inset-0 bg-red-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-red-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
               <div className="flex items-start justify-between mb-2 sm:mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atrasadas</p>
