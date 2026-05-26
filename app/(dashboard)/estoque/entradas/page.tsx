@@ -13,24 +13,25 @@ import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
 
-function StatCard({ title, value, icon: Icon, bar }: {
+function StatCard({ title, value, icon: Icon, grad, textColor }: {
   title: string
   value: string | number
   icon: React.ElementType
-  bar: string
+  grad: string
+  textColor: string
 }) {
   return (
-    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-      <div className={`absolute top-0 left-0 right-0 h-[3px] ${bar}`} />
-      <div className="p-4 sm:p-5">
+    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className={`absolute inset-0 ${grad} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
+      <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${grad} opacity-20 blur-2xl pointer-events-none`} />
+      <div className="p-4 sm:p-5 pt-5 sm:pt-6">
         <div className="flex items-start justify-between mb-3">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</p>
-          <div className={`p-2 rounded-xl shadow-sm shrink-0 ${bar}`}>
+          <div className={`p-2 rounded-xl shadow-sm shrink-0 ${grad}`}>
             <Icon className="h-3.5 w-3.5 text-white" />
           </div>
         </div>
-        <p className={`font-bold text-foreground mb-3 ${typeof value === 'string' && value.startsWith('R$') ? 'text-2xl' : 'text-3xl'}`}>{value}</p>
-        <div className="h-px bg-border/50" />
+        <p className={`font-bold mb-3 ${textColor} ${typeof value === 'string' && value.startsWith('R$') ? 'text-2xl' : 'text-3xl'}`}>{value}</p>
       </div>
     </div>
   )
@@ -158,19 +159,22 @@ export default function EntradasPage() {
           title="Total de Entradas"
           value={entries.length}
           icon={PackageOpen}
-          bar="bg-indigo-500"
+          grad="bg-indigo-500"
+          textColor="text-indigo-600 dark:text-indigo-400"
         />
         <StatCard
           title="Entradas Este Mês"
           value={entriesThisMonth.length}
           icon={CalendarDays}
-          bar="bg-blue-500"
+          grad="bg-blue-500"
+          textColor="text-blue-600 dark:text-blue-400"
         />
         <StatCard
           title="Valor Total"
           value={`R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
           icon={TrendingUp}
-          bar="bg-emerald-500"
+          grad="bg-emerald-500"
+          textColor="text-emerald-600 dark:text-emerald-400"
         />
       </div>
 

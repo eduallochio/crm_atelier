@@ -299,13 +299,14 @@ export default function RelatoriosEstoquePage() {
           <button
             key={report.id}
             onClick={() => setSelected(report.id)}
-            className={`relative text-left bg-card rounded-2xl overflow-hidden border shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+            className={`relative text-left bg-card rounded-2xl overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
               selected === report.id
-                ? 'border-primary ring-2 ring-primary/20'
-                : 'border-border/60'
+                ? 'border-primary shadow-lg ring-2 ring-primary/20'
+                : 'border-border/40 shadow-sm'
             }`}
           >
-            <div className={`absolute top-0 left-0 right-0 h-[3px] ${report.bar}`} />
+            <div className={`absolute inset-0 ${report.bar} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
+            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${report.bar} opacity-20 blur-2xl pointer-events-none`} />
             <div className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground pr-2">{report.title}</p>

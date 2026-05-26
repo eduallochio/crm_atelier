@@ -9,24 +9,25 @@ import { UpgradePrompt } from '@/components/upgrade-prompt'
 import { useStockExits, useCreateStockExit, useDeleteStockExit, useProducts, type StockExit } from '@/hooks/use-inventory'
 import { toast } from 'sonner'
 
-function StatCard({ title, value, icon: Icon, bar }: {
+function StatCard({ title, value, icon: Icon, grad, textColor }: {
   title: string
   value: string | number
   icon: React.ElementType
-  bar: string
+  grad: string
+  textColor: string
 }) {
   return (
-    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-      <div className={`absolute top-0 left-0 right-0 h-[3px] ${bar}`} />
-      <div className="p-4 sm:p-5">
+    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className={`absolute inset-0 ${grad} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
+      <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${grad} opacity-20 blur-2xl pointer-events-none`} />
+      <div className="p-4 sm:p-5 pt-5 sm:pt-6">
         <div className="flex items-start justify-between mb-3">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</p>
-          <div className={`p-2 rounded-xl shadow-sm shrink-0 ${bar}`}>
+          <div className={`p-2 rounded-xl shadow-sm shrink-0 ${grad}`}>
             <Icon className="h-3.5 w-3.5 text-white" />
           </div>
         </div>
-        <p className="font-bold text-foreground mb-3 text-3xl">{value}</p>
-        <div className="h-px bg-border/50" />
+        <p className={`font-bold text-3xl ${textColor}`}>{value}</p>
       </div>
     </div>
   )
@@ -234,9 +235,9 @@ export default function SaidasPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Total de Saídas"       value={exits.length}           icon={PackageMinus} bar="bg-rose-500" />
-        <StatCard title="Saídas Este Mês"        value={exitsThisMonth.length}  icon={CalendarDays} bar="bg-orange-500" />
-        <StatCard title="Total de Itens Retirados" value={totalItems}           icon={PackageMinus} bar="bg-amber-500" />
+        <StatCard title="Total de Saídas"        value={exits.length}          icon={PackageMinus} grad="bg-rose-500"   textColor="text-rose-600 dark:text-rose-400" />
+        <StatCard title="Saídas Este Mês"        value={exitsThisMonth.length} icon={CalendarDays} grad="bg-orange-500" textColor="text-orange-600 dark:text-orange-400" />
+        <StatCard title="Total de Itens Retirados" value={totalItems}          icon={PackageMinus} grad="bg-amber-500"  textColor="text-amber-600 dark:text-amber-400" />
       </div>
 
       {/* Table */}

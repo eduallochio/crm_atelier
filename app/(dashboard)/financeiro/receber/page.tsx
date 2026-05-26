@@ -139,20 +139,20 @@ export default function ReceberPage() {
     paymentMethods.forEach(method => {
       byPaymentMethod[method.code] = recebidos
         .filter(r => r.forma_pagamento === method.code)
-        .reduce((sum, r) => sum + (r.valor || 0), 0)
+        .reduce((sum, r) => sum + (Number(r.valor) || 0), 0)
     })
-    
+
     // Calcular "outros" (formas não configuradas)
     const knownCodes = paymentMethods.map(m => m.code)
     byPaymentMethod['outros'] = recebidos
       .filter(r => !r.forma_pagamento || !knownCodes.includes(r.forma_pagamento))
-      .reduce((sum, r) => sum + (r.valor || 0), 0)
+      .reduce((sum, r) => sum + (Number(r.valor) || 0), 0)
     
     return {
-      total: filteredReceivables.reduce((sum, r) => sum + (r.valor || 0), 0),
-      pendente: filteredReceivables.filter(r => r.status === 'pendente').reduce((sum, r) => sum + (r.valor || 0), 0),
-      recebido: recebidos.reduce((sum, r) => sum + (r.valor || 0), 0),
-      atrasado: filteredReceivables.filter(r => r.status === 'atrasado').reduce((sum, r) => sum + (r.valor || 0), 0),
+      total: filteredReceivables.reduce((sum, r) => sum + (Number(r.valor) || 0), 0),
+      pendente: filteredReceivables.filter(r => r.status === 'pendente').reduce((sum, r) => sum + (Number(r.valor) || 0), 0),
+      recebido: recebidos.reduce((sum, r) => sum + (Number(r.valor) || 0), 0),
+      atrasado: filteredReceivables.filter(r => r.status === 'atrasado').reduce((sum, r) => sum + (Number(r.valor) || 0), 0),
       count: filteredReceivables.length,
       totalCount: receivables?.length || 0,
       byPaymentMethod
@@ -295,8 +295,9 @@ export default function ReceberPage() {
         {/* Cards de Resumo */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {/* Total — estático */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm col-span-2 xl:col-span-1">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-2 xl:col-span-1">
+            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-4 pt-5">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
@@ -313,11 +314,12 @@ export default function ReceberPage() {
           {/* Pendente — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'pendente' ? 'all' : 'pendente')}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
-              statusFilter === 'pendente' ? 'border-amber-400 dark:border-amber-600 ring-2 ring-amber-400/30' : 'border-border/60'
+            className={`relative bg-card rounded-2xl overflow-hidden border text-left transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ${
+              statusFilter === 'pendente' ? 'border-amber-400 dark:border-amber-600 shadow-lg ring-2 ring-amber-400/30' : 'border-border/40 shadow-sm'
             }`}
           >
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-amber-500" />
+            <div className="absolute inset-0 bg-amber-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-amber-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-4 pt-5">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pendente</p>
@@ -334,11 +336,12 @@ export default function ReceberPage() {
           {/* Recebido — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'recebido' ? 'all' : 'recebido')}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
-              statusFilter === 'recebido' ? 'border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/30' : 'border-border/60'
+            className={`relative bg-card rounded-2xl overflow-hidden border text-left transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ${
+              statusFilter === 'recebido' ? 'border-emerald-400 dark:border-emerald-600 shadow-lg ring-2 ring-emerald-400/30' : 'border-border/40 shadow-sm'
             }`}
           >
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500" />
+            <div className="absolute inset-0 bg-emerald-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-emerald-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-4 pt-5">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recebido</p>
@@ -355,11 +358,12 @@ export default function ReceberPage() {
           {/* Atrasado — clicável */}
           <button
             onClick={() => setStatusFilter(statusFilter === 'atrasado' ? 'all' : 'atrasado')}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm text-left transition-all hover:shadow-md ${
-              statusFilter === 'atrasado' ? 'border-red-400 dark:border-red-600 ring-2 ring-red-400/30' : 'border-border/60'
+            className={`relative bg-card rounded-2xl overflow-hidden border text-left transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ${
+              statusFilter === 'atrasado' ? 'border-red-400 dark:border-red-600 shadow-lg ring-2 ring-red-400/30' : 'border-border/40 shadow-sm'
             }`}
           >
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-red-500" />
+            <div className="absolute inset-0 bg-red-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-red-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-4 pt-5">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atrasado</p>

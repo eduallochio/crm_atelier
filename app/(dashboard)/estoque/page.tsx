@@ -16,25 +16,26 @@ import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
 
-function StatCard({ title, value, icon: Icon, color, bar }: {
+function StatCard({ title, value, icon: Icon, grad, iconBg, textColor }: {
   title: string
   value: string | number
   icon: React.ElementType
-  color: string
-  bar?: string
+  grad: string
+  iconBg: string
+  textColor: string
 }) {
   return (
-    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
-      {bar && <div className={`absolute top-0 left-0 right-0 h-[3px] ${bar}`} />}
+    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className={`absolute inset-0 ${grad} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
+      <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${grad} opacity-20 blur-2xl pointer-events-none`} />
       <div className="p-5 pt-6">
         <div className="flex items-start justify-between mb-3">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-tight">{title}</p>
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-            <Icon className="h-4 w-4" />
+          <div className={`p-2 rounded-xl shadow-sm shrink-0 ${iconBg}`}>
+            <Icon className="h-3.5 w-3.5 text-white" />
           </div>
         </div>
-        <div className="h-px bg-border/40 mb-3" />
-        <p className="text-2xl font-bold text-foreground">{value}</p>
+        <p className={`text-2xl font-bold ${textColor}`}>{value}</p>
       </div>
     </div>
   )
@@ -201,24 +202,25 @@ export default function EstoquePage() {
           title="Total de Produtos"
           value={activeProducts.length}
           icon={Package}
-          color="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400"
-          bar="bg-indigo-500"
+          grad="bg-indigo-500"
+          iconBg="bg-indigo-500"
+          textColor="text-indigo-600 dark:text-indigo-400"
         />
         <StatCard
           title="Estoque Baixo"
           value={lowStockProducts.length}
           icon={AlertTriangle}
-          color={lowStockProducts.length > 0
-            ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
-            : "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400"}
-          bar={lowStockProducts.length > 0 ? "bg-red-500" : "bg-green-500"}
+          grad={lowStockProducts.length > 0 ? "bg-red-500" : "bg-green-500"}
+          iconBg={lowStockProducts.length > 0 ? "bg-red-500" : "bg-green-500"}
+          textColor={lowStockProducts.length > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}
         />
         <StatCard
           title="Valor Total em Estoque"
           value={`R$ ${totalStockValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
           icon={DollarSign}
-          color="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
-          bar="bg-emerald-500"
+          grad="bg-emerald-500"
+          iconBg="bg-emerald-500"
+          textColor="text-emerald-600 dark:text-emerald-400"
         />
       </div>
 
