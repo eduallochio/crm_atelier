@@ -89,14 +89,15 @@ export default function ClientesPage() {
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {[
-            { label: 'Total Clientes',   value: stats?.totalClients || 0,       icon: Users,       bar: 'bg-blue-500',   icon_bg: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400' },
-            { label: 'Novos Este Mês',   value: stats?.newThisMonth || 0,        icon: UserPlus,    bar: 'bg-green-500',  icon_bg: 'bg-green-500',   text: 'text-green-600 dark:text-green-400' },
-            { label: 'Ordens Abertas',   value: stats?.withActiveOrders || 0,    icon: ShoppingBag, bar: 'bg-orange-500', icon_bg: 'bg-orange-500',  text: 'text-orange-600 dark:text-orange-400' },
-            { label: 'Com Telefone',     value: stats?.withPhone || 0,           icon: Phone,       bar: 'bg-purple-500', icon_bg: 'bg-purple-500',  text: 'text-purple-600 dark:text-purple-400' },
-            { label: 'Aniversários Mês', value: stats?.birthdayThisMonth || 0,  icon: Cake,        bar: 'bg-pink-500',   icon_bg: 'bg-pink-500',    text: 'text-pink-600 dark:text-pink-400', extra: 'col-span-2 sm:col-span-1' },
-          ].map(({ label, value, icon: Icon, bar, icon_bg, text, extra }) => (
-            <div key={label} className={`relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 ${extra || ''}`}>
-              <div className={`absolute top-0 left-0 right-0 h-[3px] ${bar}`} />
+            { label: 'Total Clientes',   value: stats?.totalClients || 0,       icon: Users,       icon_bg: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400',   grad: 'bg-blue-500' },
+            { label: 'Novos Este Mês',   value: stats?.newThisMonth || 0,        icon: UserPlus,    icon_bg: 'bg-green-500',   text: 'text-green-600 dark:text-green-400', grad: 'bg-green-500' },
+            { label: 'Ordens Abertas',   value: stats?.withActiveOrders || 0,    icon: ShoppingBag, icon_bg: 'bg-orange-500',  text: 'text-orange-600 dark:text-orange-400', grad: 'bg-orange-500' },
+            { label: 'Com Telefone',     value: stats?.withPhone || 0,           icon: Phone,       icon_bg: 'bg-purple-500',  text: 'text-purple-600 dark:text-purple-400', grad: 'bg-purple-500' },
+            { label: 'Aniversários Mês', value: stats?.birthdayThisMonth || 0,  icon: Cake,        icon_bg: 'bg-pink-500',    text: 'text-pink-600 dark:text-pink-400',   grad: 'bg-pink-500', extra: 'col-span-2 sm:col-span-1' },
+          ].map(({ label, value, icon: Icon, icon_bg, text, grad, extra }) => (
+            <div key={label} className={`relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ${extra || ''}`}>
+              <div className={`absolute inset-0 ${grad} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
+              <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${grad} opacity-20 blur-2xl pointer-events-none`} />
               <div className="p-4 sm:p-5 pt-5 sm:pt-6">
                 <div className="flex items-start justify-between mb-3">
                   <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-tight">{label}</p>
