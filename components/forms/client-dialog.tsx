@@ -173,7 +173,15 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
               id="telefone"
               placeholder="(00) 00000-0000"
               inputMode="tel"
-              {...register('telefone')}
+              {...register('telefone', {
+                onChange: (e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11)
+                  const fmt = digits.length <= 10
+                    ? digits.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
+                    : digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
+                  e.target.value = fmt.replace(/-$/, '')
+                },
+              })}
               disabled={isLoading}
             />
             {errors.telefone && (

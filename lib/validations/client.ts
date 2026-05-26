@@ -2,7 +2,9 @@ import { z } from 'zod'
 
 export const clientSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  telefone: z.string().min(1, 'Telefone é obrigatório'),
+  telefone: z.string()
+    .min(1, 'Telefone é obrigatório')
+    .regex(/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/, 'Informe um telefone válido com DDD. Ex: (11) 99999-9999'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   data_nascimento: z.string().optional(),
   observacoes: z.string().optional(),
