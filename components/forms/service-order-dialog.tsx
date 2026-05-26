@@ -407,7 +407,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput
                     placeholder="Buscar cliente..."
                     value={clientSearchValue}
@@ -418,6 +418,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     <CommandGroup>
                       {clients
                         .filter((client) =>
+                          clientSearchValue === '' ||
                           client.nome.toLowerCase().includes(clientSearchValue.toLowerCase()) ||
                           client.email?.toLowerCase().includes(clientSearchValue.toLowerCase()) ||
                           client.telefone?.includes(clientSearchValue)
@@ -537,7 +538,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput
                       placeholder="Buscar serviço..."
                       value={serviceSearchValue}
@@ -548,6 +549,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                       <CommandGroup>
                         {activeServices
                           .filter((service) =>
+                            serviceSearchValue === '' ||
                             service.nome.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
                             service.categoria?.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
                             service.descricao?.toLowerCase().includes(serviceSearchValue.toLowerCase())
@@ -797,7 +799,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-0" align="start">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput
                         placeholder="Buscar produto..."
                         value={productSearchValue}
@@ -807,7 +809,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                         <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
                         <CommandGroup>
                           {activeProducts
-                            .filter(p => p.nome.toLowerCase().includes(productSearchValue.toLowerCase()))
+                            .filter(p => productSearchValue === '' || p.nome.toLowerCase().includes(productSearchValue.toLowerCase()))
                             .map(p => (
                               <CommandItem
                                 key={p.id}
