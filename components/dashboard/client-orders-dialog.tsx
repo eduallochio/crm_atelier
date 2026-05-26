@@ -102,7 +102,7 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                 </div>
                 <div className="text-sm font-semibold text-purple-900">
                   {data.stats.lastOrder 
-                    ? format(new Date(data.stats.lastOrder.created_at), 'dd/MM/yy', { locale: ptBR })
+                    ? (data.stats.lastOrder.created_at ? format(new Date(data.stats.lastOrder.created_at), 'dd/MM/yy', { locale: ptBR }) : '—')
                     : '-'
                   }
                 </div>
@@ -132,7 +132,7 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                           R$ {Number(order.valor_total).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {format(new Date(order.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
+                          {order.data_abertura ? format(new Date(order.data_abertura), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
                         </div>
                       </div>
                     </div>

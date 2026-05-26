@@ -110,7 +110,7 @@ export function OrderTimeline({ orderId }: OrderTimelineProps) {
                         {item.user}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {format(new Date(item.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {item.date ? format(new Date(item.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}
                       </p>
                     </div>
                     {item.type === 'note' ? (
