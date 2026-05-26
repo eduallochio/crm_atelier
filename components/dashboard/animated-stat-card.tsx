@@ -3,6 +3,7 @@
 import { useCounterAnimation } from '@/hooks/use-counter-animation'
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 interface AnimatedStatCardProps {
   name: string
@@ -14,6 +15,7 @@ interface AnimatedStatCardProps {
   trend?: number
   trendUp?: boolean
   isMonetary?: boolean
+  href?: string
 }
 
 export function AnimatedStatCard({
@@ -26,6 +28,7 @@ export function AnimatedStatCard({
   trend = 0,
   trendUp = true,
   isMonetary = false,
+  href,
 }: AnimatedStatCardProps) {
   const numericValue = typeof value === 'number' ? value : 0
   const animatedValue = useCounterAnimation({ end: numericValue, duration: 1500 })
@@ -42,11 +45,14 @@ export function AnimatedStatCard({
       : `R$ ${animatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : animatedValue.toLocaleString('pt-BR')
 
+  const Wrapper = href ? Link : 'div'
+
   return (
-    <div className={cn(
-      'relative rounded-2xl overflow-hidden',
+    <Wrapper href={href ?? '#'} className={cn(
+      'relative rounded-2xl overflow-hidden block',
       'border border-border/40 shadow-sm',
-      'hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default',
+      'hover:shadow-lg hover:-translate-y-1 transition-all duration-300',
+      href ? 'cursor-pointer' : 'cursor-default',
       'bg-card',
     )}>
       {/* Gradient background */}
@@ -101,6 +107,6 @@ export function AnimatedStatCard({
           <span className="opacity-70">vs. mês anterior</span>
         </div>
       </div>
-    </div>
+    </Wrapper>
   )
 }

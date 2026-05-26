@@ -115,6 +115,7 @@ export default function DashboardPage() {
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30',
       iconBg: 'bg-blue-500 dark:bg-blue-600',
+      href: '/clientes',
     },
     {
       name: 'Ordens de Serviço',
@@ -123,6 +124,7 @@ export default function DashboardPage() {
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30',
       iconBg: 'bg-green-500 dark:bg-green-600',
+      href: '/ordens-servico',
     },
     {
       name: 'Receita do Mês',
@@ -132,6 +134,7 @@ export default function DashboardPage() {
       bgColor: 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/30',
       iconBg: 'bg-yellow-500 dark:bg-yellow-600',
       isMonetary: true,
+      href: '/financeiro/receber',
     },
   ]
 
@@ -220,6 +223,7 @@ export default function DashboardPage() {
               bgColor={stat.bgColor}
               iconBg={stat.iconBg}
               isMonetary={stat.isMonetary}
+              href={stat.href}
             />
           ))}
           <MonthlyGoal

@@ -45,7 +45,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
 
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
+      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-orange-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-orange-500 opacity-20 blur-2xl pointer-events-none" />
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -65,7 +65,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
 
   if (orders.length === 0) {
     return (
-      <Card className="shadow-sm">
+      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-orange-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-orange-500 opacity-20 blur-2xl pointer-events-none" />
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -88,7 +88,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-orange-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-orange-500 opacity-20 blur-2xl pointer-events-none" />
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">

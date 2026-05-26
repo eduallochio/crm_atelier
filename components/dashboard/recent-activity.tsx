@@ -55,7 +55,7 @@ const TYPE_CONFIG = {
 export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
+      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
         </CardHeader>
@@ -78,7 +78,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
 
   if (activities.length === 0) {
     return (
-      <Card className="shadow-sm">
+      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
         </CardHeader>
@@ -97,7 +97,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
       </CardHeader>

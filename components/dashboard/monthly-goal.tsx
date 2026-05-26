@@ -112,9 +112,12 @@ export function MonthlyGoal({ currentRevenue, isLoading }: MonthlyGoalProps) {
                        'Defina uma meta para acompanhar seu progresso.'
 
   return (
-    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/60 shadow-sm">
-      <div className="absolute top-0 left-0 right-0 h-[3px] bg-violet-500" />
-      <div className="p-5">
+    <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-violet-500 opacity-[0.07] dark:opacity-[0.12]" />
+      {/* Glow */}
+      <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-violet-500 opacity-20 blur-2xl" />
+      <div className="relative p-5">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
