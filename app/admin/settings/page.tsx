@@ -22,6 +22,10 @@ interface SystemSettingsData {
   maxClientsPerOrg: number
   maxServicesPerOrg: number
   maxOrdersPerOrg: number
+  maxUsersPro: number
+  maxClientsPro: number
+  maxServicesPro: number
+  maxOrdersPro: number
   enableSignup: boolean
   enableTrialPlan: boolean
   trialDurationDays: number
@@ -32,10 +36,14 @@ interface SystemSettingsData {
 const DEFAULTS: SystemSettingsData = {
   siteName: 'Meu Atelier Sistema',
   supportEmail: 'suporte@meuateliersistema.com.br',
-  maxUsersPerOrg: 3,
+  maxUsersPerOrg: 2,
   maxClientsPerOrg: 50,
   maxServicesPerOrg: 20,
   maxOrdersPerOrg: 100,
+  maxUsersPro: 3,
+  maxClientsPro: 999999,
+  maxServicesPro: 999999,
+  maxOrdersPro: 999999,
   enableSignup: true,
   enableTrialPlan: true,
   trialDurationDays: 14,
@@ -53,17 +61,21 @@ export default function AdminSettingsPage() {
       .then((data) => {
         if (data && !data.error) {
           setSettings({
-            siteName:          data.site_name           ?? DEFAULTS.siteName,
-            supportEmail:      data.support_email       ?? DEFAULTS.supportEmail,
-            maxUsersPerOrg:    data.max_users_free       ?? DEFAULTS.maxUsersPerOrg,
-            maxClientsPerOrg:  data.max_clients_free     ?? DEFAULTS.maxClientsPerOrg,
-            maxServicesPerOrg: data.max_services_free    ?? DEFAULTS.maxServicesPerOrg,
-            maxOrdersPerOrg:   data.max_orders_free      ?? DEFAULTS.maxOrdersPerOrg,
-            enableSignup:      data.enable_signup        ?? DEFAULTS.enableSignup,
-            enableTrialPlan:   data.enable_trial         ?? DEFAULTS.enableTrialPlan,
-            trialDurationDays: data.trial_duration_days  ?? DEFAULTS.trialDurationDays,
-            maintenanceMode:   data.maintenance_mode     ?? DEFAULTS.maintenanceMode,
-            announcement:      data.announcement         ?? '',
+            siteName:          data.site_name            ?? DEFAULTS.siteName,
+            supportEmail:      data.support_email        ?? DEFAULTS.supportEmail,
+            maxUsersPerOrg:    data.max_users_free        ?? DEFAULTS.maxUsersPerOrg,
+            maxClientsPerOrg:  data.max_clients_free      ?? DEFAULTS.maxClientsPerOrg,
+            maxServicesPerOrg: data.max_services_free     ?? DEFAULTS.maxServicesPerOrg,
+            maxOrdersPerOrg:   data.max_orders_free       ?? DEFAULTS.maxOrdersPerOrg,
+            maxUsersPro:       data.max_users_pro         ?? DEFAULTS.maxUsersPro,
+            maxClientsPro:     data.max_clients_pro       ?? DEFAULTS.maxClientsPro,
+            maxServicesPro:    data.max_services_pro      ?? DEFAULTS.maxServicesPro,
+            maxOrdersPro:      data.max_orders_pro        ?? DEFAULTS.maxOrdersPro,
+            enableSignup:      data.enable_signup         ?? DEFAULTS.enableSignup,
+            enableTrialPlan:   data.enable_trial          ?? DEFAULTS.enableTrialPlan,
+            trialDurationDays: data.trial_duration_days   ?? DEFAULTS.trialDurationDays,
+            maintenanceMode:   data.maintenance_mode      ?? DEFAULTS.maintenanceMode,
+            announcement:      data.announcement          ?? '',
           })
         }
       })

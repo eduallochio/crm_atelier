@@ -16,6 +16,10 @@ interface Settings {
   maxClientsPerOrg: number
   maxServicesPerOrg: number
   maxOrdersPerOrg: number
+  maxUsersPro: number
+  maxClientsPro: number
+  maxServicesPro: number
+  maxOrdersPro: number
   enableSignup: boolean
   enableTrialPlan: boolean
   trialDurationDays: number
@@ -56,6 +60,10 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           max_clients_free:    settings.maxClientsPerOrg,
           max_services_free:   settings.maxServicesPerOrg,
           max_orders_free:     settings.maxOrdersPerOrg,
+          max_users_pro:       settings.maxUsersPro,
+          max_clients_pro:     settings.maxClientsPro,
+          max_services_pro:    settings.maxServicesPro,
+          max_orders_pro:      settings.maxOrdersPro,
           enable_signup:       settings.enableSignup,
           enable_trial:        settings.enableTrialPlan,
           trial_duration_days: settings.trialDurationDays,
@@ -138,6 +146,31 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
             <div className="space-y-2">
               <Label htmlFor="maxUsersPerOrg">Usuários</Label>
               <Input id="maxUsersPerOrg" type="number" min="1" value={settings.maxUsersPerOrg} onChange={(e) => handleChange('maxUsersPerOrg', e.target.value === '' ? 0 : Number(e.target.value))} />
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        <div className="space-y-4">
+          <h4 className="font-medium">Limites do Plano Pro</h4>
+          <p className="text-xs text-muted-foreground -mt-2">Defina os limites para organizações no plano Pro. Use 999999 para ilimitado.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxClientsPro">Clientes</Label>
+              <Input id="maxClientsPro" type="number" min="1" value={settings.maxClientsPro} onChange={(e) => handleChange('maxClientsPro', e.target.value === '' ? 0 : Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxServicesPro">Serviços</Label>
+              <Input id="maxServicesPro" type="number" min="1" value={settings.maxServicesPro} onChange={(e) => handleChange('maxServicesPro', e.target.value === '' ? 0 : Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxOrdersPro">Ordens de Serviço</Label>
+              <Input id="maxOrdersPro" type="number" min="1" value={settings.maxOrdersPro} onChange={(e) => handleChange('maxOrdersPro', e.target.value === '' ? 0 : Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxUsersPro">Usuários</Label>
+              <Input id="maxUsersPro" type="number" min="1" value={settings.maxUsersPro} onChange={(e) => handleChange('maxUsersPro', e.target.value === '' ? 0 : Number(e.target.value))} />
             </div>
           </div>
         </div>
