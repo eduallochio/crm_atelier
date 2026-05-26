@@ -586,8 +586,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
               <Input
                 type="number"
                 min="1"
-                value={quantidade}
-                onChange={(e) => setQuantidade(parseInt(e.target.value) || 1)}
+                value={quantidade === 0 ? '' : quantidade}
+                onChange={(e) => setQuantidade(e.target.value === '' ? 0 : parseInt(e.target.value) || 1)}
+                onBlur={() => { if (quantidade < 1) setQuantidade(1) }}
                 placeholder="Qtd"
                 className="w-20"
                 disabled={isLoading}
@@ -596,7 +597,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
               <Button
                 type="button"
                 onClick={addItem}
-                disabled={!selectedServiceId || isLoading}
+                disabled={!selectedServiceId || isLoading || quantidade < 1}
                 size="icon"
               >
                 <Plus className="h-4 w-4" />
