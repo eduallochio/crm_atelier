@@ -28,7 +28,6 @@ export const organizations = pgTable('organizations', {
   name:               text('name').notNull(),
   slug:               text('slug').notNull().unique(),
   plan:               text('plan').notNull().default('free'),
-  stripeCustomerId:   text('stripe_customer_id'),
   subscriptionStatus: text('subscription_status').default('inactive'),
   email:              text('email'),
   phone:              text('phone'),

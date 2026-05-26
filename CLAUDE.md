@@ -21,7 +21,6 @@ URL produção: https://meuateliersistema.com.br
 - **lucide-react** — ícones
 - **jspdf + jspdf-autotable** — exportação PDF
 - **xlsx** — exportação Excel
-- **Stripe** — assinaturas/pagamentos
 
 ---
 

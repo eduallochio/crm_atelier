@@ -15,7 +15,6 @@ export type Database = {
           name: string
           slug: string
           plan: 'free' | 'pro'
-          stripe_customer_id: string | null
           subscription_status: string
           created_at: string
           updated_at: string
@@ -25,7 +24,6 @@ export type Database = {
           name: string
           slug: string
           plan?: 'free' | 'pro'
-          stripe_customer_id?: string | null
           subscription_status?: string
           created_at?: string
           updated_at?: string
@@ -35,7 +33,6 @@ export type Database = {
           name?: string
           slug?: string
           plan?: 'free' | 'pro'
-          stripe_customer_id?: string | null
           subscription_status?: string
           created_at?: string
           updated_at?: string
