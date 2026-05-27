@@ -13,15 +13,19 @@ const DEFAULTS = [
 ]
 
 async function seedDefaults(organizationId: string) {
-  for (const d of DEFAULTS) {
-    await db.insert(orgPaymentMethods).values({
-      organizationId,
-      nome:      d.nome,
-      tipo:      d.tipo,
-      ativo:     true,
-      sortOrder: d.sortOrder,
-    })
-  }
+  // INSERT apenas se não existir nenhum registro para esta org (atômico via CTE)
+  await db.execute(drizzleSql`
+    INSERT INTO org_payment_methods (organization_id, nome, tipo, ativo, sort_order)
+    SELECT * FROM (VALUES
+      (${organizationId}::uuid, 'Dinheiro',          'dinheiro',       true, 1),
+      (${organizationId}::uuid, 'Pix',               'pix',            true, 2),
+      (${organizationId}::uuid, 'Cartão de Crédito', 'cartao_credito', true, 3),
+      (${organizationId}::uuid, 'Cartão de Débito',  'cartao_debito',  true, 4)
+    ) AS v(organization_id, nome, tipo, ativo, sort_order)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM org_payment_methods WHERE organization_id = ${organizationId}::uuid
+    )
+  `)
 }
 
 function mapRow(row: typeof orgPaymentMethods.$inferSelect) {

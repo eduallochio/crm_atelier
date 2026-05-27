@@ -169,12 +169,14 @@ export async function POST(request: Request) {
 
     // Run in a transaction
     const order = await db.transaction(async (tx) => {
-      // Next order number
-      const numResult = await tx
-        .select({ maxNum: drizzleSql<number>`coalesce(max(${orgServiceOrders.numero}), 0)` })
-        .from(orgServiceOrders)
-        .where(eq(orgServiceOrders.organizationId, user.organizationId))
-      const numero = (Number(numResult[0]?.maxNum) || 0) + 1
+      // Next order number — FOR UPDATE serializa transações concorrentes na mesma org
+      const numResult = await tx.execute(
+        drizzleSql`SELECT coalesce(max(numero), 0) + 1 AS numero
+                   FROM org_service_orders
+                   WHERE organization_id = ${user.organizationId}::uuid
+                   FOR UPDATE`
+      )
+      const numero = Number((numResult as unknown as Array<{ numero: string | number }>)[0]?.numero) || 1
 
       // Create order
       const [newOrder] = await tx
