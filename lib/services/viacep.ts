@@ -9,33 +9,20 @@ export interface ViaCepResponse {
 }
 
 export async function buscarCep(cep: string): Promise<ViaCepResponse | null> {
-  try {
-    // Remove caracteres não numéricos
-    const cepLimpo = cep.replace(/\D/g, '')
-    
-    // Valida se tem 8 dígitos
-    if (cepLimpo.length !== 8) {
-      throw new Error('CEP deve conter 8 dígitos')
-    }
+  const cepLimpo = cep.replace(/\D/g, '')
 
-    const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-    
-    if (!response.ok) {
-      throw new Error('Erro ao buscar CEP')
-    }
-
-    const data: ViaCepResponse = await response.json()
-
-    // ViaCEP retorna erro: true quando CEP não existe
-    if (data.erro) {
-      throw new Error('CEP não encontrado')
-    }
-
-    return data
-  } catch (error) {
-    console.error('Erro ao buscar CEP:', error)
-    throw error
+  if (cepLimpo.length !== 8) {
+    throw new Error('CEP deve conter 8 dígitos')
   }
+
+  const response = await fetch(`/api/cep?cep=${cepLimpo}`)
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error || 'Erro ao buscar CEP')
+  }
+
+  return response.json() as Promise<ViaCepResponse>
 }
 
 export function formatarCep(cep: string): string {
