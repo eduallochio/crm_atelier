@@ -20,7 +20,7 @@ const DEFAULTS = {
 function mapRow(row: {
   id: string
   organizationId: string
-  orderPrefix: string
+  orderPrefix: string | null
   orderStartNumber: number
   orderNumberFormat: string
   defaultStatus: string
@@ -34,7 +34,7 @@ function mapRow(row: {
   return {
     id:                     row.id,
     organization_id:        row.organizationId,
-    order_prefix:           row.orderPrefix,
+    order_prefix:           row.orderPrefix ?? 'OS',
     order_start_number:     row.orderStartNumber,
     order_number_format:    row.orderNumberFormat,
     default_status:         row.defaultStatus,
