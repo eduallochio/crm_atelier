@@ -35,9 +35,11 @@ export async function GET() {
     const row = result[0]
     return NextResponse.json({
       ...row,
-      payment_methods:    row.paymentMethodsJson  ?? DEFAULTS.payment_methods,
-      expense_categories: row.expenseCategoriesJson ?? [],
-      income_categories:  row.incomeCategoriesJson  ?? [],
+      payment_methods:      row.paymentMethodsJson    ?? DEFAULTS.payment_methods,
+      expense_categories:   row.expenseCategoriesJson ?? [],
+      income_categories:    row.incomeCategoriesJson  ?? [],
+      pix_key:              row.pixKey               ?? null,
+      show_pix_key_on_order: row.showPixKeyOnOrder   ?? false,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
@@ -62,6 +64,8 @@ export async function PUT(request: Request) {
       cashierOpeningBalanceRequired: !!body.cashier_opening_balance_required,
       expenseCategoriesJson:       body.expense_categories   ?? [],
       incomeCategoriesJson:        body.income_categories    ?? [],
+      pixKey:                      body.pix_key              ?? null,
+      showPixKeyOnOrder:           !!body.show_pix_key_on_order,
     }
 
     await db
@@ -77,6 +81,8 @@ export async function PUT(request: Request) {
           cashierOpeningBalanceRequired: values.cashierOpeningBalanceRequired,
           expenseCategoriesJson:       values.expenseCategoriesJson,
           incomeCategoriesJson:        values.incomeCategoriesJson,
+          pixKey:                      values.pixKey,
+          showPixKeyOnOrder:           values.showPixKeyOnOrder,
           updatedAt:                   new Date(),
         },
       })
@@ -90,9 +96,11 @@ export async function PUT(request: Request) {
     const row = result[0]
     return NextResponse.json({
       ...row,
-      payment_methods:    row.paymentMethodsJson  ?? DEFAULTS.payment_methods,
-      expense_categories: row.expenseCategoriesJson ?? [],
-      income_categories:  row.incomeCategoriesJson  ?? [],
+      payment_methods:       row.paymentMethodsJson    ?? DEFAULTS.payment_methods,
+      expense_categories:    row.expenseCategoriesJson ?? [],
+      income_categories:     row.incomeCategoriesJson  ?? [],
+      pix_key:               row.pixKey               ?? null,
+      show_pix_key_on_order: row.showPixKeyOnOrder     ?? false,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
