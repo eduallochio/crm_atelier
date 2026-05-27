@@ -46,8 +46,24 @@ export async function GET(
     }
 
     const ordersWithItems = orders.map((o) => ({
-      ...o,
-      items: itemsByOrder.get(o.id) ?? [],
+      id:               o.id,
+      numero:           o.numero,
+      status:           o.status,
+      valor_total:      Number(o.valorTotal ?? 0),
+      valor_entrada:    Number(o.valorEntrada ?? 0),
+      valor_pago:       Number(o.valorPago ?? 0),
+      forma_pagamento:  o.formaPagamento,
+      data_prevista:    o.dataPrevista,
+      data_conclusao:   o.dataConclusao,
+      observacoes:      o.observacoes,
+      created_at:       o.createdAt,
+      items: (itemsByOrder.get(o.id) ?? []).map((item) => ({
+        id:             item.id,
+        service_nome:   item.serviceNome,
+        quantidade:     Number(item.quantidade ?? 1),
+        valor_unitario: Number(item.valorUnitario ?? 0),
+        valor_total:    Number(item.valorTotal ?? 0),
+      })),
     }))
 
     const totalSpent = orders.reduce((sum, o) => {
@@ -55,7 +71,7 @@ export async function GET(
       return sum + Number(o.valorTotal ?? 0)
     }, 0)
 
-    const openOrders = orders.filter((o) =>
+    const openOrders = ordersWithItems.filter((o) =>
       ['pendente', 'em_andamento'].includes(o.status)
     ).length
 
