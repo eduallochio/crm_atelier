@@ -16,10 +16,6 @@ export function OrderSettingsForm() {
   const { data: settings, isLoading, error } = useOrderSettings()
   const updateSettings = useUpdateOrderSettings()
 
-  console.log('[OrderSettingsForm] Settings carregadas:', settings)
-  console.log('[OrderSettingsForm] isLoading:', isLoading)
-  console.log('[OrderSettingsForm] error:', error)
-
   const form = useForm({
     resolver: zodResolver(orderSettingsSchema),
     defaultValues: {
@@ -58,15 +54,8 @@ export function OrderSettingsForm() {
   }, [settings, form])
 
   const onSubmit = (data: OrderSettingsInput) => {
-    console.log('[OrderSettingsForm] onSubmit chamado com:', data)
-    console.log('[OrderSettingsForm] settings.organization_id:', settings?.organization_id)
-    
     if (settings?.organization_id) {
-      console.log('[OrderSettingsForm] Chamando updateSettings.mutate')
       updateSettings.mutate({ ...data, organization_id: settings.organization_id })
-    } else {
-      console.error('[OrderSettingsForm] organization_id não encontrado!')
-      alert('Erro: organization_id não encontrado. Verifique o console.')
     }
   }
 

@@ -6,15 +6,45 @@ import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
-  orderPrefix:          'OS',
-  orderStartNumber:     1,
-  orderNumberFormat:    'sequential' as const,
-  defaultStatus:        'pendente',
-  requireClient:        true,
-  requireService:       true,
-  requireDeliveryDate:  true,
-  requirePaymentMethod: false,
-  defaultDeliveryDays:  7,
+  order_prefix:          'OS',
+  order_start_number:    1,
+  order_number_format:   'sequential' as const,
+  default_status:        'pendente',
+  require_client:        true,
+  require_service:       true,
+  require_delivery_date: true,
+  require_payment_method: false,
+  default_delivery_days: 7,
+}
+
+function mapRow(row: {
+  id: string
+  organizationId: string
+  orderPrefix: string
+  orderStartNumber: number
+  orderNumberFormat: string
+  defaultStatus: string
+  requireClient: boolean
+  requireService: boolean
+  requireDeliveryDate: boolean
+  requirePaymentMethod: boolean
+  defaultDeliveryDays: number
+  updatedAt: Date | null
+}) {
+  return {
+    id:                     row.id,
+    organization_id:        row.organizationId,
+    order_prefix:           row.orderPrefix,
+    order_start_number:     row.orderStartNumber,
+    order_number_format:    row.orderNumberFormat,
+    default_status:         row.defaultStatus,
+    require_client:         row.requireClient,
+    require_service:        row.requireService,
+    require_delivery_date:  row.requireDeliveryDate,
+    require_payment_method: row.requirePaymentMethod,
+    default_delivery_days:  row.defaultDeliveryDays,
+    updated_at:             row.updatedAt,
+  }
 }
 
 export async function GET() {
@@ -36,7 +66,7 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json(result[0])
+    return NextResponse.json(mapRow(result[0]))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -89,7 +119,7 @@ export async function PUT(request: Request) {
       .where(eq(orgOrderSettings.organizationId, user.organizationId))
       .limit(1)
 
-    return NextResponse.json(result[0])
+    return NextResponse.json(mapRow(result[0]))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
