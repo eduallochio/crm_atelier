@@ -16,7 +16,10 @@ export async function GET() {
       .where(eq(orgClients.organizationId, user.organizationId))
       .orderBy(desc(orgClients.createdAt))
 
-    return NextResponse.json(clients)
+    return NextResponse.json(clients.map(c => ({
+      ...c,
+      data_cadastro: c.createdAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
