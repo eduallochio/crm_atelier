@@ -169,21 +169,13 @@ export async function POST(request: Request) {
 
     // Run in a transaction
     const order = await db.transaction(async (tx) => {
-      // Next order number — FOR UPDATE serializa transações concorrentes na mesma org
-      const numResult = await tx.execute(
-        drizzleSql`SELECT coalesce(max(numero), 0) + 1 AS numero
-                   FROM org_service_orders
-                   WHERE organization_id = ${user.organizationId}::uuid
-                   FOR UPDATE`
-      )
-      const numero = Number((numResult as unknown as Array<{ numero: string | number }>)[0]?.numero) || 1
-
-      // Create order
+      // Next order number — subquery atômica no INSERT evita race condition
+      // (FOR UPDATE não funciona com pgBouncer em transaction mode)
       const [newOrder] = await tx
         .insert(orgServiceOrders)
         .values({
           organizationId:     user.organizationId,
-          numero,
+          numero:             drizzleSql`(SELECT coalesce(max(numero), 0) + 1 FROM org_service_orders WHERE organization_id = ${user.organizationId}::uuid)`,
           clientId:           body.client_id || null,
           status:             body.status,
           valorTotal:         String(valor_total),
@@ -229,7 +221,7 @@ export async function POST(request: Request) {
         await tx.insert(orgTransactions).values({
           organizationId: user.organizationId,
           tipo:           'entrada',
-          descricao:      `Entrada OS #${numero}`,
+          descricao:      `Entrada OS #${newOrder.numero}`,
           valor:          String(valor_entrada),
           dataTransacao:  today,
           observacoes:    'Entrada recebida na criação da OS',
