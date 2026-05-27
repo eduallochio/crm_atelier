@@ -198,9 +198,6 @@ export function FinancialSettingsForm() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Código: {method.code}
-                    </p>
                   </div>
                 </div>
 
