@@ -6,17 +6,57 @@ import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS = {
-  notifyClientBirthday:      true,
-  notifyOrderReady:          true,
-  notifyPaymentReminder:     true,
-  notifyOrderDelayed:        true,
-  notifyLowStock:            false,
-  notifyNewClient:           false,
-  emailNotificationsEnabled: false,
-  notificationEmail:         null as string | null,
-  birthdayReminderDays:      7,
-  paymentReminderDays:       3,
-  orderReminderDays:         1,
+  notify_client_birthday:      true,
+  notify_order_ready:          true,
+  notify_payment_reminder:     true,
+  notify_order_delayed:        true,
+  notify_low_stock:            false,
+  notify_new_client:           false,
+  email_notifications_enabled: false,
+  notification_email:          null as string | null,
+  birthday_reminder_days:      7,
+  payment_reminder_days:       3,
+  order_reminder_days:         1,
+  ordem_aviso_ativo:           false,
+  ordem_aviso_texto:           null as string | null,
+}
+
+function mapRow(row: {
+  id: string
+  organizationId: string
+  notifyClientBirthday: boolean
+  notifyOrderReady: boolean
+  notifyPaymentReminder: boolean
+  notifyOrderDelayed: boolean
+  notifyLowStock: boolean
+  notifyNewClient: boolean
+  emailNotificationsEnabled: boolean
+  notificationEmail: string | null
+  birthdayReminderDays: number
+  paymentReminderDays: number
+  orderReminderDays: number
+  ordemAvisoAtivo: boolean
+  ordemAvisoTexto: string | null
+  updatedAt: Date | null
+}) {
+  return {
+    id:                          row.id,
+    organization_id:             row.organizationId,
+    notify_client_birthday:      row.notifyClientBirthday,
+    notify_order_ready:          row.notifyOrderReady,
+    notify_payment_reminder:     row.notifyPaymentReminder,
+    notify_order_delayed:        row.notifyOrderDelayed,
+    notify_low_stock:            row.notifyLowStock,
+    notify_new_client:           row.notifyNewClient,
+    email_notifications_enabled: row.emailNotificationsEnabled,
+    notification_email:          row.notificationEmail,
+    birthday_reminder_days:      row.birthdayReminderDays,
+    payment_reminder_days:       row.paymentReminderDays,
+    order_reminder_days:         row.orderReminderDays,
+    ordem_aviso_ativo:           row.ordemAvisoAtivo,
+    ordem_aviso_texto:           row.ordemAvisoTexto,
+    updated_at:                  row.updatedAt,
+  }
 }
 
 export async function GET() {
@@ -38,7 +78,7 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json(result[0])
+    return NextResponse.json(mapRow(result[0]))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -66,6 +106,8 @@ export async function PUT(request: Request) {
       birthdayReminderDays:      body.birthday_reminder_days ?? 7,
       paymentReminderDays:       body.payment_reminder_days  ?? 3,
       orderReminderDays:         body.order_reminder_days    ?? 1,
+      ordemAvisoAtivo:           !!body.ordem_aviso_ativo,
+      ordemAvisoTexto:           body.ordem_aviso_texto || null,
     }
 
     await db
@@ -85,6 +127,8 @@ export async function PUT(request: Request) {
           birthdayReminderDays:      values.birthdayReminderDays,
           paymentReminderDays:       values.paymentReminderDays,
           orderReminderDays:         values.orderReminderDays,
+          ordemAvisoAtivo:           values.ordemAvisoAtivo,
+          ordemAvisoTexto:           values.ordemAvisoTexto,
           updatedAt:                 new Date(),
         },
       })
@@ -95,7 +139,7 @@ export async function PUT(request: Request) {
       .where(eq(orgNotificationSettings.organizationId, user.organizationId))
       .limit(1)
 
-    return NextResponse.json(result[0])
+    return NextResponse.json(mapRow(result[0]))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
