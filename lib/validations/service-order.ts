@@ -8,18 +8,44 @@ export const serviceOrderItemSchema = z.object({
   valor_total: z.number(),
 })
 
-export const serviceOrderSchema = z.object({
-  client_id: z.string().uuid('Selecione um cliente'),
-  status: z.enum(['pendente', 'em_andamento', 'concluido', 'cancelado']),
-  data_prevista: z.string().min(1, 'Data prevista é obrigatória'),
-  forma_pagamento: z.string().optional(),
-  observacoes: z.string().optional(),
-  valor_entrada: z.number().min(0, 'Valor de entrada deve ser positivo').default(0),
-  desconto_valor: z.number().min(0, 'Desconto deve ser positivo').default(0),
-  desconto_percentual: z.number().min(0).max(100, 'Desconto deve ser entre 0 e 100%').default(0),
-  notas_internas: z.string().optional(),
-  items: z.array(serviceOrderItemSchema).min(1, 'Adicione pelo menos um serviço'),
-})
+interface OrderRequirements {
+  requireClient?: boolean
+  requireService?: boolean
+  requireDeliveryDate?: boolean
+  requirePaymentMethod?: boolean
+}
+
+export function buildServiceOrderSchema(req: OrderRequirements = {}) {
+  const {
+    requireClient = true,
+    requireService = true,
+    requireDeliveryDate = true,
+    requirePaymentMethod = false,
+  } = req
+
+  return z.object({
+    client_id: requireClient
+      ? z.string().uuid('Selecione um cliente')
+      : z.string().optional().default(''),
+    status: z.enum(['pendente', 'em_andamento', 'concluido', 'cancelado']),
+    data_prevista: requireDeliveryDate
+      ? z.string().min(1, 'Data prevista é obrigatória')
+      : z.string().optional().default(''),
+    forma_pagamento: requirePaymentMethod
+      ? z.string().min(1, 'Selecione a forma de pagamento')
+      : z.string().optional(),
+    observacoes: z.string().optional(),
+    valor_entrada: z.number().min(0, 'Valor de entrada deve ser positivo').default(0),
+    desconto_valor: z.number().min(0, 'Desconto deve ser positivo').default(0),
+    desconto_percentual: z.number().min(0).max(100, 'Desconto deve ser entre 0 e 100%').default(0),
+    notas_internas: z.string().optional(),
+    items: requireService
+      ? z.array(serviceOrderItemSchema).min(1, 'Adicione pelo menos um serviço')
+      : z.array(serviceOrderItemSchema),
+  })
+}
+
+export const serviceOrderSchema = buildServiceOrderSchema()
 
 export type ServiceOrderItemInput = z.infer<typeof serviceOrderItemSchema>
 export type ServiceOrderInput = z.infer<typeof serviceOrderSchema>

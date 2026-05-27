@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { serviceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
+import { buildServiceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
 import { useQuery } from '@tanstack/react-query'
 import { useCreateServiceOrder } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
 import { useServices } from '@/hooks/use-services'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
-import { useSystemPreferences, useNotificationSettings, useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
+import { useSystemPreferences, useNotificationSettings, useOrganizationSettings, useFinancialSettings, useOrderSettings } from '@/hooks/use-settings'
 import type { Product } from '@/hooks/use-inventory'
 import { generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
@@ -81,7 +81,20 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const { data: notifSettings } = useNotificationSettings()
   const { data: orgSettings } = useOrganizationSettings()
   const { data: financialSettings } = useFinancialSettings()
+  const { data: orderSettings } = useOrderSettings()
   const controlaEstoque = !!systemPrefs?.controla_estoque
+
+  const requireClient        = orderSettings?.require_client        ?? true
+  const requireService       = orderSettings?.require_service       ?? true
+  const requireDeliveryDate  = orderSettings?.require_delivery_date ?? true
+  const requirePaymentMethod = orderSettings?.require_payment_method ?? false
+
+  const serviceOrderSchema = buildServiceOrderSchema({
+    requireClient,
+    requireService,
+    requireDeliveryDate,
+    requirePaymentMethod,
+  })
 
   const orgData = orgSettings ? {
     name: orgSettings.name,
@@ -116,7 +129,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     setValue,
     watch,
   } = useForm<ServiceOrderInput>({
-    resolver: zodResolver(serviceOrderSchema) as Resolver<ServiceOrderInput>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(serviceOrderSchema as any) as Resolver<ServiceOrderInput>,
     defaultValues: {
       client_id: '',
       status: 'pendente' as const,
@@ -254,9 +268,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     if (items.length === 0) return
 
     // Buscar dados do cliente selecionado
-    const selectedClient = clients.find(c => c.id === data.client_id)
-    
-    if (!selectedClient) {
+    const selectedClient = data.client_id ? clients.find(c => c.id === data.client_id) : undefined
+
+    if (requireClient && !selectedClient) {
       toast.error('Cliente não encontrado')
       return
     }
@@ -282,12 +296,12 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       fotos: null,
       notas_internas: data.notas_internas || null,
       created_at: new Date().toISOString(),
-      client: {
+      client: selectedClient ? {
         id: selectedClient.id,
         nome: selectedClient.nome,
         telefone: selectedClient.telefone || null,
         email: selectedClient.email || null,
-      },
+      } : undefined,
       items: items.map((item, index) => ({
         id: `temp-${index}`,
         order_id: 'preview',
@@ -389,7 +403,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           {/* Cliente */}
           <div className="space-y-2">
             <Label htmlFor="client_id">
-              Cliente <span className="text-red-500">*</span>
+              Cliente {requireClient && <span className="text-red-500">*</span>}
             </Label>
             <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
               <PopoverTrigger asChild>
@@ -477,7 +491,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_prevista">Data Prevista <span className="text-red-500">*</span></Label>
+              <Label htmlFor="data_prevista">Data Prevista {requireDeliveryDate && <span className="text-red-500">*</span>}</Label>
               <Input
                 id="data_prevista"
                 type="date"
@@ -493,7 +507,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
           {/* Forma de Pagamento */}
           <div className="space-y-2">
-            <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
+            <Label htmlFor="forma_pagamento">
+              Forma de Pagamento {requirePaymentMethod && <span className="text-red-500">*</span>}
+            </Label>
             <select
               id="forma_pagamento"
               {...register('forma_pagamento')}
@@ -507,6 +523,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                 </option>
               ))}
             </select>
+            {errors.forma_pagamento && (
+              <p className="text-sm text-red-500">{errors.forma_pagamento.message}</p>
+            )}
             {paymentMethods.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 Configure formas de pagamento em Configurações → Financeiro
@@ -950,7 +969,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                 const msgs: string[] = []
                 if (erros.client_id) msgs.push('Selecione um cliente')
                 if (erros.data_prevista) msgs.push('Informe a data prevista')
-                if (erros.items || items.length === 0) msgs.push('Adicione pelo menos um serviço')
+                if (erros.forma_pagamento) msgs.push('Selecione a forma de pagamento')
+                if (erros.items) msgs.push('Adicione pelo menos um serviço')
                 if (msgs.length > 0) toast.error('Campos obrigatórios: ' + msgs.join(' • '))
               })()}
             >
