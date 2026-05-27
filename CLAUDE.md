@@ -245,6 +245,20 @@ format(new Date(client.data_nascimento), 'dd/MM/yyyy')
 client.data_nascimento ? format(new Date(client.data_nascimento), 'dd/MM/yyyy') : '—'
 ```
 
+### FOR UPDATE incompatível com pgBouncer
+
+`SELECT ... FOR UPDATE` não funciona com pgBouncer em transaction mode (usado pelo Supabase/Vercel). Use subquery atômica no INSERT:
+
+```typescript
+// ERRADO — quebra em produção com pgBouncer
+const result = await tx.execute(sql`SELECT max(numero) + 1 ... FOR UPDATE`)
+
+// CORRETO — subquery atômica dentro do INSERT VALUES
+await tx.insert(table).values({
+  numero: sql`(SELECT coalesce(max(numero), 0) + 1 FROM tabela WHERE organization_id = ${orgId}::uuid)`,
+})
+```
+
 ### NEXT_REDIRECT no ErrorBoundary
 
 `NEXT_REDIRECT` e `NEXT_NOT_FOUND` são exceções internas do Next.js lançadas por `redirect()` e `notFound()`. O `ErrorBoundary` em `components/error-boundary.tsx` já as ignora checando `error.message.startsWith('NEXT_')`. **Não logar esses erros.**
