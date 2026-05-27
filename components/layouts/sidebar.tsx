@@ -40,7 +40,6 @@ import {
   Bell,
   LucideIcon,
 } from 'lucide-react'
-import { logout } from '@/app/(auth)/actions'
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ThemeToggle } from './theme-toggle'
@@ -174,7 +173,10 @@ export function Sidebar() {
     { href: '/financeiro/receber', label: 'Contas a receber vencidas', count: alerts['/financeiro/receber'] || 0 },
   ].filter(a => a.count > 0)
 
-  const handleLogout = async () => { await logout() }
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
+  }
 
   const initials = userProfile?.name
     ?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?'
