@@ -171,11 +171,11 @@ export default function AjudaPage() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-green-700 mb-1">Plano Free</p>
-                <p className="text-[12px] text-green-600">50 clientes · 2 usuários · 100 ordens por mês</p>
+                <p className="text-[12px] text-green-600">50 clientes · 20 serviços · 100 ordens · 2 usuários</p>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-700 mb-1">Plano Pro</p>
-                <p className="text-[12px] text-blue-600">Clientes ilimitados · 3 usuários · Ordens ilimitadas</p>
+                <p className="text-[12px] text-blue-600">Clientes ilimitados · Serviços ilimitados · Ordens ilimitadas · 3 usuários</p>
               </div>
             </div>
             <Screenshot src="/manual/dashboard.png" alt="Menu lateral do sistema" label="[Captura de tela do menu lateral (sidebar) com todos os módulos visíveis]" />
@@ -609,7 +609,7 @@ export default function AjudaPage() {
                 },
                 {
                   q: 'Como funciona a numeração automática das OS?',
-                  a: 'Configure o prefixo e número inicial em Configurações → Ordens de Serviço. O sistema incrementa automaticamente a cada nova OS criada.',
+                  a: 'Configure o prefixo em Configurações → Ordens de Serviço. A numeração é incrementada automaticamente a cada nova OS criada, sem possibilidade de alterar o número inicial.',
                 },
                 {
                   q: 'O estoque baixa sozinho ao concluir uma OS?',
