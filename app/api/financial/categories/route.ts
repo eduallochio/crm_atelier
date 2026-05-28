@@ -15,7 +15,17 @@ export async function GET() {
       .where(eq(orgFinancialCategories.organizationId, user.organizationId))
       .orderBy(asc(orgFinancialCategories.tipo), asc(orgFinancialCategories.nome))
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows.map(r => ({
+      id:              r.id,
+      organization_id: r.organizationId,
+      nome:            r.nome,
+      tipo:            r.tipo,
+      cor:             r.cor,
+      descricao:       r.descricao,
+      ativo:           r.ativo,
+      created_at:      r.createdAt,
+      updated_at:      r.updatedAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -42,7 +52,17 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json(row, { status: 201 })
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      nome:            row.nome,
+      tipo:            row.tipo,
+      cor:             row.cor,
+      descricao:       row.descricao,
+      ativo:           row.ativo,
+      created_at:      row.createdAt,
+      updated_at:      row.updatedAt,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

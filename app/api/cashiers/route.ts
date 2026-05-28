@@ -15,7 +15,15 @@ export async function GET() {
       .where(eq(orgCashiers.organizationId, user.organizationId))
       .orderBy(asc(orgCashiers.nome))
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows.map(r => ({
+      id:              r.id,
+      organization_id: r.organizationId,
+      nome:            r.nome,
+      descricao:       r.descricao,
+      ativo:           r.ativo,
+      created_at:      r.createdAt,
+      updated_at:      r.updatedAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -40,7 +48,15 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json(row, { status: 201 })
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      nome:            row.nome,
+      descricao:       row.descricao,
+      ativo:           row.ativo,
+      created_at:      row.createdAt,
+      updated_at:      row.updatedAt,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

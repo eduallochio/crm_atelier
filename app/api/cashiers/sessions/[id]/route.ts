@@ -44,7 +44,22 @@ export async function GET(
     }
 
     const r = rows[0]
-    return NextResponse.json({ ...r, org_cashiers: { nome: r.caixa_nome } })
+    return NextResponse.json({
+      id:                    r.id,
+      organization_id:       r.organizationId,
+      caixa_id:              r.caixaId,
+      usuario_abertura_id:   r.usuarioAberturaId,
+      data_abertura:         r.dataAbertura,
+      data_fechamento:       r.dataFechamento,
+      saldo_inicial:         r.saldoInicial,
+      saldo_real:            r.saldoReal,
+      status:                r.status,
+      observacoes_abertura:  r.observacoesAbertura,
+      observacoes_fechamento: r.observacoesFechamento,
+      created_at:            r.createdAt,
+      updated_at:            r.updatedAt,
+      org_cashiers:          { nome: r.caixa_nome },
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -86,7 +101,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Sessão não encontrada' }, { status: 404 })
     }
 
-    return NextResponse.json(row)
+    return NextResponse.json({
+      id:                     row.id,
+      organization_id:        row.organizationId,
+      caixa_id:               row.caixaId,
+      usuario_abertura_id:    row.usuarioAberturaId,
+      data_abertura:          row.dataAbertura,
+      data_fechamento:        row.dataFechamento,
+      saldo_inicial:          row.saldoInicial,
+      saldo_real:             row.saldoReal,
+      status:                 row.status,
+      observacoes_abertura:   row.observacoesAbertura,
+      observacoes_fechamento: row.observacoesFechamento,
+      created_at:             row.createdAt,
+      updated_at:             row.updatedAt,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

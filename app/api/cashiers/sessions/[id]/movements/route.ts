@@ -24,7 +24,16 @@ export async function GET(
       )
       .orderBy(desc(orgCashierMovements.createdAt))
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows.map(r => ({
+      id:              r.id,
+      organization_id: r.organizationId,
+      sessao_id:       r.sessaoId,
+      tipo:            r.tipo,
+      valor:           r.valor,
+      descricao:       r.descricao,
+      observacoes:     r.observacoes,
+      created_at:      r.createdAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -55,7 +64,16 @@ export async function POST(
       })
       .returning()
 
-    return NextResponse.json(row, { status: 201 })
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      sessao_id:       row.sessaoId,
+      tipo:            row.tipo,
+      valor:           row.valor,
+      descricao:       row.descricao,
+      observacoes:     row.observacoes,
+      created_at:      row.createdAt,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

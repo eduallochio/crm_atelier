@@ -29,7 +29,15 @@ export async function PUT(
       return NextResponse.json({ error: 'Caixa não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(row)
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      nome:            row.nome,
+      descricao:       row.descricao,
+      ativo:           row.ativo,
+      created_at:      row.createdAt,
+      updated_at:      row.updatedAt,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
