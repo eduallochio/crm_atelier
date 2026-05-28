@@ -4,13 +4,16 @@ import { db } from '@/lib/db'
 import { orgProducts, organizations } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { hasLifetimeLicense } from '@/lib/plan-limits'
 
 async function checkPlan(organizationId: string) {
   const [org] = await db
-    .select({ plan: organizations.plan })
+    .select({ plan: organizations.plan, lifetimeLicense: organizations.lifetimeLicense })
     .from(organizations)
     .where(eq(organizations.id, organizationId))
-  if (org?.plan === 'free') throw new Error('FORBIDDEN')
+  if (org?.plan === 'free' && !org?.lifetimeLicense && !(await hasLifetimeLicense(organizationId))) {
+    throw new Error('FORBIDDEN')
+  }
 }
 
 export async function GET() {
