@@ -65,7 +65,6 @@ export async function GET() {
       observacoes:     e.observacoes,
       valor_total:     e.valorTotal != null ? Number(e.valorTotal) : null,
       created_at:      e.createdAt,
-      updated_at:      e.updatedAt,
       itens: e.itens.map(i => ({
         id:              i.id,
         entry_id:        i.entryId,
@@ -136,7 +135,6 @@ export async function POST(request: Request) {
       observacoes:     entry.observacoes,
       valor_total:     entry.valorTotal != null ? Number(entry.valorTotal) : null,
       created_at:      entry.createdAt,
-      updated_at:      entry.updatedAt,
       itens: insertedItems.map(i => ({
         id:             i.id,
         entry_id:       i.entryId,

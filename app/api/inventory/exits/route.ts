@@ -47,7 +47,6 @@ export async function GET() {
       tipo:             e.tipo,
       observacoes:      e.observacoes,
       created_at:       e.createdAt,
-      updated_at:       e.updatedAt,
       itens: e.itens.map(i => ({
         id:           i.id,
         exit_id:      i.exitId,
