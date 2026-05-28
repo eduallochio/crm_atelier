@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, FileText, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText } from 'lucide-react'
+import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -118,40 +118,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     window.open(`https://wa.me/${telefoneFormatado}?text=${mensagem}`, '_blank')
   }
 
-  const handleWhatsAppWithPDF = (order: ServiceOrder) => {
-    if (!order.client?.telefone) {
-      toast.error('Cliente não possui telefone cadastrado')
-      return
-    }
 
-    try {
-      // Gerar o PDF primeiro
-      generateThermalPDF(order)
-      
-      // Remover caracteres especiais do telefone
-      const telefone = order.client.telefone.replace(/\D/g, '')
-      const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`
-      
-      // Criar mensagem
-      const numeroOrdem = order.numero.toString().padStart(6, '0')
-      const nomeCliente = order.client.nome
-      const mensagem = encodeURIComponent(
-        `Olá ${nomeCliente}!\n\n` +
-        `Segue sua Ordem de Serviço *#${numeroOrdem}*.\n\n` +
-        `Por favor, anexe o PDF que acabou de ser baixado.`
-      )
-      
-      // Abrir WhatsApp Web
-      window.open(`https://wa.me/${telefoneFormatado}?text=${mensagem}`, '_blank')
-      
-      toast.success('PDF gerado! Anexe o arquivo no WhatsApp que abriu.', {
-        duration: 5000,
-      })
-    } catch (error) {
-      console.error('Erro ao enviar por WhatsApp:', error)
-      toast.error('Erro ao preparar envio por WhatsApp')
-    }
-  }
 
   const handleStatusChange = async (orderId: string, newStatus: ServiceOrder['status']) => {
     if (newStatus === 'concluido') {
@@ -405,13 +372,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   title="Gerar PDF">
                   <Printer className="h-4 w-4" />
                 </Button>
-                {order.client?.telefone && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50"
-                    onClick={() => handleWhatsAppWithPDF(order)} title="Enviar por WhatsApp">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                )}
-                {order.status === 'concluido' && order.client?.telefone && (
+                {order.client?.telefone && order.status === 'concluido' && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50"
                     onClick={() => handleWhatsAppClick(order)} title="Notificar conclusão">
                     <MessageCircle className="h-4 w-4" />
@@ -595,17 +556,6 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
-                      {order.client?.telefone && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleWhatsAppWithPDF(order)}
-                          title="Enviar ordem por WhatsApp"
-                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
                       {order.status === 'concluido' && order.client?.telefone && (
                         <Button
                           variant="ghost"
