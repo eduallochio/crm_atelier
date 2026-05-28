@@ -84,7 +84,7 @@ export const metadata: Metadata = {
       { url: '/logo-192.png',       sizes: '192x192', type: 'image/png' },
       { url: '/logo-512.png',       sizes: '512x512', type: 'image/png' },
     ],
-    apple: { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    apple: { url: '/logo-192.png', sizes: '180x180', type: 'image/png' },
     shortcut: '/favicon.svg',
   },
   verification: {
