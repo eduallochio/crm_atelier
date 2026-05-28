@@ -29,7 +29,20 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const user = await requireAuth()
     const { id } = await params
     const product = await checkPlanAndProduct(user.organizationId, id)
-    return NextResponse.json(product)
+    return NextResponse.json({
+      id:               product.id,
+      organization_id:  product.organizationId,
+      nome:             product.nome,
+      descricao:        product.descricao,
+      unidade:          product.unidade,
+      quantidade_atual: Number(product.quantidadeAtual ?? 0),
+      quantidade_minima: Number(product.quantidadeMinima ?? 0),
+      preco_custo:      product.precoCusto != null ? Number(product.precoCusto) : null,
+      codigo_barras:    product.codigoBarras,
+      ativo:            product.ativo,
+      created_at:       product.createdAt,
+      updated_at:       product.updatedAt,
+    })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -64,7 +77,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       .where(and(eq(orgProducts.id, id), eq(orgProducts.organizationId, user.organizationId)))
       .returning()
 
-    return NextResponse.json(updated)
+    return NextResponse.json({
+      id:               updated.id,
+      organization_id:  updated.organizationId,
+      nome:             updated.nome,
+      descricao:        updated.descricao,
+      unidade:          updated.unidade,
+      quantidade_atual: Number(updated.quantidadeAtual ?? 0),
+      quantidade_minima: Number(updated.quantidadeMinima ?? 0),
+      preco_custo:      updated.precoCusto != null ? Number(updated.precoCusto) : null,
+      codigo_barras:    updated.codigoBarras,
+      ativo:            updated.ativo,
+      created_at:       updated.createdAt,
+      updated_at:       updated.updatedAt,
+    })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

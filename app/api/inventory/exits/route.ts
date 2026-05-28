@@ -40,7 +40,23 @@ export async function GET() {
       itens: items.filter(i => i.exitId === e.id),
     }))
 
-    return NextResponse.json(exitsWithItems)
+    return NextResponse.json(exitsWithItems.map(e => ({
+      id:               e.id,
+      organization_id:  e.organizationId,
+      service_order_id: e.serviceOrderId,
+      tipo:             e.tipo,
+      observacoes:      e.observacoes,
+      created_at:       e.createdAt,
+      updated_at:       e.updatedAt,
+      itens: e.itens.map(i => ({
+        id:           i.id,
+        exit_id:      i.exitId,
+        product_id:   i.productId,
+        produto_nome: i.produtoNome,
+        quantidade:   Number(i.quantidade ?? 0),
+        unidade:      i.unidade,
+      })),
+    })))
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -101,7 +117,23 @@ export async function POST(request: Request) {
       return { ...exit, itens: insertedItems }
     })
 
-    return NextResponse.json(result, { status: 201 })
+    return NextResponse.json({
+      id:               result.id,
+      organization_id:  result.organizationId,
+      service_order_id: result.serviceOrderId,
+      tipo:             result.tipo,
+      observacoes:      result.observacoes,
+      created_at:       result.createdAt,
+      updated_at:       result.updatedAt,
+      itens: result.itens.map((i: { id: string; exitId: string; productId: string; produtoNome: string; quantidade: string | number; unidade: string }) => ({
+        id:           i.id,
+        exit_id:      i.exitId,
+        product_id:   i.productId,
+        produto_nome: i.produtoNome,
+        quantidade:   Number(i.quantidade ?? 0),
+        unidade:      i.unidade,
+      })),
+    }, { status: 201 })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

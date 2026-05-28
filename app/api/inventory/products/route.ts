@@ -27,7 +27,20 @@ export async function GET() {
       .where(eq(orgProducts.organizationId, user.organizationId))
       .orderBy(asc(orgProducts.nome))
 
-    return NextResponse.json(products)
+    return NextResponse.json(products.map(p => ({
+      id:               p.id,
+      organization_id:  p.organizationId,
+      nome:             p.nome,
+      descricao:        p.descricao,
+      unidade:          p.unidade,
+      quantidade_atual: Number(p.quantidadeAtual ?? 0),
+      quantidade_minima: Number(p.quantidadeMinima ?? 0),
+      preco_custo:      p.precoCusto != null ? Number(p.precoCusto) : null,
+      codigo_barras:    p.codigoBarras,
+      ativo:            p.ativo,
+      created_at:       p.createdAt,
+      updated_at:       p.updatedAt,
+    })))
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -69,7 +82,20 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json(product, { status: 201 })
+    return NextResponse.json({
+      id:               product.id,
+      organization_id:  product.organizationId,
+      nome:             product.nome,
+      descricao:        product.descricao,
+      unidade:          product.unidade,
+      quantidade_atual: Number(product.quantidadeAtual ?? 0),
+      quantidade_minima: Number(product.quantidadeMinima ?? 0),
+      preco_custo:      product.precoCusto != null ? Number(product.precoCusto) : null,
+      codigo_barras:    product.codigoBarras,
+      ativo:            product.ativo,
+      created_at:       product.createdAt,
+      updated_at:       product.updatedAt,
+    }, { status: 201 })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

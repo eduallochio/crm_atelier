@@ -57,7 +57,25 @@ export async function GET() {
       itens: items.filter(i => i.entryId === e.id),
     }))
 
-    return NextResponse.json(entriesWithItems)
+    return NextResponse.json(entriesWithItems.map(e => ({
+      id:              e.id,
+      organization_id: e.organizationId,
+      supplier_id:     e.supplierId,
+      tipo:            e.tipo,
+      observacoes:     e.observacoes,
+      valor_total:     e.valorTotal != null ? Number(e.valorTotal) : null,
+      created_at:      e.createdAt,
+      updated_at:      e.updatedAt,
+      itens: e.itens.map(i => ({
+        id:              i.id,
+        entry_id:        i.entryId,
+        product_id:      i.productId,
+        quantidade:      Number(i.quantidade ?? 0),
+        unidade:         i.unidade,
+        preco_unitario:  i.valorUnitario != null ? Number(i.valorUnitario) : null,
+        preco_total:     i.valorTotal != null ? Number(i.valorTotal) : null,
+      })),
+    })))
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -110,7 +128,25 @@ export async function POST(request: Request) {
       )
       .returning()
 
-    return NextResponse.json({ ...entry, itens: insertedItems }, { status: 201 })
+    return NextResponse.json({
+      id:              entry.id,
+      organization_id: entry.organizationId,
+      supplier_id:     entry.supplierId,
+      tipo:            entry.tipo,
+      observacoes:     entry.observacoes,
+      valor_total:     entry.valorTotal != null ? Number(entry.valorTotal) : null,
+      created_at:      entry.createdAt,
+      updated_at:      entry.updatedAt,
+      itens: insertedItems.map(i => ({
+        id:             i.id,
+        entry_id:       i.entryId,
+        product_id:     i.productId,
+        quantidade:     Number(i.quantidade ?? 0),
+        unidade:        i.unidade,
+        preco_unitario: i.valorUnitario != null ? Number(i.valorUnitario) : null,
+        preco_total:    i.valorTotal != null ? Number(i.valorTotal) : null,
+      })),
+    }, { status: 201 })
   } catch (error) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
