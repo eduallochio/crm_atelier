@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText } from 'lucide-react'
+import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import { Button } from '@/components/ui/button'
-import { generateThermalPDF } from '@/lib/utils/thermal-printer'
+import { generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
+import { useOrganizationSettings } from '@/hooks/use-settings'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -56,6 +57,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const deleteOrder = useDeleteServiceOrder()
   const updateOrder = useUpdateServiceOrder()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
+  const { data: orgSettings } = useOrganizationSettings()
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -89,6 +91,17 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     if (!order.data_prevista) return null
     const today = new Date(); today.setHours(0, 0, 0, 0)
     return Math.ceil((parseLocalDate(order.data_prevista).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const handleSendOS = (order: ServiceOrder) => {
+    if (!order.client?.telefone) {
+      toast.error('Cliente não possui telefone cadastrado')
+      return
+    }
+    const telefone = order.client.telefone.replace(/\D/g, '')
+    const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`
+    const msg = generateWhatsAppText(order, orgSettings?.name || 'Meu Atelier')
+    window.open(`https://wa.me/${telefoneFormatado}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   const handleWhatsAppClick = (order: ServiceOrder) => {
@@ -372,10 +385,16 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   title="Gerar PDF">
                   <Printer className="h-4 w-4" />
                 </Button>
-                {order.client?.telefone && order.status === 'concluido' && (
+                {order.client?.telefone && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50"
-                    onClick={() => handleWhatsAppClick(order)} title="Notificar conclusão">
+                    onClick={() => handleSendOS(order)} title="Enviar OS por WhatsApp">
                     <MessageCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                {order.client?.telefone && order.status === 'concluido' && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                    onClick={() => handleWhatsAppClick(order)} title="Notificar conclusão ao cliente">
+                    <Send className="h-4 w-4" />
                   </Button>
                 )}
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(order)}>
@@ -556,15 +575,26 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
+                      {order.client?.telefone && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSendOS(order)}
+                          title="Enviar OS por WhatsApp"
+                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                       {order.status === 'concluido' && order.client?.telefone && (
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleWhatsAppClick(order)}
-                          title="Notificar conclusão via WhatsApp"
-                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50"
+                          title="Notificar conclusão ao cliente"
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                         >
-                          <MessageCircle className="h-4 w-4" />
+                          <Send className="h-4 w-4" />
                         </Button>
                       )}
                       <Button
