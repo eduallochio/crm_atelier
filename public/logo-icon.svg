@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f0f"/>
+      <stop offset="100%" style="stop-color:#1a1a1a"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8C96A"/>
+      <stop offset="50%" style="stop-color:#C9A84C"/>
+      <stop offset="100%" style="stop-color:#A07830"/>
+    </linearGradient>
+    <linearGradient id="goldGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8C96A"/>
+      <stop offset="50%" style="stop-color:#C9A84C"/>
+      <stop offset="100%" style="stop-color:#A07830"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGrad)" rx="80"/>
+
+  <!-- Subtle grid texture -->
+  <line x1="256" y1="60" x2="256" y2="452" stroke="#C9A84C" stroke-width="0.4" stroke-opacity="0.15"/>
+  <line x1="60" y1="256" x2="452" y2="256" stroke="#C9A84C" stroke-width="0.4" stroke-opacity="0.15"/>
+
+  <!-- Pivot point — golden circle at center -->
+  <circle cx="256" cy="256" r="10" fill="url(#goldGrad)" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="5" fill="#0f0f0f"/>
+
+  <!-- BLADE 1 — upper-left to lower-right (top blade) -->
+  <!-- Blade body: thin parallelogram from pivot going upper-left -->
+  <polygon
+    points="256,256 248,248 118,148 130,138"
+    fill="url(#goldGrad)"
+  />
+  <!-- Blade tip sharpener -->
+  <polygon
+    points="118,148 130,138 115,134"
+    fill="#E8C96A"
+  />
+
+  <!-- BLADE 2 — upper-right to lower-left (bottom blade, mirror) -->
+  <polygon
+    points="256,256 264,248 394,148 382,138"
+    fill="url(#goldGrad2)"
+  />
+  <!-- Blade tip -->
+  <polygon
+    points="394,148 382,138 397,134"
+    fill="#E8C96A"
+  />
+
+  <!-- HANDLE 1 — lower left: two nested circles -->
+  <!-- Outer ring -->
+  <circle cx="194" cy="354" r="52" fill="none" stroke="url(#goldGrad)" stroke-width="12"/>
+  <!-- Inner ring accent -->
+  <circle cx="194" cy="354" r="28" fill="none" stroke="url(#goldGrad)" stroke-width="5" stroke-opacity="0.5"/>
+  <!-- Connection shank from pivot to handle ring -->
+  <line x1="256" y1="256" x2="206" y2="315" stroke="url(#goldGrad)" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- HANDLE 2 — lower right: mirror -->
+  <circle cx="318" cy="354" r="52" fill="none" stroke="url(#goldGrad2)" stroke-width="12"/>
+  <circle cx="318" cy="354" r="28" fill="none" stroke="url(#goldGrad2)" stroke-width="5" stroke-opacity="0.5"/>
+  <line x1="256" y1="256" x2="306" y2="315" stroke="url(#goldGrad2)" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Dotted cut line — horizontal through pivot -->
+  <line x1="80" y1="256" x2="432" y2="256"
+    stroke="#C9A84C" stroke-width="1.5" stroke-opacity="0.35"
+    stroke-dasharray="6,8"
+    stroke-linecap="round"/>
+
+  <!-- Corner marks — luxury detail -->
+  <path d="M 60 80 L 60 60 L 80 60" fill="none" stroke="#C9A84C" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 452 80 L 452 60 L 432 60" fill="none" stroke="#C9A84C" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 60 432 L 60 452 L 80 452" fill="none" stroke="#C9A84C" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 452 432 L 452 452 L 432 452" fill="none" stroke="#C9A84C" stroke-width="2" stroke-opacity="0.4"/>
+</svg>
