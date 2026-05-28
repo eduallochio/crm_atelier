@@ -4,13 +4,19 @@
   "description": "Sistema de gestão para ateliês de costura e artesanato",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0f0a06",
-  "theme_color": "#c8714a",
+  "background_color": "#0f0f0f",
+  "theme_color": "#C9A84C",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
   "scope": "/",
   "categories": ["business", "productivity"],
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/favicon-16x16.png",
       "sizes": "16x16",
