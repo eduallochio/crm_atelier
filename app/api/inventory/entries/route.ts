@@ -63,7 +63,6 @@ export async function GET() {
       supplier_id:     e.supplierId,
       tipo:            e.tipo,
       observacoes:     e.observacoes,
-      valor_total:     e.valorTotal != null ? Number(e.valorTotal) : null,
       created_at:      e.createdAt,
       itens: e.itens.map(i => ({
         id:              i.id,
@@ -71,8 +70,8 @@ export async function GET() {
         product_id:      i.productId,
         quantidade:      Number(i.quantidade ?? 0),
         unidade:         i.unidade,
-        preco_unitario:  i.valorUnitario != null ? Number(i.valorUnitario) : null,
-        preco_total:     i.valorTotal != null ? Number(i.valorTotal) : null,
+        preco_unitario:  i.precoUnitario != null ? Number(i.precoUnitario) : null,
+        preco_total:     i.precoTotal != null ? Number(i.precoTotal) : null,
       })),
     })))
   } catch (error) {
@@ -133,7 +132,6 @@ export async function POST(request: Request) {
       supplier_id:     entry.supplierId,
       tipo:            entry.tipo,
       observacoes:     entry.observacoes,
-      valor_total:     entry.valorTotal != null ? Number(entry.valorTotal) : null,
       created_at:      entry.createdAt,
       itens: insertedItems.map(i => ({
         id:             i.id,
@@ -141,8 +139,8 @@ export async function POST(request: Request) {
         product_id:     i.productId,
         quantidade:     Number(i.quantidade ?? 0),
         unidade:        i.unidade,
-        preco_unitario: i.valorUnitario != null ? Number(i.valorUnitario) : null,
-        preco_total:    i.valorTotal != null ? Number(i.valorTotal) : null,
+        preco_unitario: i.precoUnitario != null ? Number(i.precoUnitario) : null,
+        preco_total:    i.precoTotal != null ? Number(i.precoTotal) : null,
       })),
     }, { status: 201 })
   } catch (error) {
