@@ -39,7 +39,23 @@ export async function GET() {
       .where(eq(orgPayables.organizationId, user.organizationId))
       .orderBy(desc(orgPayables.dataVencimento))
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows.map(r => ({
+      id:              r.id,
+      organization_id: r.organizationId,
+      supplier_id:     r.supplierId,
+      category_id:     r.categoryId,
+      descricao:       r.descricao,
+      valor:           r.valor,
+      data_vencimento: r.dataVencimento,
+      data_pagamento:  r.dataPagamento,
+      categoria:       r.categoria,
+      forma_pagamento: r.formaPagamento,
+      observacoes:     r.observacoes,
+      status:          r.status,
+      fornecedor:      r.fornecedor,
+      created_at:      r.createdAt,
+      updated_at:      r.updatedAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -77,7 +93,22 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json(row, { status: 201 })
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      supplier_id:     row.supplierId,
+      category_id:     row.categoryId,
+      descricao:       row.descricao,
+      valor:           row.valor,
+      data_vencimento: row.dataVencimento,
+      data_pagamento:  row.dataPagamento,
+      categoria:       row.categoria,
+      forma_pagamento: row.formaPagamento,
+      observacoes:     row.observacoes,
+      status:          row.status,
+      created_at:      row.createdAt,
+      updated_at:      row.updatedAt,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

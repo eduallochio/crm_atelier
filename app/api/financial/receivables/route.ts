@@ -39,7 +39,23 @@ export async function GET() {
       .where(eq(orgReceivables.organizationId, user.organizationId))
       .orderBy(desc(orgReceivables.dataVencimento))
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows.map(r => ({
+      id:               r.id,
+      organization_id:  r.organizationId,
+      service_order_id: r.serviceOrderId,
+      client_id:        r.clientId,
+      category_id:      r.categoryId,
+      payment_method_id: r.paymentMethodId,
+      descricao:        r.descricao,
+      valor:            r.valor,
+      data_vencimento:  r.dataVencimento,
+      data_recebimento: r.dataRecebimento,
+      observacoes:      r.observacoes,
+      status:           r.status,
+      forma_pagamento:  r.formaPagamento,
+      created_at:       r.createdAt,
+      updated_at:       r.updatedAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

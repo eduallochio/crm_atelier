@@ -88,7 +88,22 @@ export async function PUT(
       })
     }
 
-    return NextResponse.json(updated)
+    return NextResponse.json({
+      id:              updated.id,
+      organization_id: updated.organizationId,
+      supplier_id:     updated.supplierId,
+      category_id:     updated.categoryId,
+      descricao:       updated.descricao,
+      valor:           updated.valor,
+      data_vencimento: updated.dataVencimento,
+      data_pagamento:  updated.dataPagamento,
+      categoria:       updated.categoria,
+      forma_pagamento: updated.formaPagamento,
+      observacoes:     updated.observacoes,
+      status:          updated.status,
+      created_at:      updated.createdAt,
+      updated_at:      updated.updatedAt,
+    })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
