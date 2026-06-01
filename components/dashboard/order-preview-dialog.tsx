@@ -166,7 +166,7 @@ export function OrderPreviewDialog({
                 disabled={printing}
               >
                 <Printer className="h-4 w-4 mr-1.5" />
-                Baixar PDF
+                Imprimir
               </Button>
 
               {orderWithPaymentName.client?.telefone && (
