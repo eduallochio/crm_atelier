@@ -57,7 +57,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [items, setItems] = useState<ServiceOrderItemInput[]>([])
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
-  const [gerarPDF, setGerarPDF] = useState(() => orderSettings?.auto_generate_pdf !== false)
+  const [gerarPDF, setGerarPDF] = useState(true)
   const [enviarWhatsApp, setEnviarWhatsApp] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
