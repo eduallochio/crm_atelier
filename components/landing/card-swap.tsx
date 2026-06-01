@@ -52,14 +52,14 @@ function ScreenDashboard() {
   return (
     <div style={{ width:'100%', height:'100%', background:'#f4f4f5', display:'flex', borderRadius:10, overflow:'hidden' }}>
       <div style={{ width:52, background:'#18181b', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:16, gap:10, flexShrink:0 }}>
-        <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#c8714a,#d4a85a)', marginBottom:8 }} />
+        <img src="/logo-icon.svg" alt="" style={{ width:28, height:28, borderRadius:7, marginBottom:8, objectFit:'cover' }} />
         {[<BarChart3 key="b" size={15}/>, <Users key="u" size={15}/>, <FileText key="f" size={15}/>, <Wallet key="w" size={15}/>].map((ic,i) => (
           <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:i===0?'rgba(200,113,74,0.22)':'transparent', color:i===0?'#c8714a':'#52525b' }}>{ic}</div>
         ))}
       </div>
       <div style={{ flex:1, padding:'14px 16px', display:'flex', flexDirection:'column', gap:9, overflow:'hidden' }}>
         <div>
-          <p style={{ fontSize:8.5, color:'#71717a', textTransform:'uppercase', letterSpacing:'0.1em', margin:0 }}>quinta-feira, 19 de março de 2025</p>
+          <p style={{ fontSize:8.5, color:'#71717a', textTransform:'uppercase', letterSpacing:'0.1em', margin:0 }}>{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</p>
           <p style={{ fontSize:15, fontWeight:700, color:'#18181b', margin:'3px 0 0' }}>Bom dia, Ana! 👋</p>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:7 }}>
@@ -112,7 +112,7 @@ function ScreenOrders() {
   return (
     <div style={{ width:'100%', height:'100%', background:'#f4f4f5', display:'flex', borderRadius:10, overflow:'hidden' }}>
       <div style={{ width:52, background:'#18181b', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:16, gap:10, flexShrink:0 }}>
-        <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#c8714a,#d4a85a)', marginBottom:8 }} />
+        <img src="/logo-icon.svg" alt="" style={{ width:28, height:28, borderRadius:7, marginBottom:8, objectFit:'cover' }} />
         {[<BarChart3 key="b" size={15}/>, <Users key="u" size={15}/>, <FileText key="f" size={15}/>, <Wallet key="w" size={15}/>].map((ic,i) => (
           <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:i===2?'rgba(200,113,74,0.22)':'transparent', color:i===2?'#c8714a':'#52525b' }}>{ic}</div>
         ))}
@@ -166,7 +166,7 @@ function ScreenClients() {
   return (
     <div style={{ width:'100%', height:'100%', background:'#f4f4f5', display:'flex', borderRadius:10, overflow:'hidden' }}>
       <div style={{ width:52, background:'#18181b', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:16, gap:10, flexShrink:0 }}>
-        <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#c8714a,#d4a85a)', marginBottom:8 }} />
+        <img src="/logo-icon.svg" alt="" style={{ width:28, height:28, borderRadius:7, marginBottom:8, objectFit:'cover' }} />
         {[<BarChart3 key="b" size={15}/>, <Users key="u" size={15}/>, <FileText key="f" size={15}/>, <Wallet key="w" size={15}/>].map((ic,i) => (
           <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:i===1?'rgba(200,113,74,0.22)':'transparent', color:i===1?'#c8714a':'#52525b' }}>{ic}</div>
         ))}
@@ -222,7 +222,7 @@ function ScreenFinanceiro() {
   return (
     <div style={{ width:'100%', height:'100%', background:'#f4f4f5', display:'flex', borderRadius:10, overflow:'hidden' }}>
       <div style={{ width:52, background:'#18181b', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:16, gap:10, flexShrink:0 }}>
-        <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#c8714a,#d4a85a)', marginBottom:8 }} />
+        <img src="/logo-icon.svg" alt="" style={{ width:28, height:28, borderRadius:7, marginBottom:8, objectFit:'cover' }} />
         {[<BarChart3 key="b" size={15}/>, <Users key="u" size={15}/>, <FileText key="f" size={15}/>, <Wallet key="w" size={15}/>].map((ic,i) => (
           <div key={i} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:i===3?'rgba(200,113,74,0.22)':'transparent', color:i===3?'#c8714a':'#52525b' }}>{ic}</div>
         ))}
@@ -279,6 +279,13 @@ interface CardSwapProps {
   easing?: 'elastic' | 'power'
 }
 
+const SCREEN_LABELS = [
+  { id: 'dashboard',  label: 'Dashboard',           sub: 'Visão geral do negócio' },
+  { id: 'orders',     label: 'Ordens de Serviço',   sub: 'Status e histórico'     },
+  { id: 'clients',    label: 'Clientes',             sub: 'Cadastro e histórico'   },
+  { id: 'financeiro', label: 'Financeiro',           sub: 'Caixa e recebíveis'     },
+]
+
 export default function CardSwap({
   width = 500,
   height = 400,
@@ -290,7 +297,7 @@ export default function CardSwap({
   easing = 'elastic',
 }: CardSwapProps) {
   const config = easing === 'elastic'
-    ? { ease:'elastic.out(0.6,0.9)', durDrop:2, durMove:2, durReturn:2, promoteOverlap:0.9, returnDelay:0.05 }
+    ? { ease:'elastic.out(0.6,0.9)', durDrop:1.4, durMove:2, durReturn:2, promoteOverlap:0.9, returnDelay:0.05 }
     : { ease:'power1.inOut',         durDrop:0.8, durMove:0.8, durReturn:0.8, promoteOverlap:0.45, returnDelay:0.2 }
 
   const screens = [
@@ -305,6 +312,7 @@ export default function CardSwap({
   const tlRef = useRef<gsap.core.Timeline | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const container = useRef<HTMLDivElement>(null)
+  const [activeIdx, setActiveIdx] = React.useState(0)
 
   useEffect(() => {
     const total = refs.length
@@ -320,7 +328,14 @@ export default function CardSwap({
       const tl = gsap.timeline()
       tlRef.current = tl
 
-      tl.to(elFront, { y: '+=800', duration: config.durDrop, ease: config.ease })
+      // Saída elegante: desliza para a direita com rotação e fade
+      tl.to(elFront, {
+        x: '+=620',
+        rotation: 8,
+        opacity: 0,
+        duration: config.durDrop,
+        ease: 'power2.in',
+      })
 
       tl.addLabel('promote', `-=${config.durDrop * config.promoteOverlap}`)
       rest.forEach((idx, i) => {
@@ -330,11 +345,19 @@ export default function CardSwap({
         tl.set(el, { zIndex: slot.zIndex }, 'promote')
         tl.to(el, { x: slot.x, y: slot.y, z: slot.z, duration: config.durMove, ease: config.ease }, `promote+=${i * 0.15}`)
       })
+      // Atualiza o dot ativo quando o próximo card assume a frente
+      tl.call(() => { setActiveIdx(rest[0]) }, undefined, 'promote')
 
       const backSlot = makeSlot(refs.length - 1, cardDistance, verticalDistance, refs.length)
       tl.addLabel('return', `promote+=${config.durMove * config.returnDelay}`)
-      tl.call(() => { gsap.set(elFront, { zIndex: backSlot.zIndex }) }, undefined, 'return')
-      tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, duration: config.durReturn, ease: config.ease }, 'return')
+      tl.call(() => { gsap.set(elFront, { zIndex: backSlot.zIndex, rotation: -6 }) }, undefined, 'return')
+      // Retorna por baixo com fade in suave
+      tl.to(elFront, {
+        x: backSlot.x, y: backSlot.y, z: backSlot.z,
+        rotation: 0, opacity: 1,
+        duration: config.durReturn,
+        ease: config.ease,
+      }, 'return')
       tl.call(() => { order.current = [...rest, front] })
     }
 
@@ -454,6 +477,48 @@ export default function CardSwap({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Dots + label ── */}
+      <div style={{
+        position: 'absolute',
+        bottom: -48,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        pointerEvents: 'none',
+      }}>
+        {/* dots */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {screens.map((_, i) => (
+            <div key={i} style={{
+              width: i === activeIdx ? 24 : 6,
+              height: 6,
+              borderRadius: 3,
+              background: i === activeIdx ? '#C9A84C' : 'rgba(212,168,90,0.25)',
+              transition: 'width 0.4s ease, background 0.4s ease',
+            }} />
+          ))}
+        </div>
+        {/* label */}
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            fontSize: 12, fontWeight: 600, color: 'rgba(247,240,230,0.9)',
+            margin: 0, letterSpacing: '0.04em',
+            transition: 'opacity 0.3s ease',
+          }}>
+            {SCREEN_LABELS[activeIdx]?.label}
+          </p>
+          <p style={{
+            fontSize: 10, color: 'rgba(247,240,230,0.4)',
+            margin: '2px 0 0', letterSpacing: '0.02em',
+          }}>
+            {SCREEN_LABELS[activeIdx]?.sub}
+          </p>
+        </div>
       </div>
     </>
   )
