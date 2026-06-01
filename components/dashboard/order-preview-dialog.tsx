@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X, MessageCircle, Loader2 } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
-import { generateThermalPreview, generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
+import { generateThermalPreview, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import { useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
@@ -60,13 +60,22 @@ export function OrderPreviewDialog({
 
   const handlePrint = () => {
     if (!orderWithPaymentName) return
+    setPrinting(true)
     try {
-      setPrinting(true)
-      generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData)
-      toast.success('PDF gerado com sucesso!')
+      const html = generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData)
+      const win = window.open('', '_blank', 'width=400,height=600')
+      if (!win) { toast.error('Permita pop-ups para imprimir'); return }
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>OS</title><style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: monospace; font-size: 12px; background: #fff; color: #000; padding: 8px; }
+        @media print { @page { margin: 4mm; size: 80mm auto; } }
+      </style></head><body>${html}</body></html>`)
+      win.document.close()
+      win.focus()
+      setTimeout(() => { win.print(); win.close() }, 300)
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error)
-      toast.error('Erro ao gerar PDF')
+      console.error('Erro ao imprimir:', error)
+      toast.error('Erro ao imprimir')
     } finally {
       setPrinting(false)
     }
