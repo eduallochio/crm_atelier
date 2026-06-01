@@ -74,7 +74,9 @@ export function OrderPreviewDialog({
       </style></head><body>${html}</body></html>`)
       win.document.close()
       win.focus()
-      setTimeout(() => { win.print(); win.close() }, 300)
+      win.onload = () => { win.print(); win.close() }
+      // fallback caso onload já tenha disparado antes de ser atribuído
+      setTimeout(() => { if (!win.closed) { win.print(); win.close() } }, 1000)
     } catch (error) {
       console.error('Erro ao imprimir:', error)
       toast.error('Erro ao imprimir')

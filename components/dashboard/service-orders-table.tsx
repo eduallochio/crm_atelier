@@ -379,7 +379,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               )}
 
               {/* Ações */}
-              <div className="flex items-center gap-1 border-t border-border pt-3 mt-1">
+              <div className="flex flex-wrap items-center gap-1 border-t border-border pt-3 mt-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50"
                   onClick={() => { try { generateThermalPDF(order); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
                   title="Gerar PDF">

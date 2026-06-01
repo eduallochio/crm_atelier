@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { buildServiceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
@@ -89,12 +89,10 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const requireDeliveryDate  = orderSettings?.require_delivery_date ?? true
   const requirePaymentMethod = orderSettings?.require_payment_method ?? false
 
-  const serviceOrderSchema = buildServiceOrderSchema({
-    requireClient,
-    requireService,
-    requireDeliveryDate,
-    requirePaymentMethod,
-  })
+  const serviceOrderSchema = useMemo(
+    () => buildServiceOrderSchema({ requireClient, requireService, requireDeliveryDate, requirePaymentMethod }),
+    [requireClient, requireService, requireDeliveryDate, requirePaymentMethod]
+  )
 
   const orgData = orgSettings ? {
     name: orgSettings.name,
