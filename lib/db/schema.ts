@@ -411,6 +411,7 @@ export const orgOrderSettings = pgTable('org_order_settings', {
   requirePaymentMethod: boolean('require_payment_method').notNull().default(false),
   defaultDeliveryDays:  integer('default_delivery_days').notNull().default(7),
   defaultMessage:       text('default_message'),
+  printerWidth:         text('printer_width').notNull().default('80mm'),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 

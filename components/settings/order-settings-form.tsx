@@ -28,6 +28,7 @@ export function OrderSettingsForm() {
       require_delivery_date: true,
       require_payment_method: false,
       default_delivery_days: 7,
+      printer_width: '80mm' as const,
     },
   })
 
@@ -49,6 +50,7 @@ export function OrderSettingsForm() {
         require_delivery_date: settings.require_delivery_date,
         require_payment_method: settings.require_payment_method,
         default_delivery_days: settings.default_delivery_days,
+        printer_width: (settings.printer_width === '58mm' ? '58mm' : '80mm') as '58mm' | '80mm',
       })
     }
   }, [settings, form])
@@ -214,6 +216,38 @@ export function OrderSettingsForm() {
             <p className="text-xs text-muted-foreground">
               Número padrão de dias entre abertura e entrega da ordem
             </p>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t">
+          <h3 className="text-md font-medium mb-4">Impressora Térmica</h3>
+          <div className="space-y-2">
+            <Label>Largura do papel</Label>
+            <div className="flex gap-3">
+              {(['80mm', '58mm'] as const).map((w) => (
+                <label
+                  key={w}
+                  className={`flex items-center gap-3 flex-1 border rounded-lg p-4 cursor-pointer transition-colors ${
+                    form.watch('printer_width') === w
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    value={w}
+                    {...form.register('printer_width')}
+                    className="accent-primary"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">{w}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {w === '80mm' ? 'Padrão — maioria das impressoras térmicas' : 'Compacta — impressoras menores'}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 

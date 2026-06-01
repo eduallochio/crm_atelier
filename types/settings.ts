@@ -98,6 +98,8 @@ export interface OrderSettings {
   require_payment_method: boolean
   // Prazos padrão (dias)
   default_delivery_days: number
+  // Impressora
+  printer_width: '58mm' | '80mm'
   updated_at: string
 }
 

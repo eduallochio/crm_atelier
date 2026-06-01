@@ -6,7 +6,7 @@ import { Printer, X, MessageCircle, Loader2 } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { generateThermalPreview, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
-import { useOrganizationSettings, useFinancialSettings } from '@/hooks/use-settings'
+import { useOrganizationSettings, useFinancialSettings, useOrderSettings } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -33,6 +33,8 @@ export function OrderPreviewDialog({
   const { data: paymentMethods = [] } = usePaymentMethods()
   const { data: orgSettings } = useOrganizationSettings()
   const { data: financialSettings } = useFinancialSettings()
+  const { data: orderSettings } = useOrderSettings()
+  const printerWidth = orderSettings?.printer_width ?? '80mm'
 
   const orgData = orgSettings ? {
     name: orgSettings.name || organizationName,
@@ -68,7 +70,7 @@ export function OrderPreviewDialog({
       win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>OS</title><style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: monospace; font-size: 12px; background: #fff; color: #000; padding: 8px; }
-        @media print { @page { margin: 4mm; size: 80mm auto; } }
+        @media print { @page { margin: 4mm; size: ${printerWidth} auto; } }
       </style></head><body>${html}</body></html>`)
       win.document.close()
       win.focus()

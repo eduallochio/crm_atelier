@@ -70,6 +70,7 @@ export const orderSettingsSchema = z.object({
   require_delivery_date: z.boolean(),
   require_payment_method: z.boolean(),
   default_delivery_days: z.number().int().min(1).max(365),
+  printer_width: z.enum(['58mm', '80mm']).default('80mm'),
 })
 
 export const systemPreferencesSchema = z.object({
