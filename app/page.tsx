@@ -4,8 +4,9 @@ import Link from 'next/link'
 import {
   Check, X, FileText, Wallet, Users, Scissors,
   BarChart3, ArrowRight, TrendingUp,
-  Search, Bell, Shield,
+  Search, Bell, Shield, MessageCircle, Printer, Package,
 } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import ScrollStack, { ScrollStackItem } from '@/components/landing/scroll-stack'
 import SpotlightCard from '@/components/landing/spotlight-card'
@@ -523,9 +524,16 @@ export default function HomePage() {
               </h1>
             </div>
 
-            <p className="hero-anim-3" style={{ fontSize: 16, lineHeight: 1.75, color: 'rgba(247,240,230,0.65)', maxWidth: 520, marginBottom: 40 }}>
+            <p className="hero-anim-3" style={{ fontSize: 16, lineHeight: 1.75, color: 'rgba(247,240,230,0.65)', maxWidth: 520, marginBottom: 32 }}>
               {c.heroSubtitle}
             </p>
+
+            <div className="hero-anim-4 hero-buttons" style={{ display: 'flex', gap: 12, marginBottom: 48 }}>
+              <Link href="/cadastro" className="btn-primary" onClick={() => track('cta_click', { location: 'hero' })}>
+                Criar conta grátis <ArrowRight size={14} />
+              </Link>
+              <a href="#como-funciona" className="btn-ghost">Ver como funciona</a>
+            </div>
 
             <div className="hero-grid">
               {/* espaço vazio para manter o grid 2 colunas */}
@@ -551,15 +559,17 @@ export default function HomePage() {
               <div className="gold-line" style={{ marginBottom: 32 }} />
               <div className="stats-grid">
                 {[
-                  { num: '250', desc: 'ordens de serviço no plano free' },
-                  { num: 'R$ 0', desc: 'para começar hoje' },
+                  { num: '50',    desc: 'clientes no plano gratuito' },
+                  { num: '100',   desc: 'ordens de serviço grátis' },
+                  { num: 'R$ 0',  desc: 'para começar, sem cartão' },
+                  { num: '100%',  desc: 'dados seguros, isolados por ateliê' },
                 ].map((s, i) => (
                   <div key={i} style={{
                     paddingLeft: i === 0 ? 0 : 32,
                     paddingRight: 32,
                     borderLeft: i > 0 ? '1px solid rgba(212,168,90,0.2)' : 'none',
                   }}>
-                    <div className="display" style={{ fontSize: 'clamp(32px,5vw,48px)', fontWeight: 300, color: 'var(--gold)', lineHeight: 1.1 }}>{s.num}</div>
+                    <div className="display" style={{ fontSize: 'clamp(28px,4vw,44px)', fontWeight: 300, color: 'var(--gold)', lineHeight: 1.1 }}>{s.num}</div>
                     <div style={{ fontSize: 13, color: 'rgba(247,240,230,0.5)', marginTop: 6, letterSpacing: '0.02em' }}>{s.desc}</div>
                   </div>
                 ))}
@@ -690,36 +700,44 @@ export default function HomePage() {
                   border: 'rgba(212,168,90,0.25)',
                 },
                 {
-                  icon: <Search size={28} />,
-                  title: 'Busca global ⌘K',
-                  desc: 'Encontre qualquer cliente, ordem ou serviço em segundos com busca inteligente em todo o sistema.',
+                  icon: <MessageCircle size={28} />,
+                  title: 'Envio por WhatsApp',
+                  desc: 'Envie o resumo da OS direto para o cliente via WhatsApp com um clique. Comunicação rápida e profissional.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
+                },
+                {
+                  icon: <Printer size={28} />,
+                  title: 'Impressão térmica',
+                  desc: 'Imprima comprovantes em impressoras térmicas de 58mm ou 80mm. Configurável por ateliê.',
+                  accent: '#D4A85A',
+                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
+                  border: 'rgba(212,168,90,0.25)',
+                },
+                {
+                  icon: <Package size={28} />,
+                  title: 'Controle de estoque',
+                  desc: 'Gerencie materiais e insumos. Baixa automática ao concluir uma OS. Alertas de estoque mínimo.',
                   accent: '#C8714A',
                   bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
                   border: 'rgba(200,113,74,0.25)',
                 },
                 {
                   icon: <Bell size={28} />,
-                  title: 'Aniversários de clientes',
-                  desc: 'Visualize aniversariantes do mês diretamente no dashboard. Nunca perca uma data importante.',
+                  title: 'Alertas inteligentes',
+                  desc: 'Ordens atrasadas, contas vencidas e aniversários de clientes — tudo sinalizado no menu lateral em tempo real.',
                   accent: '#D4A85A',
                   bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
                   border: 'rgba(212,168,90,0.25)',
-                },
-                {
-                  icon: <TrendingUp size={28} />,
-                  title: 'Relatórios e exportações',
-                  desc: 'Exporte contas a receber e relatórios de estoque em Excel ou PDF com poucos cliques.',
-                  accent: '#C8714A',
-                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
-                  border: 'rgba(200,113,74,0.25)',
                 },
                 {
                   icon: <Shield size={28} />,
-                  title: 'Dados seguros',
-                  desc: 'Arquitetura multi-tenant com isolamento total entre ateliês. Conformidade com a LGPD.',
-                  accent: '#D4A85A',
-                  bg: 'linear-gradient(135deg, #251a08 0%, #35250e 100%)',
-                  border: 'rgba(212,168,90,0.25)',
+                  title: 'Dados seguros e isolados',
+                  desc: 'Arquitetura multi-tenant: cada ateliê tem seus dados completamente separados. Conformidade total com a LGPD.',
+                  accent: '#C8714A',
+                  bg: 'linear-gradient(135deg, #2a1a10 0%, #3a2015 100%)',
+                  border: 'rgba(200,113,74,0.25)',
                 },
               ].map((f, i) => (
                 <ScrollStackItem key={i} itemClassName="">
@@ -821,11 +839,12 @@ export default function HomePage() {
                   <p style={{ fontSize: 11, letterSpacing: '0.12em', color: 'var(--terra)', textTransform: 'uppercase', marginBottom: 20 }}>Com Meu Atelier Sistema</p>
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {[
-                      ['Tudo centralizado', 'Busca instantânea de qualquer informação'],
-                      ['Histórico completo', 'Cada cliente com todos os detalhes salvos'],
-                      ['Controle financeiro preciso', 'Sabe exatamente quanto entrou e saiu'],
-                      ['Menos tempo administrativo', 'Automatize o que é repetitivo e foque no que importa'],
-                      ['Decisões baseadas em dados', 'Relatórios claros para crescer com confiança'],
+                      ['Tudo centralizado', 'Busca instantânea de qualquer cliente, ordem ou serviço'],
+                      ['Histórico completo', 'Cada cliente com todas as ordens e valores salvos'],
+                      ['Controle financeiro preciso', 'Caixa, contas a pagar e receber em tempo real'],
+                      ['WhatsApp integrado', 'Envie o resumo da OS para o cliente com um clique'],
+                      ['Impressão profissional', 'Comprovantes em impressora térmica 58mm ou 80mm'],
+                      ['Decisões baseadas em dados', 'Dashboard com metas, gráficos e relatórios completos'],
                     ].map(([t, d]) => (
                       <li key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                         <Check size={16} style={{ color: 'var(--terra)', flexShrink: 0, marginTop: 2 }} />
@@ -1028,8 +1047,11 @@ export default function HomePage() {
         {/* ── FOOTER ── */}
         <footer style={{ background: '#100a05', padding: '32px 20px', borderTop: '1px solid rgba(212,168,90,0.1)' }}>
           <div className="footer-inner">
-            <div className="display" style={{ fontSize: 18, color: 'rgba(247,240,230,0.4)', fontWeight: 300 }}>
-              {c.footerTagline}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.5 }}>
+              <Image src="/logo-icon.svg" alt="Meu Atelier" width={28} height={28} style={{ borderRadius: 6 }} />
+              <span className="display" style={{ fontSize: 16, color: 'var(--cream)', fontWeight: 300 }}>
+                {c.footerTagline}
+              </span>
             </div>
             <div className="footer-links">
               {[
