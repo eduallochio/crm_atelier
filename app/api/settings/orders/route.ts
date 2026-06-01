@@ -16,6 +16,7 @@ const DEFAULTS = {
   require_payment_method: false,
   default_delivery_days: 7,
   printer_width:         '80mm',
+  auto_generate_pdf:     true,
 }
 
 function mapRow(row: {
@@ -31,6 +32,7 @@ function mapRow(row: {
   requirePaymentMethod: boolean
   defaultDeliveryDays: number
   printerWidth: string
+  autoGeneratePdf: boolean
   updatedAt: Date | null
 }) {
   return {
@@ -46,6 +48,7 @@ function mapRow(row: {
     require_payment_method: row.requirePaymentMethod,
     default_delivery_days:  row.defaultDeliveryDays,
     printer_width:          row.printerWidth ?? '80mm',
+    auto_generate_pdf:      row.autoGeneratePdf ?? true,
     updated_at:             row.updatedAt,
   }
 }
@@ -96,6 +99,7 @@ export async function PUT(request: Request) {
       requirePaymentMethod: !!body.require_payment_method,
       defaultDeliveryDays:  body.default_delivery_days ?? 7,
       printerWidth:         body.printer_width === '58mm' ? '58mm' : '80mm',
+      autoGeneratePdf:      body.auto_generate_pdf !== false,
     }
 
     await db
@@ -114,6 +118,7 @@ export async function PUT(request: Request) {
           requirePaymentMethod: values.requirePaymentMethod,
           defaultDeliveryDays:  values.defaultDeliveryDays,
           printerWidth:         values.printerWidth,
+          autoGeneratePdf:      values.autoGeneratePdf,
           updatedAt:            new Date(),
         },
       })

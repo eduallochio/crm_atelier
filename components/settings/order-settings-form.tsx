@@ -29,6 +29,7 @@ export function OrderSettingsForm() {
       require_payment_method: false,
       default_delivery_days: 7,
       printer_width: '80mm' as const,
+      auto_generate_pdf: true,
     },
   })
 
@@ -51,6 +52,7 @@ export function OrderSettingsForm() {
         require_payment_method: settings.require_payment_method,
         default_delivery_days: settings.default_delivery_days,
         printer_width: (settings.printer_width === '58mm' ? '58mm' : '80mm') as '58mm' | '80mm',
+        auto_generate_pdf: settings.auto_generate_pdf !== false,
       })
     }
   }, [settings, form])
@@ -248,6 +250,22 @@ export function OrderSettingsForm() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="auto_generate_pdf" className="cursor-pointer">
+                Gerar PDF automaticamente ao criar OS
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Quando ativado, o PDF é gerado automaticamente após salvar cada nova ordem
+              </p>
+            </div>
+            <Switch
+              id="auto_generate_pdf"
+              checked={form.watch('auto_generate_pdf') ?? true}
+              onCheckedChange={(checked) => form.setValue('auto_generate_pdf', checked)}
+            />
           </div>
         </div>
 

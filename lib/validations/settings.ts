@@ -71,6 +71,7 @@ export const orderSettingsSchema = z.object({
   require_payment_method: z.boolean(),
   default_delivery_days: z.number().int().min(1).max(365),
   printer_width: z.enum(['58mm', '80mm']).default('80mm'),
+  auto_generate_pdf: z.boolean().default(true),
 })
 
 export const systemPreferencesSchema = z.object({

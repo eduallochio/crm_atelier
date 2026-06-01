@@ -100,6 +100,7 @@ export interface OrderSettings {
   default_delivery_days: number
   // Impressora
   printer_width: '58mm' | '80mm'
+  auto_generate_pdf: boolean
   updated_at: string
 }
 
