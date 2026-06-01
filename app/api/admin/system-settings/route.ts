@@ -20,8 +20,9 @@ const DEFAULTS: Record<string, string> = {
   enable_signup:        'true',
   enable_trial:         'true',
   trial_duration_days:  '14',
-  maintenance_mode:     'false',
-  announcement:         '',
+  maintenance_mode:         'false',
+  announcement:             '',
+  whatsapp_support_phone:   '',
 }
 
 export async function GET() {
@@ -51,8 +52,9 @@ export async function GET() {
       enable_signup:       map.enable_signup === 'true',
       enable_trial:        map.enable_trial === 'true',
       trial_duration_days: parseInt(map.trial_duration_days) || 14,
-      maintenance_mode:    map.maintenance_mode === 'true',
-      announcement:        map.announcement ?? '',
+      maintenance_mode:         map.maintenance_mode === 'true',
+      announcement:             map.announcement ?? '',
+      whatsapp_support_phone:   map.whatsapp_support_phone ?? '',
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
@@ -73,8 +75,9 @@ export async function GET() {
       enable_signup:       true,
       enable_trial:        true,
       trial_duration_days: 14,
-      maintenance_mode:    false,
-      announcement:        '',
+      maintenance_mode:         false,
+      announcement:             '',
+      whatsapp_support_phone:   '',
     })
   }
 }
@@ -99,7 +102,8 @@ export async function PUT(request: NextRequest) {
       ['enable_trial',        body.enable_trial ? 'true' : 'false'],
       ['trial_duration_days', String(parseInt(body.trial_duration_days) || 14)],
       ['maintenance_mode',    body.maintenance_mode ? 'true' : 'false'],
-      ['announcement',        String(body.announcement ?? '')],
+      ['announcement',           String(body.announcement ?? '')],
+      ['whatsapp_support_phone', String(body.whatsapp_support_phone ?? '').replace(/\D/g, '')],
     ]
 
     // Upsert each setting

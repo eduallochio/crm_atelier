@@ -31,6 +31,7 @@ interface SystemSettingsData {
   trialDurationDays: number
   maintenanceMode: boolean
   announcement: string
+  whatsappSupportPhone: string
 }
 
 const DEFAULTS: SystemSettingsData = {
@@ -49,6 +50,7 @@ const DEFAULTS: SystemSettingsData = {
   trialDurationDays: 14,
   maintenanceMode: false,
   announcement: '',
+  whatsappSupportPhone: '',
 }
 
 export default function AdminSettingsPage() {
@@ -74,8 +76,9 @@ export default function AdminSettingsPage() {
             enableSignup:      data.enable_signup         ?? DEFAULTS.enableSignup,
             enableTrialPlan:   data.enable_trial          ?? DEFAULTS.enableTrialPlan,
             trialDurationDays: data.trial_duration_days   ?? DEFAULTS.trialDurationDays,
-            maintenanceMode:   data.maintenance_mode      ?? DEFAULTS.maintenanceMode,
-            announcement:      data.announcement          ?? '',
+            maintenanceMode:      data.maintenance_mode       ?? DEFAULTS.maintenanceMode,
+            announcement:         data.announcement           ?? '',
+            whatsappSupportPhone: data.whatsapp_support_phone ?? '',
           })
         }
       })

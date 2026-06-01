@@ -14,6 +14,7 @@ const KEYS = [
   'features_json',
   'how_it_works_json',
   'faq_json',
+  'whatsapp_support_phone',
 ]
 
 export async function GET() {

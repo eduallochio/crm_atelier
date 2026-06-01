@@ -25,6 +25,7 @@ interface Settings {
   trialDurationDays: number
   maintenanceMode?: boolean
   announcement?: string
+  whatsappSupportPhone?: string
 }
 
 interface SystemSettingsProps {
@@ -67,8 +68,9 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           enable_signup:       settings.enableSignup,
           enable_trial:        settings.enableTrialPlan,
           trial_duration_days: settings.trialDurationDays,
-          maintenance_mode:    settings.maintenanceMode ?? false,
-          announcement:        settings.announcement ?? '',
+          maintenance_mode:         settings.maintenanceMode ?? false,
+          announcement:             settings.announcement ?? '',
+          whatsapp_support_phone:   settings.whatsappSupportPhone ?? '',
         }),
       })
       if (!res.ok) throw new Error('Erro ao salvar')
@@ -122,6 +124,11 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           <div className="space-y-2">
             <Label htmlFor="announcement">Aviso / Anúncio (deixe em branco para ocultar)</Label>
             <Input id="announcement" value={settings.announcement ?? ''} onChange={(e) => handleChange('announcement', e.target.value)} placeholder="Ex: Manutenção programada amanhã às 22h" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsappSupportPhone">WhatsApp de Suporte (botão flutuante na landing)</Label>
+            <Input id="whatsappSupportPhone" value={settings.whatsappSupportPhone ?? ''} onChange={(e) => handleChange('whatsappSupportPhone', e.target.value)} placeholder="5511999999999 (com DDI, sem + ou espaços)" />
+            <p className="text-xs text-muted-foreground">Deixe em branco para ocultar o botão. Formato: 5511999999999</p>
           </div>
         </div>
 
