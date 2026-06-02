@@ -6,6 +6,7 @@ export const serviceOrderItemSchema = z.object({
   quantidade: z.number().min(1),
   valor_unitario: z.number(),
   valor_total: z.number(),
+  observacoes: z.string().optional(),
 })
 
 interface OrderRequirements {
@@ -79,6 +80,7 @@ export interface ServiceOrderItem {
   quantidade: number
   valor_unitario: number
   valor_total: number
+  observacoes: string | null
   created_at: string
 }
 

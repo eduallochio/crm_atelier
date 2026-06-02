@@ -96,6 +96,7 @@ export async function GET() {
         quantidade:     Number(i.quantidade ?? 1),
         valor_unitario: Number(i.valorUnitario ?? 0),
         valor_total:    Number(i.valorTotal ?? 0),
+        observacoes:    i.observacoes ?? null,
         created_at:     i.createdAt,
       })),
     }))
@@ -201,6 +202,7 @@ export async function POST(request: Request) {
             quantidade:    item.quantidade,
             valorUnitario: String(item.valor_unitario),
             valorTotal:    String(item.valor_total),
+            observacoes:   item.observacoes || null,
           }))
         )
       }

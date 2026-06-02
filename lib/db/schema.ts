@@ -175,6 +175,7 @@ export const orgServiceOrderItems = pgTable('org_service_order_items', {
   quantidade:    integer('quantidade').notNull().default(1),
   valorUnitario: numeric('valor_unitario', { precision: 10, scale: 2 }).notNull(),
   valorTotal:    numeric('valor_total', { precision: 10, scale: 2 }).notNull(),
+  observacoes:   text('observacoes'),
   createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 

@@ -179,6 +179,16 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     doc.setFontSize(8)
     doc.text(`${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}`, margin + 2, y)
     doc.text(`R$ ${Number(item.valor_total).toFixed(2)}`, width - margin, y, { align: 'right' })
+    // Observação do item
+    if (item.observacoes) {
+      y += 4
+      doc.setFontSize(7.5)
+      doc.setTextColor(120, 120, 120)
+      const obsLines = doc.splitTextToSize(`↳ ${item.observacoes}`, contentWidth - 2)
+      doc.text(obsLines, margin + 2, y)
+      doc.setTextColor(0, 0, 0)
+      y += (obsLines.length - 1) * 3.5
+    }
     y += 5
 
     subtotal += item.valor_total
@@ -365,6 +375,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
               <span>${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}</span>
               <span>R$ ${Number(item.valor_total).toFixed(2)}</span>
             </div>
+            ${item.observacoes ? `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ ${item.observacoes}</div>` : ''}
           </div>
         `).join('') || '<div style="font-size: 11px;">Nenhum serviço adicionado</div>'}
       </div>
@@ -505,6 +516,7 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   order.items?.forEach(item => {
     lines.push(`• *${item.service_nome}*`)
     lines.push(`  ${item.quantidade}x R$ ${Number(item.valor_unitario).toFixed(2)} = R$ ${Number(item.valor_total).toFixed(2)}`)
+    if (item.observacoes) lines.push(`  _↳ ${item.observacoes}_`)
   })
   if (!order.items?.length) lines.push('Nenhum serviço adicionado')
   lines.push(sep)

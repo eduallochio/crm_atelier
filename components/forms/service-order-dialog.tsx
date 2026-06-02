@@ -189,6 +189,14 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     }
   }, [open, reset, notifSettings])
 
+  const updateItemObservacoes = (index: number, obs: string) => {
+    const updated = items.map((item, i) =>
+      i === index ? { ...item, observacoes: obs || undefined } : item
+    )
+    setItems(updated)
+    setValue('items', updated)
+  }
+
   const addItem = () => {
     if (!selectedServiceId) {
       return
@@ -639,7 +647,18 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                   <tbody className="divide-y">
                     {items.map((item, index) => (
                       <tr key={index}>
-                        <td className="px-3 py-2">{item.service_nome}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-col gap-1">
+                            <span>{item.service_nome}</span>
+                            <input
+                              type="text"
+                              value={item.observacoes ?? ''}
+                              onChange={(e) => updateItemObservacoes(index, e.target.value)}
+                              placeholder="Observação (ex: calça verde)..."
+                              className="text-xs text-muted-foreground bg-transparent border-b border-dashed border-muted-foreground/30 focus:border-primary focus:outline-none placeholder:text-muted-foreground/40 w-full py-0.5"
+                            />
+                          </div>
+                        </td>
                         <td className="px-3 py-2 text-center">{item.quantidade}</td>
                         <td className="px-3 py-2 text-right">
                           R$ {Number(item.valor_unitario).toFixed(2)}
