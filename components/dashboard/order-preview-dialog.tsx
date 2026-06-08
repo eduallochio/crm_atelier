@@ -36,6 +36,9 @@ export function OrderPreviewDialog({
   const { data: orderSettings } = useOrderSettings()
   const printerWidth = orderSettings?.printer_width ?? '80mm'
 
+  // Identifica PIX pelo código original (estável), não pelo nome customizável exibido
+  const isPixPayment = order?.forma_pagamento?.toLowerCase() === 'pix'
+
   const orgData = orgSettings ? {
     name: orgSettings.name || organizationName,
     instagram: orgSettings.instagram,
@@ -43,7 +46,7 @@ export function OrderPreviewDialog({
     twitter: orgSettings.twitter,
     tiktok: orgSettings.tiktok,
     kwai: orgSettings.kwai,
-    pix_key: financialSettings?.pix_key || null,
+    pix_key: isPixPayment ? (financialSettings?.pix_key || null) : null,
     show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
   } : undefined
 
@@ -54,10 +57,10 @@ export function OrderPreviewDialog({
     return method?.name || code
   }
 
-  // Criar ordem com forma de pagamento traduzida
+  // Criar ordem com forma de pagamento traduzida (mantém "pix" reconhecível para exibição da chave)
   const orderWithPaymentName = order ? {
     ...order,
-    forma_pagamento: getPaymentMethodName(order.forma_pagamento)
+    forma_pagamento: isPixPayment ? 'Pix' : getPaymentMethodName(order.forma_pagamento)
   } : null
 
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
