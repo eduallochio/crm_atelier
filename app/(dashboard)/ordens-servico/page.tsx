@@ -7,8 +7,10 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Pagination } from '@/components/ui/pagination'
 import { useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { usePagination } from '@/hooks/use-pagination'
 import { ServiceOrdersTable } from '@/components/dashboard/service-orders-table'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { OrderTimeline } from '@/components/dashboard/order-timeline'
@@ -93,6 +95,10 @@ export default function OrdensServicoPage() {
 
     return matchesSearch && matchesStatus && matchesDate
   })
+
+  const {
+    page, pageSize, totalItems, totalPages, paginatedItems: paginatedOrders, setPage, setPageSize,
+  } = usePagination(filteredOrders)
 
   // Estatísticas
   const stats = {
@@ -298,7 +304,19 @@ export default function OrdensServicoPage() {
         {isLoading ? (
           <Loader text="Carregando ordens..." />
         ) : (
-          <ServiceOrdersTable orders={filteredOrders} onView={handleView} />
+          <ServiceOrdersTable orders={paginatedOrders} onView={handleView} />
+        )}
+
+        {!isLoading && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="ordens"
+          />
         )}
       </div>
 

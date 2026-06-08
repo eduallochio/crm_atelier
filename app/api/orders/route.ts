@@ -146,6 +146,7 @@ export async function POST(request: Request) {
       quantidade: number
       valor_unitario: number
       valor_total: number
+      observacoes?: string
     }> = body.items || []
 
     const subtotal = items.reduce((sum, item) => sum + item.valor_total, 0)

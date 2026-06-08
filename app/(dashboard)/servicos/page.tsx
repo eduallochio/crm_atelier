@@ -7,9 +7,11 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Pagination } from '@/components/ui/pagination'
 import { useServices } from '@/hooks/use-services'
 import { useServiceStats } from '@/hooks/use-service-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { usePagination } from '@/hooks/use-pagination'
 import { ServicesTable } from '@/components/dashboard/services-table'
 import { ServicesCards } from '@/components/dashboard/services-cards'
 import { ServiceDialog } from '@/components/forms/service-dialog'
@@ -112,9 +114,9 @@ export default function ServicosPage() {
     return 0
   })
 
-  // Separar serviços ativos e inativos
-  const activeServices = filteredServices.filter(s => s.ativo)
-  const inactiveServices = filteredServices.filter(s => !s.ativo)
+  const {
+    page, pageSize, totalItems, totalPages, paginatedItems: paginatedServices, setPage, setPageSize,
+  } = usePagination(filteredServices)
 
   return (
     <div>
@@ -332,9 +334,21 @@ export default function ServicosPage() {
         {isLoading ? (
           <Loader text="Carregando serviços..." />
         ) : viewMode === 'list' ? (
-          <ServicesTable services={filteredServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />
+          <ServicesTable services={paginatedServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />
         ) : (
-          <ServicesCards services={filteredServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />
+          <ServicesCards services={paginatedServices} onEdit={handleEdit} onDuplicate={handleDuplicate} />
+        )}
+
+        {!isLoading && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="serviços"
+          />
         )}
       </div>
 

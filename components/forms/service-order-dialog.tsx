@@ -316,6 +316,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         quantidade: Number(item.quantidade),
         valor_unitario: Number(item.valor_unitario),
         valor_total: Number(item.valor_total),
+        observacoes: item.observacoes || null,
         created_at: new Date().toISOString(),
       }))
     }

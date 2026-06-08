@@ -33,6 +33,7 @@ interface LandingContent {
   how_it_works_json?: string
   testimonials_json?: string
   faq_json?: string
+  whatsapp_support_phone?: string
 }
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */

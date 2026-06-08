@@ -7,9 +7,11 @@ import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Pagination } from '@/components/ui/pagination'
 import { useClients } from '@/hooks/use-clients'
 import { useClientStats } from '@/hooks/use-client-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { usePagination } from '@/hooks/use-pagination'
 import { ClientsTable } from '@/components/dashboard/clients-table'
 import { ClientsCards } from '@/components/dashboard/clients-cards'
 import { ClientDialog } from '@/components/forms/client-dialog'
@@ -77,6 +79,10 @@ export default function ClientesPage() {
       return new Date(a.data_cadastro).getTime() - new Date(b.data_cadastro).getTime()
     }
   })
+
+  const {
+    page, pageSize, totalItems, totalPages, paginatedItems: paginatedClients, setPage, setPageSize,
+  } = usePagination(filteredClients)
 
   return (
     <div>
@@ -223,9 +229,21 @@ export default function ClientesPage() {
         {isLoading ? (
           <Loader text="Carregando clientes..." />
         ) : viewMode === 'list' ? (
-          <ClientsTable clients={filteredClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
+          <ClientsTable clients={paginatedClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
         ) : (
-          <ClientsCards clients={filteredClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
+          <ClientsCards clients={paginatedClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
+        )}
+
+        {!isLoading && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="clientes"
+          />
         )}
       </div>
 
