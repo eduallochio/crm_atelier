@@ -94,26 +94,29 @@ export async function GET() {
       const supabase = getAdminSupabase()
       const { data: buckets } = await supabase.storage.listBuckets()
 
-      if (buckets) {
-        for (const bucket of buckets) {
-          const { data: files } = await supabase.storage.from(bucket.name).list('', {
-            limit: 1000,
-            offset: 0,
-          })
-          let bucketSize = 0
-          if (files) {
-            for (const file of files) {
-              bucketSize += (file as any).metadata?.size ?? 0
+      if (buckets && buckets.length > 0) {
+        // Busca todos os buckets em paralelo em vez de sequencial
+        const bucketResults = await Promise.all(
+          buckets.map(async (bucket) => {
+            const { data: files } = await supabase.storage.from(bucket.name).list('', {
+              limit: 1000,
+              offset: 0,
+            })
+            const bucketSize = (files ?? []).reduce(
+              (sum, file) => sum + ((file as any).metadata?.size ?? 0),
+              0
+            )
+            return {
+              name:    bucket.name,
+              size_mb: bucketSize / 1024 / 1024,
+              files:   files?.length ?? 0,
             }
-          }
-          const bucketMb = bucketSize / 1024 / 1024
-          storageTotalMb += bucketMb
-          storageFileCount += files?.length ?? 0
-          storageBuckets.push({
-            name:    bucket.name,
-            size_mb: bucketMb,
-            files:   files?.length ?? 0,
           })
+        )
+        for (const b of bucketResults) {
+          storageTotalMb   += b.size_mb
+          storageFileCount += b.files
+          storageBuckets.push(b)
         }
       }
     } catch {

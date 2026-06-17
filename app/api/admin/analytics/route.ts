@@ -68,28 +68,31 @@ export async function GET() {
       planDist[r.plan] = Number(r.cnt)
     }
 
-    // Top organizações por clientes
-    const topResult = await db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        plan: organizations.plan,
-        subscriptionStatus: organizations.subscriptionStatus,
-        clientsCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id})::int`,
-        ordersCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_service_orders WHERE org_service_orders.organization_id = ${organizations.id})::int`,
-      })
-      .from(organizations)
-      .orderBy(drizzleSql`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id}) DESC`)
-      .limit(10)
+    // Top organizações por clientes — JOIN + GROUP BY evita correlated subqueries
+    const topResult = await db.execute(drizzleSql`
+      SELECT
+        o.id,
+        o.name,
+        o.plan,
+        o.subscription_status AS "subscriptionStatus",
+        COUNT(DISTINCT c.id)::int  AS "clientsCount",
+        COUNT(DISTINCT os.id)::int AS "ordersCount"
+      FROM organizations o
+      LEFT JOIN org_clients        c  ON c.organization_id  = o.id
+      LEFT JOIN org_service_orders os ON os.organization_id = o.id
+      GROUP BY o.id, o.name, o.plan, o.subscription_status
+      ORDER BY COUNT(DISTINCT c.id) DESC
+      LIMIT 10
+    `) as any[]
 
-    const topOrgs = topResult.map((r) => ({
-      id: r.id,
-      name: r.name,
-      plan: r.plan,
-      revenue: planPrices[r.plan] ?? 0,
-      clients_count: Number(r.clientsCount),
-      orders_count: Number(r.ordersCount),
-      growth: 0,
+    const topOrgs = (topResult as any[]).map((r) => ({
+      id:            r.id,
+      name:          r.name,
+      plan:          r.plan,
+      revenue:       planPrices[r.plan] ?? 0,
+      clients_count: Number(r.clientsCount ?? 0),
+      orders_count:  Number(r.ordersCount ?? 0),
+      growth:        0,
     }))
 
     // Churn

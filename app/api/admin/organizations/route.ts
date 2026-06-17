@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, orgClients, plans } from '@/lib/db/schema'
-import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
+import { eq, desc, sql as drizzleSql, count } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
@@ -20,23 +20,33 @@ export async function GET() {
       planPrices[p.slug] = parseFloat(p.price) || 0
     }
 
-    const rows = await db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        plan: organizations.plan,
-        subscriptionStatus: organizations.subscriptionStatus,
-        createdAt: organizations.createdAt,
-        usersCount: drizzleSql<number>`(SELECT COUNT(*) FROM profiles WHERE profiles.organization_id = ${organizations.id})::int`,
-        clientsCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id})::int`,
-      })
-      .from(organizations)
-      .orderBy(desc(organizations.createdAt))
+    // Busca contagens via JOIN + GROUP BY (evita N+1 correlated subqueries)
+    const rows = await db.execute(drizzleSql`
+      SELECT
+        o.id,
+        o.name,
+        o.plan,
+        o.subscription_status AS "subscriptionStatus",
+        o.created_at          AS "createdAt",
+        COUNT(DISTINCT p.id)::int  AS "usersCount",
+        COUNT(DISTINCT c.id)::int  AS "clientsCount"
+      FROM organizations o
+      LEFT JOIN profiles    p ON p.organization_id = o.id
+      LEFT JOIN org_clients c ON c.organization_id = o.id
+      GROUP BY o.id, o.name, o.plan, o.subscription_status, o.created_at
+      ORDER BY o.created_at DESC
+    `) as any[]
 
-    const result = rows.map((row) => ({
-      ...row,
-      state: row.subscriptionStatus,
-      mrr: planPrices[row.plan] ?? 0,
+    const result = (rows as any[]).map((row) => ({
+      id:                 row.id,
+      name:               row.name,
+      plan:               row.plan,
+      subscriptionStatus: row.subscriptionStatus,
+      createdAt:          row.createdAt,
+      usersCount:         Number(row.usersCount ?? 0),
+      clientsCount:       Number(row.clientsCount ?? 0),
+      state:              row.subscriptionStatus,
+      mrr:                planPrices[row.plan] ?? 0,
     }))
 
     return NextResponse.json(result)
