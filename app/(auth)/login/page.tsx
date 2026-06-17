@@ -29,12 +29,13 @@ export default function LoginPage() {
       const result = await login(formData)
       if (result?.error) {
         toast.error(result.error)
-        setIsLoading(false)
       }
     } catch (error) {
-      // NEXT_REDIRECT é esperado em login bem-sucedido — não tratar como erro
+      // NEXT_REDIRECT é lançado pelo redirect() em login bem-sucedido — repassar
       if (error instanceof Error && error.message.startsWith('NEXT_REDIRECT')) throw error
       toast.error('Erro de conexão com o servidor. Tente novamente.')
+    } finally {
+      // Reseta loading em todos os casos exceto redirect (que navega para outra página)
       setIsLoading(false)
     }
   }
