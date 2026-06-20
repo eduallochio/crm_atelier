@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export interface PaymentMethod {
   id: string
@@ -72,7 +73,7 @@ export function useCreatePaymentMethod() {
       toast.success('Forma de pagamento criada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -96,7 +97,7 @@ export function useUpdatePaymentMethod() {
       toast.success('Forma de pagamento atualizada!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -115,7 +116,7 @@ export function useDeletePaymentMethod() {
       toast.success('Forma de pagamento removida!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -137,7 +138,7 @@ export function useReorderPaymentMethods() {
       queryClient.invalidateQueries({ queryKey: ['active-payment-methods'] })
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }

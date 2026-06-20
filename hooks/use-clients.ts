@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Client, ClientInput } from '@/lib/validations/client'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export function useClients() {
   return useQuery({
@@ -35,7 +36,7 @@ export function useCreateClient() {
       toast.success('Cliente cadastrado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -59,7 +60,7 @@ export function useUpdateClient() {
       toast.success('Cliente atualizado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -81,7 +82,7 @@ export function useDeleteClient() {
       toast.success('Cliente removido com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 import type {
   Cashier, CashierInput,
   CashierSessionInput, CashierSessionWithRelations,
@@ -52,7 +53,7 @@ export function useCreateCashier() {
       toast.success('Caixa criado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao criar caixa: ${error.message}`)
+      toast.error(`Erro ao criar caixa: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -75,7 +76,7 @@ export function useUpdateCashier() {
       toast.success('Caixa atualizado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao atualizar caixa: ${error.message}`)
+      toast.error(`Erro ao atualizar caixa: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -93,7 +94,7 @@ export function useDeleteCashier() {
       toast.success('Caixa excluído com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao excluir caixa: ${error.message}`)
+      toast.error(`Erro ao excluir caixa: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -159,7 +160,7 @@ export function useOpenCashier() {
       toast.success('Caixa aberto com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao abrir caixa: ${error.message}`)
+      toast.error(`Erro ao abrir caixa: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -191,7 +192,7 @@ export function useCloseCashier() {
       toast.success('Caixa fechado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao fechar caixa: ${error.message}`)
+      toast.error(`Erro ao fechar caixa: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -229,7 +230,7 @@ export function useCreateCashierMovement() {
       toast.success('Movimentação registrada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao registrar movimentação: ${error.message}`)
+      toast.error(`Erro ao registrar movimentação: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -268,7 +269,7 @@ export function useCreateCashierReconciliation() {
       toast.success('Conferência de caixa salva com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao salvar conferência: ${error.message}`)
+      toast.error(`Erro ao salvar conferência: ${getErrorMessage(error)}`)
     },
   })
 }

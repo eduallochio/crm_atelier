@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Service, ServiceInput } from '@/lib/validations/service'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export function useServices() {
   return useQuery({
@@ -34,7 +35,7 @@ export function useCreateService() {
       toast.success('Serviço cadastrado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -58,7 +59,7 @@ export function useUpdateService() {
       toast.success('Serviço atualizado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -79,7 +80,7 @@ export function useDeleteService() {
       toast.success('Serviço removido com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -103,7 +104,7 @@ export function useToggleServiceStatus() {
       toast.success(`Serviço ${variables.ativo ? 'ativado' : 'desativado'} com sucesso!`)
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }

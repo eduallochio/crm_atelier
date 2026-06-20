@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ServiceOrderNote } from '@/lib/validations/service-order'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export function useOrderNotes(orderId: string) {
   return useQuery({
@@ -34,7 +35,7 @@ export function useCreateOrderNote() {
       toast.success('Nota adicionada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }

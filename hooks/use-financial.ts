@@ -14,6 +14,7 @@ import type {
   TransactionInput,
 } from '@/lib/validations/financial'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 // =====================================================
 // CATEGORIAS FINANCEIRAS
@@ -212,7 +213,7 @@ export function useUpdateReceivable() {
       toast.success('Conta a receber atualizada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -271,7 +272,7 @@ export function useCreatePayable() {
       toast.success('Conta a pagar criada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao criar conta a pagar: ${error.message}`)
+      toast.error(`Erro ao criar conta a pagar: ${getErrorMessage(error)}`)
     },
   })
 }

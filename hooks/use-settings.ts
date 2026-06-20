@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 import type {
   OrganizationSettings,
   CustomizationSettings,
@@ -146,7 +147,7 @@ export function useUpdateNotificationSettings() {
       toast.success('Configurações de notificações salvas com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao salvar configurações: ${error.message}`)
+      toast.error(`Erro ao salvar configurações: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -182,7 +183,7 @@ export function useUpdateOrderSettings() {
       toast.success('Configurações de ordens salvas com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao salvar configurações: ${error.message}`)
+      toast.error(`Erro ao salvar configurações: ${getErrorMessage(error)}`)
     },
   })
 }

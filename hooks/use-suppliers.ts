@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export interface Supplier {
   id: string
@@ -70,7 +71,7 @@ export function useCreateSupplier() {
       toast.success('Fornecedor cadastrado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao cadastrar fornecedor: ${error.message}`)
+      toast.error(`Erro ao cadastrar fornecedor: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -93,7 +94,7 @@ export function useUpdateSupplier() {
       toast.success('Fornecedor atualizado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao atualizar fornecedor: ${error.message}`)
+      toast.error(`Erro ao atualizar fornecedor: ${getErrorMessage(error)}`)
     },
   })
 }
@@ -111,7 +112,7 @@ export function useDeleteSupplier() {
       toast.success('Fornecedor desativado com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao desativar fornecedor: ${error.message}`)
+      toast.error(`Erro ao desativar fornecedor: ${getErrorMessage(error)}`)
     },
   })
 }

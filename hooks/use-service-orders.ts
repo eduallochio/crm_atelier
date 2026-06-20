@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ServiceOrder, ServiceOrderInput } from '@/lib/validations/service-order'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/utils/error-message'
 
 export function useServiceOrders() {
   return useQuery({
@@ -47,7 +48,7 @@ export function useCreateServiceOrder() {
       toast.success('Ordem de serviço criada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -77,7 +78,7 @@ export function useUpdateServiceOrder() {
       toast.success('Ordem de serviço atualizada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
@@ -99,7 +100,7 @@ export function useDeleteServiceOrder() {
       toast.success('Ordem de serviço removida com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(error.message)
+      toast.error(getErrorMessage(error))
     },
   })
 }
