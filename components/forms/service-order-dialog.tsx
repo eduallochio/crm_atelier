@@ -206,23 +206,25 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     if (!service) return
 
     const valor_unitario = Number(service.preco) || 0
-    const valor_total   = valor_unitario * Number(quantidade)
+    const qtd = Number(quantidade)
 
-    const newItem: ServiceOrderItemInput = {
+    // Cada peça vira uma linha separada para identificação individual
+    const newItems: ServiceOrderItemInput[] = Array.from({ length: qtd }, () => ({
       service_id:    service.id,
       service_nome:  service.nome ?? '',
-      quantidade:    Number(quantidade),
+      quantidade:    1,
       valor_unitario,
-      valor_total,
-    }
+      valor_total:   valor_unitario,
+    }))
 
-    const updatedItems = [...items, newItem]
+    const updatedItems = [...items, ...newItems]
     setItems(updatedItems)
     setValue('items', updatedItems)
     setSelectedServiceId('')
     setQuantidade(1)
 
     // Auto-popula materiais do serviço se controle de estoque ativo
+    // usa qtd capturado antes do reset do state
     if (controlaEstoque && service.materiais_produtos && service.materiais_produtos.length > 0) {
       setMateriais(prev => {
         const next = [...prev]
@@ -233,13 +235,13 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           if (existingIdx >= 0) {
             next[existingIdx] = {
               ...next[existingIdx],
-              quantidade: next[existingIdx].quantidade + m.quantidade * quantidade,
+              quantidade: next[existingIdx].quantidade + m.quantidade * qtd,
             }
           } else {
             next.push({
               product_id: m.product_id ?? null,
               produto_nome: m.produto_nome,
-              quantidade: m.quantidade * quantidade,
+              quantidade: m.quantidade * qtd,
               unidade: m.unidade || 'un',
             })
           }
@@ -635,59 +637,79 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             {/* Lista de Itens */}
             {items.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Serviço</th>
-                      <th className="px-3 py-2 text-center">Qtd</th>
-                      <th className="px-3 py-2 text-right">Unit.</th>
-                      <th className="px-3 py-2 text-right">Total</th>
-                      <th className="px-3 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {items.map((item, index) => (
-                      <tr key={index}>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-col gap-1">
-                            <span>{item.service_nome}</span>
-                            <input
-                              type="text"
-                              value={item.observacoes ?? ''}
-                              onChange={(e) => updateItemObservacoes(index, e.target.value)}
-                              placeholder="Observação (ex: calça verde)..."
-                              className="text-xs text-muted-foreground bg-transparent border-b border-dashed border-muted-foreground/30 focus:border-primary focus:outline-none placeholder:text-muted-foreground/40 w-full py-0.5"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-center">{item.quantidade}</td>
-                        <td className="px-3 py-2 text-right">
-                          R$ {Number(item.valor_unitario).toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-medium">
-                          R$ {Number(item.valor_total).toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeItem(index)}
-                            className="h-8 w-8"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </td>
+                {/* Cabeçalho + linhas com scroll */}
+                <div className="overflow-y-auto max-h-56">
+                  <table className="w-full text-sm table-fixed">
+                    <colgroup>
+                      <col className="w-auto" />
+                      <col className="w-12" />
+                      <col className="w-20" />
+                      <col className="w-20" />
+                      <col className="w-10" />
+                    </colgroup>
+                    <thead className="bg-muted sticky top-0 z-10">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Serviço</th>
+                        <th className="px-3 py-2 text-center">Qtd</th>
+                        <th className="px-3 py-2 text-right">Unit.</th>
+                        <th className="px-3 py-2 text-right">Total</th>
+                        <th className="px-3 py-2"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50">
-                    <tr className="border-t">
+                    </thead>
+                    <tbody className="divide-y">
+                      {items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-col gap-1">
+                              <span>{item.service_nome}</span>
+                              <input
+                                type="text"
+                                value={item.observacoes ?? ''}
+                                onChange={(e) => updateItemObservacoes(index, e.target.value)}
+                                placeholder="Descreva a peça (ex: calça jeans azul)..."
+                                className="text-xs text-muted-foreground bg-transparent border-b border-dashed border-muted-foreground/30 focus:border-primary focus:outline-none placeholder:text-muted-foreground/40 w-full py-0.5"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-center">{item.quantidade}</td>
+                          <td className="px-3 py-2 text-right">
+                            R$ {Number(item.valor_unitario).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            R$ {Number(item.valor_total).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeItem(index)}
+                              className="h-8 w-8"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Totais fixos abaixo do scroll — colgroup idêntico para alinhar colunas */}
+                <table className="w-full text-sm border-t bg-muted table-fixed">
+                  <colgroup>
+                    <col className="w-auto" />
+                    <col className="w-12" />
+                    <col className="w-20" />
+                    <col className="w-20" />
+                    <col className="w-10" />
+                  </colgroup>
+                  <tbody>
+                    <tr>
                       <td colSpan={3} className="px-3 py-2 text-right font-medium">Subtotal:</td>
                       <td className="px-3 py-2 text-right">
                         R$ {total.toFixed(2)}
                       </td>
-                      <td></td>
+                      <td className="w-10"></td>
                     </tr>
                     {valorDesconto > 0 && (
                       <tr>
@@ -695,15 +717,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                         <td className="px-3 py-2 text-right text-red-600">
                           - R$ {valorDesconto.toFixed(2)}
                         </td>
-                        <td></td>
+                        <td className="w-10"></td>
                       </tr>
                     )}
-                    <tr className="font-bold">
+                    <tr className="font-bold border-t">
                       <td colSpan={3} className="px-3 py-3 text-right text-lg">Total:</td>
                       <td className="px-3 py-3 text-right text-lg text-green-600">
                         R$ {totalComDesconto.toFixed(2)}
                       </td>
-                      <td></td>
+                      <td className="w-10"></td>
                     </tr>
                     {valorEntrada > 0 && (
                       <>
@@ -712,18 +734,18 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                           <td className="px-3 py-2 text-right text-blue-600">
                             R$ {valorEntrada.toFixed(2)}
                           </td>
-                          <td></td>
+                          <td className="w-10"></td>
                         </tr>
                         <tr className="font-semibold">
                           <td colSpan={3} className="px-3 py-2 text-right text-orange-600">Saldo Restante:</td>
                           <td className="px-3 py-2 text-right text-orange-600">
                             R$ {saldoRestante.toFixed(2)}
                           </td>
-                          <td></td>
+                          <td className="w-10"></td>
                         </tr>
                       </>
                     )}
-                  </tfoot>
+                  </tbody>
                 </table>
               </div>
             )}

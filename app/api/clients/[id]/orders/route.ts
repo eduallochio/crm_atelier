@@ -63,6 +63,7 @@ export async function GET(
         quantidade:     Number(item.quantidade ?? 1),
         valor_unitario: Number(item.valorUnitario ?? 0),
         valor_total:    Number(item.valorTotal ?? 0),
+        observacoes:    item.observacoes ?? null,
       })),
     }))
 

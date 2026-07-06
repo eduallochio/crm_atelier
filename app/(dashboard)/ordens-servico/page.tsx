@@ -463,7 +463,12 @@ export default function OrdensServicoPage() {
                         <tbody className="divide-y divide-border">
                           {currentSelectedOrder.items.map((item) => (
                             <tr key={item.id}>
-                              <td className="px-3 py-2 text-foreground">{item.service_nome}</td>
+                              <td className="px-3 py-2 text-foreground">
+                                <div>{item.service_nome}</div>
+                                {item.observacoes && (
+                                  <div className="text-xs text-muted-foreground mt-0.5">↳ {item.observacoes}</div>
+                                )}
+                              </td>
                               <td className="px-3 py-2 text-center text-foreground">{item.quantidade}</td>
                               <td className="px-3 py-2 text-right text-foreground">
                                 R$ {Number(item.valor_total).toFixed(2)}

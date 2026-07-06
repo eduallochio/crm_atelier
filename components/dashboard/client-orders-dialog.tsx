@@ -18,6 +18,7 @@ interface OrderItem {
   service_nome: string
   quantidade: number
   valor_unitario: number
+  observacoes?: string | null
 }
 import { Button } from '@/components/ui/button'
 
@@ -142,11 +143,16 @@ export function ClientOrdersDialog({ open, onOpenChange, client }: ClientOrdersD
                         <div className="text-xs text-gray-600 font-medium mb-2">Serviços:</div>
                         <div className="space-y-1">
                           {order.items.map((item: OrderItem) => (
-                            <div key={item.id} className="text-sm text-gray-700 flex justify-between">
-                              <span>• {item.service_nome}</span>
-                              <span className="text-gray-500">
-                                {item.quantidade}x R$ {Number(item.valor_unitario).toFixed(2)}
-                              </span>
+                            <div key={item.id} className="text-sm text-gray-700">
+                              <div className="flex justify-between">
+                                <span>• {item.service_nome}</span>
+                                <span className="text-gray-500">
+                                  {item.quantidade}x R$ {Number(item.valor_unitario).toFixed(2)}
+                                </span>
+                              </div>
+                              {item.observacoes && (
+                                <div className="text-xs text-gray-500 ml-3 mt-0.5">↳ {item.observacoes}</div>
+                              )}
                             </div>
                           ))}
                         </div>
