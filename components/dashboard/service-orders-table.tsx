@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, DollarSign, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send } from 'lucide-react'
+import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -357,8 +357,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 </div>
                 <div className="text-right shrink-0">
                   <div className="flex items-center text-base font-semibold text-green-600 dark:text-green-400">
-                    <DollarSign className="h-4 w-4" />
-                    {Number(order.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {Number(order.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                   {order.items && order.items.length > 0 && (
                     <div className="text-xs text-muted-foreground">{order.items.length} {order.items.length === 1 ? 'item' : 'itens'}</div>
@@ -546,8 +545,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end text-lg font-semibold text-green-600 dark:text-green-400">
-                      <DollarSign className="h-4 w-4" />
-                      {Number(order.valor_total).toLocaleString('pt-BR', {
+                      R$ {Number(order.valor_total).toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
