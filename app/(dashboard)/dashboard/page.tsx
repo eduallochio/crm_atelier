@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, FileText, DollarSign, Plus, UserPlus } from 'lucide-react'
+import { Users, FileText, DollarSign, Plus, UserPlus, CreditCard } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
@@ -15,6 +15,7 @@ import { GlobalSearch } from '@/components/dashboard/global-search'
 import { PeriodFilterSelect, PeriodFilter, filterDataByPeriod } from '@/components/dashboard/period-filter'
 import { MonthlyGoal } from '@/components/dashboard/monthly-goal'
 import { useQuery } from '@tanstack/react-query'
+import { useTransactions } from '@/hooks/use-financial'
 
 function useGreeting(name: string) {
   const [greeting, setGreeting] = useState('')
@@ -104,8 +105,29 @@ export default function DashboardPage() {
   const topClients = stats?.top_clients ?? []
   const inactiveClientsCount = stats?.inactive_clients_count ?? 0
 
+  const { data: transactions } = useTransactions()
+
   const filteredOrders = filterDataByPeriod(orders, periodFilter)
   const { greeting, dateStr } = useGreeting(me?.name?.split(' ')[0] || 'Usuário')
+
+  const paymentMethodStats = useMemo(() => {
+    if (!transactions) return []
+    const entradas = transactions.filter(t => t.tipo === 'entrada')
+    const total = entradas.reduce((sum, t) => sum + t.valor, 0)
+    const map = new Map<string, { nome: string; total: number; count: number }>()
+    for (const t of entradas) {
+      const key = t.payment_method_nome ?? 'Não identificado'
+      const cur = map.get(key) ?? { nome: key, total: 0, count: 0 }
+      cur.total += t.valor
+      cur.count += 1
+      map.set(key, cur)
+    }
+    return Array.from(map.values())
+      .sort((a, b) => b.total - a.total)
+      .map(item => ({ ...item, percentual: total > 0 ? (item.total / total) * 100 : 0 }))
+  }, [transactions])
+
+  const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   const statCards = [
     {
@@ -302,6 +324,48 @@ export default function DashboardPage() {
           </div>
           <DashboardCharts ordersData={filteredOrders} servicesData={services} />
         </div>
+
+        {/* Entradas por Forma de Pagamento */}
+        {paymentMethodStats.length > 0 && (
+          <div>
+            <div className="mb-4">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Financeiro
+              </p>
+              <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
+                Entradas por forma de pagamento
+              </h3>
+            </div>
+            <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-xl bg-violet-500 shadow-sm">
+                  <CreditCard className="h-3.5 w-3.5 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">Total de entradas por método</p>
+              </div>
+              <div className="space-y-3">
+                {paymentMethodStats.map((pm) => (
+                  <div key={pm.nome}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-foreground font-medium">{pm.nome}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">{pm.count} {pm.count === 1 ? 'transação' : 'transações'}</span>
+                        <span className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(pm.total)}</span>
+                        <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 w-9 text-right">{pm.percentual.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-violet-500 transition-all duration-500"
+                        style={{ width: `${pm.percentual}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Diálogos */}

@@ -38,6 +38,7 @@ import {
   BarChart3,
   BookOpen,
   Bell,
+  ArrowLeftRight,
   LucideIcon,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -82,6 +83,7 @@ const navigation: NavigationSection[] = [
         tourId: 'nav-financeiro',
         subitems: [
           { name: 'Caixa', href: '/financeiro', icon: Wallet },
+          { name: 'Fluxo de Caixa', href: '/financeiro/fluxo-caixa', icon: ArrowLeftRight },
           { name: 'Contas a Pagar', href: '/financeiro/pagar', icon: TrendingDown },
           { name: 'Contas a Receber', href: '/financeiro/receber', icon: TrendingUp },
         ],
