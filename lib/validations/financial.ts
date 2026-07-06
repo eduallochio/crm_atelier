@@ -127,8 +127,11 @@ export interface Transaction {
   descricao: string
   valor: number
   data_transacao: string
+  data: string | null
   category_id: string | null
   payment_method_id: string | null
+  payment_method_nome: string | null
+  payment_method_tipo: string | null
   receivable_id: string | null
   payable_id: string | null
   observacoes: string | null
