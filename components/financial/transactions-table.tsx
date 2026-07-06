@@ -19,12 +19,18 @@ export function TransactionsTable({ transactions, isLoading, onSort, sortField, 
     })
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR')
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return '—'
+    // Datas no formato YYYY-MM-DD precisam de T00:00 para evitar parse UTC
+    const normalized = String(date).includes('T') ? date : `${String(date).split('T')[0]}T00:00:00`
+    const d = new Date(normalized)
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
   }
 
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('pt-BR')
+  const formatDateTime = (date: string | null | undefined) => {
+    if (!date) return '—'
+    const d = new Date(date)
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR')
   }
 
   const SortButton = ({ field, children }: { field: 'descricao' | 'valor' | 'data' | 'tipo', children: React.ReactNode }) => (

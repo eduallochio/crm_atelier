@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgTransactions } from '@/lib/db/schema'
+import { orgTransactions, orgPaymentMethods } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -10,13 +10,44 @@ export async function GET() {
     const user = await requireAuth()
 
     const rows = await db
-      .select()
+      .select({
+        id:              orgTransactions.id,
+        organizationId:  orgTransactions.organizationId,
+        tipo:            orgTransactions.tipo,
+        descricao:       orgTransactions.descricao,
+        valor:           orgTransactions.valor,
+        dataTransacao:   orgTransactions.dataTransacao,
+        categoryId:      orgTransactions.categoryId,
+        paymentMethodId: orgTransactions.paymentMethodId,
+        paymentMethodNome: orgPaymentMethods.nome,
+        paymentMethodTipo: orgPaymentMethods.tipo,
+        receivableId:    orgTransactions.receivableId,
+        payableId:       orgTransactions.payableId,
+        observacoes:     orgTransactions.observacoes,
+        createdAt:       orgTransactions.createdAt,
+      })
       .from(orgTransactions)
+      .leftJoin(orgPaymentMethods, eq(orgPaymentMethods.id, orgTransactions.paymentMethodId))
       .where(eq(orgTransactions.organizationId, user.organizationId))
       .orderBy(desc(orgTransactions.dataTransacao))
 
-    // Expose dataTransacao also as `data` for backwards compat with existing hooks
-    const mapped = rows.map((r) => ({ ...r, data: r.dataTransacao }))
+    const mapped = rows.map((r) => ({
+      id:                    r.id,
+      organization_id:       r.organizationId,
+      tipo:                  r.tipo,
+      descricao:             r.descricao,
+      valor:                 Number(r.valor),
+      data_transacao:        r.dataTransacao ? String(r.dataTransacao) : null,
+      data:                  r.dataTransacao ? String(r.dataTransacao) : null,
+      category_id:           r.categoryId,
+      payment_method_id:     r.paymentMethodId,
+      payment_method_nome:   r.paymentMethodNome ?? null,
+      payment_method_tipo:   r.paymentMethodTipo ?? null,
+      receivable_id:         r.receivableId,
+      payable_id:            r.payableId,
+      observacoes:           r.observacoes,
+      created_at:            r.createdAt ? r.createdAt.toISOString() : null,
+    }))
 
     return NextResponse.json(mapped)
   } catch (error) {
@@ -51,7 +82,21 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    return NextResponse.json({ ...row, data: row.dataTransacao }, { status: 201 })
+    return NextResponse.json({
+      id:                row.id,
+      organization_id:   row.organizationId,
+      tipo:              row.tipo,
+      descricao:         row.descricao,
+      valor:             Number(row.valor),
+      data_transacao:    row.dataTransacao ? String(row.dataTransacao) : null,
+      data:              row.dataTransacao ? String(row.dataTransacao) : null,
+      category_id:       row.categoryId,
+      payment_method_id: row.paymentMethodId,
+      receivable_id:     row.receivableId,
+      payable_id:        row.payableId,
+      observacoes:       row.observacoes,
+      created_at:        row.createdAt ? row.createdAt.toISOString() : null,
+    }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

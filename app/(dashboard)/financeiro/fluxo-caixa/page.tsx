@@ -129,6 +129,28 @@ export default function FluxoCaixaPage() {
     }
   }, [filteredTransactions, transactions])
 
+  // Resumo por forma de pagamento (apenas entradas)
+  const paymentMethodStats = useMemo(() => {
+    const entradas = filteredTransactions.filter(t => t.tipo === 'entrada')
+    const totalEntradas = entradas.reduce((sum, t) => sum + t.valor, 0)
+    const map = new Map<string, { nome: string; total: number; count: number }>()
+
+    for (const t of entradas) {
+      const key = t.payment_method_nome ?? 'Não identificado'
+      const existing = map.get(key) ?? { nome: key, total: 0, count: 0 }
+      existing.total += t.valor
+      existing.count += 1
+      map.set(key, existing)
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.total - a.total)
+      .map(item => ({
+        ...item,
+        percentual: totalEntradas > 0 ? (item.total / totalEntradas) * 100 : 0,
+      }))
+  }, [filteredTransactions])
+
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
       style: 'currency',
@@ -300,6 +322,33 @@ export default function FluxoCaixaPage() {
             </div>
           </div>
         </div>
+
+        {/* Resumo por Forma de Pagamento */}
+        {paymentMethodStats.length > 0 && (
+          <div className="bg-card rounded-lg border border-border p-4">
+            <p className="text-sm font-semibold text-foreground mb-3">Entradas por Forma de Pagamento</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {paymentMethodStats.map((pm) => (
+                <div key={pm.nome} className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-xs font-medium text-muted-foreground truncate">{pm.nome}</p>
+                  <p className="text-base font-bold text-foreground tabular-nums">
+                    {formatCurrency(pm.total)}
+                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs text-muted-foreground">{pm.count} {pm.count === 1 ? 'transação' : 'transações'}</span>
+                    <span className="text-xs font-semibold text-green-600 dark:text-green-400">{pm.percentual.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1 w-full rounded-full bg-border overflow-hidden mt-1">
+                    <div
+                      className="h-full rounded-full bg-green-500"
+                      style={{ width: `${pm.percentual}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Atalhos Rápidos */}
         <div className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-900 p-4">
