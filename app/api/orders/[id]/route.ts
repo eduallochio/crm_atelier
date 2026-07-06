@@ -14,6 +14,7 @@ import {
   orgServiceOrderMaterials,
   orgStockExits,
   orgStockExitItems,
+  orgPaymentMethods,
 } from '@/lib/db/schema'
 import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
@@ -200,16 +201,32 @@ export async function PUT(
               .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
             const descricaoOS = `OS #${order.numero} - ${order.clienteNome || 'Cliente'}`
-            const hoje = new Date().toISOString().split('T')[0]
+            // Usa data informada pelo usuário; fallback para hoje se não enviada
+            const dataTransacao = body.payment_date || new Date().toISOString().split('T')[0]
+
+            // Busca o payment_method_id pelo tipo (code) da forma de pagamento
+            let paymentMethodId: string | null = null
+            if (finalFormaPagamento) {
+              const [pm] = await tx
+                .select({ id: orgPaymentMethods.id })
+                .from(orgPaymentMethods)
+                .where(and(
+                  eq(orgPaymentMethods.organizationId, user.organizationId),
+                  eq(orgPaymentMethods.tipo, finalFormaPagamento)
+                ))
+                .limit(1)
+              paymentMethodId = pm?.id ?? null
+            }
 
             // Insert financial transaction
             await tx.insert(orgTransactions).values({
-              organizationId: user.organizationId,
-              tipo:           'entrada',
-              descricao:      descricaoOS,
-              valor:          String(saldoRestante),
-              dataTransacao:  hoje,
-              observacoes:    'Pagamento recebido na conclusão da OS',
+              organizationId:  user.organizationId,
+              tipo:            'entrada',
+              descricao:       descricaoOS,
+              valor:           String(saldoRestante),
+              dataTransacao,
+              paymentMethodId,
+              observacoes:     'Pagamento recebido na conclusão da OS',
             })
 
             // Insert cashier movement if there's an open session

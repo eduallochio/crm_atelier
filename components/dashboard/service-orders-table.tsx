@@ -54,6 +54,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
   const [pendingConcluir, setPendingConcluir] = useState<{ id: string; saldo: number } | null>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
+  const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().split('T')[0])
   const deleteOrder = useDeleteServiceOrder()
   const updateOrder = useUpdateServiceOrder()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
@@ -157,7 +158,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     try {
       const result = await updateOrder.mutateAsync({
         id: pendingConcluir.id,
-        input: { status: 'concluido', payment_action: 'paid', forma_pagamento: selectedPaymentMethod },
+        input: { status: 'concluido', payment_action: 'paid', forma_pagamento: selectedPaymentMethod, payment_date: paymentDate },
       })
       if (result.no_cashier_session) {
         toast.warning('OS concluída como paga, mas não há caixa aberto. O valor não foi lançado no caixa.')
@@ -370,7 +371,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 <button
                   type="button"
                   title="Clique para registrar pagamento"
-                  onClick={() => { setSelectedPaymentMethod(''); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
+                  onClick={() => { setSelectedPaymentMethod(''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                   className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors"
                 >
                   <Banknote className="h-3 w-3" />
@@ -488,7 +489,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         <button
                           type="button"
                           title="Clique para registrar pagamento"
-                          onClick={() => { setSelectedPaymentMethod(''); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
+                          onClick={() => { setSelectedPaymentMethod(''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                           className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors"
                         >
                           <Banknote className="h-3 w-3" />
@@ -690,7 +691,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
           </DialogDescription>
 
           {/* Forma de pagamento */}
-          <div className="mb-4">
+          <div className="mb-3">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Forma de pagamento
             </label>
@@ -704,6 +705,19 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 <option key={m.id} value={m.code}>{m.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Data do pagamento */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Data do pagamento
+            </label>
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
           </div>
 
           <div className="flex flex-col gap-2">
