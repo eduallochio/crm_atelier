@@ -162,7 +162,12 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
         input: { status: 'concluido', payment_action: 'paid', forma_pagamento: selectedPaymentMethod, payment_date: paymentDate },
       })
       if (result.no_cashier_session) {
-        toast.warning('OS concluída como paga, mas não há caixa aberto. O valor não foi lançado no caixa.')
+        toast.warning(
+          'OS concluída como paga, mas o valor não foi lançado no caixa pois não há nenhum caixa aberto. ' +
+          'Para registrar os recebimentos, cadastre um caixa com o nome do banco ou conta onde recebe (ex: "Nubank", "Bradesco", "Conta PIX") ' +
+          'em Financeiro → Caixa, e abra uma sessão antes de finalizar as ordens.',
+          { duration: 10000 }
+        )
       }
     } finally {
       setPendingConcluir(null)
