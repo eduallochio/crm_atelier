@@ -140,7 +140,8 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
       if (order) {
         const saldo = Number(order.valor_total || 0) - Number(order.valor_pago || 0)
         if (saldo > 0) {
-          setSelectedPaymentMethod('')
+          setSelectedPaymentMethod(order.forma_pagamento || '')
+          setPaymentDate(new Date().toISOString().split('T')[0])
           setPendingConcluir({ id: orderId, saldo })
           return
         }
@@ -370,7 +371,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                 <button
                   type="button"
                   title="Clique para registrar pagamento"
-                  onClick={() => { setSelectedPaymentMethod(''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
+                  onClick={() => { setSelectedPaymentMethod(order.forma_pagamento || ''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                   className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full mb-3 transition-colors"
                 >
                   <Banknote className="h-3 w-3" />
@@ -488,7 +489,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         <button
                           type="button"
                           title="Clique para registrar pagamento"
-                          onClick={() => { setSelectedPaymentMethod(''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
+                          onClick={() => { setSelectedPaymentMethod(order.forma_pagamento || ''); setPaymentDate(new Date().toISOString().split('T')[0]); setPendingConcluir({ id: order.id, saldo: Number(order.valor_total || 0) - Number(order.valor_pago || 0) }) }}
                           className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/60 px-2 py-1 rounded-full cursor-pointer transition-colors"
                         >
                           <Banknote className="h-3 w-3" />

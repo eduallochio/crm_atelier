@@ -45,6 +45,7 @@ export function useActivePaymentMethods() {
       if (!res.ok) return []
       return res.json() as Promise<PaymentMethod[]>
     },
+    staleTime: 5 * 60 * 1000,
   })
 }
 
