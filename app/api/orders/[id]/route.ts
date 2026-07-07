@@ -96,6 +96,7 @@ export async function GET(
         quantidade:     Number(i.quantidade ?? 1),
         valor_unitario: Number(i.valorUnitario ?? 0),
         valor_total:    Number(i.valorTotal ?? 0),
+        observacoes:    i.observacoes ?? null,
         created_at:     i.createdAt,
       })),
     }

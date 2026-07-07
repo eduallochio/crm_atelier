@@ -356,7 +356,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         } catch { /* non-blocking */ }
       }
 
-      // Buscar OS completa (com número e itens)
+      // Buscar OS completa (com número, itens e dados do cliente)
       let completeOrder: ServiceOrder | null = null
       if (result) {
         try {
@@ -365,17 +365,32 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         } catch { /* usa dados do preview se falhar */ }
       }
 
+      // Garantir que numero e client do preview sejam usados como fallback confiável
+      // (completeOrder pode ter numero null se returning() não resolveu a subquery)
+      const orderForPreview = completeOrder
+        ? {
+            ...previewData.previewOrder,   // items com observacoes + client completo
+            ...completeOrder,              // id, numero real, campos do banco
+            numero: completeOrder.numero ?? result?.numero ?? previewData.previewOrder.numero,
+            client: completeOrder.client ?? previewData.previewOrder.client,
+            items: completeOrder.items?.map((i, idx) => ({
+              ...i,
+              observacoes: i.observacoes ?? previewData.previewOrder.items?.[idx]?.observacoes ?? null,
+            })) ?? previewData.previewOrder.items,
+          }
+        : previewData.previewOrder
+
       // Gerar PDF se opção estiver marcada
       if (gerarPDF && completeOrder) {
         try {
-          generateThermalPDF(completeOrder, orgData?.name, orgData)
+          generateThermalPDF(orderForPreview, orgData?.name, orgData)
         } catch (error) {
           console.error('Erro ao gerar PDF:', error)
         }
       }
 
       // Enviar via WhatsApp se opção estiver marcada
-      const orderForMsg = completeOrder ?? previewData.previewOrder
+      const orderForMsg = orderForPreview
       const telefone = orderForMsg.client?.telefone
       if (enviarWhatsApp && telefone) {
         const phone = formatPhoneForWhatsApp(telefone)
