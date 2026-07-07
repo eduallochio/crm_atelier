@@ -5,6 +5,41 @@ import { orgCashiers } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireAuth()
+    const { id } = await params
+
+    const [row] = await db
+      .select()
+      .from(orgCashiers)
+      .where(and(eq(orgCashiers.id, id), eq(orgCashiers.organizationId, user.organizationId)))
+
+    if (!row) {
+      return NextResponse.json({ error: 'Caixa não encontrado' }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      id:              row.id,
+      organization_id: row.organizationId,
+      nome:            row.nome,
+      descricao:       row.descricao,
+      ativo:           row.ativo,
+      created_at:      row.createdAt,
+      updated_at:      row.updatedAt,
+    })
+  } catch (error) {
+    if ((error as Error).message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    logServerError('[GET /api/cashiers/:id]', error); console.error('[GET /api/cashiers/:id]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
