@@ -6,6 +6,7 @@ export const cashierSchema = z.object({
   organization_id: z.string().uuid().optional(),
   nome: z.string().min(1, 'Nome é obrigatório').max(100),
   descricao: z.string().optional(),
+  chave_pix: z.string().optional().nullable(),
   ativo: z.boolean().default(true),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
@@ -85,6 +86,7 @@ export type CashierReconciliation = z.infer<typeof cashierReconciliationSchema>
 export const cashierInputSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(100),
   descricao: z.string().optional(),
+  chave_pix: z.string().optional(),
   ativo: z.boolean().default(true),
 })
 

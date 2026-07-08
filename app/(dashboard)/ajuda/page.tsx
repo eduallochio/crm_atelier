@@ -23,6 +23,9 @@ import {
   Shield,
   Target,
   UserPlus,
+  ArrowLeftRight,
+  CreditCard,
+  QrCode,
 } from 'lucide-react'
 
 function ScreenshotPlaceholder({ label }: { label: string }) {
@@ -128,7 +131,7 @@ export default function AjudaPage() {
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Atelier</h1>
             <p className="text-gray-500 text-sm mb-1">Manual de Utilização do Sistema</p>
-            <p className="text-gray-400 text-xs">Versão 3.0</p>
+            <p className="text-gray-400 text-xs">Versão 3.1</p>
             <Screenshot src="/manual/login.png" alt="Tela de login" label="[Captura de tela da tela inicial / login do sistema]" />
           </div>
 
@@ -143,6 +146,8 @@ export default function AjudaPage() {
                 ['4', 'Serviços'],
                 ['5', 'Ordens de Serviço'],
                 ['6', 'Financeiro'],
+                ['6.1', 'Fluxo de Caixa'],
+                ['6.2', 'Caixas e Chave PIX'],
                 ['7', 'Estoque e Fornecedores'],
                 ['8', 'Alertas e Notificações'],
                 ['9', 'Configurações do Sistema'],
@@ -236,7 +241,21 @@ export default function AjudaPage() {
               'Ordens por Status — gráfico donut com distribuição por pendente, em andamento, concluído e cancelado',
               'Filtro de período: Últimos 7 dias, 30 dias, 90 dias ou Todo período',
             ]} />
-            <Screenshot src="/manual/dashboard.png" alt="Dashboard" label="[Captura de tela do Dashboard com cards, meta e gráficos]" />
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mt-4 mb-2">Entradas por Forma de Pagamento</h3>
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-2">
+              O card <strong>Entradas por forma de pagamento</strong> exibe um painel com o total recebido agrupado por método (PIX, Dinheiro, Cartão de Crédito etc.) para o mês atual, incluindo:
+            </p>
+            <FeatureList items={[
+              'Total em reais recebido por forma de pagamento',
+              'Número de transações por método',
+              'Percentual de participação de cada método no total do mês',
+              'Barra de progresso visual mostrando a proporção de cada método',
+            ]} />
+            <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 text-[12px] text-violet-700 mb-4">
+              <strong>Dica:</strong> Este painel ajuda a identificar quais formas de pagamento seus clientes mais utilizam. Se o PIX for predominante, vincule a chave PIX a um caixa para facilitar a conferência (veja seção 6.2).
+            </div>
+            <Screenshot src="/manual/dashboard.png" alt="Dashboard" label="[Captura de tela do Dashboard com cards, meta, gráficos e painel de formas de pagamento]" />
           </section>
 
           {/* 3. Clientes */}
@@ -405,6 +424,108 @@ export default function AjudaPage() {
               <strong>Atenção:</strong> Quando há contas vencidas, um badge vermelho aparece automaticamente no menu lateral ao lado de "Contas a Pagar" ou "Contas a Receber". O sino de alertas no topo da tela também exibe a contagem total de itens urgentes.
             </div>
             <Screenshot src="/manual/financeiro-receber.png" alt="Contas a Receber" label="[Captura de tela das Contas a Receber com cards de resumo e tabela]" />
+          </section>
+
+          {/* 6.1 Fluxo de Caixa */}
+          <section className="page-break">
+            <SectionHeader icon={ArrowLeftRight} title="6.1 Fluxo de Caixa" color="border-emerald-500" />
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+              O <strong>Fluxo de Caixa</strong> é um painel analítico que consolida todas as movimentações financeiras do período selecionado — entradas (recebimentos) e saídas (despesas) — permitindo visualizar a saúde financeira do ateliê de forma rápida.
+            </p>
+            <p className="text-[12px] text-gray-500 mb-3">
+              Acesse em: <strong>Financeiro → Fluxo de Caixa</strong> no menu lateral.
+            </p>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">Cards de Resumo</h3>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="border rounded-lg p-3">
+                <p className="text-[12px] font-semibold text-green-700 mb-1">Total de Entradas</p>
+                <p className="text-[11px] text-gray-500">Soma de todos os recebimentos (OS pagas + lançamentos no caixa) no período.</p>
+              </div>
+              <div className="border rounded-lg p-3">
+                <p className="text-[12px] font-semibold text-red-600 mb-1">Total de Saídas</p>
+                <p className="text-[11px] text-gray-500">Soma de todas as despesas registradas (contas a pagar pagas) no período.</p>
+              </div>
+              <div className="border rounded-lg p-3">
+                <p className="text-[12px] font-semibold text-blue-700 mb-1">Saldo do Período</p>
+                <p className="text-[11px] text-gray-500">Diferença entre entradas e saídas. Positivo = superávit; negativo = déficit.</p>
+              </div>
+            </div>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">Entradas por Forma de Pagamento</h3>
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-2">
+              Dentro do Fluxo de Caixa há um painel detalhando as entradas agrupadas por forma de pagamento:
+            </p>
+            <FeatureList items={[
+              'Total recebido por cada método (PIX, Dinheiro, Cartão etc.)',
+              'Quantidade de transações por método',
+              'Percentual de participação de cada método no total',
+              'Barra de progresso visual para comparação rápida',
+            ]} />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-[12px] text-emerald-700 mb-4">
+              <strong>Exemplo de uso:</strong> Se você recebeu R$ 2.000 em PIX e R$ 500 em dinheiro, o painel mostrará PIX como 80% e Dinheiro como 20% das entradas do período.
+            </div>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">Atalhos Rápidos</h3>
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-3">
+              O Fluxo de Caixa também exibe atalhos para as principais ações financeiras: abrir caixa, registrar despesa, acessar contas a receber e gerenciar formas de pagamento.
+            </p>
+            <Screenshot src="/manual/financeiro-fluxo.png" alt="Fluxo de Caixa" label="[Captura de tela do Fluxo de Caixa com cards de resumo e painel de formas de pagamento]" />
+          </section>
+
+          {/* 6.2 Caixas e Chave PIX */}
+          <section className="page-break">
+            <SectionHeader icon={QrCode} title="6.2 Caixas e Chave PIX" color="border-emerald-500" />
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+              O sistema permite cadastrar múltiplos <strong>caixas</strong> (PDVs, pontos de recebimento, contas bancárias) e vincular uma <strong>Chave PIX</strong> a cada um deles. Isso facilita identificar para qual caixa cada pagamento PIX foi destinado.
+            </p>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">O que é um Caixa?</h3>
+            <p className="text-[13px] text-gray-600 leading-relaxed mb-3">
+              Um <strong>caixa</strong> representa um ponto físico ou conta de recebimento — por exemplo: "Caixa Principal", "Conta Nubank", "Caixa Loja 2". Cada caixa tem sessões de abertura e fechamento independentes.
+            </p>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">Cadastrando um Caixa com Chave PIX</h3>
+            <div className="space-y-2 mb-4">
+              <Step n={1} text="Acesse Financeiro → Caixa e clique em 'Novo Caixa'." />
+              <Step n={2} text="Preencha o nome do caixa (ex: 'Conta Nubank', 'Caixa Loja')." />
+              <Step n={3} text="No campo 'Chave PIX', informe a chave correspondente: celular, e-mail, CPF/CNPJ ou chave aleatória." />
+              <Step n={4} text="Se já houver uma chave PIX cadastrada em Configurações → Financeiro, aparece o link 'Usar chave das configurações' — clique para preenchê-la automaticamente." />
+              <Step n={5} text="Salve. O caixa estará disponível para abertura de sessão." />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <QrCode className="h-4 w-4 text-blue-600" />
+                  <p className="text-[12px] font-semibold text-blue-700">Chave das Configurações</p>
+                </div>
+                <p className="text-[11px] text-gray-600">Se você tem uma única chave PIX para o ateliê, cadastre-a em Configurações → Financeiro e use o atalho para importar em qualquer caixa.</p>
+              </div>
+              <div className="bg-violet-50 border border-violet-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="h-4 w-4 text-violet-600" />
+                  <p className="text-[12px] font-semibold text-violet-700">Chave Específica por Caixa</p>
+                </div>
+                <p className="text-[11px] text-gray-600">Se cada conta bancária tem sua própria chave PIX (ex: Nubank e Itaú), cadastre a chave correspondente em cada caixa separadamente.</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[12px] text-amber-700 mb-4">
+              <strong>Importante:</strong> A Chave PIX no caixa é informativa — ajuda a organizar para qual conta o dinheiro foi. O vínculo automático entre pagamentos PIX recebidos e o caixa correspondente é registrado ao concluir uma OS com forma de pagamento PIX.
+            </div>
+
+            <h3 className="font-semibold text-[14px] text-gray-700 mb-2">Editando um Caixa existente</h3>
+            <div className="space-y-2 mb-4">
+              <Step n={1} text="Acesse Financeiro → Caixa e localize o caixa na lista." />
+              <Step n={2} text="Clique no botão 'Editar' (ícone de lápis) ao lado do caixa." />
+              <Step n={3} text="Altere o nome, descrição, chave PIX ou status (ativo/inativo) conforme necessário." />
+              <Step n={4} text="Clique em 'Atualizar Caixa' para salvar." />
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-[12px] text-blue-700 mb-4">
+              <strong>Dica:</strong> Caixas inativos não podem ter novas sessões abertas. Use essa opção para desativar um caixa temporariamente sem perder o histórico de movimentações.
+            </div>
+            <Screenshot src="/manual/financeiro-caixa-cadastro.png" alt="Cadastro de caixa com chave PIX" label="[Captura de tela do formulário de cadastro de caixa com o campo Chave PIX preenchido]" />
           </section>
 
           {/* 7. Estoque */}
@@ -616,6 +737,14 @@ export default function AjudaPage() {
                   a: 'Sim, desde que o Controle de Estoque esteja ativo (Configurações → Sistema) e que a OS tenha materiais registrados. A baixa é realizada uma única vez — se a OS for reaberta e concluída novamente, não há baixa duplicada.',
                 },
                 {
+                  q: 'Como vincular uma chave PIX a um caixa?',
+                  a: 'Acesse Financeiro → Caixa, crie um novo caixa ou edite um existente. No campo "Chave PIX", informe a chave (celular, e-mail, CPF/CNPJ ou chave aleatória). Se já houver uma chave cadastrada em Configurações → Financeiro, clique em "Usar chave das configurações" para preenchê-la automaticamente.',
+                },
+                {
+                  q: 'O que é o Fluxo de Caixa e como acessar?',
+                  a: 'O Fluxo de Caixa é um painel analítico que mostra todas as entradas e saídas do período, além do saldo. Acesse pelo menu Financeiro → Fluxo de Caixa. Lá você também visualiza as entradas agrupadas por forma de pagamento (PIX, Dinheiro, Cartão etc.).',
+                },
+                {
                   q: 'Como imprimir uma ordem de serviço?',
                   a: 'Na lista de ordens, clique no ícone de olho (visualizar) ao lado da OS desejada. Na tela de preview, clique em "Baixar PDF" para salvar ou imprimir.',
                 },
@@ -645,7 +774,7 @@ export default function AjudaPage() {
 
           {/* Rodapé */}
           <footer className="text-center text-[11px] text-gray-400 py-6 border-t">
-            <p>Meu Atelier — Manual do Sistema v3.0</p>
+            <p>Meu Atelier — Manual do Sistema v3.1</p>
             <p className="mt-1">Para substituir os espaços de captura de tela, tire screenshots de cada seção e edite este documento.</p>
           </footer>
 

@@ -27,6 +27,7 @@ export async function GET(
       organization_id: row.organizationId,
       nome:            row.nome,
       descricao:       row.descricao,
+      chave_pix:       row.chavePix ?? null,
       ativo:           row.ativo,
       created_at:      row.createdAt,
       updated_at:      row.updatedAt,
@@ -52,9 +53,10 @@ export async function PUT(
     const [row] = await db
       .update(orgCashiers)
       .set({
-        nome: body.nome,
+        nome:      body.nome,
         descricao: body.descricao ?? null,
-        ativo: body.ativo !== false,
+        chavePix:  body.chave_pix !== undefined ? (body.chave_pix || null) : undefined,
+        ativo:     body.ativo !== false,
         updatedAt: new Date(),
       })
       .where(and(eq(orgCashiers.id, id), eq(orgCashiers.organizationId, user.organizationId)))
@@ -69,6 +71,7 @@ export async function PUT(
       organization_id: row.organizationId,
       nome:            row.nome,
       descricao:       row.descricao,
+      chave_pix:       row.chavePix ?? null,
       ativo:           row.ativo,
       created_at:      row.createdAt,
       updated_at:      row.updatedAt,

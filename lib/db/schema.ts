@@ -339,6 +339,7 @@ export const orgCashiers = pgTable('org_cashiers', {
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   nome:           text('nome').notNull(),
   descricao:      text('descricao'),
+  chavePix:       text('chave_pix'),
   ativo:          boolean('ativo').notNull().default(true),
   createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:      timestamp('updated_at', { withTimezone: true }).defaultNow(),

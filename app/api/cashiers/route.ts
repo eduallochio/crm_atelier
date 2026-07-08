@@ -20,6 +20,7 @@ export async function GET() {
       organization_id: r.organizationId,
       nome:            r.nome,
       descricao:       r.descricao,
+      chave_pix:       r.chavePix ?? null,
       ativo:           r.ativo,
       created_at:      r.createdAt,
       updated_at:      r.updatedAt,
@@ -42,9 +43,10 @@ export async function POST(request: Request) {
       .insert(orgCashiers)
       .values({
         organizationId: user.organizationId,
-        nome: body.nome,
+        nome:      body.nome,
         descricao: body.descricao ?? null,
-        ativo: body.ativo !== false,
+        chavePix:  body.chave_pix || null,
+        ativo:     body.ativo !== false,
       })
       .returning()
 
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
       organization_id: row.organizationId,
       nome:            row.nome,
       descricao:       row.descricao,
+      chave_pix:       row.chavePix ?? null,
       ativo:           row.ativo,
       created_at:      row.createdAt,
       updated_at:      row.updatedAt,

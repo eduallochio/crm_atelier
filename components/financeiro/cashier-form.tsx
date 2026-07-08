@@ -16,6 +16,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { useFinancialSettings } from '@/hooks/use-settings'
+import { Badge } from '@/components/ui/badge'
 
 interface CashierFormProps {
   initialData?: CashierInput
@@ -29,9 +31,13 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
     defaultValues: initialData || {
       nome: '',
       descricao: '',
+      chave_pix: '',
       ativo: true,
     },
   })
+
+  const { data: financialSettings } = useFinancialSettings()
+  const globalPixKey = financialSettings?.pix_key as string | null | undefined
 
   return (
     <Form {...form}>
@@ -61,7 +67,7 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
               <FormItem>
                 <FormLabel>Descrição</FormLabel>
                 <FormControl>
-                  <Textarea 
+                  <Textarea
                     placeholder="Informações adicionais sobre o caixa"
                     {...field}
                     value={field.value || ''}
@@ -69,6 +75,46 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
                 </FormControl>
                 <FormDescription>
                   Localização, responsável, etc (opcional)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="chave_pix"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Chave PIX</FormLabel>
+                  {globalPixKey && field.value !== globalPixKey && (
+                    <button
+                      type="button"
+                      onClick={() => form.setValue('chave_pix', globalPixKey, { shouldDirty: true })}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      Usar chave das configurações
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
+                        {globalPixKey}
+                      </Badge>
+                    </button>
+                  )}
+                  {globalPixKey && field.value === globalPixKey && (
+                    <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">
+                      Mesma das configurações
+                    </Badge>
+                  )}
+                </div>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: 11999999999, email@exemplo.com, CPF/CNPJ"
+                    {...field}
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Chave PIX vinculada a este caixa. Pagamentos PIX com esta chave serão direcionados aqui (opcional)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
