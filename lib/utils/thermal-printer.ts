@@ -166,35 +166,56 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
 
   let subtotal = 0
 
-  order.items?.forEach((item, index) => {
+  // Agrupa itens do mesmo serviço somando qtd/total, obs por peça
+  const pdfGroups: { service_nome: string; valor_unitario: number; qtdTotal: number; valorTotal: number; obs: string[] }[] = []
+  order.items?.forEach(item => {
+    const g = pdfGroups.find(g => g.service_nome === item.service_nome && Number(g.valor_unitario) === Number(item.valor_unitario))
+    if (g) {
+      g.qtdTotal += Number(item.quantidade)
+      g.valorTotal += Number(item.valor_total)
+      if (item.observacoes) g.obs.push(item.observacoes)
+    } else {
+      pdfGroups.push({
+        service_nome: item.service_nome,
+        valor_unitario: Number(item.valor_unitario),
+        qtdTotal: Number(item.quantidade),
+        valorTotal: Number(item.valor_total),
+        obs: item.observacoes ? [item.observacoes] : [],
+      })
+    }
+    subtotal += Number(item.valor_total)
+  })
+
+  pdfGroups.forEach((g, index) => {
     // Nome do serviço
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    const serviceLines = doc.splitTextToSize(item.service_nome, contentWidth)
+    const serviceLines = doc.splitTextToSize(g.service_nome, contentWidth)
     doc.text(serviceLines, margin, y)
     y += (serviceLines.length * 4)
 
     // Quantidade e valores
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
-    doc.text(`${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}`, margin + 2, y)
-    doc.text(`R$ ${Number(item.valor_total).toFixed(2)}`, width - margin, y, { align: 'right' })
-    // Observação do item
-    if (item.observacoes) {
-      y += 4
-      doc.setFontSize(7.5)
-      doc.setTextColor(120, 120, 120)
-      const obsLines = doc.splitTextToSize(`↳ ${item.observacoes}`, contentWidth - 2)
-      doc.text(obsLines, margin + 2, y)
-      doc.setTextColor(0, 0, 0)
-      y += (obsLines.length - 1) * 3.5
+    doc.text(`${g.qtdTotal} x R$ ${g.valor_unitario.toFixed(2)}`, margin + 2, y)
+    doc.text(`R$ ${g.valorTotal.toFixed(2)}`, width - margin, y, { align: 'right' })
+
+    // Observações por peça
+    if (g.obs.length > 0) {
+      g.obs.forEach((obs, i) => {
+        y += 4
+        doc.setFontSize(7.5)
+        doc.setTextColor(120, 120, 120)
+        const prefix = g.obs.length > 1 ? `↳ #${i + 1} ${obs}` : `↳ ${obs}`
+        const obsLines = doc.splitTextToSize(prefix, contentWidth - 2)
+        doc.text(obsLines, margin + 2, y)
+        doc.setTextColor(0, 0, 0)
+        y += (obsLines.length - 1) * 3.5
+      })
     }
     y += 5
 
-    subtotal += item.valor_total
-
-    // Espaço entre itens
-    if (index < (order.items?.length || 0) - 1) {
+    if (index < pdfGroups.length - 1) {
       y += 2
     }
   })
@@ -368,16 +389,33 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       <!-- Serviços -->
       <div style="margin-bottom: 12px;">
         <div style="font-weight: bold; margin-bottom: 6px;">SERVIÇOS</div>
-        ${order.items?.map(item => `
-          <div style="margin-bottom: 8px;">
-            <div style="font-weight: bold; font-size: 11px;">${item.service_nome}</div>
-            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-left: 4px;">
-              <span>${item.quantidade} x R$ ${Number(item.valor_unitario).toFixed(2)}</span>
-              <span>R$ ${Number(item.valor_total).toFixed(2)}</span>
+        ${(() => {
+          if (!order.items?.length) return '<div style="font-size: 11px;">Nenhum serviço adicionado</div>'
+          const htmlGroups: { service_nome: string; valor_unitario: number; qtdTotal: number; valorTotal: number; obs: string[] }[] = []
+          order.items.forEach(item => {
+            const g = htmlGroups.find(g => g.service_nome === item.service_nome && Number(g.valor_unitario) === Number(item.valor_unitario))
+            if (g) {
+              g.qtdTotal += Number(item.quantidade)
+              g.valorTotal += Number(item.valor_total)
+              if (item.observacoes) g.obs.push(item.observacoes)
+            } else {
+              htmlGroups.push({ service_nome: item.service_nome, valor_unitario: Number(item.valor_unitario), qtdTotal: Number(item.quantidade), valorTotal: Number(item.valor_total), obs: item.observacoes ? [item.observacoes] : [] })
+            }
+          })
+          return htmlGroups.map(g => `
+            <div style="margin-bottom: 8px;">
+              <div style="font-weight: bold; font-size: 11px;">${g.service_nome}</div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-left: 4px;">
+                <span>${g.qtdTotal} x R$ ${g.valor_unitario.toFixed(2)}</span>
+                <span>R$ ${g.valorTotal.toFixed(2)}</span>
+              </div>
+              ${g.obs.length === 1
+                ? `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ ${g.obs[0]}</div>`
+                : g.obs.map((o, i) => `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ #${i + 1} ${o}</div>`).join('')
+              }
             </div>
-            ${item.observacoes ? `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ ${item.observacoes}</div>` : ''}
-          </div>
-        `).join('') || '<div style="font-size: 11px;">Nenhum serviço adicionado</div>'}
+          `).join('')
+        })()}
       </div>
       
       <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
@@ -511,14 +549,39 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   }
   lines.push(sep)
 
-  // Serviços
+  // Serviços — agrupa por service_id somando qtd/total, obs por peça
   lines.push(`*SERVIÇOS*`)
-  order.items?.forEach(item => {
-    lines.push(`• *${item.service_nome}*`)
-    lines.push(`  ${item.quantidade}x R$ ${Number(item.valor_unitario).toFixed(2)} = R$ ${Number(item.valor_total).toFixed(2)}`)
-    if (item.observacoes) lines.push(`  _↳ ${item.observacoes}_`)
-  })
-  if (!order.items?.length) lines.push('Nenhum serviço adicionado')
+  if (order.items?.length) {
+    const groups: { service_id: string; service_nome: string; valor_unitario: number; qtdTotal: number; valorTotal: number; obs: string[] }[] = []
+    order.items.forEach(item => {
+      const g = groups.find(g => g.service_id === item.service_id)
+      if (g) {
+        g.qtdTotal += Number(item.quantidade)
+        g.valorTotal += Number(item.valor_total)
+        if (item.observacoes) g.obs.push(item.observacoes)
+      } else {
+        groups.push({
+          service_id: item.service_id,
+          service_nome: item.service_nome,
+          valor_unitario: Number(item.valor_unitario),
+          qtdTotal: Number(item.quantidade),
+          valorTotal: Number(item.valor_total),
+          obs: item.observacoes ? [item.observacoes] : [],
+        })
+      }
+    })
+    groups.forEach(g => {
+      lines.push(`• *${g.service_nome}*`)
+      lines.push(`  ${g.qtdTotal}x R$ ${g.valor_unitario.toFixed(2)} = R$ ${g.valorTotal.toFixed(2)}`)
+      if (g.obs.length === 1) {
+        lines.push(`  _↳ ${g.obs[0]}_`)
+      } else {
+        g.obs.forEach((o, i) => lines.push(`  _↳ #${i + 1} ${o}_`))
+      }
+    })
+  } else {
+    lines.push('Nenhum serviço adicionado')
+  }
   lines.push(sep)
 
   // Totais

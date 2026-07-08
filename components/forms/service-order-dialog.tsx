@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { buildServiceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
@@ -61,6 +61,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
   const [enviarWhatsApp, setEnviarWhatsApp] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
+  const confirmedRef = useRef(false)
   const [openClientCombo, setOpenClientCombo] = useState(false)
   const [openServiceCombo, setOpenServiceCombo] = useState(false)
   const [clientSearchValue, setClientSearchValue] = useState('')
@@ -158,6 +159,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
   useEffect(() => {
     if (open) {
+      confirmedRef.current = false
       // Pré-preenche observações com aviso padrão se configurado
       const avisoInicial = notifSettings?.ordem_aviso_ativo && notifSettings.ordem_aviso_texto
         ? notifSettings.ordem_aviso_texto
@@ -402,7 +404,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         toast.success(gerarPDF ? 'Ordem criada e PDF gerado!' : 'Ordem criada com sucesso!')
       }
 
-      setPreviewData(null) // limpa antes de fechar para não reabrir o form
+      confirmedRef.current = true
+      setPreviewData(null)
       setShowPreview(false)
       onOpenChange(false)
     } catch (error) {
@@ -668,44 +671,86 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                         <th className="px-3 py-2 text-center">Qtd</th>
                         <th className="px-3 py-2 text-right">Unit.</th>
                         <th className="px-3 py-2 text-right">Total</th>
-                        <th className="px-3 py-2"></th>
+                        <th className="px-3 py-2 text-center text-muted-foreground text-xs font-normal">+peça</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-2">
-                            <div className="flex flex-col gap-1">
-                              <span>{item.service_nome}</span>
-                              <input
-                                type="text"
-                                value={item.observacoes ?? ''}
-                                onChange={(e) => updateItemObservacoes(index, e.target.value)}
-                                placeholder="Descreva a peça (ex: calça jeans azul)..."
-                                className="text-xs text-muted-foreground bg-transparent border-b border-dashed border-muted-foreground/30 focus:border-primary focus:outline-none placeholder:text-muted-foreground/40 w-full py-0.5"
-                              />
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-center">{item.quantidade}</td>
-                          <td className="px-3 py-2 text-right">
-                            R$ {Number(item.valor_unitario).toFixed(2)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            R$ {Number(item.valor_total).toFixed(2)}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeItem(index)}
-                              className="h-8 w-8"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        // Agrupa itens do mesmo serviço para exibição, mantendo obs por peça
+                        const groups: { service_id: string; service_nome: string; valor_unitario: number; indices: number[] }[] = []
+                        items.forEach((item, index) => {
+                          const g = groups.find(g => g.service_id === item.service_id)
+                          if (g) { g.indices.push(index) }
+                          else { groups.push({ service_id: item.service_id, service_nome: item.service_nome, valor_unitario: Number(item.valor_unitario), indices: [index] }) }
+                        })
+                        return groups.map((group) => {
+                          const qtdTotal = group.indices.length
+                          const totalGrupo = group.valor_unitario * qtdTotal
+                          return (
+                            <tr key={group.service_id}>
+                              <td className="px-3 py-2">
+                                <div className="flex flex-col gap-1">
+                                  <span>{group.service_nome}</span>
+                                  {group.indices.map((idx, i) => (
+                                    <div key={idx} className="flex items-center gap-1">
+                                      {qtdTotal > 1 && (
+                                        <span className="text-[10px] text-muted-foreground/50 shrink-0">#{i + 1}</span>
+                                      )}
+                                      <input
+                                        type="text"
+                                        value={items[idx].observacoes ?? ''}
+                                        onChange={(e) => updateItemObservacoes(idx, e.target.value)}
+                                        placeholder="Descreva a peça (ex: calça jeans azul)..."
+                                        className="text-xs text-muted-foreground bg-transparent border-b border-dashed border-muted-foreground/30 focus:border-primary focus:outline-none placeholder:text-muted-foreground/40 w-full py-0.5"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeItem(idx)}
+                                        className="h-5 w-5 shrink-0"
+                                      >
+                                        <Trash2 className="h-3 w-3 text-red-400" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-center">{qtdTotal}</td>
+                              <td className="px-3 py-2 text-right">
+                                R$ {group.valor_unitario.toFixed(2)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-medium">
+                                R$ {totalGrupo.toFixed(2)}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    // Adiciona mais uma peça ao grupo
+                                    const newItem: ServiceOrderItemInput = {
+                                      service_id: group.service_id,
+                                      service_nome: group.service_nome,
+                                      quantidade: 1,
+                                      valor_unitario: group.valor_unitario,
+                                      valor_total: group.valor_unitario,
+                                    }
+                                    const updated = [...items, newItem]
+                                    setItems(updated)
+                                    setValue('items', updated)
+                                  }}
+                                  className="h-8 w-8"
+                                  title="Adicionar mais uma peça"
+                                >
+                                  <Plus className="h-4 w-4 text-green-600" />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -1042,9 +1087,14 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       open={showPreview}
       onOpenChange={(v) => {
           setShowPreview(v)
-          if (!v && previewData) {
-            // Reabre o form para o usuário poder editar
-            onOpenChange(true)
+          if (!v) {
+            if (confirmedRef.current) {
+              // Fechou por confirmação — não reabre o form
+              confirmedRef.current = false
+            } else if (previewData) {
+              // Fechou pelo X ou Voltar — reabre o form para editar
+              onOpenChange(true)
+            }
           }
         }}
       order={previewData?.previewOrder || null}
