@@ -561,7 +561,7 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
         if (item.observacoes) g.obs.push(item.observacoes)
       } else {
         groups.push({
-          service_id: item.service_id,
+          service_id: item.service_id ?? '',
           service_nome: item.service_nome,
           valor_unitario: Number(item.valor_unitario),
           qtdTotal: Number(item.quantidade),
