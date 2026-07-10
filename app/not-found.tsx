@@ -21,13 +21,13 @@ export default function NotFound() {
             <Home className="h-4 w-4" />
             Ir para o Dashboard
           </Link>
-          <button
-            onClick={() => history.back()}
+          <Link
+            href="/"
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </button>
+            Página inicial
+          </Link>
         </div>
       </div>
     </div>
