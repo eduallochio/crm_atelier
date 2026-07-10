@@ -1,8 +1,12 @@
 'use client'
 
-import { Sidebar } from '@/components/layouts/sidebar'
+import dynamic from 'next/dynamic'
 import { AppTour } from '@/components/tour/app-tour'
 import { SessionGuard } from '@/components/layouts/session-guard'
+
+// ssr: false garante que o Sidebar (que usa useQuery) nunca seja
+// renderizado no servidor, evitando o erro "No QueryClient set"
+const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), { ssr: false })
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
