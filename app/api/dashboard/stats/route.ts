@@ -166,7 +166,7 @@ export async function GET() {
         })
         .from(orgCashierSessions)
         .where(eq(orgCashierSessions.organizationId, orgId))
-        .orderBy(desc(orgCashierSessions.updatedAt))
+        .orderBy(desc(drizzleSql`COALESCE(${orgCashierSessions.updatedAt}, ${orgCashierSessions.dataAbertura})`))
         .limit(4),
 
       // Novos produtos cadastrados

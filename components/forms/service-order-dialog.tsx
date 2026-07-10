@@ -391,6 +391,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         }
       }
 
+      confirmedRef.current = true
+
       // Enviar via WhatsApp se opção estiver marcada
       const orderForMsg = orderForPreview
       const telefone = orderForMsg.client?.telefone
@@ -404,7 +406,6 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         toast.success(gerarPDF ? 'Ordem criada e PDF gerado!' : 'Ordem criada com sucesso!')
       }
 
-      confirmedRef.current = true
       setPreviewData(null)
       setShowPreview(false)
       onOpenChange(false)

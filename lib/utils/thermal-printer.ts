@@ -314,7 +314,8 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   addCenteredText(format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }), 7)
 
   // Salvar PDF
-  doc.save(`ordem-servico-${order.numero.toString().padStart(6, '0')}.pdf`)
+  const numeroStr = order.numero ? order.numero.toString().padStart(6, '0') : 'previa'
+  doc.save(`ordem-servico-${numeroStr}.pdf`)
 }
 
 /**
