@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgServiceOrders, orgClients, orgCashierMovements } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, or, ilike } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 // OS pagas que ainda não foram lançadas em nenhuma sessão de caixa
@@ -34,6 +34,10 @@ export async function GET() {
         eq(orgServiceOrders.organizationId, user.organizationId),
         eq(orgServiceOrders.statusPagamento, 'pago'),
         isNull(orgCashierMovements.id), // sem movimento = não lançada
+        or(
+          ilike(orgServiceOrders.formaPagamento, '%pix%'),
+          ilike(orgServiceOrders.formaPagamento, '%dinheiro%'),
+        ),
       ))
       .orderBy(orgServiceOrders.dataConclusao)
 
