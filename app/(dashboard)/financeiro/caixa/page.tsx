@@ -15,8 +15,8 @@ export default function CaixaPage() {
   const sessoesAbertas = sessoes?.filter((s) => s.status === 'aberto') || []
   const sessoesFechadas = sessoes?.filter((s) => s.status === 'fechado').slice(0, 5) || []
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
+  const formatCurrency = (value: number | string | null | undefined) => {
+    return (Number(value) || 0).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     })

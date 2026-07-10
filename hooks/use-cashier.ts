@@ -154,10 +154,14 @@ export function useOpenCashier() {
       if (!res.ok) throw new Error('Erro ao abrir caixa')
       return res.json()
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
       queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] })
-      toast.success('Caixa aberto com sucesso!')
+      if (data?.already_open) {
+        toast.info('Este caixa já está aberto. Redirecionando para a sessão ativa.')
+      } else {
+        toast.success('Caixa aberto com sucesso!')
+      }
     },
     onError: (error: Error) => {
       toast.error(`Erro ao abrir caixa: ${getErrorMessage(error)}`)

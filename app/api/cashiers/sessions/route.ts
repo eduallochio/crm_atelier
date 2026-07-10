@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashierSessions, orgCashiers } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, isNull } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET(request: Request) {
@@ -57,6 +57,22 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const body = await request.json()
+
+    // Se já existe sessão aberta para este caixa, retorna ela sem criar outra
+    const [existing] = await db
+      .select()
+      .from(orgCashierSessions)
+      .where(and(
+        eq(orgCashierSessions.organizationId, user.organizationId),
+        eq(orgCashierSessions.caixaId, body.caixa_id),
+        eq(orgCashierSessions.status, 'aberto'),
+        isNull(orgCashierSessions.dataFechamento),
+      ))
+      .limit(1)
+
+    if (existing) {
+      return NextResponse.json({ ...existing, already_open: true }, { status: 200 })
+    }
 
     const [row] = await db
       .insert(orgCashierSessions)
