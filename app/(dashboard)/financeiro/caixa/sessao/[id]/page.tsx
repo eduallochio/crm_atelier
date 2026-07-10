@@ -54,8 +54,8 @@ export default function SessaoCaixaPage() {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
+  const formatCurrency = (value: number | string | null | undefined) => {
+    return (Number(value) || 0).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     })
@@ -106,12 +106,12 @@ export default function SessaoCaixaPage() {
     )
   }
 
-  const entradas = movimentos?.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + m.valor, 0) || 0
-  const saidas = movimentos?.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + m.valor, 0) || 0
-  const sangrias = movimentos?.filter(m => m.tipo === 'sangria').reduce((sum, m) => sum + m.valor, 0) || 0
-  const reforcos = movimentos?.filter(m => m.tipo === 'reforco').reduce((sum, m) => sum + m.valor, 0) || 0
-  
-  const saldoAtual = sessao.saldo_inicial + entradas - saidas - sangrias + reforcos
+  const entradas = movimentos?.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + Number(m.valor), 0) || 0
+  const saidas = movimentos?.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + Number(m.valor), 0) || 0
+  const sangrias = movimentos?.filter(m => m.tipo === 'sangria').reduce((sum, m) => sum + Number(m.valor), 0) || 0
+  const reforcos = movimentos?.filter(m => m.tipo === 'reforco').reduce((sum, m) => sum + Number(m.valor), 0) || 0
+
+  const saldoAtual = Number(sessao.saldo_inicial) + entradas - saidas - sangrias + reforcos
 
   const isClosed = sessao.status === 'fechado'
 
