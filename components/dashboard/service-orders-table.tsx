@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send } from 'lucide-react'
+import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send, Landmark } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -55,6 +55,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const [pendingConcluir, setPendingConcluir] = useState<{ id: string; saldo: number } | null>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
   const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().split('T')[0])
+  const [registeringCashier, setRegisteringCashier] = useState<string | null>(null)
   const deleteOrder = useDeleteServiceOrder()
   const updateOrder = useUpdateServiceOrder()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
@@ -188,6 +189,23 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
       })
     } finally {
       setPendingConcluir(null)
+    }
+  }
+
+  const handleRegisterInCashier = async (orderId: string) => {
+    setRegisteringCashier(orderId)
+    try {
+      const res = await fetch(`/api/orders/${orderId}/register-cashier`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Erro ao lançar no caixa')
+        return
+      }
+      toast.success('OS lançada no caixa com sucesso!')
+    } catch {
+      toast.error('Erro ao lançar no caixa')
+    } finally {
+      setRegisteringCashier(null)
     }
   }
 
@@ -408,6 +426,14 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                     <Send className="h-4 w-4" />
                   </Button>
                 )}
+                {order.status === 'concluido' && order.status_pagamento === 'pago' && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/50"
+                    onClick={() => handleRegisterInCashier(order.id)}
+                    disabled={registeringCashier === order.id}
+                    title="Lançar no caixa">
+                    <Landmark className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(order)}>
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -605,6 +631,18 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                           className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                         >
                           <Send className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {order.status === 'concluido' && order.status_pagamento === 'pago' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRegisterInCashier(order.id)}
+                          disabled={registeringCashier === order.id}
+                          title="Lançar no caixa"
+                          className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/50"
+                        >
+                          <Landmark className="h-4 w-4" />
                         </Button>
                       )}
                       <Button

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, FileText, X } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, FileText, X, Landmark, AlertCircle } from 'lucide-react'
 import { Loader } from '@/components/ui/loader'
 import { Header } from '@/components/layouts/header'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,8 @@ import { useCashierSession, useCashierMovements, useCloseCashier } from '@/hooks
 import { AddMovementDialog } from '@/components/financeiro/add-movement-dialog'
 import { CloseCashierDialog } from '@/components/financeiro/close-cashier-dialog'
 import { MovementsTable } from '@/components/financeiro/movements-table'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export default function SessaoCaixaPage() {
   const router = useRouter()
@@ -23,6 +25,34 @@ export default function SessaoCaixaPage() {
   const { data: sessao, isLoading: loadingSessao } = useCashierSession(sessaoId)
   const { data: movimentos, isLoading: loadingMovimentos } = useCashierMovements(sessaoId)
   const closeCashier = useCloseCashier()
+  const queryClient = useQueryClient()
+  const [registeringId, setRegisteringId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'movimentos' | 'nao-lancadas'>('movimentos')
+
+  const { data: naoLancadas = [], isLoading: loadingNaoLancadas } = useQuery({
+    queryKey: ['orders-unlaunched'],
+    queryFn: () => fetch('/api/orders/unlaunched').then(r => r.json()),
+    enabled: !loadingSessao,
+  })
+
+  const handleRegisterInCashier = async (orderId: string) => {
+    setRegisteringId(orderId)
+    try {
+      const res = await fetch(`/api/orders/${orderId}/register-cashier`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Erro ao lançar no caixa')
+        return
+      }
+      toast.success('OS lançada no caixa com sucesso!')
+      queryClient.invalidateQueries({ queryKey: ['orders-unlaunched'] })
+      queryClient.invalidateQueries({ queryKey: ['cashier-movements', sessaoId] })
+    } catch {
+      toast.error('Erro ao lançar no caixa')
+    } finally {
+      setRegisteringId(null)
+    }
+  }
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -236,17 +266,83 @@ export default function SessaoCaixaPage() {
             </div>
           )}
 
-          {/* Tabela de Movimentos */}
-          <div className="bg-white rounded-lg border">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Movimentos</h3>
-              <p className="text-sm text-gray-500">Todas as transações desta sessão</p>
+          {/* Abas: Movimentos | OS não lançadas */}
+          <div className="bg-card rounded-lg border border-border">
+            <div className="flex border-b border-border">
+              <button
+                onClick={() => setActiveTab('movimentos')}
+                className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'movimentos' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Movimentos
+              </button>
+              <button
+                onClick={() => setActiveTab('nao-lancadas')}
+                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'nao-lancadas' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                OS não lançadas
+                {naoLancadas.length > 0 && (
+                  <span className="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                    {naoLancadas.length}
+                  </span>
+                )}
+              </button>
             </div>
-            
-            <MovementsTable 
-              movements={movimentos || []} 
-              isLoading={loadingMovimentos}
-            />
+
+            {activeTab === 'movimentos' && (
+              <MovementsTable
+                movements={movimentos || []}
+                isLoading={loadingMovimentos}
+              />
+            )}
+
+            {activeTab === 'nao-lancadas' && (
+              <div>
+                {loadingNaoLancadas ? (
+                  <div className="p-8 text-center text-muted-foreground text-sm">Carregando...</div>
+                ) : naoLancadas.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground text-sm">
+                    Todas as OS pagas já foram lançadas no caixa.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950/30 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Estas OS foram pagas mas o valor ainda não entrou no caixa. Clique em "Lançar" para registrar.
+                      </p>
+                    </div>
+                    {naoLancadas.map((os: { id: string; numero: number | null; valorTotal: string | null; formaPagamento: string | null; dataConclusao: string | null; clienteNome: string | null }) => (
+                      <div key={os.id} className="flex items-center justify-between px-4 py-3 hover:bg-accent/50">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            #{String(os.numero ?? 0).padStart(6, '0')} — {os.clienteNome || 'Cliente não informado'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {os.formaPagamento || 'Forma de pagamento não informada'}
+                            {os.dataConclusao && ` · ${new Date(os.dataConclusao).toLocaleDateString('pt-BR')}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            {(Number(os.valorTotal) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/50"
+                            onClick={() => handleRegisterInCashier(os.id)}
+                            disabled={registeringId === os.id}
+                          >
+                            <Landmark className="h-3.5 w-3.5 mr-1.5" />
+                            {registeringId === os.id ? 'Lançando...' : 'Lançar'}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
