@@ -2,13 +2,29 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { UserPlus, FileText, DollarSign, Clock, CheckCircle2 } from 'lucide-react'
+import {
+  UserPlus, FileText, DollarSign, Clock, CheckCircle2,
+  XCircle, RefreshCw, Wallet, WalletMinimal, Package,
+  PackageOpen, Truck, TrendingDown,
+} from 'lucide-react'
 import { getRelativeTime } from '@/lib/utils/date-utils'
 import { cn } from '@/lib/utils'
 
 export interface Activity {
   id: string
-  type: 'client' | 'order' | 'payment' | 'order_completed'
+  type:
+    | 'client'
+    | 'order'
+    | 'order_completed'
+    | 'order_cancelled'
+    | 'order_status'
+    | 'payment'
+    | 'cashier_open'
+    | 'cashier_close'
+    | 'product'
+    | 'stock'
+    | 'supplier'
+    | 'payable'
   title: string
   description?: string
   timestamp: string
@@ -25,43 +41,40 @@ interface RecentActivityProps {
   isLoading?: boolean
 }
 
-const TYPE_CONFIG = {
-  client: {
-    icon: UserPlus,
-    dot: 'bg-blue-500',
-    ring: 'ring-blue-100 dark:ring-blue-900',
-    iconColor: 'text-blue-500',
-  },
-  order: {
-    icon: FileText,
-    dot: 'bg-amber-500',
-    ring: 'ring-amber-100 dark:ring-amber-900',
-    iconColor: 'text-amber-500',
-  },
-  payment: {
-    icon: DollarSign,
-    dot: 'bg-emerald-500',
-    ring: 'ring-emerald-100 dark:ring-emerald-900',
-    iconColor: 'text-emerald-500',
-  },
-  order_completed: {
-    icon: CheckCircle2,
-    dot: 'bg-violet-500',
-    ring: 'ring-violet-100 dark:ring-violet-900',
-    iconColor: 'text-violet-500',
-  },
+const TYPE_CONFIG: Record<Activity['type'], { icon: React.ElementType; dot: string; ring: string; iconColor: string }> = {
+  client:          { icon: UserPlus,     dot: 'bg-blue-500',    ring: 'ring-blue-100 dark:ring-blue-900',    iconColor: 'text-blue-500' },
+  order:           { icon: FileText,     dot: 'bg-amber-500',   ring: 'ring-amber-100 dark:ring-amber-900',   iconColor: 'text-amber-500' },
+  order_completed: { icon: CheckCircle2, dot: 'bg-emerald-500', ring: 'ring-emerald-100 dark:ring-emerald-900', iconColor: 'text-emerald-500' },
+  order_cancelled: { icon: XCircle,      dot: 'bg-red-400',     ring: 'ring-red-100 dark:ring-red-900',      iconColor: 'text-red-400' },
+  order_status:    { icon: RefreshCw,    dot: 'bg-violet-500',  ring: 'ring-violet-100 dark:ring-violet-900', iconColor: 'text-violet-500' },
+  payment:         { icon: DollarSign,   dot: 'bg-green-500',   ring: 'ring-green-100 dark:ring-green-900',  iconColor: 'text-green-500' },
+  cashier_open:    { icon: Wallet,       dot: 'bg-teal-500',    ring: 'ring-teal-100 dark:ring-teal-900',    iconColor: 'text-teal-500' },
+  cashier_close:   { icon: WalletMinimal,dot: 'bg-slate-400',   ring: 'ring-slate-100 dark:ring-slate-700',  iconColor: 'text-slate-400' },
+  product:         { icon: Package,      dot: 'bg-orange-500',  ring: 'ring-orange-100 dark:ring-orange-900', iconColor: 'text-orange-500' },
+  stock:           { icon: PackageOpen,  dot: 'bg-cyan-500',    ring: 'ring-cyan-100 dark:ring-cyan-900',    iconColor: 'text-cyan-500' },
+  supplier:        { icon: Truck,        dot: 'bg-indigo-500',  ring: 'ring-indigo-100 dark:ring-indigo-900', iconColor: 'text-indigo-500' },
+  payable:         { icon: TrendingDown, dot: 'bg-rose-500',    ring: 'ring-rose-100 dark:ring-rose-900',    iconColor: 'text-rose-500' },
 }
+
+const cardClass = [
+  'relative overflow-hidden border-border/40 shadow-sm',
+  'hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative',
+].join(' ')
+
+const glowBg = <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
+const glowDot = <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
 
 export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   if (isLoading) {
     return (
-      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
+      <Card className={cardClass}>
+        {glowBg}{glowDot}
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-5">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-start gap-4">
                 <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2 pt-1">
@@ -78,7 +91,8 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
 
   if (activities.length === 0) {
     return (
-      <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
+      <Card className={cardClass}>
+        {glowBg}{glowDot}
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
         </CardHeader>
@@ -97,15 +111,14 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   }
 
   return (
-    <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-card [&>*]:relative"><div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" /><div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
+    <Card className={cardClass}>
+      {glowBg}{glowDot}
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative">
-          {/* Timeline vertical line */}
           <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border/70" />
-
           <div className="space-y-1">
             {activities.map((activity, index) => {
               const config = TYPE_CONFIG[activity.type] ?? TYPE_CONFIG.order
@@ -121,7 +134,6 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
                     !isLast && 'mb-0'
                   )}
                 >
-                  {/* Timeline dot */}
                   <div className={cn(
                     'relative z-10 w-[30px] h-[30px] rounded-full flex items-center justify-center shrink-0',
                     'bg-card ring-2',
@@ -130,7 +142,6 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
                     <Icon className={cn('h-3.5 w-3.5', config.iconColor)} />
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0 pt-0.5">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-[13px] font-medium text-foreground leading-snug">

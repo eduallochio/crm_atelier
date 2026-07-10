@@ -6,9 +6,15 @@ import {
   organizations,
   orgClients,
   orgServiceOrders,
+  orgServiceOrderHistory,
+  orgTransactions,
+  orgCashierSessions,
+  orgProducts,
+  orgStockEntries,
+  orgSuppliers,
+  orgPayables,
   profiles,
   orgReceivables,
-  orgPayables,
 } from '@/lib/db/schema'
 import {
   eq,
@@ -81,12 +87,25 @@ export async function GET() {
     const plan = lifetime ? 'enterprise' : (orgResult[0]?.plan ?? 'free')
 
     // ── Atividades recentes ──────────────────────────────────────────────────
-    const [recentClients, recentOrders] = await Promise.all([
+    const [
+      recentClients,
+      recentOrders,
+      recentStatusChanges,
+      recentPayments,
+      recentCashierSessions,
+      recentProducts,
+      recentStockEntries,
+      recentSuppliers,
+      recentPayables,
+    ] = await Promise.all([
+      // Novos clientes
       db.select({ id: orgClients.id, nome: orgClients.nome, createdAt: orgClients.createdAt })
         .from(orgClients)
         .where(eq(orgClients.organizationId, orgId))
         .orderBy(desc(orgClients.createdAt))
         .limit(5),
+
+      // Novas OS criadas
       db.select({
           id: orgServiceOrders.id,
           numero: orgServiceOrders.numero,
@@ -99,31 +118,173 @@ export async function GET() {
         .where(eq(orgServiceOrders.organizationId, orgId))
         .orderBy(desc(orgServiceOrders.createdAt))
         .limit(5),
+
+      // Mudanças de status de OS (ex: concluído, cancelado)
+      db.select({
+          id: orgServiceOrderHistory.id,
+          orderId: orgServiceOrderHistory.orderId,
+          campoAlterado: orgServiceOrderHistory.campoAlterado,
+          valorAnterior: orgServiceOrderHistory.valorAnterior,
+          valorNovo: orgServiceOrderHistory.valorNovo,
+          createdAt: orgServiceOrderHistory.createdAt,
+          numero: orgServiceOrders.numero,
+          clientNome: orgClients.nome,
+        })
+        .from(orgServiceOrderHistory)
+        .leftJoin(orgServiceOrders, eq(orgServiceOrders.id, orgServiceOrderHistory.orderId))
+        .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+        .where(and(
+          eq(orgServiceOrderHistory.organizationId, orgId),
+          eq(orgServiceOrderHistory.campoAlterado, 'status'),
+        ))
+        .orderBy(desc(orgServiceOrderHistory.createdAt))
+        .limit(5),
+
+      // Pagamentos recebidos (transações de entrada)
+      db.select({
+          id: orgTransactions.id,
+          descricao: orgTransactions.descricao,
+          valor: orgTransactions.valor,
+          tipo: orgTransactions.tipo,
+          createdAt: orgTransactions.createdAt,
+        })
+        .from(orgTransactions)
+        .where(and(
+          eq(orgTransactions.organizationId, orgId),
+          eq(orgTransactions.tipo, 'entrada'),
+        ))
+        .orderBy(desc(orgTransactions.createdAt))
+        .limit(5),
+
+      // Abertura/fechamento de caixa
+      db.select({
+          id: orgCashierSessions.id,
+          status: orgCashierSessions.status,
+          dataAbertura: orgCashierSessions.dataAbertura,
+          dataFechamento: orgCashierSessions.dataFechamento,
+          updatedAt: orgCashierSessions.updatedAt,
+        })
+        .from(orgCashierSessions)
+        .where(eq(orgCashierSessions.organizationId, orgId))
+        .orderBy(desc(orgCashierSessions.updatedAt))
+        .limit(4),
+
+      // Novos produtos cadastrados
+      db.select({ id: orgProducts.id, nome: orgProducts.nome, createdAt: orgProducts.createdAt })
+        .from(orgProducts)
+        .where(eq(orgProducts.organizationId, orgId))
+        .orderBy(desc(orgProducts.createdAt))
+        .limit(3),
+
+      // Entradas de estoque
+      db.select({ id: orgStockEntries.id, observacoes: orgStockEntries.observacoes, createdAt: orgStockEntries.createdAt })
+        .from(orgStockEntries)
+        .where(eq(orgStockEntries.organizationId, orgId))
+        .orderBy(desc(orgStockEntries.createdAt))
+        .limit(3),
+
+      // Novos fornecedores
+      db.select({ id: orgSuppliers.id, nome: orgSuppliers.nome, createdAt: orgSuppliers.createdAt })
+        .from(orgSuppliers)
+        .where(eq(orgSuppliers.organizationId, orgId))
+        .orderBy(desc(orgSuppliers.createdAt))
+        .limit(3),
+
+      // Contas a pagar cadastradas
+      db.select({ id: orgPayables.id, descricao: orgPayables.descricao, valor: orgPayables.valor, createdAt: orgPayables.createdAt })
+        .from(orgPayables)
+        .where(eq(orgPayables.organizationId, orgId))
+        .orderBy(desc(orgPayables.createdAt))
+        .limit(3),
     ])
+
+    const statusLabels: Record<string, string> = {
+      pendente: 'Pendente',
+      em_andamento: 'Em andamento',
+      concluido: 'Concluído',
+      cancelado: 'Cancelado',
+    }
 
     const activities = [
       ...recentClients.map((c) => ({
         id: `client-${c.id}`,
-        type: 'client',
+        type: 'client' as const,
         title: 'Novo cliente cadastrado',
-        description: c.nome,
+        description: c.nome ?? '',
         timestamp: c.createdAt?.toISOString() ?? '',
       })),
+
       ...recentOrders.map((o) => ({
         id: `order-${o.id}`,
-        type: o.status === 'concluido' ? 'order_completed' : 'order',
-        title: o.status === 'concluido' ? 'Ordem concluída' : 'Nova ordem criada',
-        description: `${o.numero} - ${o.clientNome || 'Cliente não informado'}`,
+        type: 'order' as const,
+        title: 'Nova OS criada',
+        description: `#${String(o.numero ?? 0).padStart(6, '0')} — ${o.clientNome || 'Cliente não informado'}`,
         timestamp: o.createdAt?.toISOString() ?? '',
-        metadata: {
-          orderNumber: o.numero,
-          clientName: o.clientNome,
-          status: o.status,
-        },
+      })),
+
+      ...recentStatusChanges.map((h) => ({
+        id: `history-${h.id}`,
+        type: h.valorNovo === 'concluido' ? 'order_completed' as const
+            : h.valorNovo === 'cancelado' ? 'order_cancelled' as const
+            : 'order_status' as const,
+        title: `OS ${statusLabels[h.valorNovo ?? ''] ?? h.valorNovo}`,
+        description: `#${String(h.numero ?? 0).padStart(6, '0')} — ${h.clientNome || 'Cliente não informado'}`,
+        timestamp: h.createdAt?.toISOString() ?? '',
+      })),
+
+      ...recentPayments.map((t) => ({
+        id: `payment-${t.id}`,
+        type: 'payment' as const,
+        title: 'Pagamento recebido',
+        description: `${t.descricao ?? 'Sem descrição'} — R$ ${Number(t.valor).toFixed(2)}`,
+        timestamp: t.createdAt?.toISOString() ?? '',
+      })),
+
+      ...recentCashierSessions.map((s) => ({
+        id: `cashier-${s.id}`,
+        type: s.status === 'fechado' ? 'cashier_close' as const : 'cashier_open' as const,
+        title: s.status === 'fechado' ? 'Caixa fechado' : 'Caixa aberto',
+        description: s.status === 'fechado'
+          ? s.dataFechamento ? new Date(s.dataFechamento).toLocaleString('pt-BR') : ''
+          : s.dataAbertura ? new Date(s.dataAbertura).toLocaleString('pt-BR') : '',
+        timestamp: s.updatedAt?.toISOString() ?? s.dataAbertura?.toISOString() ?? '',
+      })),
+
+      ...recentProducts.map((p) => ({
+        id: `product-${p.id}`,
+        type: 'product' as const,
+        title: 'Produto cadastrado',
+        description: p.nome ?? '',
+        timestamp: p.createdAt?.toISOString() ?? '',
+      })),
+
+      ...recentStockEntries.map((e) => ({
+        id: `stock-${e.id}`,
+        type: 'stock' as const,
+        title: 'Entrada de estoque',
+        description: e.observacoes ?? 'Reposição de materiais',
+        timestamp: e.createdAt?.toISOString() ?? '',
+      })),
+
+      ...recentSuppliers.map((s) => ({
+        id: `supplier-${s.id}`,
+        type: 'supplier' as const,
+        title: 'Fornecedor cadastrado',
+        description: s.nome ?? '',
+        timestamp: s.createdAt?.toISOString() ?? '',
+      })),
+
+      ...recentPayables.map((p) => ({
+        id: `payable-${p.id}`,
+        type: 'payable' as const,
+        title: 'Conta a pagar lançada',
+        description: `${p.descricao ?? 'Sem descrição'} — R$ ${Number(p.valor).toFixed(2)}`,
+        timestamp: p.createdAt?.toISOString() ?? '',
       })),
     ]
+      .filter((a) => a.timestamp)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 10)
+      .slice(0, 15)
 
     // ── Saúde financeira ─────────────────────────────────────────────────────
     const today = new Date()
