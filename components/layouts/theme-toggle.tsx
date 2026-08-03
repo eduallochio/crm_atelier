@@ -54,6 +54,7 @@ export function ThemeToggle() {
         compact_mode: preferences.compact_mode || false,
         show_tooltips: preferences.show_tooltips !== false,
         controla_estoque: preferences.controla_estoque || false,
+        fechamento_automatico_caixa: preferences.fechamento_automatico_caixa !== false,
       })
     } catch (error) {
       console.error('Erro ao alterar tema:', error)
