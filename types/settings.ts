@@ -119,6 +119,7 @@ export interface SystemPreferences {
   show_tooltips: boolean
   // Módulos
   controla_estoque: boolean
+  fechamento_automatico_caixa: boolean
   updated_at: string
 }
 

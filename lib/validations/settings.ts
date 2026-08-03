@@ -84,6 +84,7 @@ export const systemPreferencesSchema = z.object({
   compact_mode: z.boolean(),
   show_tooltips: z.boolean(),
   controla_estoque: z.boolean(),
+  fechamento_automatico_caixa: z.boolean(),
 })
 
 export type OrganizationSettingsInput = z.infer<typeof organizationSettingsSchema>
