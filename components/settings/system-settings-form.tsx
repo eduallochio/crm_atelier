@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSystemPreferences, useUpdateSystemPreferences } from '@/hooks/use-settings'
-import { Loader2, Monitor, Package } from 'lucide-react'
+import { Loader2, Monitor, Package, Clock } from 'lucide-react'
 import { useWatch } from 'react-hook-form'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ const systemSettingsSchema = z.object({
   time_format: z.enum(['12h', '24h']),
   currency: z.enum(['BRL', 'USD', 'EUR']),
   controla_estoque: z.boolean(),
+  fechamento_automatico_caixa: z.boolean(),
 })
 
 type SystemSettings = z.infer<typeof systemSettingsSchema>
@@ -70,6 +71,7 @@ export function SystemSettingsForm() {
       time_format: '24h',
       currency: 'BRL',
       controla_estoque: false,
+      fechamento_automatico_caixa: true,
     },
   })
 
@@ -82,6 +84,7 @@ export function SystemSettingsForm() {
         time_format: settings.time_format || '24h',
         currency: settings.currency || 'BRL',
         controla_estoque: !!settings.controla_estoque,
+        fechamento_automatico_caixa: settings.fechamento_automatico_caixa !== false,
       })
     }
   }, [settings, form])
@@ -92,6 +95,7 @@ export function SystemSettingsForm() {
   const dateFormat = useWatch({ control: form.control, name: 'date_format' })
   const timeFormat = useWatch({ control: form.control, name: 'time_format' })
   const controlaEstoque = useWatch({ control: form.control, name: 'controla_estoque' })
+  const fechamentoAutomatico = useWatch({ control: form.control, name: 'fechamento_automatico_caixa' })
 
   const onSubmit = async (data: SystemSettings) => {
     if (!settings?.organization_id) {
@@ -111,6 +115,7 @@ export function SystemSettingsForm() {
         compact_mode: false,
         show_tooltips: true,
         controla_estoque: data.controla_estoque,
+        fechamento_automatico_caixa: data.fechamento_automatico_caixa,
       })
       toast.success('Preferências salvas com sucesso!')
     } catch (error) {
@@ -243,6 +248,46 @@ export function SystemSettingsForm() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Caixa */}
+        <div className="border-t border-border pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-lg font-semibold text-foreground">Caixa</h3>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Fechamento automático à meia-noite</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Quando ativo, todos os caixas abertos são fechados automaticamente às 00:00 com o saldo esperado.
+                  Ao abrir o sistema pela primeira vez no dia, um lembrete de abrir o caixa será exibido.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={fechamentoAutomatico}
+                onClick={() => form.setValue('fechamento_automatico_caixa', !fechamentoAutomatico, { shouldDirty: true })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  fechamentoAutomatico ? 'bg-primary' : 'bg-input'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                    fechamentoAutomatico ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+            {fechamentoAutomatico && (
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <p className="text-xs text-muted-foreground">✓ Caixas fechados às 00:00 com saldo esperado</p>
+                <p className="text-xs text-muted-foreground mt-0.5">✓ Lembrete diário ao abrir o sistema sem caixa ativo</p>
+              </div>
+            )}
           </div>
         </div>
 

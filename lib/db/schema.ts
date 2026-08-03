@@ -471,8 +471,9 @@ export const orgSystemPreferences = pgTable('org_system_preferences', {
   theme:          text('theme').notNull().default('light'),
   compactMode:      boolean('compact_mode').notNull().default(false),
   showTooltips:     boolean('show_tooltips').notNull().default(true),
-  controlaEstoque:  boolean('controla_estoque').notNull().default(false),
-  updatedAt:        timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  controlaEstoque:            boolean('controla_estoque').notNull().default(false),
+  fechamentoAutomaticoCaixa:  boolean('fechamento_automatico_caixa').notNull().default(true),
+  updatedAt:                  timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ─── 26. ORG PRODUCTS (Estoque) ───────────────────────────────────────────────

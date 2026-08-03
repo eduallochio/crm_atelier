@@ -32,30 +32,32 @@ export async function GET() {
         organization_id: user.organizationId,
         ...DEFAULTS,
         controla_estoque: false,
+        fechamento_automatico_caixa: true,
         updated_at: new Date().toISOString(),
       })
     }
 
     const r = result[0]
     return NextResponse.json({
-      id:               r.id,
-      organization_id:  r.organizationId,
-      date_format:      r.dateFormat,
-      time_format:      r.timeFormat,
-      currency:         r.currency,
-      timezone:         r.timezone,
-      language:         r.language,
-      theme:            r.theme,
-      compact_mode:     r.compactMode,
-      show_tooltips:    r.showTooltips,
-      controla_estoque: r.controlaEstoque,
-      updated_at:       r.updatedAt,
+      id:                          r.id,
+      organization_id:             r.organizationId,
+      date_format:                 r.dateFormat,
+      time_format:                 r.timeFormat,
+      currency:                    r.currency,
+      timezone:                    r.timezone,
+      language:                    r.language,
+      theme:                       r.theme,
+      compact_mode:                r.compactMode,
+      show_tooltips:               r.showTooltips,
+      controla_estoque:            r.controlaEstoque,
+      fechamento_automatico_caixa: r.fechamentoAutomaticoCaixa,
+      updated_at:                  r.updatedAt,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/settings/system]', error); console.error('[GET /api/settings/system]', error)
+    logServerError('[GET /api/settings/system]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -66,15 +68,17 @@ export async function PUT(request: Request) {
     const body = await request.json()
 
     const values = {
-      organizationId: user.organizationId,
-      dateFormat:     body.date_format ?? 'dd/MM/yyyy',
-      timeFormat:     body.time_format ?? '24h',
-      currency:       body.currency    ?? 'BRL',
-      timezone:       body.timezone    ?? 'America/Sao_Paulo',
-      language:       body.language    ?? 'pt-BR',
-      theme:          body.theme       ?? 'light',
-      compactMode:    !!body.compact_mode,
-      showTooltips:   body.show_tooltips !== false,
+      organizationId:            user.organizationId,
+      dateFormat:                body.date_format ?? 'dd/MM/yyyy',
+      timeFormat:                body.time_format ?? '24h',
+      currency:                  body.currency    ?? 'BRL',
+      timezone:                  body.timezone    ?? 'America/Sao_Paulo',
+      language:                  body.language    ?? 'pt-BR',
+      theme:                     body.theme       ?? 'light',
+      compactMode:               !!body.compact_mode,
+      showTooltips:              body.show_tooltips !== false,
+      controlaEstoque:           !!body.controla_estoque,
+      fechamentoAutomaticoCaixa: body.fechamento_automatico_caixa !== false,
     }
 
     await db
@@ -83,15 +87,17 @@ export async function PUT(request: Request) {
       .onConflictDoUpdate({
         target: orgSystemPreferences.organizationId,
         set: {
-          dateFormat:   values.dateFormat,
-          timeFormat:   values.timeFormat,
-          currency:     values.currency,
-          timezone:     values.timezone,
-          language:     values.language,
-          theme:        values.theme,
-          compactMode:  values.compactMode,
-          showTooltips: values.showTooltips,
-          updatedAt:    new Date(),
+          dateFormat:                values.dateFormat,
+          timeFormat:                values.timeFormat,
+          currency:                  values.currency,
+          timezone:                  values.timezone,
+          language:                  values.language,
+          theme:                     values.theme,
+          compactMode:               values.compactMode,
+          showTooltips:              values.showTooltips,
+          controlaEstoque:           values.controlaEstoque,
+          fechamentoAutomaticoCaixa: values.fechamentoAutomaticoCaixa,
+          updatedAt:                 new Date(),
         },
       })
 
@@ -103,24 +109,25 @@ export async function PUT(request: Request) {
 
     const r = result[0]
     return NextResponse.json({
-      id:               r.id,
-      organization_id:  r.organizationId,
-      date_format:      r.dateFormat,
-      time_format:      r.timeFormat,
-      currency:         r.currency,
-      timezone:         r.timezone,
-      language:         r.language,
-      theme:            r.theme,
-      compact_mode:     r.compactMode,
-      show_tooltips:    r.showTooltips,
-      controla_estoque: r.controlaEstoque,
-      updated_at:       r.updatedAt,
+      id:                          r.id,
+      organization_id:             r.organizationId,
+      date_format:                 r.dateFormat,
+      time_format:                 r.timeFormat,
+      currency:                    r.currency,
+      timezone:                    r.timezone,
+      language:                    r.language,
+      theme:                       r.theme,
+      compact_mode:                r.compactMode,
+      show_tooltips:               r.showTooltips,
+      controla_estoque:            r.controlaEstoque,
+      fechamento_automatico_caixa: r.fechamentoAutomaticoCaixa,
+      updated_at:                  r.updatedAt,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[PUT /api/settings/system]', error); console.error('[PUT /api/settings/system]', error)
+    logServerError('[PUT /api/settings/system]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
