@@ -5,8 +5,20 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
-  QrCode, RefreshCw,
+  QrCode, RefreshCw, AlertTriangle,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -82,7 +94,9 @@ function pct(used: number, max: number) {
 }
 
 export function SubscriptionSettingsForm() {
+  const queryClient = useQueryClient()
   const [showCheckout, setShowCheckout] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [billingType, setBillingType] = useState<BillingType>('PIX')
   const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
   const [couponCode, setCouponCode] = useState('')
@@ -156,6 +170,22 @@ export function SubscriptionSettingsForm() {
     setCouponResult(null)
   }
 
+  async function handleCancel() {
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/subscription/cancel', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao cancelar')
+      toast.success('Assinatura cancelada. Seu plano voltou para Free.')
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   async function handleCheckout() {
     setSubmitting(true)
     try {
@@ -200,11 +230,48 @@ export function SubscriptionSettingsForm() {
               </p>
             )}
           </div>
-          <span className={cn('text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide',
-            isPro ? 'bg-[#c8714a]/10 text-[#c8714a]' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
-          )}>
-            {isPro ? 'Pro' : 'Free'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide',
+              isPro ? 'bg-[#c8714a]/10 text-[#c8714a]' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+            )}>
+              {isPro ? 'Pro' : 'Free'}
+            </span>
+            {isPro && subscriptionInfo?.next_due_date && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-red-500 h-7 px-2">
+                    Cancelar plano
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      Cancelar assinatura Pro?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Sua conta voltará imediatamente para o plano <strong>Free</strong> com os limites reduzidos
+                      (50 clientes, 20 serviços, 100 ordens). Dados existentes não serão excluídos,
+                      mas você perderá acesso aos módulos exclusivos.
+                      <br /><br />
+                      Esta ação não pode ser desfeita sem uma nova assinatura.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Manter plano Pro</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                    >
+                      {cancelling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Sim, cancelar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {loadingUsage ? (
