@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, coupons, couponUsages } from '@/lib/db/schema'
+import { organizations, coupons, couponUsages, plans } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import {
@@ -53,13 +53,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Organização já possui este plano' }, { status: 400 })
     }
 
-    // Preço base do plano
-    const PLAN_PRICES: Record<string, Record<string, number>> = {
-      pro: { MONTHLY: 47.90, YEARLY: 479.00 },
+    // Preço base do plano — lido da tabela plans para consistência com a UI
+    const [planRow] = await db
+      .select({ price: plans.price, priceAnnual: plans.priceAnnual })
+      .from(plans)
+      .where(eq(plans.slug, plan))
+      .limit(1)
+
+    if (!planRow) {
+      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
     }
-    const basePrice = PLAN_PRICES[plan]?.[cycle]
+
+    const basePrice = cycle === 'YEARLY'
+      ? (parseFloat(planRow.priceAnnual ?? '0') || parseFloat(planRow.price) * 10)
+      : parseFloat(planRow.price)
+
     if (!basePrice) {
-      return NextResponse.json({ error: 'Plano ou ciclo inválido' }, { status: 400 })
+      return NextResponse.json({ error: 'Preço do plano não configurado' }, { status: 400 })
     }
 
     // Aplicar cupom se informado
