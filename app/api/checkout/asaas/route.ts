@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
       value:             basePrice,
       nextDueDate,
       cycle,
-      description:       `CRM Atelier — Plano ${plan.toUpperCase()} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`,
+      description:       `Meu Atelier Sistema — Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`,
       discount,
       externalReference: org.id,
     })
