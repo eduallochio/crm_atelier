@@ -65,7 +65,7 @@ export interface AsaasPayment {
 export async function createCustomer(data: {
   name: string
   email: string
-  cpfCnpj: string
+  cpfCnpj?: string
   phone?: string
   mobilePhone?: string
 }): Promise<AsaasCustomer> {

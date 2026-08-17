@@ -102,12 +102,15 @@ export async function POST(req: NextRequest) {
       let existing = cpfCnpj ? await findCustomerByCpfCnpj(cpfCnpj) : null
 
       if (!existing) {
-        existing = await createCustomer({
-          name:        org.name,
-          email:       org.email ?? user.email ?? '',
-          cpfCnpj:     cpfCnpj || '00000000000',
-          mobilePhone: org.phone?.replace(/\D/g, ''),
-        })
+        const customerData: Parameters<typeof createCustomer>[0] = {
+          name:  org.name,
+          email: org.email ?? user.email ?? '',
+        }
+        if (cpfCnpj) customerData.cpfCnpj = cpfCnpj
+        const phone = org.phone?.replace(/\D/g, '')
+        if (phone) customerData.mobilePhone = phone
+
+        existing = await createCustomer(customerData)
       }
 
       asaasCustomerId = existing.id
@@ -165,6 +168,11 @@ export async function POST(req: NextRequest) {
     }
     logServerError('[POST /api/checkout/asaas]', error)
     console.error('[POST /api/checkout/asaas]', error)
-    return NextResponse.json({ error: 'Erro interno ao processar checkout' }, { status: 500 })
+    // Expõe a mensagem do Asaas para facilitar diagnóstico
+    const msg = (error as Error).message ?? ''
+    const friendly = msg.includes('Asaas')
+      ? `Erro no gateway de pagamento: ${msg.split('→')[1]?.trim() ?? msg}`
+      : 'Erro interno ao processar checkout'
+    return NextResponse.json({ error: friendly }, { status: 500 })
   }
 }

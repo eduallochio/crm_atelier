@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
-  QrCode, FileText, Banknote,
+  QrCode,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,7 +52,7 @@ type CouponResult = {
   error?:          string
 }
 
-type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD'
+type BillingType = 'PIX' | 'CREDIT_CARD'
 
 const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge: string }> = {
   free: {
@@ -68,8 +68,7 @@ const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge
 }
 
 const BILLING_OPTIONS: { value: BillingType; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: 'PIX',         label: 'PIX',            icon: QrCode,    desc: 'Aprovação imediata' },
-  { value: 'BOLETO',      label: 'Boleto',          icon: FileText,  desc: 'Vence em 3 dias úteis' },
+  { value: 'PIX',         label: 'PIX',              icon: QrCode,     desc: 'Aprovação imediata' },
   { value: 'CREDIT_CARD', label: 'Cartão de crédito', icon: CreditCard, desc: 'Parcelável em até 12x' },
 ]
 
