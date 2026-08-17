@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ interface Organization {
 }
 
 export default function OrganizationsPage() {
+  const router = useRouter()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -98,7 +100,7 @@ export default function OrganizationsPage() {
             Gerencie todas as organizações da plataforma
           </p>
         </div>
-        <Button>
+        <Button onClick={() => router.push('/admin/organizations/new')}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Organização
         </Button>
