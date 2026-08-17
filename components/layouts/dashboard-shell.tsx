@@ -12,6 +12,49 @@ import { SessionGuard } from '@/components/layouts/session-guard'
 const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), { ssr: false })
 
 const REMINDER_KEY = 'cashier_reminder_date'
+const RENEWAL_REMINDER_KEY = 'renewal_reminder_date'
+
+function RenewalReminder() {
+  const { data } = useQuery({
+    queryKey: ['subscription-info'],
+    queryFn: async () => {
+      const res = await fetch('/api/subscription')
+      if (!res.ok) return null
+      return res.json() as Promise<{ plan: string; next_due_date: string | null; value?: number }>
+    },
+    staleTime: 5 * 60_000, // 5 minutos
+  })
+
+  useEffect(() => {
+    if (!data?.next_due_date || data.plan !== 'pro') return
+
+    const today = new Date().toISOString().slice(0, 10)
+    const lastShown = localStorage.getItem(RENEWAL_REMINDER_KEY)
+    if (lastShown === today) return
+
+    const due = new Date(data.next_due_date + 'T12:00:00')
+    const daysUntil = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+
+    if (daysUntil <= 7 && daysUntil >= 0) {
+      localStorage.setItem(RENEWAL_REMINDER_KEY, today)
+      const dueFmt = due.toLocaleDateString('pt-BR')
+      const msg = daysUntil === 0
+        ? 'Sua assinatura Pro renova hoje!'
+        : `Sua assinatura Pro renova em ${daysUntil} dia${daysUntil > 1 ? 's' : ''} (${dueFmt})`
+
+      toast.info(msg, {
+        description: data.value ? `Valor: R$ ${Number(data.value).toFixed(2).replace('.', ',')}` : undefined,
+        duration: 12_000,
+        action: {
+          label: 'Ver assinatura',
+          onClick: () => { window.location.href = '/configuracoes?tab=assinatura' },
+        },
+      })
+    }
+  }, [data])
+
+  return null
+}
 
 function CashierAutomation() {
   const autoCloseScheduled = useRef(false)
@@ -96,6 +139,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <AppTour />
         <CashierAutomation />
+        <RenewalReminder />
         <main className="flex-1 overflow-y-auto lg:ml-64 bg-muted/30">
           {children}
         </main>
