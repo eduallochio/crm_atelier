@@ -85,6 +85,8 @@ function CashierAutomation() {
       autoCloseScheduled.current = false
     }
   }, [settings])
+
+  return null
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
