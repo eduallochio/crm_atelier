@@ -86,7 +86,15 @@ export async function POST(request: Request) {
     })
 
     if (authError || !authData.user) {
-      return NextResponse.json({ error: authError?.message ?? 'Erro ao criar usuário' }, { status: 400 })
+      const msg = authError?.message ?? ''
+      const friendly = msg.includes('already registered') || msg.includes('already been registered')
+        ? 'Este email já está cadastrado no sistema.'
+        : msg.includes('invalid') || msg.includes('Invalid')
+          ? 'Email inválido.'
+          : msg.includes('weak') || msg.includes('password')
+            ? 'Senha muito fraca. Use no mínimo 6 caracteres.'
+            : 'Erro ao criar usuário. Tente novamente.'
+      return NextResponse.json({ error: friendly }, { status: 400 })
     }
 
     const userId = authData.user.id
