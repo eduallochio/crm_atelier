@@ -12,6 +12,11 @@ function validateToken(req: NextRequest): boolean {
   return WEBHOOK_TOKEN.length > 0 && token === WEBHOOK_TOKEN
 }
 
+// Eventos de nova cobrança gerada (renovação)
+const PAYMENT_CREATED = new Set([
+  'PAYMENT_CREATED',
+])
+
 // Eventos que ativam/mantêm o plano Pro
 const PAYMENT_CONFIRMED = new Set([
   'PAYMENT_RECEIVED',
@@ -104,6 +109,21 @@ export async function POST(req: NextRequest) {
           .where(eq(organizations.id, org.id))
 
         console.log(`[webhook/asaas] ${event} → org ${org.id} → rebaixado para free`)
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    // Nova cobrança gerada (renovação da assinatura)
+    if (PAYMENT_CREATED.has(event) && payment?.subscription) {
+      const [org] = await db
+        .select({ id: organizations.id, name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+        .limit(1)
+
+      if (org) {
+        console.log(`[webhook/asaas] PAYMENT_CREATED → org ${org.id} (${org.name}) · vencimento ${payment.dueDate} · valor R$ ${payment.value}`)
+        // TODO: enviar email de aviso de renovação para o usuário
       }
       return NextResponse.json({ ok: true })
     }

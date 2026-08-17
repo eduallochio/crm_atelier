@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
-  QrCode,
+  QrCode, RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,6 +99,16 @@ export function SubscriptionSettingsForm() {
     },
   })
 
+  const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number }>({
+    queryKey: ['subscription-info'],
+    queryFn: async () => {
+      const res = await fetch('/api/subscription')
+      if (!res.ok) return null
+      return res.json()
+    },
+    staleTime: 60_000,
+  })
+
   const { data: dbPlans = [], isLoading: loadingPlans } = useQuery<DbPlan[]>({
     queryKey: ['plans-public'],
     queryFn: async () => {
@@ -112,8 +122,10 @@ export function SubscriptionSettingsForm() {
   const isPro = currentPlan === 'pro'
 
   const proPlan = dbPlans.find(p => p.slug === 'pro')
-  const basePrice = cycle === 'MONTHLY' ? (proPlan?.price ?? 47.90) : (proPlan?.price_annual ?? 479.00)
-  const finalPrice = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
+  const monthlyPrice = proPlan?.price ?? 0
+  const annualPrice  = proPlan?.price_annual ?? monthlyPrice * 10
+  const basePrice    = cycle === 'MONTHLY' ? monthlyPrice : annualPrice
+  const finalPrice   = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
 
   async function validateCoupon() {
     if (!couponCode.trim()) return
@@ -180,6 +192,13 @@ export function SubscriptionSettingsForm() {
             <p className="text-sm text-muted-foreground mt-0.5">
               {isPro ? 'Você está no plano Pro' : 'Você está no plano Gratuito'}
             </p>
+            {isPro && subscriptionInfo?.next_due_date && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <RefreshCw className="h-3 w-3" />
+                Próxima renovação: {new Date(subscriptionInfo.next_due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                {subscriptionInfo.value ? ` · ${fmtPrice(subscriptionInfo.value)}` : ''}
+              </p>
+            )}
           </div>
           <span className={cn('text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide',
             isPro ? 'bg-[#c8714a]/10 text-[#c8714a]' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
@@ -311,8 +330,8 @@ export function SubscriptionSettingsForm() {
             <Label className="text-sm font-medium">Ciclo de cobrança</Label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'MONTHLY' as const, label: 'Mensal', price: proPlan?.price ?? 47.90, note: '' },
-                { value: 'YEARLY'  as const, label: 'Anual',  price: proPlan?.price_annual ?? 479.00, note: proPlan?.annual_note ?? 'Economize 2 meses' },
+                { value: 'MONTHLY' as const, label: 'Mensal', price: monthlyPrice, note: '' },
+                { value: 'YEARLY'  as const, label: 'Anual',  price: annualPrice,  note: proPlan?.annual_note ?? 'Economize 2 meses' },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -441,7 +460,7 @@ export function SubscriptionSettingsForm() {
           <h3 className="text-lg font-semibold text-foreground">Pagamento e cobrança</h3>
           <div className="grid sm:grid-cols-3 gap-4">
             {[
-              { icon: CreditCard, title: 'Formas aceitas', desc: 'PIX, Boleto, Cartão de Crédito' },
+              { icon: CreditCard, title: 'Formas aceitas', desc: 'PIX e Cartão de Crédito' },
               { icon: Calendar,   title: 'Ciclo de cobrança', desc: 'Mensal ou Anual — cancele quando quiser' },
               { icon: Shield,     title: 'Segurança', desc: 'Pagamentos processados pelo Asaas' },
             ].map(({ icon: Icon, title, desc }) => (
