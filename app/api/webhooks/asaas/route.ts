@@ -45,14 +45,28 @@ export async function POST(req: NextRequest) {
     }
 
     // Pagamento confirmado → ativar plano Pro
-    if (PAYMENT_CONFIRMED.has(event) && payment?.externalReference) {
-      const orgId = payment.externalReference
-      await db
-        .update(organizations)
-        .set({ plan: 'pro', subscriptionStatus: 'active' })
-        .where(eq(organizations.id, orgId))
+    // Tenta primeiro por externalReference (pagamento avulso), depois por subscription ID
+    if (PAYMENT_CONFIRMED.has(event) && payment) {
+      let orgId: string | null = payment.externalReference ?? null
 
-      console.log(`[webhook/asaas] ${event} → org ${orgId} → plano pro ativado`)
+      if (!orgId && payment.subscription) {
+        const [found] = await db
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+          .limit(1)
+        orgId = found?.id ?? null
+      }
+
+      if (orgId) {
+        await db
+          .update(organizations)
+          .set({ plan: 'pro', subscriptionStatus: 'active' })
+          .where(eq(organizations.id, orgId))
+        console.log(`[webhook/asaas] ${event} → org ${orgId} → plano pro ativado`)
+      } else {
+        console.warn(`[webhook/asaas] ${event} → org não encontrada (subscription=${payment.subscription}, ref=${payment.externalReference})`)
+      }
       return NextResponse.json({ ok: true })
     }
 
