@@ -1,14 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { format, addMonths } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  CreditCard,
   Calendar,
   TrendingUp,
   Users,
-  FileText,
   AlertTriangle,
   ArrowUpCircle,
   ArrowDownCircle,
@@ -53,25 +51,16 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
       setLoadingPlan(false)
     }
   }
-  // Calcular próxima renovação
-  const nextRenewal = addMonths(new Date(), 1)
-
-  // Limites por plano (licença vitalícia = sem limites, mesmo no free)
-  const planLimits: Record<string, { users: number; clients: number; orders: number }> = {
-    free:       { users: 2,        clients: 50,       orders: 100      },
-    pro:        { users: 5,        clients: 200,      orders: 1000     },
+  // Limites reais por plano (alinhado com lib/plan-limits.ts)
+  const isFree = organization.plan === 'free'
+  const planLimits = {
+    users:   isFree ? 2   : null,
+    clients: isFree ? 50  : null,
+    orders:  isFree ? 100 : null,
   }
 
-  const limits = planLimits[organization.plan] ?? planLimits.free
-
-  // Calcular percentuais
-  const usersPercent = limits.users === Infinity 
-    ? 30 
-    : Math.min((organization.users_count / limits.users) * 100, 100)
-  
-  const clientsPercent = limits.clients === Infinity 
-    ? 45 
-    : Math.min((organization.clients_count / limits.clients) * 100, 100)
+  const usersPercent   = planLimits.users   ? Math.min((organization.users_count   / planLimits.users)   * 100, 100) : Math.min(organization.users_count   * 10, 100)
+  const clientsPercent = planLimits.clients ? Math.min((organization.clients_count / planLimits.clients) * 100, 100) : Math.min(organization.clients_count * 2,  100)
 
   return (
     <div className="space-y-6">
@@ -114,36 +103,6 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
         </div>
       </div>
 
-      {/* Detalhes da Cobrança */}
-      {organization.plan !== 'free' && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            Detalhes da Cobrança
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Próxima Renovação</p>
-              <p className="text-base font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {format(nextRenewal, 'dd/MM/yyyy', { locale: ptBR })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Método de Pagamento</p>
-              <p className="text-base font-medium text-gray-900 dark:text-white">
-                Cartão de Crédito •••• 4242
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Valor da Renovação</p>
-              <p className="text-base font-medium text-gray-900 dark:text-white">
-                R$ {organization.mrr.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Uso de Recursos */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
@@ -162,7 +121,7 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
                 </span>
               </div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {organization.users_count} / {limits.users === Infinity ? 'Ilimitado' : limits.users}
+                {organization.users_count} / {planLimits.users ?? 'Ilimitado'}
               </span>
             </div>
             <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -177,7 +136,7 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
                 style={{ width: `${usersPercent}%` }}
               />
             </div>
-            {usersPercent >= 90 && limits.users !== Infinity && (
+            {usersPercent >= 90 && planLimits.users !== null && (
               <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 Limite quase atingido. Considere fazer upgrade.
@@ -195,7 +154,7 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
                 </span>
               </div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {organization.clients_count} / {limits.clients === Infinity ? 'Ilimitado' : limits.clients}
+                {organization.clients_count} / {planLimits.clients ?? 'Ilimitado'}
               </span>
             </div>
             <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -210,7 +169,7 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
                 style={{ width: `${clientsPercent}%` }}
               />
             </div>
-            {clientsPercent >= 90 && limits.clients !== Infinity && (
+            {clientsPercent >= 90 && planLimits.clients !== null && (
               <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 Limite quase atingido. Considere fazer upgrade.
@@ -218,26 +177,6 @@ export function SubscriptionTab({ organization, onRefresh }: SubscriptionTabProp
             )}
           </div>
 
-          {/* Ordens de Serviço (simulado) */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  Ordens de Serviço (este mês)
-                </span>
-              </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                45 / {limits.orders === Infinity ? 'Ilimitado' : limits.orders}
-              </span>
-            </div>
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-purple-600 dark:bg-purple-400"
-                style={{ width: limits.orders === Infinity ? '45%' : '45%' }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 

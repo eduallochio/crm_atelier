@@ -56,6 +56,7 @@ next-env.d.ts
 
 docs
 banco
+context.md
 banco-adm
 .github/
 docs-banco/

@@ -2,12 +2,14 @@
 
 import { Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
 interface UpgradePromptProps {
   message?: string
 }
 
 export function UpgradePrompt({ message }: UpgradePromptProps) {
+  const router = useRouter()
   const defaultMessage =
     'Este recurso está disponível a partir do plano Pro. Faça upgrade para desbloquear todas as funcionalidades.'
 
@@ -23,7 +25,10 @@ export function UpgradePrompt({ message }: UpgradePromptProps) {
             {message ?? defaultMessage}
           </p>
         </div>
-        <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+        <Button
+          className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+          onClick={() => router.push('/configuracoes?tab=assinatura')}
+        >
           Fazer Upgrade para Pro
         </Button>
       </div>

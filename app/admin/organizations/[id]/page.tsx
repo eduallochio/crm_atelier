@@ -26,6 +26,15 @@ interface Organization {
   users_count: number
   clients_count: number
   mrr: number
+  email?: string | null
+  phone?: string | null
+  cnpj?: string | null
+  address?: string | null
+  city?: string | null
+  org_state?: string | null
+  zip_code?: string | null
+  website?: string | null
+  lifetime_license?: boolean
 }
 
 export default function OrganizationDetailPage() {

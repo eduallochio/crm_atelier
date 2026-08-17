@@ -1,0 +1,170 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth/session'
+import { db } from '@/lib/db'
+import { organizations, coupons, couponUsages } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { logServerError } from '@/lib/log-error'
+import {
+  createCustomer,
+  findCustomerByCpfCnpj,
+  createSubscription,
+} from '@/lib/asaas'
+import { format, addDays } from 'date-fns'
+
+// POST /api/checkout/asaas
+// Cria (ou reutiliza) cliente no Asaas e gera assinatura
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireAuth()
+
+    const body = await req.json()
+    const {
+      billing_type,   // 'BOLETO' | 'CREDIT_CARD' | 'PIX'
+      cycle = 'MONTHLY', // 'MONTHLY' | 'YEARLY'
+      plan = 'pro',
+      coupon_code,
+    } = body
+
+    if (!billing_type) {
+      return NextResponse.json({ error: 'billing_type é obrigatório' }, { status: 400 })
+    }
+
+    // Buscar dados da organização
+    const [org] = await db
+      .select({
+        id:                  organizations.id,
+        name:                organizations.name,
+        email:               organizations.email,
+        phone:               organizations.phone,
+        cnpj:                organizations.cnpj,
+        plan:                organizations.plan,
+        asaasCustomerId:     organizations.asaasCustomerId,
+        asaasSubscriptionId: organizations.asaasSubscriptionId,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId))
+      .limit(1)
+
+    if (!org) {
+      return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
+    }
+
+    if (org.plan === plan) {
+      return NextResponse.json({ error: 'Organização já possui este plano' }, { status: 400 })
+    }
+
+    // Preço base do plano
+    const PLAN_PRICES: Record<string, Record<string, number>> = {
+      pro: { MONTHLY: 47.90, YEARLY: 479.00 },
+    }
+    const basePrice = PLAN_PRICES[plan]?.[cycle]
+    if (!basePrice) {
+      return NextResponse.json({ error: 'Plano ou ciclo inválido' }, { status: 400 })
+    }
+
+    // Aplicar cupom se informado
+    let discount: { value: number; type: 'FIXED' | 'PERCENTAGE' } | undefined
+    let couponRow: typeof coupons.$inferSelect | null = null
+
+    if (coupon_code) {
+      const [found] = await db
+        .select()
+        .from(coupons)
+        .where(eq(coupons.code, coupon_code.toUpperCase()))
+        .limit(1)
+
+      if (!found || !found.isActive) {
+        return NextResponse.json({ error: 'Cupom inválido ou inativo' }, { status: 400 })
+      }
+      if (found.expiresAt && new Date(found.expiresAt) < new Date()) {
+        return NextResponse.json({ error: 'Cupom expirado' }, { status: 400 })
+      }
+      if (found.maxUses != null && (found.usesCount ?? 0) >= found.maxUses) {
+        return NextResponse.json({ error: 'Cupom esgotado' }, { status: 400 })
+      }
+      const applicable = found.applicablePlans as string[] | null
+      if (applicable && applicable.length > 0 && !applicable.includes(plan)) {
+        return NextResponse.json({ error: 'Cupom não aplicável a este plano' }, { status: 400 })
+      }
+
+      couponRow = found
+      discount = {
+        value:  parseFloat(found.discountValue),
+        type:   found.discountType === 'percentage' ? 'PERCENTAGE' : 'FIXED',
+      }
+    }
+
+    // Criar ou reutilizar cliente no Asaas
+    let asaasCustomerId = org.asaasCustomerId
+
+    if (!asaasCustomerId) {
+      const cpfCnpj = org.cnpj?.replace(/\D/g, '') ?? ''
+      let existing = cpfCnpj ? await findCustomerByCpfCnpj(cpfCnpj) : null
+
+      if (!existing) {
+        existing = await createCustomer({
+          name:        org.name,
+          email:       org.email ?? user.email ?? '',
+          cpfCnpj:     cpfCnpj || '00000000000',
+          mobilePhone: org.phone?.replace(/\D/g, ''),
+        })
+      }
+
+      asaasCustomerId = existing.id
+
+      // Salvar customer_id na organização
+      await db
+        .update(organizations)
+        .set({ asaasCustomerId })
+        .where(eq(organizations.id, org.id))
+    }
+
+    // Criar assinatura
+    const nextDueDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+
+    const subscription = await createSubscription({
+      customer:          asaasCustomerId,
+      billingType:       billing_type,
+      value:             basePrice,
+      nextDueDate,
+      cycle,
+      description:       `CRM Atelier — Plano ${plan.toUpperCase()} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`,
+      discount,
+      externalReference: org.id,
+    })
+
+    // Salvar subscription_id na organização
+    await db
+      .update(organizations)
+      .set({ asaasSubscriptionId: subscription.id })
+      .where(eq(organizations.id, org.id))
+
+    // Registrar uso do cupom
+    if (couponRow) {
+      await db.insert(couponUsages).values({
+        couponId:       couponRow.id,
+        organizationId: org.id,
+      })
+      await db
+        .update(coupons)
+        .set({ usesCount: (couponRow.usesCount ?? 0) + 1 })
+        .where(eq(coupons.id, couponRow.id))
+    }
+
+    return NextResponse.json({
+      subscription_id: subscription.id,
+      status:          subscription.status,
+      next_due_date:   subscription.nextDueDate,
+      billing_type,
+      value:           basePrice,
+      discount,
+    })
+  } catch (error) {
+    if ((error as Error).message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    logServerError('[POST /api/checkout/asaas]', error)
+    console.error('[POST /api/checkout/asaas]', error)
+    return NextResponse.json({ error: 'Erro interno ao processar checkout' }, { status: 500 })
+  }
+}

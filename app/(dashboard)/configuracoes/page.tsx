@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { OrganizationSettingsForm } from '@/components/settings/organization-settings-form'
 import { FinancialSettingsForm } from '@/components/settings/financial-settings-form'
@@ -12,7 +13,13 @@ import { SubscriptionSettingsForm } from '@/components/settings/subscription-set
 import { Building2, DollarSign, Bell, FileText, Settings, Users, CreditCard } from 'lucide-react'
 
 export default function ConfiguracoesPage() {
-  const [activeTab, setActiveTab] = useState('empresa')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') ?? 'empresa')
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
 
   return (
     <div className="p-8 max-w-6xl mx-auto">

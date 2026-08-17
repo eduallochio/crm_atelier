@@ -131,6 +131,7 @@ export default function OrganizationsPage() {
               <option value="all">Todos os planos</option>
               <option value="free">Free</option>
               <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
             </select>
           </div>
 

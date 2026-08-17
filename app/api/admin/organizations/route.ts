@@ -38,15 +38,14 @@ export async function GET() {
     `) as any[]
 
     const result = (rows as any[]).map((row) => ({
-      id:                 row.id,
-      name:               row.name,
-      plan:               row.plan,
-      subscriptionStatus: row.subscriptionStatus,
-      createdAt:          row.createdAt,
-      usersCount:         Number(row.usersCount ?? 0),
-      clientsCount:       Number(row.clientsCount ?? 0),
-      state:              row.subscriptionStatus,
-      mrr:                planPrices[row.plan] ?? 0,
+      id:            row.id,
+      name:          row.name,
+      plan:          row.plan,
+      state:         (row.subscriptionStatus === 'inactive' ? 'active' : row.subscriptionStatus) ?? 'active',
+      created_at:    row.createdAt,
+      users_count:   Number(row.usersCount ?? 0),
+      clients_count: Number(row.clientsCount ?? 0),
+      mrr:           planPrices[row.plan] ?? 0,
     }))
 
     return NextResponse.json(result)

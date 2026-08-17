@@ -27,14 +27,28 @@ export async function GET() {
       .limit(1)
 
     if (result.length === 0) {
-      return NextResponse.json({
-        id: '',
-        organization_id: user.organizationId,
-        ...DEFAULTS,
-        controla_estoque: false,
-        fechamento_automatico_caixa: true,
-        updated_at: new Date().toISOString(),
-      })
+      // Cria o registro com defaults para que o id seja sempre um UUID válido
+      await db.insert(orgSystemPreferences).values({
+        organizationId:            user.organizationId,
+        dateFormat:                DEFAULTS.dateFormat,
+        timeFormat:                DEFAULTS.timeFormat,
+        currency:                  DEFAULTS.currency,
+        timezone:                  DEFAULTS.timezone,
+        language:                  DEFAULTS.language,
+        theme:                     DEFAULTS.theme,
+        compactMode:               DEFAULTS.compactMode,
+        showTooltips:              DEFAULTS.showTooltips,
+        controlaEstoque:           false,
+        fechamentoAutomaticoCaixa: true,
+      }).onConflictDoNothing()
+
+      const created = await db
+        .select()
+        .from(orgSystemPreferences)
+        .where(eq(orgSystemPreferences.organizationId, user.organizationId))
+        .limit(1)
+
+      result.push(created[0])
     }
 
     const r = result[0]

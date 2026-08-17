@@ -24,7 +24,11 @@ function CashierAutomation() {
 
   const { data: sessions } = useQuery({
     queryKey: ['cashier-sessions-open'],
-    queryFn: () => fetch('/api/cashiers/sessions?status=aberto').then(r => r.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/cashiers/sessions?status=aberto')
+      if (!res.ok) throw new Error('Erro ao buscar sessões')
+      return res.json()
+    },
     enabled: !!settings,
     staleTime: 60_000,
   })
@@ -32,14 +36,14 @@ function CashierAutomation() {
   // Lembrete diário: exibe uma vez por dia se não há caixa aberto
   useEffect(() => {
     if (!settings?.fechamento_automatico_caixa) return
-    if (!sessions) return
+    // Só age quando sessions for um array válido (ignora erro/undefined)
+    if (!Array.isArray(sessions)) return
 
     const today = new Date().toISOString().slice(0, 10)
     const lastShown = localStorage.getItem(REMINDER_KEY)
     if (lastShown === today) return
 
-    const hasOpen = Array.isArray(sessions) && sessions.length > 0
-    if (!hasOpen) {
+    if (sessions.length === 0) {
       localStorage.setItem(REMINDER_KEY, today)
       toast.warning('Nenhum caixa aberto', {
         description: 'Não esqueça de abrir o caixa para registrar os pagamentos do dia.',
@@ -55,15 +59,20 @@ function CashierAutomation() {
   // Fechamento automático à meia-noite
   useEffect(() => {
     if (!settings?.fechamento_automatico_caixa) return
-    if (autoCloseScheduled.current) return
-    autoCloseScheduled.current = true
+
+    // Resetar flag a cada vez que o effect rodar para não perder timer em re-renders
+    autoCloseScheduled.current = false
 
     const now = new Date()
     const midnight = new Date(now)
     midnight.setHours(24, 0, 0, 0)
     const msUntilMidnight = midnight.getTime() - now.getTime()
 
+    if (autoCloseScheduled.current) return
+    autoCloseScheduled.current = true
+
     const timer = setTimeout(async () => {
+      autoCloseScheduled.current = false
       try {
         await fetch('/api/cashiers/sessions/close-all', { method: 'POST' })
       } catch {
@@ -71,11 +80,11 @@ function CashierAutomation() {
       }
     }, msUntilMidnight)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      autoCloseScheduled.current = false
+    }
   }, [settings])
-
-  return null
-}
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (

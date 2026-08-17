@@ -32,7 +32,7 @@ export async function GET(
     const clientGrowth = await db
       .select({
         ym:         drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
-        monthLabel: drizzleSql<string>`TO_CHAR(created_at, 'Mon')`,
+        monthLabel: drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'Mon')`,
         newClients: count(),
       })
       .from(orgClients)

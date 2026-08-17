@@ -7,17 +7,20 @@ interface PlanBadgeProps {
   plan: string
 }
 
+const planStyles: Record<string, string> = {
+  pro:        'border-blue-300 dark:border-blue-700 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400',
+  enterprise: 'border-purple-300 dark:border-purple-700 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400',
+  free:       'border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
+}
+
+const planLabels: Record<string, string> = {
+  pro: 'Pro', enterprise: 'Enterprise', free: 'Free',
+}
+
 export function PlanBadge({ plan }: PlanBadgeProps) {
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        plan === 'pro'
-          ? 'border-blue-300 dark:border-blue-700 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400'
-          : 'border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-      )}
-    >
-      {plan === 'pro' ? 'Pro' : 'Free'}
+    <Badge variant="outline" className={cn(planStyles[plan] ?? planStyles.free)}>
+      {planLabels[plan] ?? plan}
     </Badge>
   )
 }

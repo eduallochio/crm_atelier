@@ -2,14 +2,19 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { 
-  Calendar, 
-  TrendingUp, 
-  Activity, 
+import {
+  Calendar,
+  TrendingUp,
+  Activity,
   FileText,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Phone,
+  Mail,
+  MapPin,
+  Globe,
+  Award,
 } from 'lucide-react'
 
 interface OverviewTabProps {
@@ -22,14 +27,24 @@ interface OverviewTabProps {
     users_count: number
     clients_count: number
     mrr: number
+    email?: string | null
+    phone?: string | null
+    cnpj?: string | null
+    address?: string | null
+    city?: string | null
+    org_state?: string | null
+    zip_code?: string | null
+    website?: string | null
+    lifetime_license?: boolean
   }
 }
 
 export function OverviewTab({ organization }: OverviewTabProps) {
   // Calcular dias desde criação
-  const daysSinceCreation = Math.floor(
-    (new Date().getTime() - new Date(organization.created_at).getTime()) / (1000 * 60 * 60 * 24)
-  )
+  const createdAtMs = organization.created_at ? new Date(organization.created_at).getTime() : null
+  const daysSinceCreation = createdAtMs && !isNaN(createdAtMs)
+    ? Math.floor((new Date().getTime() - createdAtMs) / (1000 * 60 * 60 * 24))
+    : null
 
   // Calcular próxima renovação (simulado)
   const nextRenewal = new Date()
@@ -65,9 +80,10 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
             <p className="text-base font-medium text-gray-900 dark:text-white capitalize">
-              {organization.state === 'active' ? 'Ativo' : 
-               organization.state === 'trial' ? 'Trial' : 
-               organization.state === 'cancelled' ? 'Cancelado' : 'Suspenso'}
+              {organization.state === 'active' ? 'Ativo' :
+               organization.state === 'trial' ? 'Trial' :
+               organization.state === 'cancelled' ? 'Cancelado' :
+               organization.state === 'suspended' ? 'Suspenso' : 'Ativo'}
             </p>
           </div>
           <div>
@@ -79,9 +95,78 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Tempo de Conta</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
-              {daysSinceCreation} dias
+              {daysSinceCreation !== null ? `${daysSinceCreation} dias` : '—'}
             </p>
           </div>
+
+          {organization.phone && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Telefone</p>
+              <a
+                href={`https://wa.me/${organization.phone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-base font-medium text-green-600 dark:text-green-400 flex items-center gap-1.5 hover:underline"
+                title="Abrir no WhatsApp"
+              >
+                <Phone className="w-4 h-4" />
+                {organization.phone}
+              </a>
+            </div>
+          )}
+
+          {organization.email && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">E-mail</p>
+              <p className="text-base font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                <Mail className="w-4 h-4 text-gray-400" />
+                {organization.email}
+              </p>
+            </div>
+          )}
+
+          {organization.cnpj && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">CNPJ</p>
+              <p className="text-base font-medium text-gray-900 dark:text-white">
+                {organization.cnpj}
+              </p>
+            </div>
+          )}
+
+          {(organization.city || organization.org_state) && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Localização</p>
+              <p className="text-base font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                {[organization.city, organization.org_state].filter(Boolean).join(' — ')}
+              </p>
+            </div>
+          )}
+
+          {organization.website && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Website</p>
+              <a
+                href={organization.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-base font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1.5 hover:underline"
+              >
+                <Globe className="w-4 h-4" />
+                {organization.website}
+              </a>
+            </div>
+          )}
+
+          {organization.lifetime_license && (
+            <div className="col-span-2">
+              <p className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-700">
+                <Award className="w-4 h-4" />
+                Licença Vitalícia
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -127,16 +212,16 @@ export function OverviewTab({ organization }: OverviewTabProps) {
               <p className="text-sm text-gray-600 dark:text-gray-400">Usuários</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {organization.users_count}
-                {organization.plan === 'free' ? ' / 3' : ' / Ilimitado'}
+                {organization.plan === 'free' ? ' / 2' : ' / Ilimitado'}
               </p>
             </div>
             <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-blue-600 dark:bg-blue-400"
-                style={{ 
-                  width: organization.plan === 'free' 
-                    ? `${Math.min((organization.users_count / 3) * 100, 100)}%`
-                    : '50%'
+                style={{
+                  width: organization.plan === 'free'
+                    ? `${Math.min((organization.users_count / 2) * 100, 100)}%`
+                    : `${Math.min(organization.users_count * 10, 100)}%`
                 }}
               />
             </div>
@@ -150,12 +235,12 @@ export function OverviewTab({ organization }: OverviewTabProps) {
               </p>
             </div>
             <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-green-600 dark:bg-green-400"
-                style={{ 
-                  width: organization.plan === 'free' 
+                style={{
+                  width: organization.plan === 'free'
                     ? `${Math.min((organization.clients_count / 50) * 100, 100)}%`
-                    : '30%'
+                    : `${Math.min(organization.clients_count * 2, 100)}%`
                 }}
               />
             </div>
@@ -202,7 +287,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
                   Upgrade para {organization.plan}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Estimado há {Math.floor(daysSinceCreation / 2)} dias
+                  Estimado há {daysSinceCreation !== null ? Math.floor(daysSinceCreation / 2) : '—'} dias
                 </p>
               </div>
             </div>

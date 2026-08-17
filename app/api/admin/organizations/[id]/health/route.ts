@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, usageMetrics, orgServiceOrders, orgClients, orgReceivables, profiles } from '@/lib/db/schema'
-import { eq, and, gte, lt, sql as drizzleSql, count } from 'drizzle-orm'
+import { organizations, orgServiceOrders, orgClients, orgReceivables, profiles } from '@/lib/db/schema'
+import { eq, and, gte, sql as drizzleSql, count } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET(
@@ -24,8 +24,8 @@ export async function GET(
         plan:               organizations.plan,
         subscriptionStatus: organizations.subscriptionStatus,
         createdAt:          organizations.createdAt,
-        clientsCount:       usageMetrics.clientsCount,
-        ordersCount:        usageMetrics.ordersCount,
+        clientsCount:       drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE organization_id = ${organizations.id})::int`,
+        ordersCount:        drizzleSql<number>`(SELECT COUNT(*) FROM org_service_orders WHERE organization_id = ${organizations.id})::int`,
         lastOrderAt:        drizzleSql<string | null>`(SELECT MAX(created_at) FROM org_service_orders WHERE organization_id = ${organizations.id})`,
         lastClientAt:       drizzleSql<string | null>`(SELECT MAX(created_at) FROM org_clients WHERE organization_id = ${organizations.id})`,
         orders7d:           drizzleSql<number>`(SELECT COUNT(*) FROM org_service_orders WHERE organization_id = ${organizations.id} AND created_at >= ${sevenDaysAgo.toISOString()})::int`,
@@ -37,7 +37,6 @@ export async function GET(
         usersCount:         drizzleSql<number>`(SELECT COUNT(*) FROM profiles WHERE organization_id = ${organizations.id})::int`,
       })
       .from(organizations)
-      .leftJoin(usageMetrics, eq(usageMetrics.organizationId, organizations.id))
       .where(eq(organizations.id, id))
       .limit(1)
 
@@ -88,7 +87,9 @@ export async function GET(
     const orders7d      = Number(org.orders7d      ?? 0)
     const orders30d     = Number(org.orders30d     ?? 0)
     const ordersPending = Number(org.ordersPending ?? 0)
-    const daysSinceCad  = Math.floor((Date.now() - new Date(org.createdAt!).getTime()) / 86400000)
+    const daysSinceCad  = org.createdAt
+      ? Math.floor((Date.now() - new Date(org.createdAt).getTime()) / 86400000)
+      : 0
 
     const FREE_LIMITS = { clients: 50, orders: 100 }
 

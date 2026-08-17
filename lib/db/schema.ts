@@ -39,6 +39,8 @@ export const organizations = pgTable('organizations', {
   website:            text('website'),
   logoUrl:            text('logo_url'),
   lifetimeLicense:    boolean('lifetime_license').notNull().default(false),
+  asaasCustomerId:    text('asaas_customer_id'),
+  asaasSubscriptionId: text('asaas_subscription_id'),
   instagram:          text('instagram'),
   facebook:           text('facebook'),
   twitter:            text('twitter'),

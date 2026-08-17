@@ -20,7 +20,16 @@ export async function GET(
           name: organizations.name,
           plan: organizations.plan,
           subscriptionStatus: organizations.subscriptionStatus,
-          createdAt: organizations.createdAt,
+          createdAt:          organizations.createdAt,
+          email:              organizations.email,
+          phone:              organizations.phone,
+          cnpj:               organizations.cnpj,
+          address:            organizations.address,
+          city:               organizations.city,
+          orgState:           organizations.state,
+          zipCode:            organizations.zipCode,
+          website:            organizations.website,
+          lifetimeLicense:    organizations.lifetimeLicense,
           usersCount:   drizzleSql<number>`(SELECT COUNT(*) FROM profiles WHERE profiles.organization_id = ${organizations.id})::int`,
           clientsCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id})::int`,
         })
@@ -39,9 +48,23 @@ export async function GET(
 
     const row = rows[0]
     return NextResponse.json({
-      ...row,
-      state: row.subscriptionStatus,
-      mrr: planPrices[row.plan] ?? 0,
+      id:               row.id,
+      name:             row.name,
+      plan:             row.plan,
+      state:            (row.subscriptionStatus === 'inactive' ? 'active' : row.subscriptionStatus) ?? 'active',
+      created_at:       row.createdAt,
+      users_count:      row.usersCount,
+      clients_count:    row.clientsCount,
+      mrr:              planPrices[row.plan] ?? 0,
+      email:            row.email,
+      phone:            row.phone,
+      cnpj:             row.cnpj,
+      address:          row.address,
+      city:             row.city,
+      org_state:        row.orgState,
+      zip_code:         row.zipCode,
+      website:          row.website,
+      lifetime_license: row.lifetimeLicense,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {

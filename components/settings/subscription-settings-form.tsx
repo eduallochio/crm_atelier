@@ -2,8 +2,14 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink, Loader2, CreditCard, Calendar, Shield } from 'lucide-react'
+import {
+  CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
+  Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
+  QrCode, FileText, Banknote,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +40,20 @@ type DbPlan = {
   cta_text:     string
 }
 
+type CouponResult = {
+  valid:           boolean
+  code?:           string
+  description?:    string
+  discount_type?:  string
+  discount_value?: number
+  discount_amount?: number
+  base_price?:     number
+  final_price?:    number
+  error?:          string
+}
+
+type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD'
+
 const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge: string }> = {
   free: {
     icon: Zap,
@@ -47,13 +67,29 @@ const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge
   },
 }
 
+const BILLING_OPTIONS: { value: BillingType; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: 'PIX',         label: 'PIX',            icon: QrCode,    desc: 'Aprovação imediata' },
+  { value: 'BOLETO',      label: 'Boleto',          icon: FileText,  desc: 'Vence em 3 dias úteis' },
+  { value: 'CREDIT_CARD', label: 'Cartão de crédito', icon: CreditCard, desc: 'Parcelável em até 12x' },
+]
+
 function fmtPrice(price: number) {
   if (price === 0) return 'R$ 0'
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+function pct(used: number, max: number) {
+  return Math.min(Math.round((used / max) * 100), 100)
+}
+
 export function SubscriptionSettingsForm() {
-  const [upgrading, setUpgrading] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [billingType, setBillingType] = useState<BillingType>('PIX')
+  const [cycle, setCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
+  const [couponCode, setCouponCode] = useState('')
+  const [couponResult, setCouponResult] = useState<CouponResult | null>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const { data: usage, isLoading: loadingUsage } = useQuery<PlanUsage>({
     queryKey: ['plan-usage'],
@@ -76,24 +112,63 @@ export function SubscriptionSettingsForm() {
   const currentPlan = usage?.plan ?? 'free'
   const isPro = currentPlan === 'pro'
 
-  async function handleUpgrade() {
-    setUpgrading(true)
+  const proPlan = dbPlans.find(p => p.slug === 'pro')
+  const basePrice = cycle === 'MONTHLY' ? (proPlan?.price ?? 47.90) : (proPlan?.price_annual ?? 479.00)
+  const finalPrice = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
+
+  async function validateCoupon() {
+    if (!couponCode.trim()) return
+    setValidatingCoupon(true)
+    setCouponResult(null)
     try {
-      const msg = encodeURIComponent(
-        'Olá! Gostaria de fazer upgrade para o plano Pro do Meu Atelier Sistema.'
-      )
-      window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank')
-      toast.info('Redirecionando para o WhatsApp para finalizar o upgrade...')
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode, plan: 'pro', cycle }),
+      })
+      const data: CouponResult = await res.json()
+      setCouponResult(data)
+      if (data.valid) {
+        toast.success(`Cupom aplicado! Desconto de ${fmtPrice(data.discount_amount ?? 0)}`)
+      } else {
+        toast.error(data.error ?? 'Cupom inválido')
+      }
+    } catch {
+      toast.error('Erro ao validar cupom')
     } finally {
-      setUpgrading(false)
+      setValidatingCoupon(false)
     }
   }
 
-  function pct(used: number, max: number) {
-    return Math.min(Math.round((used / max) * 100), 100)
+  function removeCoupon() {
+    setCouponCode('')
+    setCouponResult(null)
   }
 
-  const activePlans = dbPlans
+  async function handleCheckout() {
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/checkout/asaas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billing_type: billingType,
+          cycle,
+          plan: 'pro',
+          coupon_code: couponResult?.valid ? couponCode : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao processar pagamento')
+
+      toast.success('Assinatura criada! Você receberá as instruções de pagamento por e-mail.')
+      setShowCheckout(false)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -151,105 +226,248 @@ export function SubscriptionSettingsForm() {
       </div>
 
       {/* Planos */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4">Planos disponíveis</h3>
-        {loadingPlans ? (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando planos...
+      {!showCheckout && (
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Planos disponíveis</h3>
+          {loadingPlans ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando planos...
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {dbPlans.map((plan) => {
+                const style = PLAN_STYLE[plan.slug] ?? PLAN_STYLE['free']
+                const Icon = style.icon
+                const isCurrent = currentPlan === plan.slug
+                const includedFeatures = plan.features.filter(f => f.included)
+                return (
+                  <div key={plan.id} className={cn(
+                    'relative rounded-2xl border-2 p-6 flex flex-col gap-4 transition-all',
+                    style.color,
+                    isCurrent ? 'bg-muted/40' : 'bg-card hover:shadow-md'
+                  )}>
+                    {isCurrent && (
+                      <span className="absolute -top-3 left-4 text-[11px] font-bold px-3 py-1 rounded-full bg-foreground text-background">
+                        Plano atual
+                      </span>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <div className={cn('p-2 rounded-xl', style.badge)}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground">{plan.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          <span className="text-xl font-bold text-foreground">{fmtPrice(plan.price)}</span>
+                          {' '}{plan.price === 0 ? 'para sempre' : 'por mês'}
+                        </p>
+                        {plan.annual_note && (
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">{plan.annual_note}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <ul className="space-y-2 flex-1">
+                      {includedFeatures.map((f) => (
+                        <li key={f.text} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                          {f.text}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {!isCurrent && plan.slug === 'pro' && (
+                      <Button
+                        className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white"
+                        onClick={() => setShowCheckout(true)}
+                      >
+                        <ArrowUpCircle className="h-4 w-4" />
+                        Assinar agora
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Checkout */}
+      {showCheckout && (
+        <div className="rounded-2xl border-2 border-[#c8714a] bg-card p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Crown className="h-5 w-5 text-[#c8714a]" />
+              Assinar Plano Pro
+            </h3>
+            <Button variant="ghost" size="icon" onClick={() => { setShowCheckout(false); removeCoupon() }}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {activePlans.map((plan) => {
-              const style = PLAN_STYLE[plan.slug] ?? PLAN_STYLE['free']
-              const Icon = style.icon
-              const isCurrent = currentPlan === plan.slug
-              const includedFeatures = plan.features.filter(f => f.included)
-              return (
-                <div key={plan.id} className={cn(
-                  'relative rounded-2xl border-2 p-6 flex flex-col gap-4 transition-all',
-                  style.color,
-                  isCurrent ? 'bg-muted/40' : 'bg-card hover:shadow-md'
-                )}>
-                  {isCurrent && (
-                    <span className="absolute -top-3 left-4 text-[11px] font-bold px-3 py-1 rounded-full bg-foreground text-background">
-                      Plano atual
+
+          {/* Ciclo de cobrança */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Ciclo de cobrança</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'MONTHLY' as const, label: 'Mensal', price: proPlan?.price ?? 47.90, note: '' },
+                { value: 'YEARLY'  as const, label: 'Anual',  price: proPlan?.price_annual ?? 479.00, note: proPlan?.annual_note ?? 'Economize 2 meses' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { setCycle(opt.value); setCouponResult(null) }}
+                  className={cn(
+                    'relative p-4 rounded-xl border-2 text-left transition-all',
+                    cycle === opt.value ? 'border-[#c8714a] bg-[#c8714a]/5' : 'border-border hover:border-[#c8714a]/50'
+                  )}
+                >
+                  {opt.note && (
+                    <span className="absolute -top-2.5 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                      {opt.note}
                     </span>
                   )}
-                  <div className="flex items-center gap-3">
-                    <div className={cn('p-2 rounded-xl', style.badge)}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground">{plan.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        <span className="text-xl font-bold text-foreground">{fmtPrice(plan.price)}</span>
-                        {' '}{plan.price === 0 ? 'para sempre' : 'por mês'}
-                      </p>
-                      {plan.annual_note && (
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">{plan.annual_note}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <ul className="space-y-2 flex-1">
-                    {includedFeatures.map((f) => (
-                      <li key={f.text} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                        {f.text}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {!isCurrent && plan.slug === 'pro' && (
-                    <Button
-                      className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white"
-                      onClick={handleUpgrade}
-                      disabled={upgrading}
-                    >
-                      {upgrading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}
-                      Fazer upgrade
-                    </Button>
-                  )}
-                </div>
-              )
-            })}
+                  <p className="font-semibold text-foreground">{opt.label}</p>
+                  <p className="text-sm text-muted-foreground">{fmtPrice(opt.price)}{opt.value === 'MONTHLY' ? '/mês' : '/ano'}</p>
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Forma de pagamento */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Forma de pagamento</Label>
+            <div className="grid grid-cols-3 gap-3">
+              {BILLING_OPTIONS.map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setBillingType(opt.value)}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-1.5',
+                      billingType === opt.value ? 'border-[#c8714a] bg-[#c8714a]/5' : 'border-border hover:border-[#c8714a]/50'
+                    )}
+                  >
+                    <Icon className="h-5 w-5 text-[#c8714a]" />
+                    <p className="text-xs font-semibold text-foreground">{opt.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Cupom de desconto */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5" />
+              Cupom de desconto (opcional)
+            </Label>
+            {couponResult?.valid ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800">
+                <Check className="h-5 w-5 text-emerald-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{couponResult.code}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-500">{couponResult.description ?? `Desconto de ${fmtPrice(couponResult.discount_amount ?? 0)}`}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-emerald-600" onClick={removeCoupon}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="CUPOM10"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && validateCoupon()}
+                  className="uppercase"
+                />
+                <Button
+                  variant="outline"
+                  onClick={validateCoupon}
+                  disabled={validatingCoupon || !couponCode.trim()}
+                  className="shrink-0"
+                >
+                  {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Aplicar'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Resumo do pedido */}
+          <div className="rounded-xl bg-muted/40 p-4 space-y-2 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Plano Pro {cycle === 'MONTHLY' ? 'Mensal' : 'Anual'}</span>
+              <span>{fmtPrice(basePrice)}</span>
+            </div>
+            {couponResult?.valid && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                <span>Desconto ({couponResult.code})</span>
+                <span>− {fmtPrice(couponResult.discount_amount ?? 0)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
+              <span>Total</span>
+              <span>{fmtPrice(finalPrice)}{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
+            </div>
+          </div>
+
+          <Button
+            className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white h-11"
+            onClick={handleCheckout}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Banknote className="h-4 w-4" />
+            )}
+            {submitting ? 'Processando...' : `Assinar por ${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
+          </Button>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Pagamento processado com segurança pelo Asaas. Cancele quando quiser.
+          </p>
+        </div>
+      )}
 
       {/* Informações de pagamento */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">Pagamento e cobrança</h3>
-
-        <div className="grid sm:grid-cols-3 gap-4">
-          {[
-            { icon: CreditCard, title: 'Formas aceitas', desc: 'PIX, Boleto, Cartão de Crédito' },
-            { icon: Calendar, title: 'Ciclo de cobrança', desc: 'Mensal — cancele quando quiser' },
-            { icon: Shield, title: 'Segurança', desc: 'Pagamentos processados com criptografia' },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="flex items-start gap-3 p-4 rounded-xl bg-muted/40">
-              <Icon className="h-5 w-5 text-[#c8714a] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">{title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+      {!showCheckout && (
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Pagamento e cobrança</h3>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { icon: CreditCard, title: 'Formas aceitas', desc: 'PIX, Boleto, Cartão de Crédito' },
+              { icon: Calendar,   title: 'Ciclo de cobrança', desc: 'Mensal ou Anual — cancele quando quiser' },
+              { icon: Shield,     title: 'Segurança', desc: 'Pagamentos processados pelo Asaas' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-start gap-3 p-4 rounded-xl bg-muted/40">
+                <Icon className="h-5 w-5 text-[#c8714a] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground flex-1">
+              Dúvidas sobre pagamento? Entre em contato com nosso suporte.
+            </p>
+            <Button variant="outline" size="sm" className="gap-2 shrink-0" asChild>
+              <a href="mailto:suporte@meuateliersistema.com.br">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Contato
+              </a>
+            </Button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2 pt-2 border-t border-border">
-          <p className="text-xs text-muted-foreground flex-1">
-            Dúvidas sobre pagamento? Entre em contato com nosso suporte.
-          </p>
-          <Button variant="outline" size="sm" className="gap-2 shrink-0" asChild>
-            <a href="mailto:suporte@meuateliersistema.com.br">
-              <ExternalLink className="h-3.5 w-3.5" />
-              Contato
-            </a>
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -25,25 +25,31 @@ export async function GET(
       .where(eq(profiles.organizationId, id))
       .orderBy(desc(profiles.createdAt))
 
-    // Get emails from Supabase auth
+    // Get auth data (email, last_sign_in_at, banned) from Supabase auth
     const supabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data } = await supabase.auth.admin.listUsers()
-    const emailMap: Record<string, string> = {}
+    const authMap: Record<string, { email: string; lastSignInAt: string | null; isActive: boolean }> = {}
     if (data?.users) {
       for (const u of data.users) {
-        emailMap[u.id] = u.email ?? ''
+        authMap[u.id] = {
+          email:        u.email ?? '',
+          lastSignInAt: u.last_sign_in_at ?? null,
+          isActive:     !u.banned_until || new Date(u.banned_until) < new Date(),
+        }
       }
     }
 
     const result = profileRows.map((p) => ({
-      id: p.id,
-      email: emailMap[p.id] ?? '',
-      full_name: p.fullName,
-      role: p.role,
-      created_at: p.createdAt,
+      id:               p.id,
+      email:            authMap[p.id]?.email ?? '',
+      full_name:        p.fullName,
+      role:             p.role,
+      created_at:       p.createdAt,
+      last_sign_in_at:  authMap[p.id]?.lastSignInAt ?? null,
+      is_active:        authMap[p.id]?.isActive ?? true,
     }))
 
     return NextResponse.json(result)
