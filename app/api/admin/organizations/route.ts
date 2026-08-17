@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireMaster } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, profiles, orgClients, usageMetrics, customizationSettings, plans } from '@/lib/db/schema'
-import { eq, desc, sql as drizzleSql, count } from 'drizzle-orm'
+import { organizations, profiles, plans } from '@/lib/db/schema'
+import { eq, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 
@@ -75,62 +75,52 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
-    // Gera slug único a partir do nome
-    const slug = name
-      .toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 50)
-
-    // Verifica duplicidade de slug
-    const existing = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.slug, slug))
-      .limit(1)
-
-    const finalSlug = existing.length > 0 ? `${slug}-${Date.now()}` : slug
-
-    // 1. Cria a organização
-    const [org] = await db
-      .insert(organizations)
-      .values({ name, slug: finalSlug, plan, phone: phone || null, cnpj: cnpj || null, subscriptionStatus: 'inactive' })
-      .returning({ id: organizations.id })
-
-    // 2. Cria o usuário no Supabase Auth
+    // 1. Cria o usuário no Supabase Auth
+    // O trigger handle_new_user cria automaticamente: organization + profile + usage_metrics + customization_settings
+    // user_metadata.full_name é usado pelo trigger como nome da organização
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { organization_id: org.id, full_name: name },
+      user_metadata: { full_name: name },
     })
 
     if (authError || !authData.user) {
-      // Rollback: remove a org criada
-      await db.delete(organizations).where(eq(organizations.id, org.id))
       return NextResponse.json({ error: authError?.message ?? 'Erro ao criar usuário' }, { status: 400 })
     }
 
     const userId = authData.user.id
 
-    // 3. Cria o profile
-    await db.insert(profiles).values({
-      id: userId,
-      organizationId: org.id,
-      fullName: name,
-      role: 'owner',
-      isOwner: true,
-      isMaster: false,
-    })
+    // 2. Aguarda trigger processar (pequena margem) e busca a org criada pelo trigger via profile
+    await new Promise(resolve => setTimeout(resolve, 800))
 
-    // 4. Cria usage_metrics
-    await db.insert(usageMetrics).values({ organizationId: org.id })
+    const [profile] = await db
+      .select({ organizationId: profiles.organizationId })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1)
 
-    // 5. Cria customization_settings
-    await db.insert(customizationSettings).values({ organizationId: org.id })
+    if (!profile) {
+      // Trigger não rodou — limpa o usuário e retorna erro
+      await adminSupabase.auth.admin.deleteUser(userId)
+      return NextResponse.json({ error: 'Trigger de criação de organização não executou. Tente novamente.' }, { status: 500 })
+    }
 
-    return NextResponse.json({ id: org.id }, { status: 201 })
+    const orgId = profile.organizationId
+
+    // 3. Atualiza a org com os dados extras fornecidos no formulário
+    await db
+      .update(organizations)
+      .set({
+        name,
+        plan,
+        phone:    phone || null,
+        cnpj:     cnpj  || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, orgId))
+
+    return NextResponse.json({ id: orgId }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
