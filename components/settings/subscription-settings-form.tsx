@@ -424,7 +424,7 @@ export function SubscriptionSettingsForm() {
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Banknote className="h-4 w-4" />
+              <CreditCard className="h-4 w-4" />
             )}
             {submitting ? 'Processando...' : `Assinar por ${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
           </Button>
