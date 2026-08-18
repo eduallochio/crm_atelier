@@ -114,6 +114,7 @@ export function SubscriptionSettingsForm() {
   const [cardCcv, setCardCcv] = useState('')
   const [cardHolderCpf, setCardHolderCpf] = useState('')
   const [cardHolderPhone, setCardHolderPhone] = useState('')
+  const [cardHolderPostalCode, setCardHolderPostalCode] = useState('')
 
   const { data: usage, isLoading: loadingUsage } = useQuery<PlanUsage>({
     queryKey: ['plan-usage'],
@@ -212,6 +213,14 @@ export function SubscriptionSettingsForm() {
         toast.error('Informe o CPF do titular do cartão')
         return
       }
+      if (!cardHolderPhone.trim()) {
+        toast.error('Informe o telefone do titular do cartão')
+        return
+      }
+      if (!cardHolderPostalCode.trim()) {
+        toast.error('Informe o CEP do titular do cartão')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -234,8 +243,9 @@ export function SubscriptionSettingsForm() {
           card_expiry_month:  billingType === 'CREDIT_CARD' ? expiryMonth?.trim() : undefined,
           card_expiry_year:   billingType === 'CREDIT_CARD' ? expiryYear?.trim() : undefined,
           card_ccv:           billingType === 'CREDIT_CARD' ? cardCcv.trim() : undefined,
-          card_holder_cpf:    billingType === 'CREDIT_CARD' ? cardHolderCpf : undefined,
-          card_holder_phone:  billingType === 'CREDIT_CARD' ? cardHolderPhone : undefined,
+          card_holder_cpf:         billingType === 'CREDIT_CARD' ? cardHolderCpf : undefined,
+          card_holder_phone:       billingType === 'CREDIT_CARD' ? cardHolderPhone : undefined,
+          card_holder_postal_code: billingType === 'CREDIT_CARD' ? cardHolderPostalCode : undefined,
         }),
       })
       const data = await res.json()
@@ -462,7 +472,7 @@ export function SubscriptionSettingsForm() {
               removeCoupon()
               setInstallments(3)
               setCardHolderName(''); setCardNumber(''); setCardExpiry('')
-              setCardCcv(''); setCardHolderCpf(''); setCardHolderPhone('')
+              setCardCcv(''); setCardHolderCpf(''); setCardHolderPhone(''); setCardHolderPostalCode('')
             }}>
               <X className="h-4 w-4" />
             </Button>
@@ -640,16 +650,33 @@ export function SubscriptionSettingsForm() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Telefone do titular (opcional)</Label>
-                <Input
-                  placeholder="(00) 00000-0000"
-                  value={cardHolderPhone}
-                  onChange={e => setCardHolderPhone(e.target.value)}
-                  inputMode="tel"
-                  className="text-base sm:text-sm"
-                  autoComplete="tel"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Telefone do titular</Label>
+                  <Input
+                    placeholder="(00) 00000-0000"
+                    value={cardHolderPhone}
+                    onChange={e => setCardHolderPhone(e.target.value)}
+                    inputMode="tel"
+                    className="text-base sm:text-sm"
+                    autoComplete="tel"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">CEP do titular</Label>
+                  <Input
+                    placeholder="00000-000"
+                    value={cardHolderPostalCode}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 8)
+                      setCardHolderPostalCode(v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5)}` : v)
+                    }}
+                    inputMode="numeric"
+                    maxLength={9}
+                    className="text-base sm:text-sm"
+                    autoComplete="postal-code"
+                  />
+                </div>
               </div>
             </div>
           )}
