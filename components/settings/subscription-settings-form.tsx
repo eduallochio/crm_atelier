@@ -104,6 +104,9 @@ export function SubscriptionSettingsForm() {
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // Parcelamento (apenas anual + cartão)
+  const [installments, setInstallments] = useState(3)
+
   // Dados do cartão
   const [cardHolderName, setCardHolderName] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -149,9 +152,10 @@ export function SubscriptionSettingsForm() {
   const basePrice    = cycle === 'MONTHLY' ? monthlyPrice : annualPrice
   const finalPrice   = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
 
-  // Parcelamento: anual com cartão → 3x; demais → à vista
-  const installments     = billingType === 'CREDIT_CARD' && cycle === 'YEARLY' ? 3 : 1
-  const installmentValue = installments > 1 ? Math.ceil((finalPrice / installments) * 100) / 100 : finalPrice
+  // Parcelamento: anual + cartão usa installments escolhido; demais sempre 1x
+  const activeInstallments = billingType === 'CREDIT_CARD' && cycle === 'YEARLY' ? installments : 1
+  // Valor por parcela sem juros (apenas para exibição das opções sem juros)
+  const installmentValue   = activeInstallments > 1 ? Math.ceil((finalPrice / activeInstallments) * 100) / 100 : finalPrice
 
   async function validateCoupon() {
     if (!couponCode.trim()) return
@@ -222,8 +226,9 @@ export function SubscriptionSettingsForm() {
           cycle,
           plan:               'pro',
           coupon_code:        couponResult?.valid ? couponCode : undefined,
-          installment_count:  installments > 1 ? installments : undefined,
-          installment_value:  installments > 1 ? installmentValue : undefined,
+          installment_count:  activeInstallments > 1 ? activeInstallments : undefined,
+          // sem juros → enviamos o valor por parcela; com juros → Asaas calcula
+          installment_value:  activeInstallments > 1 && activeInstallments <= 3 ? installmentValue : undefined,
           card_holder_name:   billingType === 'CREDIT_CARD' ? cardHolderName.trim() : undefined,
           card_number:        billingType === 'CREDIT_CARD' ? cardNumber.replace(/\s/g, '') : undefined,
           card_expiry_month:  billingType === 'CREDIT_CARD' ? expiryMonth?.trim() : undefined,
@@ -455,6 +460,7 @@ export function SubscriptionSettingsForm() {
             <Button variant="ghost" size="icon" onClick={() => {
               setShowCheckout(false)
               removeCoupon()
+              setInstallments(3)
               setCardHolderName(''); setCardNumber(''); setCardExpiry('')
               setCardCcv(''); setCardHolderCpf(''); setCardHolderPhone('')
             }}>
@@ -500,7 +506,7 @@ export function SubscriptionSettingsForm() {
                 const desc = opt.value === 'PIX'
                   ? 'À vista · aprovação imediata'
                   : cycle === 'YEARLY'
-                    ? `3x de ${fmtPrice(Math.ceil((finalPrice / 3) * 100) / 100)}`
+                    ? `até 6x · 3x sem juros`
                     : `À vista · ${fmtPrice(finalPrice)}`
                 return (
                   <button
@@ -520,6 +526,38 @@ export function SubscriptionSettingsForm() {
               })}
             </div>
           </div>
+
+          {/* Seletor de parcelas (anual + cartão) */}
+          {billingType === 'CREDIT_CARD' && cycle === 'YEARLY' && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Parcelamento</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3, 4, 5, 6].map((n) => {
+                  const semJuros = n <= 3
+                  const parcVal  = Math.ceil((finalPrice / n) * 100) / 100
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setInstallments(n)}
+                      className={cn(
+                        'p-2.5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-0.5',
+                        installments === n ? 'border-[#c8714a] bg-[#c8714a]/5' : 'border-border hover:border-[#c8714a]/50'
+                      )}
+                    >
+                      <p className="text-xs font-bold text-foreground">{n}x de {fmtPrice(parcVal)}</p>
+                      <p className={cn('text-[10px] font-medium', semJuros ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
+                        {semJuros ? 'sem juros' : 'com juros*'}
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
+              {installments > 3 && (
+                <p className="text-[11px] text-muted-foreground">* Juros calculados pelo Asaas no momento do pagamento.</p>
+              )}
+            </div>
+          )}
 
           {/* Formulário de cartão */}
           {billingType === 'CREDIT_CARD' && (
@@ -658,8 +696,8 @@ export function SubscriptionSettingsForm() {
             <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
               <span>Total</span>
               <span>
-                {installments > 1
-                  ? `${installments}x de ${fmtPrice(installmentValue)}`
+                {activeInstallments > 1
+                  ? `${activeInstallments}x de ${fmtPrice(installmentValue)}${activeInstallments > 3 ? ' + juros' : ''}`
                   : `${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
               </span>
             </div>
@@ -677,8 +715,8 @@ export function SubscriptionSettingsForm() {
             )}
             {submitting
               ? 'Processando...'
-              : installments > 1
-                ? `Assinar — ${installments}x de ${fmtPrice(installmentValue)}`
+              : activeInstallments > 1
+                ? `Assinar — ${activeInstallments}x de ${fmtPrice(installmentValue)}${activeInstallments > 3 ? ' + juros' : ''}`
                 : `Assinar por ${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
           </Button>
 
