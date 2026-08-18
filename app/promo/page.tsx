@@ -1,89 +1,110 @@
-import Link from 'next/link'
-import type { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: '50% de Desconto no Plano Pro — Meu Atelier Sistema',
-  description:
-    '50% de desconto no primeiro mês do Plano Pro do Meu Atelier Sistema. Gerencie clientes, ordens de serviço, financeiro e estoque do seu ateliê em um só lugar.',
-  openGraph: {
-    title: '50% Off no Plano Pro — Meu Atelier Sistema',
-    description:
-      'Assine o Plano Pro com 50% de desconto no primeiro mês. Gestão completa para ateliês de costura e artesanato.',
-    url: 'https://meuateliersistema.com.br/promo',
-    type: 'website',
-    locale: 'pt_BR',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '50% Off — Meu Atelier Sistema',
-  },
-  alternates: {
-    canonical: 'https://meuateliersistema.com.br/promo',
-  },
-  robots: { index: true, follow: true },
-}
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20promo%C3%A7%C3%A3o%20de%2050%25%20do%20Meu%20Atelier%20Sistema%20e%20gostaria%20de%20saber%20mais!'
+const DEADLINE = new Date('2026-09-15T23:59:59')
 
 const features = [
   {
     title: 'Gestão de Clientes',
-    desc: 'Cadastro completo com histórico de pedidos, endereço, telefone e anotações. Busca rápida e filtros por categoria.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
+    desc: 'Cadastro completo com histórico de pedidos, endereço, telefone e anotações. Busca rápida e filtros.',
+    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8 2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm1 8v-2a4 4 0 0 0-3-3.87',
   },
   {
     title: 'Ordens de Serviço',
-    desc: 'Crie e acompanhe cada pedido com status, prazo de entrega, materiais e fotos. Histórico completo por cliente.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-    ),
+    desc: 'Crie e acompanhe cada pedido com status, prazo de entrega, materiais e observações.',
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
   },
   {
     title: 'Controle Financeiro',
-    desc: 'Caixa diário, contas a pagar e receber, fluxo de caixa e relatórios. Saiba exatamente quanto seu ateliê fatura.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-      </svg>
-    ),
+    desc: 'Caixa diário, contas a pagar e receber, fluxo de caixa. Saiba exatamente quanto fatura.',
+    icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
   },
   {
     title: 'Estoque de Materiais',
-    desc: 'Controle entradas e saídas de tecidos, linhas e aviamentos. Alertas de estoque mínimo para nunca faltar material.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-      </svg>
-    ),
+    desc: 'Controle entradas e saídas de tecidos e aviamentos. Alerta de estoque mínimo.',
+    icon: 'M2 7h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2',
   },
   {
     title: 'Dashboard e Relatórios',
-    desc: 'Visão geral do negócio com gráficos de faturamento, serviços mais vendidos e métricas de crescimento.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-    ),
+    desc: 'Gráficos de faturamento, serviços mais vendidos e métricas de crescimento do ateliê.',
+    icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
   },
   {
     title: 'Catálogo de Serviços',
-    desc: 'Monte sua tabela de preços com categorias, tempo estimado e custo de produção. Gere orçamentos em segundos.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    ),
+    desc: 'Tabela de preços com categorias e tempo estimado. Gere orçamentos em segundos.',
+    icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
   },
 ]
+
+const faqs = [
+  {
+    q: 'Preciso saber usar computador para usar o sistema?',
+    a: 'Não. O Meu Atelier Sistema foi feito pensando em quem costura, não em quem programa. A tela é simples, direta e funciona no celular também.',
+  },
+  {
+    q: 'Meus dados ficam seguros?',
+    a: 'Sim. Seus dados ficam em servidores profissionais com criptografia e backup automático. Nenhum outro ateliê tem acesso às suas informações.',
+  },
+  {
+    q: 'E se eu quiser cancelar?',
+    a: 'Cancele quando quiser, sem multa e sem burocracia. Seus dados ficam disponíveis para exportar por 30 dias após o cancelamento.',
+  },
+  {
+    q: 'O cupom funciona em qual momento?',
+    a: 'Aplique o cupom PROMO50 na hora de assinar o Plano Pro. O desconto é aplicado automaticamente na primeira cobrança.',
+  },
+]
+
+function Countdown() {
+  const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 })
+
+  useEffect(() => {
+    function calc() {
+      const diff = DEADLINE.getTime() - Date.now()
+      if (diff <= 0) return
+      setTime({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      })
+    }
+    calc()
+    const id = setInterval(calc, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  return (
+    <div className="countdown">
+      {[{ v: pad(time.d), l: 'dias' }, { v: pad(time.h), l: 'horas' }, { v: pad(time.m), l: 'min' }, { v: pad(time.s), l: 'seg' }].map(({ v, l }) => (
+        <div key={l} className="cd-cell">
+          <span className="cd-num">{v}</span>
+          <span className="cd-label">{l}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`faq-item ${open ? 'open' : ''}`}>
+      <button className="faq-q" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span>{q}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && <p className="faq-a">{a}</p>}
+    </div>
+  )
+}
 
 export default function PromoPage() {
   const jsonLd = {
@@ -94,7 +115,7 @@ export default function PromoPage() {
     url: 'https://meuateliersistema.com.br/promo',
     priceCurrency: 'BRL',
     price: '24.95',
-    priceValidUntil: '2026-12-31',
+    priceValidUntil: '2026-09-15',
     seller: { '@type': 'Organization', name: 'Meu Atelier Sistema', url: 'https://meuateliersistema.com.br' },
     eligibleCustomerType: 'https://schema.org/NewCustomer',
     availability: 'https://schema.org/InStock',
@@ -110,68 +131,163 @@ export default function PromoPage() {
           --bg: #F7F3F1; --bg2: #EDE8E5; --surface: #FFFFFF;
           --accent: #C8253A; --accent2: #9E1B2C;
           --text: #1A0F0F; --muted: #7A6A68; --border: rgba(26,15,15,0.10);
+          --green: #1A8A3C;
         }
         @media (prefers-color-scheme: dark) {
           :root:not([data-theme="light"]) {
             --bg: #0D0A0A; --bg2: #161110; --surface: #1F1818;
             --text: #F5F0EE; --muted: #8A7F7E; --border: rgba(245,240,238,0.08);
+            --green: #2DB356;
           }
         }
         :root[data-theme="dark"] {
           --bg: #0D0A0A; --bg2: #161110; --surface: #1F1818;
           --text: #F5F0EE; --muted: #8A7F7E; --border: rgba(245,240,238,0.08);
+          --green: #2DB356;
         }
         body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+        /* NAV */
         .promo-nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
         .promo-nav-brand { font-family: 'Playfair Display', serif; font-size: 17px; font-style: italic; color: var(--text); text-decoration: none; }
         .promo-badge { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; background: var(--accent); color: #fff; padding: 4px 10px; border-radius: 20px; }
-        .promo-hero { text-align: center; padding: 80px 24px 64px; max-width: 720px; margin: 0 auto; }
+
+        /* HERO */
+        .promo-hero { text-align: center; padding: 72px 24px 56px; max-width: 720px; margin: 0 auto; }
         .promo-eyebrow { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 28px; padding: 6px 16px; border: 1px solid rgba(200,37,58,0.3); border-radius: 20px; }
         .promo-disc-wrap { display: flex; align-items: center; justify-content: center; line-height: 1; margin-bottom: 16px; }
-        .promo-disc-num { font-family: 'Playfair Display', serif; font-size: clamp(110px, 22vw, 180px); font-weight: 900; color: var(--accent); letter-spacing: -0.04em; line-height: 0.9; }
-        .promo-disc-pct { font-family: 'Playfair Display', serif; font-size: clamp(48px, 10vw, 80px); font-weight: 700; color: var(--accent); align-self: flex-start; padding-top: clamp(20px, 4vw, 36px); }
-        .promo-h1 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 32px); font-weight: 400; font-style: italic; color: var(--text); text-wrap: balance; margin-bottom: 12px; }
-        .promo-detail { font-size: 15px; color: var(--muted); margin-bottom: 40px; }
-        .promo-price-row { display: flex; align-items: baseline; justify-content: center; gap: 12px; margin-bottom: 36px; }
+        .promo-disc-num { font-family: 'Playfair Display', serif; font-size: clamp(100px, 20vw, 160px); font-weight: 900; color: var(--accent); letter-spacing: -0.04em; line-height: 0.9; }
+        .promo-disc-pct { font-family: 'Playfair Display', serif; font-size: clamp(44px, 9vw, 72px); font-weight: 700; color: var(--accent); align-self: flex-start; padding-top: clamp(18px, 3.5vw, 32px); }
+        .promo-h1 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 400; font-style: italic; color: var(--text); text-wrap: balance; margin-bottom: 12px; }
+        .promo-detail { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
+        .promo-price-row { display: flex; align-items: baseline; justify-content: center; gap: 12px; margin-bottom: 12px; }
         .promo-old { font-size: 20px; color: var(--muted); text-decoration: line-through; }
         .promo-new { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: var(--accent); }
         .promo-period { font-size: 14px; color: var(--muted); }
+        .promo-annual-hint { font-size: 13px; color: var(--green); font-weight: 600; margin-bottom: 28px; }
         .promo-btn { display: inline-block; padding: 18px 48px; background: var(--accent); color: #fff; border-radius: 4px; font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background 0.2s; }
         .promo-btn:hover { background: var(--accent2); }
         .promo-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
+
+        /* COUNTDOWN */
+        .urgency-bar { background: var(--accent); color: #fff; text-align: center; padding: 14px 24px; }
+        .urgency-bar p { font-size: 13px; font-weight: 500; margin-bottom: 10px; letter-spacing: 0.04em; }
+        .countdown { display: inline-flex; gap: 8px; justify-content: center; }
+        .cd-cell { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.18); border-radius: 4px; padding: 6px 12px; min-width: 52px; }
+        .cd-num { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+        .cd-label { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; opacity: 0.85; }
+
+        /* DIVIDER */
         .promo-divider { width: 40px; height: 2px; background: var(--accent); margin: 0 auto 64px; opacity: 0.3; }
-        .promo-feats-wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+        /* FEATURES */
+        .promo-feats-wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 72px; }
         .promo-section-label { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 48px; }
         .promo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .promo-card { background: var(--surface); padding: 32px 28px; transition: background 0.15s; }
         .promo-card:hover { background: var(--bg2); }
-        .promo-icon { width: 40px; height: 40px; margin-bottom: 20px; color: var(--accent); }
-        .promo-feat-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
-        .promo-feat-desc { font-size: 14px; color: var(--muted); line-height: 1.65; }
-        .promo-proof { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 64px 24px; text-align: center; margin-bottom: 80px; }
-        .promo-proof-h { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 44px); font-weight: 700; font-style: italic; color: var(--text); text-wrap: balance; max-width: 640px; margin: 0 auto 24px; }
-        .promo-proof-h em { color: var(--accent); font-style: normal; }
-        .promo-stats { display: flex; justify-content: center; gap: 64px; flex-wrap: wrap; margin-top: 40px; }
-        .promo-stat-num { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 900; color: var(--text); display: block; line-height: 1; margin-bottom: 6px; }
-        .promo-stat-label { font-size: 13px; color: var(--muted); }
+        .promo-icon { width: 36px; height: 36px; margin-bottom: 18px; color: var(--accent); }
+        .promo-feat-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .promo-feat-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+        /* MOCKUP */
+        .mockup-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
+        .mockup-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 34px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
+        .mockup-section p { font-size: 14px; color: var(--muted); margin-bottom: 48px; }
+        .mockup-frame { max-width: 820px; margin: 0 auto; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
+        .mockup-bar { background: var(--bg2); padding: 10px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
+        .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .mockup-url { flex: 1; background: var(--bg); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-align: center; margin: 0 12px; }
+        .mockup-body { padding: 24px; text-align: left; }
+        .mk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .mk-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--text); }
+        .mk-btn-sm { background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 4px; letter-spacing: 0.06em; }
+        .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .mk-stat { background: var(--bg2); border-radius: 8px; padding: 14px; }
+        .mk-stat-val { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+        .mk-stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+        .mk-stat-accent { color: var(--accent); }
+        .mk-stat-green { color: var(--green); }
+        .mk-table-wrap { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .mk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .mk-table th { background: var(--bg2); padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--border); }
+        .mk-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .mk-table tr:last-child td { border-bottom: none; }
+        .mk-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .mk-status-open { background: rgba(200,37,58,0.12); color: var(--accent); }
+        .mk-status-done { background: rgba(26,138,60,0.12); color: var(--green); }
+        .mk-status-prog { background: rgba(200,150,37,0.12); color: #b87a10; }
+
+        /* TESTIMONIAL */
+        .testimonial-section { max-width: 800px; margin: 0 auto; padding: 72px 24px; text-align: center; }
+        .testimonial-section .promo-section-label { margin-bottom: 40px; }
+        .testimonial-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: left; position: relative; }
+        .testimonial-quote { font-family: 'Playfair Display', serif; font-size: clamp(18px, 2.5vw, 22px); font-style: italic; color: var(--text); line-height: 1.6; margin-bottom: 28px; text-wrap: balance; }
+        .testimonial-quote::before { content: '"'; font-size: 80px; color: var(--accent); opacity: 0.2; position: absolute; top: 8px; left: 28px; font-style: normal; line-height: 1; pointer-events: none; }
+        .testimonial-author { display: flex; align-items: center; gap: 14px; }
+        .testimonial-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, #7A1524 100%); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .testimonial-name { font-weight: 600; font-size: 15px; color: var(--text); }
+        .testimonial-loc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+        .testimonial-stars { display: flex; gap: 3px; margin-bottom: 4px; }
+
+        /* GUARANTEE */
+        .guarantee-bar { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg2); padding: 36px 24px; text-align: center; }
+        .guarantee-inner { display: inline-flex; align-items: center; gap: 20px; max-width: 560px; text-align: left; }
+        .guarantee-icon { width: 56px; height: 56px; flex-shrink: 0; background: rgba(26,138,60,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--green); }
+        .guarantee-title { font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 4px; }
+        .guarantee-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+        /* PRICING */
+        .pricing-section { max-width: 800px; margin: 0 auto; padding: 72px 24px; text-align: center; }
+        .pricing-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 32px); font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .pricing-section > p { font-size: 14px; color: var(--muted); margin-bottom: 40px; }
+        .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .pricing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 32px 28px; text-align: left; position: relative; }
+        .pricing-card.highlighted { border-color: var(--accent); border-width: 2px; }
+        .pricing-tag { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
+        .pricing-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+        .pricing-price { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 900; color: var(--text); line-height: 1; }
+        .pricing-price span { font-size: 15px; font-weight: 400; color: var(--muted); }
+        .pricing-old { font-size: 14px; color: var(--muted); text-decoration: line-through; margin-top: 4px; }
+        .pricing-saving { font-size: 13px; color: var(--green); font-weight: 600; margin-top: 4px; }
+        .pricing-desc { font-size: 13px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+        .pricing-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+        /* FAQ */
+        .faq-section { max-width: 680px; margin: 0 auto; padding: 0 24px 72px; }
+        .faq-item { border-bottom: 1px solid var(--border); }
+        .faq-q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; background: none; border: none; cursor: pointer; text-align: left; font-size: 15px; font-weight: 500; color: var(--text); font-family: inherit; }
+        .faq-q:hover { color: var(--accent); }
+        .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; padding-bottom: 18px; }
+
+        /* CTA */
         .promo-cta { text-align: center; padding: 0 24px 96px; max-width: 600px; margin: 0 auto; }
-        .promo-cta-title { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 40px); font-weight: 700; color: var(--text); text-wrap: balance; margin-bottom: 16px; }
-        .promo-cta-sub { font-size: 15px; color: var(--muted); margin-bottom: 36px; line-height: 1.7; }
-        .promo-coupon { display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 32px; background: rgba(200,37,58,0.05); }
+        .promo-cta-title { font-family: 'Playfair Display', serif; font-size: clamp(26px, 5vw, 38px); font-weight: 700; color: var(--text); text-wrap: balance; margin-bottom: 14px; }
+        .promo-cta-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; line-height: 1.7; }
+        .promo-coupon { display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: rgba(200,37,58,0.05); }
         .promo-coupon-label { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
         .promo-coupon-code { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
-        .promo-wa-btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: #25D366; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.2s; margin-top: 16px; }
+        .promo-wa-btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: #25D366; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.2s; margin-top: 14px; }
         .promo-wa-btn:hover { background: #1EB757; }
+        .promo-note { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+        /* FOOTER */
         .promo-footer { border-top: 1px solid var(--border); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
         .promo-footer-copy { font-size: 12px; color: var(--muted); }
         .promo-footer-links { display: flex; gap: 20px; }
         .promo-footer-links a { font-size: 12px; color: var(--muted); text-decoration: none; }
         .promo-footer-links a:hover { color: var(--text); }
+
         @media (max-width: 720px) {
           .promo-nav { padding: 14px 20px; }
           .promo-grid { grid-template-columns: 1fr; }
-          .promo-stats { gap: 36px; }
+          .mk-stats { grid-template-columns: repeat(2, 1fr); }
+          .pricing-cards { grid-template-columns: 1fr; }
+          .guarantee-inner { flex-direction: column; text-align: center; }
           .promo-footer { flex-direction: column; align-items: center; text-align: center; }
+          .countdown { gap: 5px; }
+          .cd-cell { min-width: 44px; padding: 5px 8px; }
+          .cd-num { font-size: 22px; }
         }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       `}</style>
@@ -181,6 +297,12 @@ export default function PromoPage() {
         <Link href="/" className="promo-nav-brand">Meu Atelier Sistema</Link>
         <span className="promo-badge">Oferta por tempo limitado</span>
       </nav>
+
+      {/* URGENCY BAR */}
+      <div className="urgency-bar">
+        <p>⏰ Promoção encerra em</p>
+        <Countdown />
+      </div>
 
       {/* HERO */}
       <section className="promo-hero">
@@ -198,8 +320,9 @@ export default function PromoPage() {
           <span className="promo-new">R$ 24,95</span>
           <span className="promo-period">/1º mês</span>
         </div>
-        <Link href="/cadastro" className="promo-btn">Começar agora</Link>
-        <p className="promo-note">Sem cartão de crédito para começar · Plano gratuito disponível</p>
+        <p className="promo-annual-hint">💡 Ou assine anual por R$ 498/ano e economize R$ 100</p>
+        <Link href="/cadastro" className="promo-btn">Começar agora com 50% off</Link>
+        <p className="promo-note">Sem cartão de crédito para começar · 7 dias de garantia</p>
       </section>
 
       <div className="promo-divider" />
@@ -210,7 +333,9 @@ export default function PromoPage() {
         <div className="promo-grid">
           {features.map((f) => (
             <div key={f.title} className="promo-card">
-              <div className="promo-icon">{f.icon}</div>
+              <svg className="promo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d={f.icon} />
+              </svg>
               <h2 className="promo-feat-title">{f.title}</h2>
               <p className="promo-feat-desc">{f.desc}</p>
             </div>
@@ -218,34 +343,131 @@ export default function PromoPage() {
         </div>
       </section>
 
-      {/* PROOF */}
-      <section className="promo-proof">
-        <p className="promo-proof-h">
-          Tudo em um só lugar — do pedido ao <em>acabamento</em>
-        </p>
-        <p style={{ fontSize: 15, color: 'var(--muted)', maxWidth: 520, margin: '0 auto' }}>
-          Chega de cadernos, planilhas e anotações espalhadas. O Meu Atelier Sistema centraliza toda a gestão do seu negócio, para você focar no que faz de melhor.
-        </p>
-        <div className="promo-stats">
-          {[
-            { num: 'Ilimitado', label: 'clientes cadastrados' },
-            { num: '3', label: 'usuários por conta' },
-            { num: '100%', label: 'na nuvem · acesse de qualquer lugar' },
-          ].map((s) => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <span className="promo-stat-num">{s.num}</span>
-              <span className="promo-stat-label">{s.label}</span>
+      {/* MOCKUP */}
+      <section className="mockup-section">
+        <h2>Veja como é simples de usar</h2>
+        <p>Interface limpa, direto ao ponto — feita para quem trabalha com costura, não com tecnologia</p>
+        <div className="mockup-frame">
+          <div className="mockup-bar">
+            <div className="mockup-dot" style={{ background: '#FF5F57' }} />
+            <div className="mockup-dot" style={{ background: '#FEBC2E' }} />
+            <div className="mockup-dot" style={{ background: '#28C840' }} />
+            <div className="mockup-url">meuateliersistema.com.br/dashboard</div>
+          </div>
+          <div className="mockup-body">
+            <div className="mk-header">
+              <div className="mk-title">Ordens de Serviço</div>
+              <div className="mk-btn-sm">+ Nova OS</div>
             </div>
-          ))}
+            <div className="mk-stats">
+              <div className="mk-stat">
+                <div className="mk-stat-val mk-stat-accent">12</div>
+                <div className="mk-stat-lbl">Em aberto</div>
+              </div>
+              <div className="mk-stat">
+                <div className="mk-stat-val" style={{ color: '#b87a10' }}>5</div>
+                <div className="mk-stat-lbl">Em andamento</div>
+              </div>
+              <div className="mk-stat">
+                <div className="mk-stat-val mk-stat-green">38</div>
+                <div className="mk-stat-lbl">Concluídas</div>
+              </div>
+              <div className="mk-stat">
+                <div className="mk-stat-val mk-stat-green">R$ 4.820</div>
+                <div className="mk-stat-lbl">Faturado/mês</div>
+              </div>
+            </div>
+            <div className="mk-table-wrap">
+              <table className="mk-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Cliente</th><th>Serviço</th><th>Entrega</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-status mk-status-prog">Andamento</span></td></tr>
+                  <tr><td>#000041</td><td>Carla Mendes</td><td>Calça jeans ajuste</td><td>18/08</td><td><span className="mk-status mk-status-open">Em aberto</span></td></tr>
+                  <tr><td>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-status mk-status-done">Concluída</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
+      </section>
+
+      {/* TESTIMONIAL */}
+      <section className="testimonial-section">
+        <p className="promo-section-label">Quem já usa</p>
+        <div className="testimonial-card">
+          <div className="testimonial-stars">
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#C8253A" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            ))}
+          </div>
+          <p className="testimonial-quote">
+            Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. Não imagino trabalhar sem ele.
+          </p>
+          <div className="testimonial-author">
+            <div className="testimonial-avatar">N</div>
+            <div>
+              <div className="testimonial-name">NETE Fashion Atelier</div>
+              <div className="testimonial-loc">Vila Velha, ES</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* GUARANTEE */}
+      <div className="guarantee-bar">
+        <div className="guarantee-inner">
+          <div className="guarantee-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+            </svg>
+          </div>
+          <div>
+            <div className="guarantee-title">7 dias de garantia total</div>
+            <div className="guarantee-desc">Se em 7 dias você não gostar, devolvemos o valor pago sem perguntas. Zero risco para você começar.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* PRICING ANCHOR */}
+      <section className="pricing-section">
+        <h2>Escolha como quer assinar</h2>
+        <p>Ambos incluem todas as funcionalidades do Plano Pro</p>
+        <div className="pricing-cards">
+          <div className="pricing-card highlighted">
+            <div className="pricing-tag">🔥 Com cupom PROMO50</div>
+            <div className="pricing-label">Mensal</div>
+            <div className="pricing-price">R$ 24,95 <span>/1º mês</span></div>
+            <div className="pricing-old">de R$ 49,90/mês</div>
+            <div className="pricing-saving">Economize R$ 24,95 agora</div>
+            <hr className="pricing-divider" />
+            <div className="pricing-desc">Após o 1º mês, R$ 49,90/mês. Cancele quando quiser.</div>
+          </div>
+          <div className="pricing-card">
+            <div className="pricing-label">Anual</div>
+            <div className="pricing-price">R$ 498 <span>/ano</span></div>
+            <div className="pricing-saving">Economize R$ 100 comparado ao mensal</div>
+            <hr className="pricing-divider" />
+            <div className="pricing-desc">Equivale a R$ 41,50/mês. Pagamento único anual.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="faq-section">
+        <p className="promo-section-label" style={{ textAlign: 'center', marginBottom: 32 }}>Perguntas frequentes</p>
+        {faqs.map((f) => <FaqItem key={f.q} q={f.q} a={f.a} />)}
       </section>
 
       {/* CTA FINAL */}
       <section className="promo-cta">
-        <h2 className="promo-cta-title">Use o cupom e comece hoje</h2>
+        <h2 className="promo-cta-title">Comece agora com 50% off</h2>
         <p className="promo-cta-sub">
-          Plano Pro por <strong style={{ color: 'var(--text)' }}>R$ 24,95</strong> no primeiro mês.
-          Após isso, <strong style={{ color: 'var(--text)' }}>R$ 49,90/mês</strong> — cancele quando quiser, sem fidelidade.
+          Use o cupom abaixo na assinatura do Plano Pro.
+          Primeiro mês por <strong style={{ color: 'var(--text)' }}>R$ 24,95</strong>. Depois R$ 49,90/mês.
         </p>
         <div className="promo-coupon">
           <span className="promo-coupon-label">Cupom</span>
@@ -260,8 +482,8 @@ export default function PromoPage() {
           </svg>
           Falar com suporte no WhatsApp
         </a>
-        <p className="promo-note" style={{ marginTop: 16 }}>
-          Desconto válido apenas na 1ª cobrança
+        <p className="promo-note" style={{ marginTop: 14 }}>
+          Desconto válido apenas na 1ª cobrança · Garantia de 7 dias
         </p>
       </section>
 
