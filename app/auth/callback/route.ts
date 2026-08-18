@@ -7,6 +7,15 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  // Em produção atrás de proxy (Vercel), usar o host do header forwarded
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  const baseUrl = isLocalEnv
+    ? origin
+    : forwardedHost
+      ? `https://${forwardedHost}`
+      : origin
+
   if (code) {
     const cookieStore = await cookies()
 
@@ -27,9 +36,9 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${baseUrl}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=oauth`)
+  return NextResponse.redirect(`${baseUrl}/login?error=oauth`)
 }
