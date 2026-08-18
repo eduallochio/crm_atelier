@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations } from '@/lib/db/schema'
+import { organizations, plans } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getSubscription } from '@/lib/asaas'
 import { logServerError } from '@/lib/log-error'
@@ -24,14 +24,23 @@ export async function GET() {
       return NextResponse.json({ plan: org?.plan ?? 'free', next_due_date: null, status: org?.subscriptionStatus ?? 'inactive' })
     }
 
-    const subscription = await getSubscription(org.asaasSubscriptionId)
+    const [subscription, planRow] = await Promise.all([
+      getSubscription(org.asaasSubscriptionId),
+      db.select({ price: plans.price, priceAnnual: plans.priceAnnual })
+        .from(plans).where(eq(plans.slug, org.plan)).limit(1).then(r => r[0] ?? null),
+    ])
+
+    const cycle = subscription.cycle
+    const value = cycle === 'YEARLY'
+      ? parseFloat(planRow?.priceAnnual ?? '0') || parseFloat(planRow?.price ?? '0') * 10
+      : parseFloat(planRow?.price ?? String(subscription.value))
 
     return NextResponse.json({
       plan:          org.plan,
       status:        org.subscriptionStatus,
       next_due_date: subscription.nextDueDate,
-      cycle:         subscription.cycle,
-      value:         subscription.value,
+      cycle,
+      value,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
