@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, coupons, couponUsages, plans } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import {
   createCustomer,
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       })
       await db
         .update(coupons)
-        .set({ usesCount: (couponRow.usesCount ?? 0) + 1 })
+        .set({ usesCount: sql`coalesce(${coupons.usesCount}, 0) + 1` })
         .where(eq(coupons.id, couponRow.id))
     }
 
