@@ -99,6 +99,7 @@ export interface AsaasCreditCardHolderInfo {
   addressNumber?: string
   phone?: string
   mobilePhone?: string
+  // addressNumber é obrigatório pelo Asaas para assinaturas com cartão
 }
 
 export async function createSubscription(data: {

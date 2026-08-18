@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       card_holder_cpf,
       card_holder_phone,
       card_holder_postal_code,
+      card_holder_address_number,
     } = body
 
     const ALLOWED_BILLING_TYPES = ['PIX', 'CREDIT_CARD']
@@ -188,8 +189,9 @@ export async function POST(req: NextRequest) {
           name:        card_holder_name,
           email:       org.email ?? user.email ?? '',
           cpfCnpj:     card_holder_cpf.replace(/\D/g, ''),
-          mobilePhone: card_holder_phone?.replace(/\D/g, '') || org.phone?.replace(/\D/g, ''),
-          postalCode:  card_holder_postal_code?.replace(/\D/g, ''),
+          mobilePhone:   card_holder_phone?.replace(/\D/g, '') || org.phone?.replace(/\D/g, ''),
+          postalCode:    card_holder_postal_code?.replace(/\D/g, ''),
+          addressNumber: card_holder_address_number,
         },
         remoteIp,
         ...(installment_count && installment_count > 1 && {
