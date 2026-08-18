@@ -211,8 +211,31 @@ export function SubscriptionSettingsForm() {
     }
   }
 
+  const isOverdue = isPro && subscriptionInfo?.status === 'overdue'
+
   return (
     <div className="space-y-8">
+
+      {/* Banner de inadimplência */}
+      {isOverdue && (
+        <div className="rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-700 dark:text-red-400 text-sm">Pagamento pendente</p>
+            <p className="text-sm text-red-600 dark:text-red-300 mt-0.5">
+              Há uma cobrança em atraso na sua assinatura Pro. Regularize o pagamento para evitar a suspensão do plano.
+            </p>
+            <a
+              href="https://www.asaas.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-400 underline mt-2"
+            >
+              Regularizar pagamento <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Plano atual */}
       <div className="rounded-2xl border border-border bg-card p-6">
@@ -220,7 +243,7 @@ export function SubscriptionSettingsForm() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">Plano atual</h3>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {isPro ? 'Você está no plano Pro' : 'Você está no plano Gratuito'}
+              {isOverdue ? 'Plano Pro — pagamento em atraso' : isPro ? 'Você está no plano Pro' : 'Você está no plano Gratuito'}
             </p>
             {isPro && subscriptionInfo?.next_due_date && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
@@ -232,9 +255,11 @@ export function SubscriptionSettingsForm() {
           </div>
           <div className="flex items-center gap-2">
             <span className={cn('text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide',
-              isPro ? 'bg-[#c8714a]/10 text-[#c8714a]' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              isOverdue  ? 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400' :
+              isPro      ? 'bg-[#c8714a]/10 text-[#c8714a]' :
+                           'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
             )}>
-              {isPro ? 'Pro' : 'Free'}
+              {isOverdue ? 'Em atraso' : isPro ? 'Pro' : 'Free'}
             </span>
             {isPro && subscriptionInfo?.next_due_date && (
               <AlertDialog>
