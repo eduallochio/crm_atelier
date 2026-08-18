@@ -63,3 +63,4 @@ docs-banco/
 
 # Supabase migration workspace (SQL drafts, dumps, segredos)
 supabase-migration/
+supabase/migrations/

@@ -17,7 +17,8 @@ export default async function proxy(request: NextRequest) {
     nextUrl.pathname === '/' ||
     nextUrl.pathname.startsWith('/lgpd') ||
     nextUrl.pathname.startsWith('/termos') ||
-    nextUrl.pathname.startsWith('/privacidade')
+    nextUrl.pathname.startsWith('/privacidade') ||
+    nextUrl.pathname.startsWith('/promo')
 
   // Rotas de API e callback OAuth: apenas atualiza sessão, sem redirecionamento
   if (isApiRoute || isAuthCallback) {
@@ -28,7 +29,8 @@ export default async function proxy(request: NextRequest) {
   const isStrictPublic =
     nextUrl.pathname.startsWith('/lgpd') ||
     nextUrl.pathname.startsWith('/termos') ||
-    nextUrl.pathname.startsWith('/privacidade')
+    nextUrl.pathname.startsWith('/privacidade') ||
+    nextUrl.pathname.startsWith('/promo')
 
   if (isStrictPublic) {
     return await updateSession(request).then((r) => r.supabaseResponse)
