@@ -83,6 +83,24 @@ export async function findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCusto
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
 
+export interface AsaasCreditCard {
+  holderName: string
+  number: string
+  expiryMonth: string
+  expiryYear: string
+  ccv: string
+}
+
+export interface AsaasCreditCardHolderInfo {
+  name: string
+  email: string
+  cpfCnpj: string
+  postalCode?: string
+  addressNumber?: string
+  phone?: string
+  mobilePhone?: string
+}
+
 export async function createSubscription(data: {
   customer: string
   billingType: 'BOLETO' | 'CREDIT_CARD' | 'PIX'
@@ -92,6 +110,9 @@ export async function createSubscription(data: {
   description: string
   discount?: { value: number; type: 'FIXED' | 'PERCENTAGE' }
   externalReference?: string
+  creditCard?: AsaasCreditCard
+  creditCardHolderInfo?: AsaasCreditCardHolderInfo
+  remoteIp?: string
 }): Promise<AsaasSubscription> {
   return asaasFetch<AsaasSubscription>('/subscriptions', {
     method: 'POST',

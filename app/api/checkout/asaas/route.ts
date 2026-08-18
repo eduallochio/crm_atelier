@@ -19,15 +19,32 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const {
-      billing_type,   // 'BOLETO' | 'CREDIT_CARD' | 'PIX'
+      billing_type,      // 'CREDIT_CARD' | 'PIX'
       cycle = 'MONTHLY', // 'MONTHLY' | 'YEARLY'
       plan = 'pro',
       coupon_code,
+      // Dados de cartão (apenas quando billing_type === 'CREDIT_CARD')
+      card_holder_name,
+      card_number,
+      card_expiry_month,
+      card_expiry_year,
+      card_ccv,
+      card_holder_cpf,
+      card_holder_phone,
     } = body
 
     const ALLOWED_BILLING_TYPES = ['PIX', 'CREDIT_CARD']
     if (!billing_type || !ALLOWED_BILLING_TYPES.includes(billing_type)) {
       return NextResponse.json({ error: 'Método de pagamento inválido' }, { status: 400 })
+    }
+
+    if (billing_type === 'CREDIT_CARD') {
+      if (!card_holder_name || !card_number || !card_expiry_month || !card_expiry_year || !card_ccv) {
+        return NextResponse.json({ error: 'Dados do cartão incompletos' }, { status: 400 })
+      }
+      if (!card_holder_cpf) {
+        return NextResponse.json({ error: 'CPF do titular é obrigatório para pagamento com cartão' }, { status: 400 })
+      }
     }
 
     // Buscar dados da organização
@@ -136,6 +153,9 @@ export async function POST(req: NextRequest) {
     // Criar assinatura
     const nextDueDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 
+    const forwardedFor = req.headers.get('x-forwarded-for')
+    const remoteIp = forwardedFor?.split(',')[0]?.trim() ?? '127.0.0.1'
+
     const subscription = await createSubscription({
       customer:          asaasCustomerId,
       billingType:       billing_type,
@@ -145,6 +165,22 @@ export async function POST(req: NextRequest) {
       description:       `Meu Atelier Sistema — Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`,
       discount,
       externalReference: org.id,
+      ...(billing_type === 'CREDIT_CARD' && {
+        creditCard: {
+          holderName:  card_holder_name,
+          number:      card_number.replace(/\s/g, ''),
+          expiryMonth: card_expiry_month,
+          expiryYear:  card_expiry_year,
+          ccv:         card_ccv,
+        },
+        creditCardHolderInfo: {
+          name:        card_holder_name,
+          email:       org.email ?? user.email ?? '',
+          cpfCnpj:     card_holder_cpf.replace(/\D/g, ''),
+          mobilePhone: card_holder_phone?.replace(/\D/g, '') || org.phone?.replace(/\D/g, '') || undefined,
+        },
+        remoteIp,
+      }),
     })
 
     // Salvar subscription_id na organização

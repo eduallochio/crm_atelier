@@ -104,6 +104,14 @@ export function SubscriptionSettingsForm() {
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // Dados do cartão
+  const [cardHolderName, setCardHolderName] = useState('')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiry, setCardExpiry] = useState('')   // MM/AAAA
+  const [cardCcv, setCardCcv] = useState('')
+  const [cardHolderCpf, setCardHolderCpf] = useState('')
+  const [cardHolderPhone, setCardHolderPhone] = useState('')
+
   const { data: usage, isLoading: loadingUsage } = useQuery<PlanUsage>({
     queryKey: ['plan-usage'],
     queryFn: async () => {
@@ -187,22 +195,48 @@ export function SubscriptionSettingsForm() {
   }
 
   async function handleCheckout() {
+    if (billingType === 'CREDIT_CARD') {
+      if (!cardHolderName.trim() || !cardNumber.trim() || !cardExpiry.trim() || !cardCcv.trim()) {
+        toast.error('Preencha todos os dados do cartão')
+        return
+      }
+      if (!cardHolderCpf.trim()) {
+        toast.error('Informe o CPF do titular do cartão')
+        return
+      }
+    }
+
     setSubmitting(true)
     try {
+      const [expiryMonth, expiryYear] = cardExpiry.split('/')
+
       const res = await fetch('/api/checkout/asaas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          billing_type: billingType,
+          billing_type:       billingType,
           cycle,
-          plan: 'pro',
-          coupon_code: couponResult?.valid ? couponCode : undefined,
+          plan:               'pro',
+          coupon_code:        couponResult?.valid ? couponCode : undefined,
+          card_holder_name:   billingType === 'CREDIT_CARD' ? cardHolderName.trim() : undefined,
+          card_number:        billingType === 'CREDIT_CARD' ? cardNumber.replace(/\s/g, '') : undefined,
+          card_expiry_month:  billingType === 'CREDIT_CARD' ? expiryMonth?.trim() : undefined,
+          card_expiry_year:   billingType === 'CREDIT_CARD' ? expiryYear?.trim() : undefined,
+          card_ccv:           billingType === 'CREDIT_CARD' ? cardCcv.trim() : undefined,
+          card_holder_cpf:    billingType === 'CREDIT_CARD' ? cardHolderCpf : undefined,
+          card_holder_phone:  billingType === 'CREDIT_CARD' ? cardHolderPhone : undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erro ao processar pagamento')
 
-      toast.success('Assinatura criada! Você receberá as instruções de pagamento por e-mail.')
+      if (billingType === 'PIX') {
+        toast.success('Assinatura criada! Você receberá as instruções de pagamento por e-mail.')
+      } else {
+        toast.success('Assinatura criada com sucesso! Seu plano Pro já está ativo.')
+        queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
+        queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+      }
       setShowCheckout(false)
     } catch (err) {
       toast.error((err as Error).message)
@@ -412,7 +446,12 @@ export function SubscriptionSettingsForm() {
               <Crown className="h-5 w-5 text-[#c8714a]" />
               Assinar Plano Pro
             </h3>
-            <Button variant="ghost" size="icon" onClick={() => { setShowCheckout(false); removeCoupon() }}>
+            <Button variant="ghost" size="icon" onClick={() => {
+              setShowCheckout(false)
+              removeCoupon()
+              setCardHolderName(''); setCardNumber(''); setCardExpiry('')
+              setCardCcv(''); setCardHolderCpf(''); setCardHolderPhone('')
+            }}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -470,6 +509,90 @@ export function SubscriptionSettingsForm() {
               })}
             </div>
           </div>
+
+          {/* Formulário de cartão */}
+          {billingType === 'CREDIT_CARD' && (
+            <div className="space-y-3 rounded-xl border border-border p-4 bg-muted/30">
+              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <CreditCard className="h-4 w-4 text-[#c8714a]" />
+                Dados do cartão
+              </p>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Nome no cartão</Label>
+                <Input
+                  placeholder="NOME SOBRENOME"
+                  value={cardHolderName}
+                  onChange={e => setCardHolderName(e.target.value.toUpperCase())}
+                  className="uppercase"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Número do cartão</Label>
+                <Input
+                  placeholder="0000 0000 0000 0000"
+                  value={cardNumber}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 16)
+                    setCardNumber(v.replace(/(.{4})/g, '$1 ').trim())
+                  }}
+                  inputMode="numeric"
+                  maxLength={19}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Validade (MM/AAAA)</Label>
+                  <Input
+                    placeholder="MM/AAAA"
+                    value={cardExpiry}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 6)
+                      setCardExpiry(v.length > 2 ? `${v.slice(0, 2)}/${v.slice(2)}` : v)
+                    }}
+                    inputMode="numeric"
+                    maxLength={7}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">CVV</Label>
+                  <Input
+                    placeholder="000"
+                    value={cardCcv}
+                    onChange={e => setCardCcv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    inputMode="numeric"
+                    maxLength={4}
+                    type="password"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">CPF do titular</Label>
+                <Input
+                  placeholder="000.000.000-00"
+                  value={cardHolderCpf}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    setCardHolderCpf(v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4'))
+                  }}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Telefone do titular (opcional)</Label>
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={cardHolderPhone}
+                  onChange={e => setCardHolderPhone(e.target.value)}
+                  inputMode="tel"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Cupom de desconto */}
           <div className="space-y-2">
