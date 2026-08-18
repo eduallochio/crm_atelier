@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { toast } from 'sonner'
-import { login, loginWithGoogle } from '../actions'
+import { login } from '../actions'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -515,12 +516,23 @@ export default function LoginPage() {
 
             <div className="lp-divider-or"><span>ou</span></div>
 
-            <form action={async () => {
-              setIsGoogleLoading(true)
-              const result = await loginWithGoogle()
-              if (result?.error) { toast.error(result.error); setIsGoogleLoading(false) }
-            }}>
-              <button type="submit" className="lp-btn-google" disabled={isGoogleLoading || isLoading}>
+            <button
+              type="button"
+              className="lp-btn-google"
+              disabled={isGoogleLoading || isLoading}
+              onClick={async () => {
+                setIsGoogleLoading(true)
+                const supabase = createClient()
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    queryParams: { access_type: 'offline', prompt: 'consent' },
+                  },
+                })
+                if (error) { toast.error('Erro ao iniciar login com Google.'); setIsGoogleLoading(false) }
+              }}
+            >
                 {isGoogleLoading ? (
                   <span className="lp-spinner" style={{ borderColor: 'rgba(0,0,0,0.15)', borderTopColor: '#2C1810' }} />
                 ) : (
@@ -533,8 +545,7 @@ export default function LoginPage() {
                   </svg>
                 )}
                 {isGoogleLoading ? 'Redirecionando...' : 'Entrar com Google'}
-              </button>
-            </form>
+            </button>
 
             <p className="lp-register">
               Não tem uma conta?{' '}

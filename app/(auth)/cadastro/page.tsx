@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { signup, loginWithGoogle } from '../actions'
+import { signup } from '../actions'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useTrack, usePageView } from '@/hooks/use-track'
 import { buscarCnpj, isAtiva, getTelefone } from '@/lib/services/brasilcnpj'
@@ -331,12 +332,23 @@ export default function CadastroPage() {
                 <h2 className="lp-form-title">Crie sua<br />conta</h2>
                 <p className="lp-form-desc">Comece grátis em segundos.</p>
 
-                <form action={async () => {
-                  setIsGoogleLoading(true)
-                  const result = await loginWithGoogle()
-                  if (result?.error) { toast.error(result.error); setIsGoogleLoading(false) }
-                }}>
-                  <button type="submit" className="lp-btn-google" disabled={isGoogleLoading}>
+                <button
+                  type="button"
+                  className="lp-btn-google"
+                  disabled={isGoogleLoading}
+                  onClick={async () => {
+                    setIsGoogleLoading(true)
+                    const supabase = createClient()
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                        queryParams: { access_type: 'offline', prompt: 'consent' },
+                      },
+                    })
+                    if (error) { toast.error('Erro ao iniciar cadastro com Google.'); setIsGoogleLoading(false) }
+                  }}
+                >
                     {isGoogleLoading ? (
                       <span className="lp-spinner" style={{ borderColor: 'rgba(0,0,0,0.15)', borderTopColor: '#2C1810' }} />
                     ) : (
@@ -349,8 +361,7 @@ export default function CadastroPage() {
                       </svg>
                     )}
                     {isGoogleLoading ? 'Redirecionando...' : 'Cadastrar com Google'}
-                  </button>
-                </form>
+                </button>
 
                 <div className="lp-divider-or"><span>ou preencha os dados</span></div>
 
