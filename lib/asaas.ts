@@ -113,6 +113,8 @@ export async function createSubscription(data: {
   creditCard?: AsaasCreditCard
   creditCardHolderInfo?: AsaasCreditCardHolderInfo
   remoteIp?: string
+  installmentCount?: number
+  installmentValue?: number
 }): Promise<AsaasSubscription> {
   return asaasFetch<AsaasSubscription>('/subscriptions', {
     method: 'POST',

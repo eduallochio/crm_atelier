@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       cycle = 'MONTHLY', // 'MONTHLY' | 'YEARLY'
       plan = 'pro',
       coupon_code,
+      installment_count,  // número de parcelas (apenas cartão anual)
+      installment_value,  // valor por parcela
       // Dados de cartão (apenas quando billing_type === 'CREDIT_CARD')
       card_holder_name,
       card_number,
@@ -180,6 +182,10 @@ export async function POST(req: NextRequest) {
           mobilePhone: card_holder_phone?.replace(/\D/g, '') || org.phone?.replace(/\D/g, '') || undefined,
         },
         remoteIp,
+        ...(installment_count && installment_count > 1 && {
+          installmentCount: installment_count,
+          installmentValue: installment_value,
+        }),
       }),
     })
 

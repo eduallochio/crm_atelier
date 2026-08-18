@@ -79,9 +79,9 @@ const PLAN_STYLE: Record<string, { icon: React.ElementType; color: string; badge
   },
 }
 
-const BILLING_OPTIONS: { value: BillingType; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: 'PIX',         label: 'PIX',              icon: QrCode,     desc: 'Aprovação imediata' },
-  { value: 'CREDIT_CARD', label: 'Cartão de crédito', icon: CreditCard, desc: 'Parcelável em até 12x' },
+const BILLING_OPTIONS: { value: BillingType; label: string; icon: React.ElementType }[] = [
+  { value: 'PIX',         label: 'PIX',              icon: QrCode     },
+  { value: 'CREDIT_CARD', label: 'Cartão de crédito', icon: CreditCard },
 ]
 
 function fmtPrice(price: number) {
@@ -148,6 +148,10 @@ export function SubscriptionSettingsForm() {
   const annualPrice  = proPlan?.price_annual ?? monthlyPrice * 10
   const basePrice    = cycle === 'MONTHLY' ? monthlyPrice : annualPrice
   const finalPrice   = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
+
+  // Parcelamento: anual com cartão → 3x; demais → à vista
+  const installments     = billingType === 'CREDIT_CARD' && cycle === 'YEARLY' ? 3 : 1
+  const installmentValue = installments > 1 ? Math.ceil((finalPrice / installments) * 100) / 100 : finalPrice
 
   async function validateCoupon() {
     if (!couponCode.trim()) return
@@ -218,6 +222,8 @@ export function SubscriptionSettingsForm() {
           cycle,
           plan:               'pro',
           coupon_code:        couponResult?.valid ? couponCode : undefined,
+          installment_count:  installments > 1 ? installments : undefined,
+          installment_value:  installments > 1 ? installmentValue : undefined,
           card_holder_name:   billingType === 'CREDIT_CARD' ? cardHolderName.trim() : undefined,
           card_number:        billingType === 'CREDIT_CARD' ? cardNumber.replace(/\s/g, '') : undefined,
           card_expiry_month:  billingType === 'CREDIT_CARD' ? expiryMonth?.trim() : undefined,
@@ -488,9 +494,14 @@ export function SubscriptionSettingsForm() {
           {/* Forma de pagamento */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Forma de pagamento</Label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {BILLING_OPTIONS.map((opt) => {
                 const Icon = opt.icon
+                const desc = opt.value === 'PIX'
+                  ? 'À vista · aprovação imediata'
+                  : cycle === 'YEARLY'
+                    ? `3x de ${fmtPrice(Math.ceil((finalPrice / 3) * 100) / 100)}`
+                    : `À vista · ${fmtPrice(finalPrice)}`
                 return (
                   <button
                     key={opt.value}
@@ -503,7 +514,7 @@ export function SubscriptionSettingsForm() {
                   >
                     <Icon className="h-5 w-5 text-[#c8714a]" />
                     <p className="text-xs font-semibold text-foreground">{opt.label}</p>
-                    <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                    <p className="text-[10px] text-muted-foreground">{desc}</p>
                   </button>
                 )
               })}
@@ -646,7 +657,11 @@ export function SubscriptionSettingsForm() {
             )}
             <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
               <span>Total</span>
-              <span>{fmtPrice(finalPrice)}{cycle === 'MONTHLY' ? '/mês' : '/ano'}</span>
+              <span>
+                {installments > 1
+                  ? `${installments}x de ${fmtPrice(installmentValue)}`
+                  : `${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
+              </span>
             </div>
           </div>
 
@@ -660,7 +675,11 @@ export function SubscriptionSettingsForm() {
             ) : (
               <CreditCard className="h-4 w-4" />
             )}
-            {submitting ? 'Processando...' : `Assinar por ${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
+            {submitting
+              ? 'Processando...'
+              : installments > 1
+                ? `Assinar — ${installments}x de ${fmtPrice(installmentValue)}`
+                : `Assinar por ${fmtPrice(finalPrice)}${cycle === 'MONTHLY' ? '/mês' : '/ano'}`}
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
