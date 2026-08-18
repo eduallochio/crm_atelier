@@ -10,7 +10,7 @@ export default async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/esqueci-senha') ||
     nextUrl.pathname.startsWith('/redefinir-senha') ||
     nextUrl.pathname.startsWith('/confirmar-email')
-  const isApiRoute = nextUrl.pathname.startsWith('/api')
+  const isApiRoute = nextUrl.pathname.startsWith('/api') || nextUrl.pathname.startsWith('/auth/callback')
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
   const isPublicRoute =
     nextUrl.pathname === '/' ||

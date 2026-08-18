@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { signup } from '../actions'
+import { signup, loginWithGoogle } from '../actions'
 import { toast } from 'sonner'
 import { useTrack, usePageView } from '@/hooks/use-track'
 import { buscarCnpj, isAtiva, getTelefone } from '@/lib/services/brasilcnpj'
@@ -130,6 +130,12 @@ const CSS = `
   .lp-terms { display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: rgba(212,168,90,0.06); border: 1px solid rgba(212,168,90,0.2); border-radius: 8px; margin-bottom: 24px; }
   .lp-terms input[type=checkbox] { margin-top: 2px; accent-color: #d4a85a; width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
   .lp-terms-text { font-size: 12px; color: #7a6a5a; line-height: 1.55; }
+  .lp-divider-or { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+  .lp-divider-or::before, .lp-divider-or::after { content: ''; flex: 1; height: 1px; background: #E8E1D8; }
+  .lp-divider-or span { font-size: 11px; color: #C4B8AE; letter-spacing: 0.08em; text-transform: uppercase; }
+  .lp-btn-google { width: 100%; height: 46px; background: #fff; color: #2C1810; border: 1.5px solid #E8E1D8; border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.03em; cursor: pointer; transition: border-color 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .lp-btn-google:hover:not(:disabled) { border-color: #d4a85a; background: #fffbf5; }
+  .lp-btn-google:disabled { opacity: 0.55; cursor: not-allowed; }
   .lp-terms-text a { color: #d4a85a; text-decoration: none; font-weight: 500; }
   .lp-terms-text a:hover { opacity: 0.7; }
   .lp-login { margin-top: 22px; text-align: center; font-size: 13px; font-weight: 300; color: #a07850; }
@@ -154,6 +160,7 @@ export default function CadastroPage() {
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [terms, setTerms] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isCnpjLoading, setIsCnpjLoading] = useState(false)
   const [cnpjFound, setCnpjFound] = useState(false)
@@ -322,7 +329,30 @@ export default function CadastroPage() {
               <>
                 <p className="lp-form-eyebrow">Etapa 1 de 2</p>
                 <h2 className="lp-form-title">Crie sua<br />conta</h2>
-                <p className="lp-form-desc">Preencha seus dados de acesso ao sistema.</p>
+                <p className="lp-form-desc">Comece grátis em segundos.</p>
+
+                <form action={async () => {
+                  setIsGoogleLoading(true)
+                  const result = await loginWithGoogle()
+                  if (result?.error) { toast.error(result.error); setIsGoogleLoading(false) }
+                }}>
+                  <button type="submit" className="lp-btn-google" disabled={isGoogleLoading}>
+                    {isGoogleLoading ? (
+                      <span className="lp-spinner" style={{ borderColor: 'rgba(0,0,0,0.15)', borderTopColor: '#2C1810' }} />
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        <path fill="none" d="M0 0h48v48H0z"/>
+                      </svg>
+                    )}
+                    {isGoogleLoading ? 'Redirecionando...' : 'Cadastrar com Google'}
+                  </button>
+                </form>
+
+                <div className="lp-divider-or"><span>ou preencha os dados</span></div>
 
                 <form onSubmit={handleStep1Submit} noValidate>
                   <div className="lp-field">

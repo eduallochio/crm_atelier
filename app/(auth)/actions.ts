@@ -144,6 +144,25 @@ export async function resetPassword(formData: FormData) {
   redirect('/dashboard')
 }
 
+export async function loginWithGoogle() {
+  const supabase = await createClient()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${siteUrl}/auth/callback`,
+      queryParams: { access_type: 'offline', prompt: 'consent' },
+    },
+  })
+
+  if (error || !data.url) {
+    return { error: 'Erro ao iniciar login com Google. Tente novamente.' }
+  }
+
+  redirect(data.url)
+}
+
 export async function resendConfirmation(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
