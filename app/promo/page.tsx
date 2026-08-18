@@ -193,30 +193,48 @@ export default function PromoPage() {
         /* MOCKUP */
         .mockup-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
         .mockup-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 34px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
-        .mockup-section p { font-size: 14px; color: var(--muted); margin-bottom: 48px; }
-        .mockup-frame { max-width: 820px; margin: 0 auto; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
-        .mockup-bar { background: var(--bg2); padding: 10px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
-        .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .mockup-url { flex: 1; background: var(--bg); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-align: center; margin: 0 12px; }
-        .mockup-body { padding: 24px; text-align: left; }
-        .mk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .mk-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--text); }
-        .mk-btn-sm { background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 4px; letter-spacing: 0.06em; }
-        .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-        .mk-stat { background: var(--bg2); border-radius: 8px; padding: 14px; }
-        .mk-stat-val { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-        .mk-stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
-        .mk-stat-accent { color: var(--accent); }
-        .mk-stat-green { color: var(--green); }
-        .mk-table-wrap { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-        .mk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .mk-table th { background: var(--bg2); padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--border); }
-        .mk-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .mockup-section > p { font-size: 14px; color: var(--muted); margin-bottom: 48px; }
+        /* browser chrome */
+        .mockup-chrome { max-width: 900px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.22); border: 1px solid var(--border); }
+        .mockup-bar { background: #1a1a1a; padding: 10px 16px; display: flex; align-items: center; gap: 6px; }
+        .mockup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .mockup-url { flex: 1; background: #2a2a2a; border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #888; text-align: center; margin: 0 12px; font-family: monospace; }
+        /* app shell */
+        .mk-shell { display: flex; height: 420px; background: #0f0f10; overflow: hidden; }
+        /* sidebar */
+        .mk-sidebar { width: 200px; flex-shrink: 0; background: #0f0f10; border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; padding: 16px 0; }
+        .mk-logo { padding: 0 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px; }
+        .mk-logo-text { font-size: 12px; font-weight: 700; color: #fff; letter-spacing: 0.04em; }
+        .mk-logo-sub { font-size: 9px; color: #666; margin-top: 1px; }
+        .mk-nav-section { font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #444; padding: 8px 16px 4px; }
+        .mk-nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 12px; color: #888; cursor: default; }
+        .mk-nav-item.active { background: rgba(200,37,58,0.15); color: #fff; border-right: 2px solid #C8253A; }
+        .mk-nav-icon { width: 14px; height: 14px; flex-shrink: 0; }
+        /* main content */
+        .mk-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: #0f0f10; }
+        .mk-topbar { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+        .mk-page-title { font-size: 15px; font-weight: 700; color: #fff; }
+        .mk-btn { background: #C8253A; color: #fff; font-size: 10px; font-weight: 600; padding: 5px 12px; border-radius: 6px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
+        .mk-content { padding: 16px 20px; overflow: hidden; flex: 1; }
+        /* stat cards — gradiente+glow igual ao sistema real */
+        .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+        .mk-stat { border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); overflow: hidden; position: relative; padding: 12px 14px; }
+        .mk-stat-glow { position: absolute; bottom: -8px; right: -8px; width: 48px; height: 48px; border-radius: 50%; opacity: 0.25; filter: blur(12px); pointer-events: none; }
+        .mk-stat-overlay { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; }
+        .mk-stat-eyebrow { font-size: 8px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+        .mk-stat-icon { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .mk-stat-icon svg { width: 12px; height: 12px; color: #fff; }
+        .mk-stat-val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+        /* table */
+        .mk-table-wrap { border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+        .mk-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .mk-table th { background: rgba(255,255,255,0.04); padding: 7px 12px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #666; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .mk-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ccc; }
         .mk-table tr:last-child td { border-bottom: none; }
-        .mk-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-        .mk-status-open { background: rgba(200,37,58,0.12); color: var(--accent); }
-        .mk-status-done { background: rgba(26,138,60,0.12); color: var(--green); }
-        .mk-status-prog { background: rgba(200,150,37,0.12); color: #b87a10; }
+        .mk-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; gap: 3px; }
+        .mk-badge-pend { background: rgba(200,37,58,0.18); color: #E05068; }
+        .mk-badge-prog { background: rgba(234,179,8,0.18); color: #EAB308; }
+        .mk-badge-done { background: rgba(34,197,94,0.18); color: #22C55E; }
 
         /* TESTIMONIAL */
         .testimonial-section { max-width: 800px; margin: 0 auto; padding: 72px 24px; text-align: center; }
@@ -225,9 +243,12 @@ export default function PromoPage() {
         .testimonial-quote { font-family: 'Playfair Display', serif; font-size: clamp(18px, 2.5vw, 22px); font-style: italic; color: var(--text); line-height: 1.6; margin-bottom: 28px; text-wrap: balance; }
         .testimonial-quote::before { content: '"'; font-size: 80px; color: var(--accent); opacity: 0.2; position: absolute; top: 8px; left: 28px; font-style: normal; line-height: 1; pointer-events: none; }
         .testimonial-author { display: flex; align-items: center; gap: 14px; }
-        .testimonial-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, #7A1524 100%); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .testimonial-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }
+        .testimonial-avatar-fallback { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, #7A1524 100%); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0; }
         .testimonial-name { font-weight: 600; font-size: 15px; color: var(--text); }
-        .testimonial-loc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+        .testimonial-insta { font-size: 13px; color: var(--accent); margin-top: 1px; text-decoration: none; }
+        .testimonial-insta:hover { text-decoration: underline; }
+        .testimonial-loc { font-size: 12px; color: var(--muted); margin-top: 2px; }
         .testimonial-stars { display: flex; gap: 3px; margin-bottom: 4px; }
 
         /* GUARANTEE */
@@ -347,49 +368,88 @@ export default function PromoPage() {
       <section className="mockup-section">
         <h2>Veja como é simples de usar</h2>
         <p>Interface limpa, direto ao ponto — feita para quem trabalha com costura, não com tecnologia</p>
-        <div className="mockup-frame">
+        <div className="mockup-chrome">
+          {/* browser bar */}
           <div className="mockup-bar">
             <div className="mockup-dot" style={{ background: '#FF5F57' }} />
             <div className="mockup-dot" style={{ background: '#FEBC2E' }} />
             <div className="mockup-dot" style={{ background: '#28C840' }} />
-            <div className="mockup-url">meuateliersistema.com.br/dashboard</div>
+            <div className="mockup-url">meuateliersistema.com.br/ordens-servico</div>
           </div>
-          <div className="mockup-body">
-            <div className="mk-header">
-              <div className="mk-title">Ordens de Serviço</div>
-              <div className="mk-btn-sm">+ Nova OS</div>
+          {/* app shell */}
+          <div className="mk-shell">
+            {/* sidebar */}
+            <div className="mk-sidebar">
+              <div className="mk-logo">
+                <div className="mk-logo-text">Meu Atelier</div>
+                <div className="mk-logo-sub">Plano Pro</div>
+              </div>
+              {[
+                { label: 'Principal', items: [{ name: 'Dashboard', active: false }] },
+                { label: 'Gestão', items: [
+                  { name: 'Clientes', active: false },
+                  { name: 'Serviços', active: false },
+                  { name: 'Ordens de Serviço', active: true },
+                ]},
+                { label: 'Financeiro', items: [{ name: 'Financeiro', active: false }] },
+              ].map(sec => (
+                <div key={sec.label}>
+                  <div className="mk-nav-section">{sec.label}</div>
+                  {sec.items.map(item => (
+                    <div key={item.name} className={`mk-nav-item${item.active ? ' active' : ''}`}>
+                      <svg className="mk-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {item.name === 'Dashboard' && <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>}
+                        {item.name === 'Clientes' && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>}
+                        {item.name === 'Serviços' && <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5zM16 8L2 22M17.5 15H9"/>}
+                        {item.name === 'Ordens de Serviço' && <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>}
+                        {item.name === 'Financeiro' && <><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
+                      </svg>
+                      {item.name}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
-            <div className="mk-stats">
-              <div className="mk-stat">
-                <div className="mk-stat-val mk-stat-accent">12</div>
-                <div className="mk-stat-lbl">Em aberto</div>
+            {/* main */}
+            <div className="mk-main">
+              <div className="mk-topbar">
+                <div className="mk-page-title">Ordens de Serviço</div>
+                <div className="mk-btn">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Nova OS
+                </div>
               </div>
-              <div className="mk-stat">
-                <div className="mk-stat-val" style={{ color: '#b87a10' }}>5</div>
-                <div className="mk-stat-lbl">Em andamento</div>
+              <div className="mk-content">
+                {/* stat cards com gradiente+glow igual ao sistema real */}
+                <div className="mk-stats">
+                  {[
+                    { label: 'Pendentes', val: '8', color: '#EAB308', bg: 'rgba(234,179,8,0.08)' },
+                    { label: 'Em Andamento', val: '5', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
+                    { label: 'Concluídas', val: '38', color: '#22C55E', bg: 'rgba(34,197,94,0.08)' },
+                    { label: 'Atrasadas', val: '2', color: '#C8253A', bg: 'rgba(200,37,58,0.08)' },
+                  ].map(s => (
+                    <div key={s.label} className="mk-stat" style={{ background: s.bg }}>
+                      <div className="mk-stat-overlay" style={{ background: s.color }} />
+                      <div className="mk-stat-glow" style={{ background: s.color }} />
+                      <div className="mk-stat-eyebrow">{s.label}</div>
+                      <div className="mk-stat-val" style={{ color: s.color }}>{s.val}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* table */}
+                <div className="mk-table-wrap">
+                  <table className="mk-table">
+                    <thead>
+                      <tr><th>#</th><th>Cliente</th><th>Serviço</th><th>Entrega</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td style={{color:'#fff'}}>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-badge mk-badge-prog">● Em andamento</span></td></tr>
+                      <tr><td style={{color:'#fff'}}>#000041</td><td>Carla Mendes</td><td>Calça jeans — ajuste</td><td>18/08</td><td><span className="mk-badge mk-badge-pend">● Pendente</span></td></tr>
+                      <tr><td style={{color:'#fff'}}>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-badge mk-badge-done">● Concluída</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="mk-stat">
-                <div className="mk-stat-val mk-stat-green">38</div>
-                <div className="mk-stat-lbl">Concluídas</div>
-              </div>
-              <div className="mk-stat">
-                <div className="mk-stat-val mk-stat-green">R$ 4.820</div>
-                <div className="mk-stat-lbl">Faturado/mês</div>
-              </div>
-            </div>
-            <div className="mk-table-wrap">
-              <table className="mk-table">
-                <thead>
-                  <tr>
-                    <th>#</th><th>Cliente</th><th>Serviço</th><th>Entrega</th><th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-status mk-status-prog">Andamento</span></td></tr>
-                  <tr><td>#000041</td><td>Carla Mendes</td><td>Calça jeans ajuste</td><td>18/08</td><td><span className="mk-status mk-status-open">Em aberto</span></td></tr>
-                  <tr><td>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-status mk-status-done">Concluída</span></td></tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
@@ -408,9 +468,26 @@ export default function PromoPage() {
             Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. Não imagino trabalhar sem ele.
           </p>
           <div className="testimonial-author">
-            <div className="testimonial-avatar">N</div>
+            <img
+              src="/nete-fashion.jpg"
+              alt="NETE Fashion Atelier"
+              className="testimonial-avatar"
+              onError={(e) => {
+                const el = e.currentTarget
+                el.style.display = 'none'
+                const fb = el.nextElementSibling as HTMLElement | null
+                if (fb) fb.style.display = 'flex'
+              }}
+            />
+            <div className="testimonial-avatar-fallback" style={{ display: 'none' }}>N</div>
             <div>
               <div className="testimonial-name">NETE Fashion Atelier</div>
+              <a
+                href="https://www.instagram.com/netefashiion/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="testimonial-insta"
+              >@netefashiion</a>
               <div className="testimonial-loc">Vila Velha, ES</div>
             </div>
           </div>
