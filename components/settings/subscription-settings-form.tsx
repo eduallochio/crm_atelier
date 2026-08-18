@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
@@ -94,7 +95,28 @@ function pct(used: number, max: number) {
 }
 
 export function SubscriptionSettingsForm() {
-  const queryClient = useQueryClient()
+  const queryClient  = useQueryClient()
+  const searchParams = useSearchParams()
+
+  // Detecta retorno após autenticação 3DS do banco
+  useEffect(() => {
+    const payment = searchParams.get('payment')
+    if (payment === 'confirmed') {
+      toast.success('Pagamento confirmado! Seu plano Pro está ativo.')
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+      // Limpa o parâmetro da URL sem recarregar a página
+      const url = new URL(window.location.href)
+      url.searchParams.delete('payment')
+      window.history.replaceState({}, '', url.toString())
+    } else if (payment === 'pending') {
+      toast.info('Aguardando confirmação do pagamento. Você será notificado por e-mail.')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('payment')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams, queryClient])
+
   const [showCheckout, setShowCheckout] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [billingType, setBillingType] = useState<BillingType>('PIX')

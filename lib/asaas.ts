@@ -116,6 +116,7 @@ export async function createSubscription(data: {
   remoteIp?: string
   installmentCount?: number
   installmentValue?: number
+  callback?: { successUrl: string; autoRedirect?: boolean }
 }): Promise<AsaasSubscription> {
   return asaasFetch<AsaasSubscription>('/subscriptions', {
     method: 'POST',

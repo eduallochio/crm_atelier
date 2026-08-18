@@ -178,6 +178,10 @@ export async function POST(req: NextRequest) {
       discount,
       externalReference: org.id,
       ...(billing_type === 'CREDIT_CARD' && {
+        callback: {
+          successUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura&payment=confirmed`,
+          autoRedirect: true,
+        },
         creditCard: {
           holderName:  card_holder_name,
           number:      card_number.replace(/\s/g, ''),
