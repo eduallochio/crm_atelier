@@ -101,16 +101,16 @@ export default function PrivacidadePage() {
         <Section id="controlador" icon={FileText} title="1. Identificação do Controlador">
           <p>O <strong style={{ color: '#f0e6d0' }}>Meu Atelier Sistema</strong> é desenvolvido e operado por:</p>
           <InfoBox>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Razão Social:</strong> Omega Sistem</p>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://omegasistem.com.br" style={{ color: terra }}>omegasistem.com.br</a></p>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> contato@omegasistem.com.br</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Desenvolvedor:</strong> Eduardo Allochio</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://meuateliersistema.com.br" style={{ color: terra }}>meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a></p>
           </InfoBox>
         </Section>
 
         <Section id="dpo" icon={Eye} title="2. Encarregado de Dados (DPO)">
           <p>Para questões sobre proteção de dados, entre em contato com nosso Encarregado:</p>
           <InfoBox>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a></p>
             <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Prazo de resposta:</strong> Até 15 dias úteis</p>
           </InfoBox>
         </Section>
@@ -151,7 +151,7 @@ export default function PrivacidadePage() {
             {[
               ['Supabase', 'Banco de dados com criptografia e isolamento por organização'],
               ['Vercel', 'Hospedagem e CDN'],
-              ['Stripe', 'Processamento de pagamentos (quando aplicável)'],
+              ['Asaas', 'Processamento de pagamentos (quando aplicável)'],
             ].map(([name, desc]) => (
               <div key={name} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '12px 16px' }}>
                 <span style={{ color: terra, fontWeight: 700, minWidth: 70, fontSize: 13 }}>{name}</span>
@@ -190,8 +190,10 @@ export default function PrivacidadePage() {
           </div>
           <InfoBox>
             <strong style={{ color: '#f0e6d0' }}>Como exercer seus direitos:</strong> Envie email para{' '}
-            <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a>{' '}
+            <a href="mailto:bianca@montenegroadv.com" style={{ color: terra }}>bianca@montenegroadv.com</a>{' '}
             ou acesse <Link href="/lgpd" style={{ color: terra }}>nossa página LGPD</Link>.
+            Você também pode enviar email para{' '}
+            <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a>.
           </InfoBox>
         </Section>
 
@@ -220,8 +222,7 @@ export default function PrivacidadePage() {
 
         <Section id="contato" title="12. Contato">
           <InfoBox>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>DPO (Proteção de Dados):</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Suporte:</strong> contato@omegasistem.com.br</p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a></p>
             <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>LGPD:</strong> <Link href="/lgpd" style={{ color: terra }}>meuateliersistema.com.br/lgpd</Link></p>
           </InfoBox>
         </Section>

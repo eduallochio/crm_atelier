@@ -17,7 +17,7 @@ const direitos = [
     desc: 'Veja quais dados pessoais armazenamos sobre você.',
     items: ['Quais dados temos', 'Como os usamos', 'Com quem compartilhamos'],
     action: 'Solicitar Acesso',
-    href: 'mailto:dpo@meuateliersistema.com.br?subject=Solicitação de Acesso aos Dados',
+    href: 'mailto:eduallochio2@outlook.com?subject=Solicitação de Acesso aos Dados',
   },
   {
     icon: Edit,
@@ -35,7 +35,7 @@ const direitos = [
     desc: 'Solicite a anonimização ou exclusão. Após 30 dias do cancelamento os dados são anonimizados — ação irreversível.',
     items: [],
     action: 'Solicitar Exclusão',
-    href: 'mailto:dpo@meuateliersistema.com.br?subject=Solicitação de Exclusão de Dados',
+    href: 'mailto:eduallochio2@outlook.com?subject=Solicitação de Exclusão de Dados',
   },
   {
     icon: Download,
@@ -44,7 +44,7 @@ const direitos = [
     desc: 'Receba cópia de todos os seus dados em JSON/CSV para usar em outro sistema.',
     items: [],
     action: 'Solicitar Exportação',
-    href: 'mailto:dpo@meuateliersistema.com.br?subject=Solicitação de Portabilidade de Dados',
+    href: 'mailto:eduallochio2@outlook.com?subject=Solicitação de Portabilidade de Dados',
   },
   {
     icon: FileText,
@@ -62,7 +62,7 @@ const direitos = [
     desc: 'Retire seu consentimento para notificações ou outros usos opcionais.',
     items: [],
     action: 'Revogar Consentimento',
-    href: 'mailto:dpo@meuateliersistema.com.br?subject=Revogação de Consentimento',
+    href: 'mailto:eduallochio2@outlook.com?subject=Revogação de Consentimento',
   },
 ]
 
@@ -152,7 +152,7 @@ export default function LGPDPage() {
           <p style={{ color: dourado, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>Como Exercer Seus Direitos</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {[
-              ['1', 'Entre em Contato', <>Envie email para <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a> informando qual direito deseja exercer.</>],
+              ['1', 'Entre em Contato', <>Envie email para <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a> informando qual direito deseja exercer.</>],
               ['2', 'Identificação', 'Para sua segurança, precisamos confirmar sua identidade. Inclua seu email cadastrado no sistema.'],
               ['3', 'Prazo de Resposta', 'Respondemos em até 15 dias úteis conforme estabelecido pela LGPD.'],
             ].map(([num, title, desc]) => (
@@ -173,7 +173,7 @@ export default function LGPDPage() {
         <div style={{ background: 'rgba(200,113,74,0.06)', border: '1px solid rgba(200,113,74,0.15)', borderRadius: 12, padding: '20px 24px', marginBottom: 32 }}>
           <p style={{ color: dourado, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Encarregado de Dados (DPO)</p>
           <p style={{ color: '#ccc', fontSize: 14, marginBottom: 12 }}>Nosso DPO é o responsável por garantir a conformidade com a LGPD e atender suas solicitações.</p>
-          <p style={{ margin: '4px 0', fontSize: 14, color: '#aaa' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+          <p style={{ margin: '4px 0', fontSize: 14, color: '#aaa' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a></p>
           <p style={{ margin: '4px 0', fontSize: 14, color: '#aaa' }}><strong style={{ color: '#f0e6d0' }}>Prazo:</strong> Até 15 dias úteis</p>
         </div>
 

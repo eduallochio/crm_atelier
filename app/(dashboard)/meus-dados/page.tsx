@@ -135,7 +135,7 @@ export default function MeusDadosPage() {
     setIsDeleting(true)
     try {
       // Enviar email para DPO
-      const mailtoLink = `mailto:dpo@meuateliersistema.com.br?subject=Solicitação de Exclusão de Conta&body=Olá, gostaria de solicitar a exclusão da minha conta.%0D%0A%0D%0AEmail: ${userData?.user.email}%0D%0AData: ${new Date().toLocaleString('pt-BR')}`
+      const mailtoLink = `mailto:eduallochio2@outlook.com?subject=Solicitação de Exclusão de Conta&body=Olá, gostaria de solicitar a exclusão da minha conta.%0D%0A%0D%0AEmail: ${userData?.user.email}%0D%0AData: ${new Date().toLocaleString('pt-BR')}`
       
       window.location.href = mailtoLink
       
@@ -434,10 +434,10 @@ export default function MeusDadosPage() {
             <p className="text-gray-700 dark:text-gray-300">
               <strong>Email DPO:</strong>{' '}
               <a 
-                href="mailto:dpo@meuateliersistema.com.br" 
+                href="mailto:eduallochio2@outlook.com" 
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                dpo@meuateliersistema.com.br
+                eduallochio2@outlook.com
               </a>
             </p>
             <p className="text-gray-700 dark:text-gray-300">

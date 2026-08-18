@@ -136,7 +136,7 @@ export default function TermosPage() {
             </div>
             <div style={{ background: 'rgba(200,113,74,0.06)', border: '1px solid rgba(200,113,74,0.2)', borderRadius: 10, padding: '16px' }}>
               <p style={{ color: dourado, fontWeight: 700, margin: '0 0 8px' }}>Plano Pro</p>
-              <Ul items={['R$ 59,90/mês', 'Clientes ilimitados', 'Até 3 usuários', 'Recursos avançados', 'Cancele a qualquer momento']} />
+              <Ul items={['R$ 49,90/mês ou R$ 498,00/ano', 'Clientes ilimitados', 'Até 3 usuários', 'Recursos avançados', 'Cancele a qualquer momento']} />
             </div>
           </div>
           <p><strong style={{ color: '#f0e6d0' }}>Cancelamento:</strong> Você pode cancelar a qualquer momento. Não há reembolso proporcional. O acesso permanece até o fim do período pago.</p>
@@ -157,7 +157,7 @@ export default function TermosPage() {
         </Section>
 
         <Section title="7. Propriedade Intelectual">
-          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>Nossa propriedade:</strong> O Meu Atelier Sistema, incluindo código, design, marca e conteúdo, é propriedade exclusiva da Omega Sistem. Todos os direitos reservados.</p>
+          <p style={{ marginBottom: 12 }}><strong style={{ color: '#f0e6d0' }}>Nossa propriedade:</strong> O Meu Atelier Sistema, incluindo código, design, marca e conteúdo, é propriedade exclusiva de Eduardo Allochio. Todos os direitos reservados.</p>
           <p><strong style={{ color: '#f0e6d0' }}>Seus dados:</strong> Você mantém propriedade total sobre os dados inseridos (clientes, ordens, etc.). Concedemos uma licença limitada para armazená-los e processá-los apenas para prestação do serviço.</p>
         </Section>
 
@@ -196,9 +196,9 @@ export default function TermosPage() {
 
         <Section title="12. Contato">
           <InfoBox>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Suporte:</strong> contato@omegasistem.com.br</p>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://omegasistem.com.br" style={{ color: terra }}>omegasistem.com.br</a></p>
-            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>LGPD:</strong> <a href="mailto:dpo@meuateliersistema.com.br" style={{ color: terra }}>dpo@meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Email:</strong> <a href="mailto:eduallochio2@outlook.com" style={{ color: terra }}>eduallochio2@outlook.com</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>Website:</strong> <a href="https://meuateliersistema.com.br" style={{ color: terra }}>meuateliersistema.com.br</a></p>
+            <p style={{ margin: '4px 0' }}><strong style={{ color: '#f0e6d0' }}>LGPD:</strong> <Link href="/lgpd" style={{ color: terra }}>meuateliersistema.com.br/lgpd</Link></p>
           </InfoBox>
         </Section>
 
@@ -211,7 +211,7 @@ export default function TermosPage() {
             <Link href="/" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Voltar ao Início</Link>
           </div>
         </div>
-        <p style={{ marginTop: 16, color: '#333', fontSize: 12 }}>© {new Date().getFullYear()} Meu Atelier Sistema · Omega Sistem</p>
+        <p style={{ marginTop: 16, color: '#333', fontSize: 12 }}>© {new Date().getFullYear()} Meu Atelier Sistema · Eduardo Allochio</p>
       </div>
     </div>
   )

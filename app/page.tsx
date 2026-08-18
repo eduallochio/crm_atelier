@@ -1069,14 +1069,38 @@ export default function HomePage() {
         </section>
 
         {/* ── FOOTER ── */}
-        <footer style={{ background: '#100a05', padding: '32px 20px', borderTop: '1px solid rgba(212,168,90,0.1)' }}>
-          <div className="footer-inner">
+        <footer style={{ background: '#100a05', padding: '40px 20px', borderTop: '1px solid rgba(212,168,90,0.1)' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+            {/* Logo + tagline */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.5 }}>
               <Image src="/logo-icon.svg" alt="Meu Atelier" width={28} height={28} style={{ borderRadius: 6 }} />
               <span className="display" style={{ fontSize: 16, color: 'var(--cream)', fontWeight: 300 }}>
                 {c.footerTagline}
               </span>
             </div>
+
+            {/* Links principais */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 28px' }}>
+              <Link href="/login" style={{ fontSize: 12, color: 'rgba(212,168,90,0.6)', letterSpacing: '0.06em', textDecoration: 'none' }}>
+                Entrar
+              </Link>
+              <Link href="/cadastro" style={{ fontSize: 12, color: 'rgba(212,168,90,0.6)', letterSpacing: '0.06em', textDecoration: 'none' }}>
+                Criar conta grátis
+              </Link>
+              <a href="mailto:eduallochio2@outlook.com" style={{ fontSize: 12, color: 'rgba(247,240,230,0.3)', letterSpacing: '0.06em', textDecoration: 'none' }}>
+                Suporte
+              </a>
+              <a
+                href="https://instagram.com/eduallochio"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 12, color: 'rgba(247,240,230,0.3)', letterSpacing: '0.06em', textDecoration: 'none' }}
+              >
+                @eduallochio
+              </a>
+            </div>
+
+            {/* Links legais */}
             <div className="footer-links">
               {[
                 { href: '/privacidade', label: 'Privacidade' },
@@ -1094,8 +1118,9 @@ export default function HomePage() {
                 Cookies
               </button>
             </div>
-            <p style={{ fontSize: 12, color: 'rgba(247,240,230,0.25)', margin: 0 }}>
-              © {new Date().getFullYear()} Meu Atelier Sistema
+
+            <p style={{ fontSize: 12, color: 'rgba(247,240,230,0.2)', margin: 0 }}>
+              © {new Date().getFullYear()} Meu Atelier Sistema · Desenvolvido por Eduardo Allochio
             </p>
           </div>
         </footer>
