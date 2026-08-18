@@ -10,7 +10,8 @@ export default async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/esqueci-senha') ||
     nextUrl.pathname.startsWith('/redefinir-senha') ||
     nextUrl.pathname.startsWith('/confirmar-email')
-  const isApiRoute = nextUrl.pathname.startsWith('/api') || nextUrl.pathname.startsWith('/auth/callback')
+  const isApiRoute = nextUrl.pathname.startsWith('/api')
+  const isAuthCallback = nextUrl.pathname.startsWith('/auth/callback')
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
   const isPublicRoute =
     nextUrl.pathname === '/' ||
@@ -18,8 +19,8 @@ export default async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/termos') ||
     nextUrl.pathname.startsWith('/privacidade')
 
-  // Rotas de API: apenas atualiza sessão, sem redirecionamento
-  if (isApiRoute) {
+  // Rotas de API e callback OAuth: apenas atualiza sessão, sem redirecionamento
+  if (isApiRoute || isAuthCallback) {
     return await updateSession(request).then((r) => r.supabaseResponse)
   }
 
