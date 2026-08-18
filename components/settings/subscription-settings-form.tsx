@@ -451,7 +451,7 @@ export function SubscriptionSettingsForm() {
 
       {/* Checkout */}
       {showCheckout && (
-        <div className="rounded-2xl border-2 border-[#c8714a] bg-card p-6 space-y-6">
+        <div className="rounded-2xl border-2 border-[#c8714a] bg-card p-4 sm:p-6 space-y-5 sm:space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Crown className="h-5 w-5 text-[#c8714a]" />
@@ -531,7 +531,7 @@ export function SubscriptionSettingsForm() {
           {billingType === 'CREDIT_CARD' && cycle === 'YEARLY' && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Parcelamento</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[1, 2, 3, 4, 5, 6].map((n) => {
                   const semJuros = n <= 3
                   const parcVal  = Math.ceil((finalPrice / n) * 100) / 100
@@ -541,13 +541,13 @@ export function SubscriptionSettingsForm() {
                       type="button"
                       onClick={() => setInstallments(n)}
                       className={cn(
-                        'p-2.5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-0.5',
+                        'p-2 sm:p-2.5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-0.5',
                         installments === n ? 'border-[#c8714a] bg-[#c8714a]/5' : 'border-border hover:border-[#c8714a]/50'
                       )}
                     >
-                      <p className="text-xs font-bold text-foreground">{n}x de {fmtPrice(parcVal)}</p>
+                      <p className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">{n}x {fmtPrice(parcVal)}</p>
                       <p className={cn('text-[10px] font-medium', semJuros ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
-                        {semJuros ? 'sem juros' : 'com juros*'}
+                        {semJuros ? 'sem juros' : 'c/ juros*'}
                       </p>
                     </button>
                   )
@@ -573,7 +573,8 @@ export function SubscriptionSettingsForm() {
                   placeholder="NOME SOBRENOME"
                   value={cardHolderName}
                   onChange={e => setCardHolderName(e.target.value.toUpperCase())}
-                  className="uppercase"
+                  className="uppercase text-base sm:text-sm"
+                  autoComplete="cc-name"
                 />
               </div>
 
@@ -588,6 +589,8 @@ export function SubscriptionSettingsForm() {
                   }}
                   inputMode="numeric"
                   maxLength={19}
+                  className="text-base sm:text-sm tracking-widest"
+                  autoComplete="cc-number"
                 />
               </div>
 
@@ -603,6 +606,8 @@ export function SubscriptionSettingsForm() {
                     }}
                     inputMode="numeric"
                     maxLength={7}
+                    className="text-base sm:text-sm"
+                    autoComplete="cc-exp"
                   />
                 </div>
                 <div className="space-y-1">
@@ -614,6 +619,8 @@ export function SubscriptionSettingsForm() {
                     inputMode="numeric"
                     maxLength={4}
                     type="password"
+                    className="text-base sm:text-sm"
+                    autoComplete="cc-csc"
                   />
                 </div>
               </div>
@@ -628,6 +635,8 @@ export function SubscriptionSettingsForm() {
                     setCardHolderCpf(v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4'))
                   }}
                   inputMode="numeric"
+                  className="text-base sm:text-sm"
+                  autoComplete="off"
                 />
               </div>
 
@@ -638,6 +647,8 @@ export function SubscriptionSettingsForm() {
                   value={cardHolderPhone}
                   onChange={e => setCardHolderPhone(e.target.value)}
                   inputMode="tel"
+                  className="text-base sm:text-sm"
+                  autoComplete="tel"
                 />
               </div>
             </div>
@@ -704,7 +715,7 @@ export function SubscriptionSettingsForm() {
           </div>
 
           <Button
-            className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white h-11"
+            className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white h-12 sm:h-11 text-base sm:text-sm"
             onClick={handleCheckout}
             disabled={submitting}
           >
