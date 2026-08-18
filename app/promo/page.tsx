@@ -327,7 +327,7 @@ export default function PromoPage() {
 
       {/* URGENCY BAR */}
       <div className="urgency-bar">
-        <p>⏰ Promoção encerra em</p>
+        <p>Promoção encerra em</p>
         <Countdown />
       </div>
 
@@ -347,7 +347,7 @@ export default function PromoPage() {
           <span className="promo-new">R$ 24,95</span>
           <span className="promo-period">/1º mês</span>
         </div>
-        <p className="promo-annual-hint">💡 Ou assine anual por R$ 498/ano e economize R$ 100</p>
+        <p className="promo-annual-hint">Ou assine anual por R$ 498/ano e economize R$ 100</p>
         <Link href="/cadastro" className="promo-btn">Começar agora com 50% off</Link>
         <p className="promo-note">Sem cartão de crédito para começar · 7 dias de garantia</p>
       </section>
@@ -449,9 +449,9 @@ export default function PromoPage() {
                       <tr><th>#</th><th>Cliente</th><th>Serviço</th><th>Entrega</th><th>Status</th></tr>
                     </thead>
                     <tbody>
-                      <tr><td style={{color:'#fff'}}>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-badge mk-badge-prog">● Em andamento</span></td></tr>
-                      <tr><td style={{color:'#fff'}}>#000041</td><td>Carla Mendes</td><td>Calça jeans — ajuste</td><td>18/08</td><td><span className="mk-badge mk-badge-pend">● Pendente</span></td></tr>
-                      <tr><td style={{color:'#fff'}}>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-badge mk-badge-done">● Concluída</span></td></tr>
+                      <tr><td>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-badge mk-badge-prog">● Em andamento</span></td></tr>
+                      <tr><td>#000041</td><td>Carla Mendes</td><td>Calça jeans — ajuste</td><td>18/08</td><td><span className="mk-badge mk-badge-pend">● Pendente</span></td></tr>
+                      <tr><td>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-badge mk-badge-done">● Concluída</span></td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -521,7 +521,7 @@ export default function PromoPage() {
         <p>Ambos incluem todas as funcionalidades do Plano Pro</p>
         <div className="pricing-cards">
           <div className="pricing-card highlighted">
-            <div className="pricing-tag">🔥 Com cupom PROMO50</div>
+            <div className="pricing-tag">Com cupom PROMO50</div>
             <div className="pricing-label">Mensal</div>
             <div className="pricing-price">R$ 24,95 <span>/1º mês</span></div>
             <div className="pricing-old">de R$ 49,90/mês</div>
