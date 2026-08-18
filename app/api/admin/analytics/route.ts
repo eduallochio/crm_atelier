@@ -69,7 +69,7 @@ export async function GET() {
     }
 
     // Top organizações por clientes — JOIN + GROUP BY evita correlated subqueries
-    const topResult = await db.execute(drizzleSql`
+    const topResultRaw = await db.execute(drizzleSql`
       SELECT
         o.id,
         o.name,
@@ -83,9 +83,11 @@ export async function GET() {
       GROUP BY o.id, o.name, o.plan, o.subscription_status
       ORDER BY COUNT(DISTINCT c.id) DESC
       LIMIT 10
-    `) as any[]
+    `)
+    // db.execute retorna rows diretamente com postgres-js driver
+    const topResult: any[] = Array.isArray(topResultRaw) ? topResultRaw : (topResultRaw as any).rows ?? []
 
-    const topOrgs = (topResult as any[]).map((r) => ({
+    const topOrgs = topResult.map((r) => ({
       id:            r.id,
       name:          r.name,
       plan:          r.plan,

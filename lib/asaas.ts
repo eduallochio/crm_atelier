@@ -132,6 +132,18 @@ export async function cancelSubscription(id: string): Promise<void> {
   await asaasFetch(`/subscriptions/${id}`, { method: 'DELETE' })
 }
 
+export async function updateSubscription(id: string, data: {
+  value?: number
+  cycle?: 'MONTHLY' | 'YEARLY'
+  nextDueDate?: string
+  discount?: { value: number; type: 'FIXED' | 'PERCENTAGE' }
+}): Promise<AsaasSubscription> {
+  return asaasFetch<AsaasSubscription>(`/subscriptions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
 // ─── Payments ─────────────────────────────────────────────────────────────────
 
 export async function getPayment(id: string): Promise<AsaasPayment> {

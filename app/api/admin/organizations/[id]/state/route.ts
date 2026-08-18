@@ -5,6 +5,7 @@ import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logAdminAction } from '@/lib/admin-log'
 import { logServerError } from '@/lib/log-error'
+import { cancelSubscription } from '@/lib/asaas'
 
 const ACTION_MAP: Record<string, { status: string; action: string; label: string }> = {
   suspend:    { status: 'suspended', action: 'SUSPEND',    label: 'Suspensa' },
@@ -28,7 +29,11 @@ export async function PUT(
     }
 
     const orgRows = await db
-      .select({ name: organizations.name, subscriptionStatus: organizations.subscriptionStatus })
+      .select({
+        name:                organizations.name,
+        subscriptionStatus:  organizations.subscriptionStatus,
+        asaasSubscriptionId: organizations.asaasSubscriptionId,
+      })
       .from(organizations)
       .where(eq(organizations.id, id))
       .limit(1)
@@ -44,9 +49,25 @@ export async function PUT(
       return NextResponse.json({ message: 'Estado já é o mesmo' })
     }
 
+    // Cancelar no Asaas quando a ação é cancel e há assinatura ativa
+    if (action === 'cancel' && org.asaasSubscriptionId) {
+      try {
+        await cancelSubscription(org.asaasSubscriptionId)
+      } catch (asaasErr) {
+        // Loga mas não bloqueia — o status local ainda deve ser atualizado
+        logServerError('[PUT /api/admin/organizations/[id]/state] Asaas cancel', asaasErr)
+      }
+    }
+
+    const updateFields: Partial<typeof organizations.$inferInsert> = {
+      subscriptionStatus: mapping.status,
+      updatedAt:          new Date(),
+    }
+    if (action === 'cancel') updateFields.plan = 'free'
+
     await db
       .update(organizations)
-      .set({ subscriptionStatus: mapping.status, updatedAt: new Date() })
+      .set(updateFields)
       .where(eq(organizations.id, id))
 
     await logAdminAction({

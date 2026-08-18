@@ -8,6 +8,8 @@ import {
   createCustomer,
   findCustomerByCpfCnpj,
   createSubscription,
+  getSubscriptionPayments,
+  getPixQrCode,
 } from '@/lib/asaas'
 import { format, addDays } from 'date-fns'
 
@@ -223,6 +225,20 @@ export async function POST(req: NextRequest) {
         .where(eq(coupons.id, couponRow.id))
     }
 
+    // Para PIX: buscar o primeiro pagamento da assinatura e retornar o QR code
+    let pixQrCode: { encodedImage: string; payload: string; expirationDate: string } | null = null
+    if (billing_type === 'PIX') {
+      try {
+        const payments = await getSubscriptionPayments(subscription.id)
+        const firstPayment = payments.find(p => p.status === 'PENDING')
+        if (firstPayment?.pixQrCodeId || firstPayment?.id) {
+          pixQrCode = await getPixQrCode(firstPayment.id)
+        }
+      } catch {
+        // QR code opcional — não bloqueia o checkout
+      }
+    }
+
     return NextResponse.json({
       subscription_id: subscription.id,
       status:          subscription.status,
@@ -230,6 +246,7 @@ export async function POST(req: NextRequest) {
       billing_type,
       value:           basePrice,
       discount,
+      pix_qr_code:     pixQrCode,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

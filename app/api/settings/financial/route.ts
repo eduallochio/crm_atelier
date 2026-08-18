@@ -35,17 +35,50 @@ export async function GET() {
     const row = result[0]
     return NextResponse.json({
       ...row,
-      payment_methods:      row.paymentMethodsJson    ?? DEFAULTS.payment_methods,
-      expense_categories:   row.expenseCategoriesJson ?? [],
-      income_categories:    row.incomeCategoriesJson  ?? [],
-      pix_key:              row.pixKey               ?? null,
-      show_pix_key_on_order: row.showPixKeyOnOrder   ?? false,
+      payment_methods:         row.paymentMethodsJson       ?? DEFAULTS.payment_methods,
+      expense_categories:      row.expenseCategoriesJson    ?? [],
+      income_categories:       row.incomeCategoriesJson     ?? [],
+      pix_key:                 row.pixKey                   ?? null,
+      show_pix_key_on_order:   row.showPixKeyOnOrder        ?? false,
+      autoLaunchSubscription:  row.autoLaunchSubscription   ?? false,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
     logServerError('[GET /api/settings/financial]', error); console.error('[GET /api/settings/financial]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
+// POST — atualiza campos pontuais sem sobrescrever tudo (usado pelo toggle de lançamento automático)
+export async function POST(request: Request) {
+  try {
+    const user = await requireAuth()
+    const body = await request.json()
+
+    const patch: Partial<typeof orgFinancialSettings.$inferInsert> = {
+      organizationId: user.organizationId,
+    }
+    if (typeof body.autoLaunchSubscription === 'boolean') {
+      patch.autoLaunchSubscription = body.autoLaunchSubscription
+    }
+
+    const { organizationId: _omit, ...patchWithoutOrgId } = patch
+    await db
+      .insert(orgFinancialSettings)
+      .values({ ...patch, organizationId: user.organizationId, paymentMethodsJson: DEFAULTS.payment_methods })
+      .onConflictDoUpdate({
+        target: orgFinancialSettings.organizationId,
+        set: { ...patchWithoutOrgId, updatedAt: new Date() },
+      })
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    if ((error as Error).message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    logServerError('[POST /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

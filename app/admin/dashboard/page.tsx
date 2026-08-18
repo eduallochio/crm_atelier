@@ -38,8 +38,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/admin/dashboard').then((r) => r.json()),
-      fetch('/api/admin/analytics').then((r) => r.json()),
+      fetch('/api/admin/dashboard').then(async (r) => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error ?? `Dashboard: ${r.status}`)
+        return data
+      }),
+      fetch('/api/admin/analytics').then(async (r) => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error ?? `Analytics: ${r.status}`)
+        return data
+      }),
     ])
       .then(([dashData, analyticsData]) => {
         setMetrics(dashData)
@@ -47,7 +55,7 @@ export default function AdminDashboard() {
       })
       .catch((err) => {
         console.error('Erro ao carregar dashboard admin:', err)
-        setError('Erro ao carregar dashboard')
+        setError(err.message || 'Erro ao carregar dashboard')
       })
       .finally(() => setLoading(false))
   }, [])

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
-  QrCode, RefreshCw, AlertTriangle,
+  QrCode, RefreshCw, AlertTriangle, Copy,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -125,6 +125,10 @@ export function SubscriptionSettingsForm() {
   const [couponResult, setCouponResult] = useState<CouponResult | null>(null)
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [upgradingCycle, setUpgradingCycle] = useState(false)
+  const [pixData, setPixData] = useState<{ encodedImage: string; payload: string; expirationDate: string } | null>(null)
+  const [autoLaunch, setAutoLaunch] = useState(false)
+  const [savingAutoLaunch, setSavingAutoLaunch] = useState(false)
 
   // Parcelamento (apenas anual + cartão)
   const [installments, setInstallments] = useState(3)
@@ -169,6 +173,41 @@ export function SubscriptionSettingsForm() {
 
   const currentPlan = usage?.plan ?? 'free'
   const isPro = currentPlan === 'pro'
+
+  // Preferência: lançar assinatura no financeiro
+  const { data: financialSettings } = useQuery<{ autoLaunchSubscription?: boolean } | null>({
+    queryKey: ['financial-settings-subscription'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings/financial')
+      if (!res.ok) return null
+      return res.json()
+    },
+    enabled: isPro,
+  })
+
+  useEffect(() => {
+    if (financialSettings?.autoLaunchSubscription !== undefined) {
+      setAutoLaunch(financialSettings.autoLaunchSubscription)
+    }
+  }, [financialSettings])
+
+  async function saveAutoLaunch(value: boolean) {
+    setSavingAutoLaunch(true)
+    setAutoLaunch(value)
+    try {
+      const res = await fetch('/api/settings/financial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoLaunchSubscription: value }),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar')
+    } catch {
+      setAutoLaunch(!value)
+      toast.error('Erro ao salvar preferência')
+    } finally {
+      setSavingAutoLaunch(false)
+    }
+  }
 
   const proPlan        = dbPlans.find(p => p.slug === 'pro')
   const monthlyPrice   = proPlan?.price ?? 0
@@ -288,17 +327,37 @@ export function SubscriptionSettingsForm() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao processar pagamento')
 
       if (billingType === 'PIX') {
-        toast.success('Assinatura criada! Você receberá as instruções de pagamento por e-mail.')
+        if (data.pix_qr_code) {
+          setPixData(data.pix_qr_code)
+        } else {
+          toast.success('Assinatura criada! Escaneie o QR code PIX para concluir o pagamento.')
+        }
       } else {
         toast.success('Assinatura criada com sucesso! Seu plano Pro já está ativo.')
         queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
         queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+        setShowCheckout(false)
       }
-      setShowCheckout(false)
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleUpgradeCycle() {
+    if (!confirm('Migrar para o plano Anual agora? O valor de R$ 498/ano será cobrado no próximo vencimento.')) return
+    setUpgradingCycle(true)
+    try {
+      const res = await fetch('/api/subscription/upgrade', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao atualizar ciclo')
+      toast.success('Assinatura migrada para Anual com sucesso!')
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setUpgradingCycle(false)
     }
   }
 
@@ -325,6 +384,30 @@ export function SubscriptionSettingsForm() {
               Regularizar pagamento <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
+        </div>
+      )}
+
+      {/* Banner de migração para Anual — só para Pro Mensal sem inadimplência */}
+      {isPro && subscriptionInfo?.cycle === 'MONTHLY' && !isOverdue && (
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <RefreshCw className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm">Economize 2 meses migrando para o plano Anual</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
+                De R$ 49,90/mês para R$ 498/ano — pague 10, use 12.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 border-emerald-400 text-emerald-700 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950"
+            disabled={upgradingCycle}
+            onClick={handleUpgradeCycle}
+          >
+            {upgradingCycle ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Migrar para Anual'}
+          </Button>
         </div>
       )}
 
@@ -505,6 +588,7 @@ export function SubscriptionSettingsForm() {
             </h3>
             <Button variant="ghost" size="icon" onClick={() => {
               setShowCheckout(false)
+              setPixData(null)
               removeCoupon()
               setInstallments(3)
               setCardHolderName(''); setCardNumber(''); setCardExpiry('')
@@ -514,6 +598,57 @@ export function SubscriptionSettingsForm() {
               <X className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* QR Code PIX — exibido após criação da assinatura PIX */}
+          {pixData ? (
+            <div className="flex flex-col items-center gap-5 py-2">
+              <div className="text-center space-y-1">
+                <p className="text-sm font-semibold text-foreground">Escaneie o QR Code para pagar</p>
+                <p className="text-xs text-muted-foreground">Após o pagamento seu plano Pro será ativado automaticamente</p>
+              </div>
+
+              <div className="rounded-2xl border-2 border-[#c8714a]/30 bg-white p-4 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/png;base64,${pixData.encodedImage}`}
+                  alt="QR Code PIX"
+                  className="w-52 h-52 object-contain"
+                />
+              </div>
+
+              <div className="w-full space-y-2">
+                <p className="text-xs text-muted-foreground text-center">Ou copie o código PIX:</p>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={pixData.payload}
+                    className="text-xs font-mono bg-muted/50 truncate"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixData.payload)
+                      toast.success('Código PIX copiado!')
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                {pixData.expirationDate && (
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Válido até: {new Date(pixData.expirationDate).toLocaleString('pt-BR')}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground max-w-xs">
+                Após confirmar o pagamento, atualize a página ou aguarde o webhook do Asaas ativar seu plano.
+              </p>
+            </div>
+          ) : (
+          <>
 
           {/* Ciclo de cobrança */}
           <div className="space-y-2">
@@ -747,6 +882,7 @@ export function SubscriptionSettingsForm() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{couponResult.code}</p>
                   <p className="text-xs text-emerald-600 dark:text-emerald-500">{couponResult.description ?? `Desconto de ${fmtPrice(couponResult.discount_amount ?? 0)}`}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Aplicado apenas na 1ª cobrança</p>
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-emerald-600" onClick={removeCoupon}>
                   <X className="h-3.5 w-3.5" />
@@ -815,6 +951,9 @@ export function SubscriptionSettingsForm() {
           <p className="text-xs text-center text-muted-foreground">
             Pagamento processado com segurança pelo Asaas. Cancele quando quiser.
           </p>
+
+          </>
+          )} {/* fim pixData ? ... : <> ... </> */}
         </div>
       )}
 
@@ -848,6 +987,35 @@ export function SubscriptionSettingsForm() {
               </a>
             </Button>
           </div>
+
+          {/* Toggle: lançar assinatura no financeiro */}
+          {isPro && (
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-border">
+              <div>
+                <p className="text-sm font-medium text-foreground">Lançar pagamentos no financeiro</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Ao confirmar cada cobrança, cria automaticamente um lançamento em Contas a Pagar já pago.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoLaunch}
+                disabled={savingAutoLaunch}
+                onClick={() => saveAutoLaunch(!autoLaunch)}
+                className={cn(
+                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200',
+                  autoLaunch ? 'bg-[#c8714a]' : 'bg-muted',
+                  savingAutoLaunch && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                <span className={cn(
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200',
+                  autoLaunch ? 'translate-x-5' : 'translate-x-0'
+                )} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

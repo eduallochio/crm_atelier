@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { organizations } from '@/lib/db/schema'
+import { organizations, orgFinancialSettings, orgPayables } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { format } from 'date-fns'
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? ''
 
@@ -77,6 +78,36 @@ export async function POST(req: NextRequest) {
           .set({ plan: 'pro', subscriptionStatus: 'active' })
           .where(eq(organizations.id, orgId))
         console.log(`[webhook/asaas] ${event} → org ${orgId} → plano pro ativado`)
+
+        // Lançar em contas a pagar se a opção estiver ativa
+        try {
+          const [settings] = await db
+            .select({ autoLaunchSubscription: orgFinancialSettings.autoLaunchSubscription })
+            .from(orgFinancialSettings)
+            .where(eq(orgFinancialSettings.organizationId, orgId))
+            .limit(1)
+
+          if (settings?.autoLaunchSubscription) {
+            const valor = String(payment.value ?? '0')
+            const hoje  = format(new Date(), 'yyyy-MM-dd')
+            const venc  = payment.dueDate ?? hoje
+            await db.insert(orgPayables).values({
+              organizationId: orgId,
+              descricao:      'Assinatura Meu Atelier Sistema - Plano Pro',
+              valor,
+              dataVencimento: venc,
+              dataPagamento:  hoje,
+              status:         'pago',
+              categoria:      'Assinatura',
+              formaPagamento: payment.billingType === 'PIX' ? 'PIX' : payment.billingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Outro',
+              observacoes:    `Pagamento automático via Asaas · ID: ${payment.id}`,
+            })
+            console.log(`[webhook/asaas] lançamento financeiro criado para org ${orgId}`)
+          }
+        } catch (finErr) {
+          // Não bloqueia a ativação do plano se o lançamento falhar
+          logServerError('[webhook/asaas] lançamento financeiro', finErr)
+        }
       } else {
         console.warn(`[webhook/asaas] ${event} → org não encontrada (subscription=${payment.subscription}, ref=${payment.externalReference})`)
       }

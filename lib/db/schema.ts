@@ -436,6 +436,7 @@ export const orgFinancialSettings = pgTable('org_financial_settings', {
   incomeCategoriesJson:        jsonb('income_categories_json').default(sql`'[]'::jsonb`),
   pixKey:                      text('pix_key'),
   showPixKeyOnOrder:           boolean('show_pix_key_on_order').notNull().default(false),
+  autoLaunchSubscription:      boolean('auto_launch_subscription').notNull().default(false),
   updatedAt:                   timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
