@@ -147,16 +147,24 @@ export function SubscriptionSettingsForm() {
   const currentPlan = usage?.plan ?? 'free'
   const isPro = currentPlan === 'pro'
 
-  const proPlan = dbPlans.find(p => p.slug === 'pro')
-  const monthlyPrice = proPlan?.price ?? 0
-  const annualPrice  = proPlan?.price_annual ?? monthlyPrice * 10
-  const basePrice    = cycle === 'MONTHLY' ? monthlyPrice : annualPrice
-  const finalPrice   = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
+  const proPlan        = dbPlans.find(p => p.slug === 'pro')
+  const monthlyPrice   = proPlan?.price ?? 0
+  // Anual 1x: preço com desconto (price_annual). Anual parcelado: preço cheio (12x mensal)
+  const annualPrice1x  = proPlan?.price_annual ?? monthlyPrice * 10
+  const annualPriceFull = Math.round(monthlyPrice * 12 * 100) / 100
 
   // Parcelamento: anual + cartão usa installments escolhido; demais sempre 1x
   const activeInstallments = billingType === 'CREDIT_CARD' && cycle === 'YEARLY' ? installments : 1
-  // Valor por parcela sem juros (apenas para exibição das opções sem juros)
-  const installmentValue   = activeInstallments > 1 ? Math.ceil((finalPrice / activeInstallments) * 100) / 100 : finalPrice
+
+  // Preço base: anual parcelado usa valor cheio; anual 1x usa desconto; mensal sempre mensal
+  const basePrice =
+    cycle === 'MONTHLY' ? monthlyPrice :
+    activeInstallments > 1 ? annualPriceFull :
+    annualPrice1x
+
+  const finalPrice       = couponResult?.valid ? (couponResult.final_price ?? basePrice) : basePrice
+  // Valor por parcela sem juros
+  const installmentValue = activeInstallments > 1 ? Math.ceil((finalPrice / activeInstallments) * 100) / 100 : finalPrice
 
   async function validateCoupon() {
     if (!couponCode.trim()) return
@@ -483,8 +491,8 @@ export function SubscriptionSettingsForm() {
             <Label className="text-sm font-medium">Ciclo de cobrança</Label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'MONTHLY' as const, label: 'Mensal', price: monthlyPrice, note: '' },
-                { value: 'YEARLY'  as const, label: 'Anual',  price: annualPrice,  note: proPlan?.annual_note ?? 'Economize 2 meses' },
+                { value: 'MONTHLY' as const, label: 'Mensal', price: monthlyPrice,  note: '',  sub: '/mês' },
+                { value: 'YEARLY'  as const, label: 'Anual',  price: annualPrice1x, note: proPlan?.annual_note ?? '2 meses grátis no pagamento à vista', sub: '/ano à vista' },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -501,7 +509,10 @@ export function SubscriptionSettingsForm() {
                     </span>
                   )}
                   <p className="font-semibold text-foreground">{opt.label}</p>
-                  <p className="text-sm text-muted-foreground">{fmtPrice(opt.price)}{opt.value === 'MONTHLY' ? '/mês' : '/ano'}</p>
+                  <p className="text-sm text-muted-foreground">{fmtPrice(opt.price)}{opt.sub}</p>
+                  {opt.value === 'YEARLY' && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">ou {fmtPrice(annualPriceFull)} parcelado</p>
+                  )}
                 </button>
               ))}
             </div>
@@ -543,8 +554,10 @@ export function SubscriptionSettingsForm() {
               <Label className="text-sm font-medium">Parcelamento</Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[1, 2, 3, 4, 5, 6].map((n) => {
-                  const semJuros = n <= 3
-                  const parcVal  = Math.ceil((finalPrice / n) * 100) / 100
+                  const semJuros  = n <= 3
+                  // 1x usa preço com desconto; 2x+ usa preço cheio
+                  const baseForN  = n === 1 ? annualPrice1x : annualPriceFull
+                  const parcVal   = Math.ceil((baseForN / n) * 100) / 100
                   return (
                     <button
                       key={n}

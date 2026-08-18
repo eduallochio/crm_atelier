@@ -85,9 +85,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
     }
 
+    const monthlyPrice   = parseFloat(planRow.price)
+    const annualPrice1x  = parseFloat(planRow.priceAnnual ?? '0') || monthlyPrice * 10
+    const annualPriceFull = Math.round(monthlyPrice * 12 * 100) / 100
+
+    // Anual 1x (PIX ou cartão 1x): preço com desconto. Anual parcelado: preço cheio
+    const effectiveInstallments = billing_type === 'CREDIT_CARD' && cycle === 'YEARLY'
+      ? (installment_count ?? 1)
+      : 1
     const basePrice = cycle === 'YEARLY'
-      ? (parseFloat(planRow.priceAnnual ?? '0') || parseFloat(planRow.price) * 10)
-      : parseFloat(planRow.price)
+      ? (effectiveInstallments > 1 ? annualPriceFull : annualPrice1x)
+      : monthlyPrice
 
     if (!basePrice) {
       return NextResponse.json({ error: 'Preço do plano não configurado' }, { status: 400 })
