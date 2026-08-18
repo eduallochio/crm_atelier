@@ -471,7 +471,7 @@ export default function PromoPage() {
             ))}
           </div>
           <p className="testimonial-quote">
-            Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. Não imagino trabalhar sem ele.
+            Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. E a facilidade de enviar a ordem de serviço para o cliente, ele saber exatamente o que vai ser feito e acompanhar, faz toda a diferença. Não imagino trabalhar sem ele.
           </p>
           <div className="testimonial-author">
             <img
