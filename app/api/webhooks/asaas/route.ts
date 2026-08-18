@@ -17,6 +17,14 @@ const PAYMENT_CREATED = new Set([
   'PAYMENT_CREATED',
 ])
 
+// Eventos que devem regredir o plano para overdue (estorno, chargeback)
+const PAYMENT_REFUNDED = new Set([
+  'PAYMENT_REFUNDED',
+  'PAYMENT_CHARGEBACK_REQUESTED',
+  'PAYMENT_CHARGEBACK_DISPUTE',
+  'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
+])
+
 // Eventos que ativam/mantêm o plano Pro
 const PAYMENT_CONFIRMED = new Set([
   'PAYMENT_RECEIVED',
@@ -109,6 +117,29 @@ export async function POST(req: NextRequest) {
           .where(eq(organizations.id, org.id))
 
         console.log(`[webhook/asaas] ${event} → org ${org.id} → rebaixado para free`)
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    // Estorno ou chargeback → marca como overdue para revisão manual
+    if (PAYMENT_REFUNDED.has(event) && payment) {
+      let orgId: string | null = payment.externalReference ?? null
+
+      if (!orgId && payment.subscription) {
+        const [found] = await db
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+          .limit(1)
+        orgId = found?.id ?? null
+      }
+
+      if (orgId) {
+        await db
+          .update(organizations)
+          .set({ subscriptionStatus: 'overdue' })
+          .where(eq(organizations.id, orgId))
+        console.log(`[webhook/asaas] ${event} → org ${orgId} → status overdue (estorno/chargeback)`)
       }
       return NextResponse.json({ ok: true })
     }

@@ -47,6 +47,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
     logServerError('[GET /api/subscription]', error)
-    return NextResponse.json({ plan: 'free', next_due_date: null, status: 'inactive' })
+    return NextResponse.json({ error: 'Erro ao carregar dados da assinatura' }, { status: 500 })
   }
 }

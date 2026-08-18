@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
       coupon_code,
     } = body
 
-    if (!billing_type) {
-      return NextResponse.json({ error: 'billing_type é obrigatório' }, { status: 400 })
+    const ALLOWED_BILLING_TYPES = ['PIX', 'CREDIT_CARD']
+    if (!billing_type || !ALLOWED_BILLING_TYPES.includes(billing_type)) {
+      return NextResponse.json({ error: 'Método de pagamento inválido' }, { status: 400 })
     }
 
     // Buscar dados da organização

@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { coupons } from '@/lib/db/schema'
+import { coupons, plans } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
-
-const PLAN_PRICES: Record<string, Record<string, number>> = {
-  pro: { MONTHLY: 47.90, YEARLY: 479.00 },
-}
 
 // POST /api/coupons/validate
 // Body: { code: string, plan: string, cycle?: 'MONTHLY' | 'YEARLY' }
@@ -49,7 +45,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false, error: `Cupom não aplicável ao plano ${plan}` })
     }
 
-    const basePrice = PLAN_PRICES[plan]?.[cycle] ?? 0
+    const [planRow] = await db
+      .select({ price: plans.price, priceAnnual: plans.priceAnnual })
+      .from(plans)
+      .where(eq(plans.slug, plan))
+      .limit(1)
+
+    const basePrice = planRow
+      ? cycle === 'YEARLY'
+        ? parseFloat(planRow.priceAnnual ?? '0') || parseFloat(planRow.price) * 10
+        : parseFloat(planRow.price)
+      : 0
     const discountValue = parseFloat(coupon.discountValue)
 
     let finalPrice: number
