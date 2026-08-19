@@ -54,7 +54,7 @@ const faqs = [
   },
   {
     q: 'O cupom funciona em qual momento?',
-    a: 'Aplique o cupom PROMO50 na hora de assinar o Plano Pro. O desconto é aplicado automaticamente na primeira cobrança.',
+    a: 'Aplique o cupom PROMO50 na hora de assinar o Plano Pro. Você paga R$ 49,90 e fica com 2 meses completos de acesso — o equivalente a 1 mês grátis.',
   },
 ]
 
@@ -110,11 +110,11 @@ export default function PromoPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Offer',
-    name: 'Plano Pro — 50% de desconto no primeiro mês',
-    description: 'Sistema de gestão completo para ateliês de costura e artesanato.',
+    name: 'Plano Pro — 2 meses pelo preço de 1',
+    description: 'Sistema de gestão completo para ateliês de costura e artesanato. 2 meses pelo preço de 1 com o cupom PROMO50.',
     url: 'https://meuateliersistema.com.br/promo',
     priceCurrency: 'BRL',
-    price: '24.95',
+    price: '49.90',
     priceValidUntil: '2026-09-15',
     seller: { '@type': 'Organization', name: 'Meu Atelier Sistema', url: 'https://meuateliersistema.com.br' },
     eligibleCustomerType: 'https://schema.org/NewCustomer',
@@ -335,17 +335,17 @@ export default function PromoPage() {
       <section className="promo-hero">
         <span className="promo-eyebrow">Promoção de lançamento</span>
         <div className="promo-disc-wrap">
-          <span className="promo-disc-num">50</span>
-          <span className="promo-disc-pct">%</span>
+          <span className="promo-disc-num">2</span>
+          <span className="promo-disc-pct">×1</span>
         </div>
-        <h1 className="promo-h1">de desconto no primeiro mês do Plano Pro</h1>
+        <h1 className="promo-h1">2 meses pelo preço de 1 no Plano Pro</h1>
         <p className="promo-detail">
           Gerencie seu ateliê com profissionalismo. <strong>Cancele quando quiser.</strong>
         </p>
         <div className="promo-price-row">
-          <span className="promo-old">R$ 49,90</span>
-          <span className="promo-new">R$ 24,95</span>
-          <span className="promo-period">/1º mês</span>
+          <span className="promo-old">R$ 99,80</span>
+          <span className="promo-new">R$ 49,90</span>
+          <span className="promo-period">/2 meses</span>
         </div>
         <p className="promo-annual-hint">Ou assine anual por R$ 498/ano e economize R$ 100</p>
         <Link href="/cadastro" className="promo-btn">Começar agora com 50% off</Link>
@@ -523,11 +523,11 @@ export default function PromoPage() {
           <div className="pricing-card highlighted">
             <div className="pricing-tag">Com cupom PROMO50</div>
             <div className="pricing-label">Mensal</div>
-            <div className="pricing-price">R$ 24,95 <span>/1º mês</span></div>
-            <div className="pricing-old">de R$ 49,90/mês</div>
-            <div className="pricing-saving">Economize R$ 24,95 agora</div>
+            <div className="pricing-price">R$ 49,90 <span>/2 meses</span></div>
+            <div className="pricing-old">de R$ 99,80 no total</div>
+            <div className="pricing-saving">Economize R$ 49,90 — 1 mês grátis</div>
             <hr className="pricing-divider" />
-            <div className="pricing-desc">Após o 1º mês, R$ 49,90/mês. Cancele quando quiser.</div>
+            <div className="pricing-desc">Após os 2 meses, R$ 49,90/mês. Cancele quando quiser.</div>
           </div>
           <div className="pricing-card">
             <div className="pricing-label">Anual</div>
@@ -550,7 +550,7 @@ export default function PromoPage() {
         <h2 className="promo-cta-title">Comece agora com 50% off</h2>
         <p className="promo-cta-sub">
           Use o cupom abaixo na assinatura do Plano Pro.
-          Primeiro mês por <strong style={{ color: 'var(--text)' }}>R$ 24,95</strong>. Depois R$ 49,90/mês.
+          Pague <strong style={{ color: 'var(--text)' }}>R$ 49,90</strong> e ganhe 2 meses completos — metade do preço normal.
         </p>
         <div className="promo-coupon">
           <span className="promo-coupon-label">Cupom</span>
