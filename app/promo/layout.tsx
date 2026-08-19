@@ -11,10 +11,19 @@ export const metadata: Metadata = {
     url: 'https://meuateliersistema.com.br/promo',
     type: 'website',
     locale: 'pt_BR',
+    images: [
+      {
+        url: 'https://meuateliersistema.com.br/og-promo.png',
+        width: 1200,
+        height: 630,
+        alt: '2 meses pelo preço de 1 no Plano Pro — Meu Atelier Sistema',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: '2 Meses pelo Preço de 1 — Meu Atelier Sistema',
+    images: ['https://meuateliersistema.com.br/og-promo.png'],
   },
   alternates: {
     canonical: 'https://meuateliersistema.com.br/promo',

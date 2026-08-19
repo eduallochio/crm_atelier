@@ -78,7 +78,9 @@ export default function AdminCouponsPage() {
       max_uses: c.max_uses ?? '',
       expires_at: c.expires_at ? c.expires_at.split('T')[0] : '',
       is_active: c.is_active,
-      applicable_plans: c.applicable_plans ? JSON.parse(c.applicable_plans).join(', ') : '',
+      applicable_plans: c.applicable_plans
+        ? (Array.isArray(c.applicable_plans) ? c.applicable_plans : [c.applicable_plans]).join(', ')
+        : '',
     })
     setDialog({ open: true, coupon: c })
   }
@@ -251,7 +253,7 @@ export default function AdminCouponsPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                         {coupon.applicable_plans
-                          ? JSON.parse(coupon.applicable_plans).join(', ')
+                          ? (Array.isArray(coupon.applicable_plans) ? coupon.applicable_plans : [coupon.applicable_plans]).join(', ')
                           : 'Todos'}
                       </td>
                       <td className="px-4 py-3">

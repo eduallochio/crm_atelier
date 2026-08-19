@@ -20,6 +20,7 @@ import {
   UserCog,
   Tag,
   Bug,
+  Mail,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -42,6 +43,7 @@ const menuGroups = [
       { label: 'Planos', icon: CreditCard, href: '/admin/plans' },
       { label: 'Assinaturas', icon: UserCog, href: '/admin/subscriptions' },
       { label: 'Cupons', icon: Tag, href: '/admin/coupons' },
+      { label: 'Leads /promo', icon: Mail, href: '/admin/leads' },
     ],
   },
   {

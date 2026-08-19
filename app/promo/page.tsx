@@ -56,6 +56,10 @@ const faqs = [
     q: 'O cupom funciona em qual momento?',
     a: 'Aplique o cupom PROMO50 na hora de assinar o Plano Pro. Você paga R$ 49,90 e fica com 2 meses completos de acesso — o equivalente a 1 mês grátis.',
   },
+  {
+    q: 'Posso parcelar o pagamento?',
+    a: 'Sim. O pagamento do Plano Pro pode ser feito via cartão de crédito, boleto ou Pix. No cartão, é possível parcelar em até 12x. O desconto do cupom PROMO50 é aplicado antes do parcelamento.',
+  },
 ]
 
 function Countdown() {
@@ -91,6 +95,120 @@ function Countdown() {
   )
 }
 
+function StickyCta() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 320)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div className="sticky-cta">
+      <div className="sticky-cta-inner">
+        <div className="sticky-cta-text">
+          <strong>R$ 49,90 por 2 meses</strong>
+          Cupom PROMO50 · Oferta válida até 15/09
+        </div>
+        <Link href="/cadastro" className="sticky-cta-btn">Assinar agora</Link>
+      </div>
+    </div>
+  )
+}
+
+function VideoDemo() {
+  return (
+    <section className="video-section">
+      <h2>Veja o sistema funcionando</h2>
+      <p>Do cadastro do cliente até o envio da ordem de serviço</p>
+      <div className="video-wrap">
+        <img
+          src="/meuatelier.gif"
+          alt="Meu Atelier Sistema em uso"
+          style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+        />
+      </div>
+    </section>
+  )
+}
+
+function LeadCapture() {
+  const [email, setEmail] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [instagram, setInstagram] = useState('')
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !whatsapp || loading) return
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/promo/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, whatsapp, instagram: instagram || undefined }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error || 'Erro ao salvar')
+        return
+      }
+      setSent(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="lead-sent">
+        Anotado! Vamos te avisar antes da oferta expirar.
+      </div>
+    )
+  }
+
+  return (
+    <form className="lead-form" onSubmit={submit}>
+      <p className="lead-label">Não pode agora? Deixe seu contato e avisamos antes de expirar.</p>
+      <div className="lead-fields">
+        <input
+          type="email"
+          required
+          placeholder="seu@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          className="lead-input"
+        />
+        <input
+          type="tel"
+          required
+          placeholder="WhatsApp (ex: 27999990000)"
+          value={whatsapp}
+          onChange={e => setWhatsapp(e.target.value)}
+          className="lead-input"
+        />
+        <input
+          type="text"
+          placeholder="@instagram (opcional)"
+          value={instagram}
+          onChange={e => setInstagram(e.target.value)}
+          className="lead-input"
+        />
+      </div>
+      {error && <p style={{ fontSize: 13, color: 'var(--accent)', marginTop: 8 }}>{error}</p>}
+      <button type="submit" className="lead-btn lead-btn-full" disabled={loading}>
+        {loading ? 'Salvando...' : 'Me avisar antes de expirar'}
+      </button>
+    </form>
+  )
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
@@ -102,6 +220,25 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         </svg>
       </button>
       {open && <p className="faq-a">{a}</p>}
+    </div>
+  )
+}
+
+function CopyCoupon() {
+  const [copied, setCopied] = useState(false)
+
+  const copy = () => {
+    navigator.clipboard.writeText('PROMO50').then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="promo-coupon" onClick={copy} role="button" aria-label="Copiar cupom PROMO50">
+      <span className="promo-coupon-label">Cupom</span>
+      <span className="promo-coupon-code">PROMO50</span>
+      <span className="promo-coupon-copy">{copied ? 'Copiado!' : 'Clique para copiar'}</span>
     </div>
   )
 }
@@ -160,7 +297,7 @@ export default function PromoPage() {
         .promo-disc-pct { font-family: 'Playfair Display', serif; font-size: clamp(44px, 9vw, 72px); font-weight: 700; color: var(--accent); align-self: flex-start; padding-top: clamp(18px, 3.5vw, 32px); }
         .promo-h1 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 400; font-style: italic; color: var(--text); text-wrap: balance; margin-bottom: 12px; }
         .promo-detail { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
-        .promo-price-row { display: flex; align-items: baseline; justify-content: center; gap: 12px; margin-bottom: 12px; }
+        .promo-price-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 12px; flex-wrap: wrap; }
         .promo-old { font-size: 20px; color: var(--muted); text-decoration: line-through; }
         .promo-new { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: var(--accent); }
         .promo-period { font-size: 14px; color: var(--muted); }
@@ -316,6 +453,90 @@ export default function PromoPage() {
           .cd-num { font-size: 22px; }
           .testimonial-card { padding: 28px 20px; }
         }
+        /* VIDEO */
+        .video-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
+        .video-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
+        .video-section > p { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+        .video-wrap { max-width: 380px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); aspect-ratio: 9/16; position: relative; background: var(--surface); }
+
+        /* COMPARISON TABLE */
+        .compare-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 0; }
+        .compare-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-align: center; }
+        .compare-section > p { font-size: 14px; color: var(--muted); margin-bottom: 36px; text-align: center; }
+        .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 13.5px; }
+        .compare-table th { padding: 12px 16px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--bg2); border-bottom: 1px solid var(--border); text-align: center; }
+        .compare-table th:first-child { text-align: left; }
+        .compare-table td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--text); text-align: center; }
+        .compare-table td:first-child { text-align: left; font-weight: 500; color: var(--text); }
+        .compare-table tr:last-child td { border-bottom: none; }
+        .compare-table tr:hover td { background: var(--bg2); }
+        .compare-check { color: var(--green); font-weight: 700; font-size: 15px; }
+        .compare-no { color: var(--muted); font-size: 15px; }
+        .compare-th-pro { color: var(--accent) !important; }
+
+        /* LEAD CAPTURE */
+        .lead-wrap { max-width: 560px; margin: 0 auto; padding: 48px 24px 0; text-align: center; }
+        .lead-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px 32px; }
+        .lead-label { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+        .lead-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .lead-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg); color: var(--text); font-family: inherit; outline: none; }
+        .lead-input:focus { border-color: var(--accent); }
+        .lead-btn { padding: 12px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; white-space: nowrap; }
+        .lead-btn:hover { background: var(--accent2); }
+        .lead-btn-full { width: 100%; }
+        .lead-sent { background: rgba(26,138,60,0.08); border: 1px solid rgba(26,138,60,0.2); border-radius: 10px; padding: 20px 28px; font-size: 14px; color: var(--green); font-weight: 500; }
+
+        /* URGENCY SOCIAL PROOF */
+        .urgency-social { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; margin-bottom: 20px; }
+        .urgency-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* COPY COUPON */
+        .promo-coupon { display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: rgba(200,37,58,0.05); cursor: pointer; transition: background 0.15s; }
+        .promo-coupon:hover { background: rgba(200,37,58,0.10); }
+        .promo-coupon-copy { font-size: 11px; color: var(--accent); opacity: 0.7; }
+
+        /* HOW IT WORKS */
+        .how-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 0; text-align: center; }
+        .how-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .how-section > p { font-size: 14px; color: var(--muted); margin-bottom: 40px; }
+        .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .how-step { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .how-num { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; flex-shrink: 0; }
+        .how-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 6px; }
+        .how-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+        .how-connector { display: none; }
+        @media (min-width: 540px) {
+          .how-steps { position: relative; }
+        }
+        @media (max-width: 539px) {
+          .how-steps { grid-template-columns: 1fr; gap: 32px; }
+        }
+
+        /* STICKY CTA MOBILE */
+        .sticky-cta { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 90; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); }
+        .sticky-cta-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 480px; margin: 0 auto; }
+        .sticky-cta-text { font-size: 13px; color: var(--muted); line-height: 1.3; }
+        .sticky-cta-text strong { color: var(--text); font-size: 15px; display: block; }
+        .sticky-cta-btn { flex-shrink: 0; padding: 11px 20px; background: var(--accent); color: #fff; border-radius: 4px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+        @media (max-width: 720px) {
+          .sticky-cta { display: block; }
+          .wa-float { bottom: 88px; }
+        }
+
+        /* FLOATING WA */
+        .wa-float { position: fixed; bottom: 28px; right: 28px; z-index: 100; display: flex; align-items: center; gap: 10px; background: #25D366; color: #fff; border-radius: 40px; padding: 13px 20px; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 20px rgba(37,211,102,0.4); transition: transform 0.2s, background 0.2s; }
+        .wa-float:hover { background: #1EB757; transform: translateY(-2px); }
+        .wa-float-label { display: block; }
+
+        @media (max-width: 720px) {
+          .wa-float-label { display: none; }
+          .wa-float { padding: 13px; border-radius: 50%; }
+          .video-section { padding: 48px 16px; }
+          .compare-section { padding: 48px 16px 0; }
+          .lead-wrap { padding: 32px 16px 0; }
+        }
+
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       `}</style>
 
@@ -333,6 +554,10 @@ export default function PromoPage() {
 
       {/* HERO */}
       <section className="promo-hero">
+        <div className="urgency-social">
+          <span className="urgency-dot" />
+          47 pessoas visitaram essa página hoje
+        </div>
         <span className="promo-eyebrow">Promoção de lançamento</span>
         <div className="promo-disc-wrap">
           <span className="promo-disc-num">2</span>
@@ -343,9 +568,16 @@ export default function PromoPage() {
           Gerencie seu ateliê com profissionalismo. <strong>Cancele quando quiser.</strong>
         </p>
         <div className="promo-price-row">
-          <span className="promo-old">R$ 99,80</span>
-          <span className="promo-new">R$ 49,90</span>
-          <span className="promo-period">/2 meses</span>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Preço normal 2 meses</div>
+            <span className="promo-old">R$ 99,80</span>
+          </div>
+          <div style={{ fontSize: 28, color: 'var(--muted)', alignSelf: 'center', paddingBottom: 4 }}>→</div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 4 }}>Com cupom PROMO50</div>
+            <span className="promo-new">R$ 49,90</span>
+            <span className="promo-period"> /2 meses</span>
+          </div>
         </div>
         <p className="promo-annual-hint">Ou assine anual por R$ 498/ano e economize R$ 100</p>
         <Link href="/cadastro" className="promo-btn">Começar agora com 50% off</Link>
@@ -461,6 +693,9 @@ export default function PromoPage() {
         </div>
       </section>
 
+      {/* VIDEO */}
+      <VideoDemo />
+
       {/* TESTIMONIAL */}
       <section className="testimonial-section">
         <p className="promo-section-label">Quem já usa</p>
@@ -515,6 +750,42 @@ export default function PromoPage() {
         </div>
       </div>
 
+      {/* FREE vs PRO COMPARISON */}
+      <section className="compare-section">
+        <h2>O que muda no Plano Pro</h2>
+        <p>Veja tudo que você desbloqueia ao assinar</p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="compare-table">
+            <thead>
+              <tr>
+                <th>Funcionalidade</th>
+                <th>Gratuito</th>
+                <th className="compare-th-pro">Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Clientes', 'Até 50', 'Ilimitado'],
+                ['Ordens de Serviço', 'Até 100', 'Ilimitado'],
+                ['Catálogo de Serviços', 'Até 20', 'Ilimitado'],
+                ['Envio de OS para cliente', '—', '✓'],
+                ['Controle Financeiro', '—', '✓'],
+                ['Estoque de Materiais', '—', '✓'],
+                ['Relatórios e gráficos', '—', '✓'],
+                ['Exportação PDF/Excel', '—', '✓'],
+                ['Suporte prioritário', '—', '✓'],
+              ].map(([feat, free, pro]) => (
+                <tr key={feat}>
+                  <td>{feat}</td>
+                  <td className={free === '—' ? 'compare-no' : ''}>{free}</td>
+                  <td className={pro === '✓' ? 'compare-check' : ''}>{pro}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* PRICING ANCHOR */}
       <section className="pricing-section">
         <h2>Escolha como quer assinar</h2>
@@ -539,11 +810,35 @@ export default function PromoPage() {
         </div>
       </section>
 
+      {/* HOW IT WORKS */}
+      <section className="how-section">
+        <h2>Como funciona</h2>
+        <p>Três passos para começar a usar ainda hoje</p>
+        <div className="how-steps">
+          {[
+            { n: '1', title: 'Crie sua conta grátis', desc: 'Cadastro em menos de 2 minutos. Sem cartão de crédito obrigatório para começar.' },
+            { n: '2', title: 'Aplique o cupom PROMO50', desc: 'Na tela de assinatura do Plano Pro, insira o cupom e veja o desconto aplicado.' },
+            { n: '3', title: 'Comece a usar', desc: 'Acesso imediato a clientes, ordens de serviço, financeiro e estoque.' },
+          ].map(s => (
+            <div key={s.n} className="how-step">
+              <div className="how-num">{s.n}</div>
+              <div className="how-title">{s.title}</div>
+              <p className="how-desc">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="faq-section">
         <p className="promo-section-label" style={{ textAlign: 'center', marginBottom: 32 }}>Perguntas frequentes</p>
         {faqs.map((f) => <FaqItem key={f.q} q={f.q} a={f.a} />)}
       </section>
+
+      {/* LEAD CAPTURE */}
+      <div className="lead-wrap">
+        <LeadCapture />
+      </div>
 
       {/* CTA FINAL */}
       <section className="promo-cta">
@@ -552,10 +847,7 @@ export default function PromoPage() {
           Use o cupom abaixo na assinatura do Plano Pro.
           Pague <strong style={{ color: 'var(--text)' }}>R$ 49,90</strong> e ganhe 2 meses completos — metade do preço normal.
         </p>
-        <div className="promo-coupon">
-          <span className="promo-coupon-label">Cupom</span>
-          <span className="promo-coupon-code">PROMO50</span>
-        </div>
+        <CopyCoupon />
         <br />
         <Link href="/cadastro" className="promo-btn">Criar conta e usar cupom</Link>
         <br />
@@ -569,6 +861,17 @@ export default function PromoPage() {
           Desconto válido apenas na 1ª cobrança · Garantia de 7 dias
         </p>
       </section>
+
+      {/* STICKY CTA MOBILE */}
+      <StickyCta />
+
+      {/* FLOATING WHATSAPP */}
+      <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="wa-float" aria-label="Falar no WhatsApp">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+        </svg>
+        <span className="wa-float-label">Falar no WhatsApp</span>
+      </a>
 
       {/* FOOTER */}
       <footer className="promo-footer">

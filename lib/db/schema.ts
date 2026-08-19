@@ -654,6 +654,20 @@ export const orgStockExitItems = pgTable('org_stock_exit_items', {
   index('idx_stock_exit_items_product').on(t.productId),
 ])
 
+// ─── 38. PROMO LEADS ──────────────────────────────────────────────────────────
+
+export const promoLeads = pgTable('promo_leads', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  email:     text('email').notNull().unique(),
+  whatsapp:  text('whatsapp'),
+  instagram: text('instagram'),
+  source:    text('source').notNull().default('promo_page'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_promo_leads_email').on(t.email),
+  index('idx_promo_leads_created').on(t.createdAt),
+])
+
 // ─── 37. ADMIN ERROR LOGS ─────────────────────────────────────────────────────
 
 export const adminErrorLogs = pgTable('admin_error_logs', {
@@ -723,3 +737,4 @@ export type NewOrgStockExitItem    = typeof orgStockExitItems.$inferInsert
 export type Plan                   = typeof plans.$inferSelect
 export type AdminLog               = typeof adminLogs.$inferSelect
 export type Coupon                 = typeof coupons.$inferSelect
+export type PromoLead              = typeof promoLeads.$inferSelect
