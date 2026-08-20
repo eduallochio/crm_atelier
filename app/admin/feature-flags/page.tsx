@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { AdminTableSkeleton } from '@/components/admin/admin-skeleton'
 
 type Plan = 'free' | 'pro'
 
@@ -188,7 +189,7 @@ export default function FeatureFlagsPage() {
   const categories = ['all', ...Array.from(new Set(DEFAULT_FLAGS.map((f) => f.category)))]
   const filtered = filter === 'all' ? flags : flags.filter((f) => f.category === filter)
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Carregando...</div>
+  if (loading) return <AdminTableSkeleton rows={6} cols={4} />
 
   return (
     <div className="space-y-6">

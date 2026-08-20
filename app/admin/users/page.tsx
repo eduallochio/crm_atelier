@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { AdminTableSkeleton } from '@/components/admin/admin-skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
@@ -103,7 +104,7 @@ export default function AdminUsersPage() {
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center text-gray-400">Carregando...</div>
+          <AdminTableSkeleton rows={8} cols={5} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

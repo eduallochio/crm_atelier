@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, Search, Settings } from 'lucide-react'
+import { Bell, Search, Settings, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +32,11 @@ const ACTION_COLORS: Record<string, string> = {
   LOGIN:       'bg-sky-500',
 }
 
-export function AdminHeader() {
+interface AdminHeaderProps {
+  onMenuToggle?: () => void
+}
+
+export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [open, setOpen] = useState(false)
 
@@ -47,9 +51,18 @@ export function AdminHeader() {
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div className="h-16 px-6 flex items-center justify-between">
+      <div className="h-16 px-4 sm:px-6 flex items-center justify-between gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
+          aria-label="Abrir menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         {/* Search */}
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-md hidden sm:block">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input

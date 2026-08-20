@@ -107,8 +107,8 @@ export default function ServicosPage() {
     } else if (sortBy === 'price-desc') {
       return Number(b.preco) - Number(a.preco)
     } else if (sortBy === 'most-used') {
-      const usageA = stats?.serviceUsage.find(u => u.id === a.id)?.count || 0
-      const usageB = stats?.serviceUsage.find(u => u.id === b.id)?.count || 0
+      const usageA = stats?.serviceUsage?.find(u => u.id === a.id)?.count || 0
+      const usageB = stats?.serviceUsage?.find(u => u.id === b.id)?.count || 0
       return usageB - usageA
     }
     return 0

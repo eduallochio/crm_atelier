@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { TrendingUp, Users, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
 import { AdminMetricsCard } from '@/components/admin/admin-metrics-card'
+import { AdminPageSkeleton } from '@/components/admin/admin-skeleton'
 import { AdminGrowthChart } from '@/components/admin/admin-growth-chart'
 import { AdminRevenueChart } from '@/components/admin/admin-revenue-chart'
 import { AdminPlanDistribution } from '@/components/admin/admin-plan-distribution'
@@ -61,14 +62,7 @@ export default function AdminDashboard() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600 dark:text-gray-400">Carregando dashboard...</p>
-        </div>
-      </div>
-    )
+    return <AdminPageSkeleton />
   }
 
   if (error || !metrics) {

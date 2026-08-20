@@ -147,7 +147,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
                       <p className="text-[13px] font-medium text-foreground leading-snug">
                         {activity.title}
                       </p>
-                      <span className="text-[10.5px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                      <span className="text-[10.5px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5" suppressHydrationWarning>
                         {getRelativeTime(activity.timestamp)}
                       </span>
                     </div>

@@ -6,6 +6,7 @@ import { MoreHorizontal, Eye, Edit } from 'lucide-react'
 import Link from 'next/link'
 import { PlanBadge, StateBadge } from './subscription-badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Organization {
   id: string
@@ -50,8 +51,24 @@ export function OrganizationTable({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-12">
-        <p className="text-center text-gray-600 dark:text-gray-400">Carregando organizações...</p>
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="border-b border-gray-200 dark:border-gray-800 px-6 py-3 bg-gray-50 dark:bg-gray-800 flex gap-6">
+          {[32, 20, 16, 12, 14, 20].map((w, i) => (
+            <Skeleton key={i} className={`h-3 w-${w}`} />
+          ))}
+        </div>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="flex items-center gap-6 px-6 py-4 border-b border-gray-100 dark:border-gray-800 last:border-0">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+          </div>
+        ))}
       </div>
     )
   }

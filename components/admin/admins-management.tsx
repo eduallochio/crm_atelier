@@ -100,7 +100,7 @@ export function AdminsManagement({ admins, onRefresh }: AdminsManagementProps) {
         </div>
 
         {admins.length > 0 ? (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50">
                 <tr>

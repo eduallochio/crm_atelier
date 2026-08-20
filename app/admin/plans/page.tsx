@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Loader2, Check, X, ArrowUp, ArrowDown } from 'lucide-react'
+import { AdminTableSkeleton } from '@/components/admin/admin-skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -103,7 +104,7 @@ export default function AdminPlansPage() {
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Carregando...</div>
+  if (loading) return <AdminTableSkeleton rows={4} cols={5} />
 
   return (
     <div className="space-y-6">

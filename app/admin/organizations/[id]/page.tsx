@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanBadge, StateBadge } from '@/components/admin/subscription-badge'
+import { AdminDetailSkeleton } from '@/components/admin/admin-skeleton'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OverviewTab } from '@/components/admin/overview-tab'
@@ -100,11 +101,7 @@ export default function OrganizationDetailPage() {
   }, [fetchOrganization])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-gray-600 dark:text-gray-400">Carregando organização...</p>
-      </div>
-    )
+    return <AdminDetailSkeleton />
   }
 
   if (!organization) {

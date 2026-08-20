@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth/session'
-import { AdminSidebar } from '@/components/admin/admin-sidebar'
-import { AdminHeader } from '@/components/admin/admin-header'
+import { AdminLayoutClient } from '@/components/admin/admin-layout-client'
 
 export default async function AdminLayout({
   children,
@@ -18,17 +17,5 @@ export default async function AdminLayout({
     redirect('/dashboard')
   }
 
-  return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader />
-        <main className="flex-1 overflow-auto">
-          <div className="p-8">
-            {children}
-          </div>
-        </main>
-      </div>
-    </div>
-  )
+  return <AdminLayoutClient>{children}</AdminLayoutClient>
 }
