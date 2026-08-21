@@ -125,7 +125,14 @@ export default function OrdensServicoPage() {
         {/* Estatísticas */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
           {/* Total */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          <button
+            onClick={() => { setStatusFilter('all'); setDateFilter('all') }}
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
+              statusFilter === 'all' && dateFilter === 'all'
+                ? 'border-slate-400 ring-2 ring-slate-300 dark:ring-slate-600'
+                : 'border-border/40'
+            }`}
+          >
             <div className="absolute inset-0 bg-slate-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
             <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-slate-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
@@ -139,10 +146,17 @@ export default function OrdensServicoPage() {
               <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
               <p className="text-[10.5px] text-muted-foreground">todas as ordens</p>
             </div>
-          </div>
+          </button>
 
           {/* Pendente */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          <button
+            onClick={() => { setStatusFilter('pendente'); setDateFilter('all') }}
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
+              statusFilter === 'pendente' && dateFilter === 'all'
+                ? 'border-amber-400 ring-2 ring-amber-300 dark:ring-amber-700'
+                : 'border-border/40'
+            }`}
+          >
             <div className="absolute inset-0 bg-amber-400 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
             <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-amber-400 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
@@ -156,10 +170,17 @@ export default function OrdensServicoPage() {
               <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
               <p className="text-[10.5px] text-muted-foreground">aguardando</p>
             </div>
-          </div>
+          </button>
 
           {/* Em Andamento */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          <button
+            onClick={() => { setStatusFilter('em_andamento'); setDateFilter('all') }}
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
+              statusFilter === 'em_andamento' && dateFilter === 'all'
+                ? 'border-blue-400 ring-2 ring-blue-300 dark:ring-blue-700'
+                : 'border-border/40'
+            }`}
+          >
             <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
             <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
@@ -173,10 +194,17 @@ export default function OrdensServicoPage() {
               <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
               <p className="text-[10.5px] text-muted-foreground">em execução</p>
             </div>
-          </div>
+          </button>
 
           {/* Concluído */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          <button
+            onClick={() => { setStatusFilter('concluido'); setDateFilter('all') }}
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
+              statusFilter === 'concluido' && dateFilter === 'all'
+                ? 'border-emerald-400 ring-2 ring-emerald-300 dark:ring-emerald-700'
+                : 'border-border/40'
+            }`}
+          >
             <div className="absolute inset-0 bg-emerald-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
             <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-emerald-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
@@ -190,10 +218,17 @@ export default function OrdensServicoPage() {
               <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
               <p className="text-[10.5px] text-muted-foreground">finalizadas</p>
             </div>
-          </div>
+          </button>
 
           {/* Atrasadas */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-3 sm:col-span-1">
+          <button
+            onClick={() => { setStatusFilter('all'); setDateFilter('overdue') }}
+            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-3 sm:col-span-1 text-left ${
+              dateFilter === 'overdue'
+                ? 'border-red-400 ring-2 ring-red-300 dark:ring-red-700'
+                : 'border-border/40'
+            }`}
+          >
             <div className="absolute inset-0 bg-red-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
             <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-red-500 opacity-20 blur-2xl pointer-events-none" />
             <div className="p-3 sm:p-5">
@@ -207,7 +242,7 @@ export default function OrdensServicoPage() {
               <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
               <p className="text-[10.5px] text-muted-foreground">fora do prazo</p>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Banner de limite atingido */}
