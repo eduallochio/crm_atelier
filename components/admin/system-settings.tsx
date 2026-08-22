@@ -26,6 +26,8 @@ interface Settings {
   maintenanceMode?: boolean
   announcement?: string
   whatsappSupportPhone?: string
+  promoBannerActive?: boolean
+  promoBannerText?: string
 }
 
 interface SystemSettingsProps {
@@ -71,6 +73,8 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           maintenance_mode:         settings.maintenanceMode ?? false,
           announcement:             settings.announcement ?? '',
           whatsapp_support_phone:   settings.whatsappSupportPhone ?? '',
+          promo_banner_active:      String(settings.promoBannerActive ?? false),
+          promo_banner_text:        settings.promoBannerText ?? '',
         }),
       })
       if (!res.ok) throw new Error('Erro ao salvar')
@@ -219,6 +223,32 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
             </div>
             <Switch id="maintenanceMode" checked={settings.maintenanceMode ?? false} onCheckedChange={(checked) => handleChange('maintenanceMode', checked)} />
           </div>
+        </div>
+
+        <hr className="border-border" />
+
+        <div className="space-y-4">
+          <h4 className="font-medium">Banner Promocional</h4>
+          <p className="text-xs text-muted-foreground -mt-2">Exibe uma faixa no topo da landing page com link para <strong>/promo</strong>.</p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="promoBannerActive">Ativar banner de promoção</Label>
+              <p className="text-sm text-muted-foreground">Mostra a faixa vermelha no topo da landing page</p>
+            </div>
+            <Switch id="promoBannerActive" checked={settings.promoBannerActive ?? false} onCheckedChange={(checked) => handleChange('promoBannerActive', checked)} />
+          </div>
+          {(settings.promoBannerActive) && (
+            <div className="space-y-2">
+              <Label htmlFor="promoBannerText">Texto do banner</Label>
+              <Input
+                id="promoBannerText"
+                value={settings.promoBannerText ?? ''}
+                onChange={(e) => handleChange('promoBannerText', e.target.value)}
+                placeholder="Ex: 🎉 Promoção especial: 2 meses pelo preço de 1! Use o cupom PROMO50"
+              />
+              <p className="text-xs text-muted-foreground">Suporta emojis. Um link "Ver oferta →" para /promo é adicionado automaticamente.</p>
+            </div>
+          )}
         </div>
       </div>
     </Card>

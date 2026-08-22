@@ -32,6 +32,8 @@ interface SystemSettingsData {
   maintenanceMode: boolean
   announcement: string
   whatsappSupportPhone: string
+  promoBannerActive: boolean
+  promoBannerText: string
 }
 
 const DEFAULTS: SystemSettingsData = {
@@ -51,6 +53,8 @@ const DEFAULTS: SystemSettingsData = {
   maintenanceMode: false,
   announcement: '',
   whatsappSupportPhone: '',
+  promoBannerActive: false,
+  promoBannerText: '',
 }
 
 export default function AdminSettingsPage() {
@@ -77,8 +81,10 @@ export default function AdminSettingsPage() {
             enableTrialPlan:   data.enable_trial          ?? DEFAULTS.enableTrialPlan,
             trialDurationDays: data.trial_duration_days   ?? DEFAULTS.trialDurationDays,
             maintenanceMode:      data.maintenance_mode       ?? DEFAULTS.maintenanceMode,
-            announcement:         data.announcement           ?? '',
-            whatsappSupportPhone: data.whatsapp_support_phone ?? '',
+            announcement:         data.announcement            ?? '',
+            whatsappSupportPhone: data.whatsapp_support_phone  ?? '',
+            promoBannerActive:    data.promo_banner_active === 'true',
+            promoBannerText:      data.promo_banner_text        ?? '',
           })
         }
       })

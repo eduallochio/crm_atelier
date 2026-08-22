@@ -15,6 +15,8 @@ const KEYS = [
   'how_it_works_json',
   'faq_json',
   'whatsapp_support_phone',
+  'promo_banner_active',
+  'promo_banner_text',
 ]
 
 export async function GET() {

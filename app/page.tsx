@@ -480,6 +480,28 @@ export default function HomePage() {
           ]}
         />
 
+        {/* ── BANNER PROMOCIONAL ── */}
+        {cms.promo_banner_active === 'true' && cms.promo_banner_text && (
+          <div style={{
+            background: 'linear-gradient(90deg, #C8253A 0%, #9b1a2a 100%)',
+            color: '#fff',
+            textAlign: 'center',
+            padding: '10px 20px',
+            fontSize: 14,
+            fontFamily: 'var(--sans)',
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+            position: 'relative',
+            zIndex: 50,
+          }}>
+            <span dangerouslySetInnerHTML={{ __html: cms.promo_banner_text }} />
+            {' '}
+            <a href="/promo" style={{ color: '#ffd4a8', textDecoration: 'underline', fontWeight: 600 }}>
+              Ver oferta →
+            </a>
+          </div>
+        )}
+
         {/* ── NAV ── */}
         <NavBar
           scrolled={scrolled}
