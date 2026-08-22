@@ -480,9 +480,8 @@ export default function HomePage() {
           fontFamily: 'var(--sans)',
           fontWeight: 500,
           letterSpacing: '0.01em',
-          position: 'sticky',
-          top: 0,
-          zIndex: 200,
+          position: 'relative',
+          zIndex: 10,
         }}>
           <span dangerouslySetInnerHTML={{ __html: cms.promo_banner_text }} />
           {' '}
@@ -509,6 +508,7 @@ export default function HomePage() {
         <NavBar
           scrolled={scrolled}
           onMenuOpen={() => setMenuOpen(o => !o)}
+          bannerOffset={cms.promo_banner_active === 'true' && cms.promo_banner_text ? 41 : 0}
         />
 
         {/* ── HERO ── */}

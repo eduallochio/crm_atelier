@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 interface NavBarProps {
   scrolled: boolean
   onMenuOpen: () => void
+  bannerOffset?: number
 }
 
 const navItems = [
@@ -15,7 +16,7 @@ const navItems = [
   { href: '#planos',          label: 'Planos'          },
 ]
 
-export default function NavBar({ scrolled, onMenuOpen }: NavBarProps) {
+export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBarProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 })
   const [mounted, setMounted] = useState(false)
@@ -64,7 +65,7 @@ export default function NavBar({ scrolled, onMenuOpen }: NavBarProps) {
       <nav
         className="navbar-root"
         style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+          position: 'fixed', top: bannerOffset, left: 0, right: 0, zIndex: 100,
           padding: '18px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: scrolled ? 'rgba(26,17,10,0.88)' : 'transparent',
