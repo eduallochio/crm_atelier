@@ -885,19 +885,49 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── DEPOIMENTO NETE FASHION ── */}
+        <section className="linen section-pad">
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <Reveal>
+              <h2 className="display" style={{ fontSize: 'clamp(28px,4vw,52px)', fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 56 }}>
+                O que dizem nossas <em style={{ color: 'var(--terra)' }}>clientes</em>
+              </h2>
+            </Reveal>
+            <Reveal delay={80}>
+              <div style={{ maxWidth: 760, margin: '0 auto', background: 'var(--card)', padding: '40px 36px', border: '1px solid rgba(212,168,90,0.15)' }}>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="var(--terra)" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  ))}
+                </div>
+                <p style={{ fontSize: 16, lineHeight: 1.8, color: 'var(--mid)', margin: '0 0 28px', fontStyle: 'italic' }}>
+                  "Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. E a facilidade de enviar a ordem de serviço para o cliente, ele saber exatamente o que vai ser feito e acompanhar, faz toda a diferença. Não imagino trabalhar sem ele."
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <img
+                    src="/nete-fashion.jpg"
+                    alt="NETE Fashion Atelier"
+                    style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212,168,90,0.3)' }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', margin: '0 0 2px' }}>NETE Fashion Atelier</p>
+                    <p style={{ fontSize: 13, color: 'var(--terra)', margin: '0 0 1px' }}>@netefashiion · Vila Velha, ES</p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         {/* ── DEPOIMENTOS (CMS) ── */}
         {(() => {
           let testimonials: { name: string; role: string; text: string }[] = []
           try { testimonials = cms.testimonials_json ? JSON.parse(cms.testimonials_json) : [] } catch { /* */ }
           if (testimonials.length === 0) return null
           return (
-            <section className="linen section-pad">
-              <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-                <Reveal>
-                  <h2 className="display" style={{ fontSize: 'clamp(28px,4vw,52px)', fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 56 }}>
-                    O que dizem nossas <em style={{ color: 'var(--terra)' }}>clientes</em>
-                  </h2>
-                </Reveal>
+            <section className="linen" style={{ paddingBottom: 'var(--section-pad, 80px)' }}>
+              <div style={{ maxWidth: 1100, margin: '0 auto', paddingInline: 24 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(testimonials.length, 3)}, 1fr)`, gap: 24 }}>
                   {testimonials.map((t, i) => (
                     <Reveal key={i} delay={i * 80}>
