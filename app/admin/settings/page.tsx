@@ -83,8 +83,8 @@ export default function AdminSettingsPage() {
             maintenanceMode:      data.maintenance_mode       ?? DEFAULTS.maintenanceMode,
             announcement:         data.announcement            ?? '',
             whatsappSupportPhone: data.whatsapp_support_phone  ?? '',
-            promoBannerActive:    data.promo_banner_active === 'true',
-            promoBannerText:      data.promo_banner_text        ?? '',
+            promoBannerActive:    data.promo_banner_active === true || data.promo_banner_active === 'true',
+            promoBannerText:      data.promo_banner_text ?? '',
           })
         }
       })
