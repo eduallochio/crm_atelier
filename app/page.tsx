@@ -34,6 +34,8 @@ interface LandingContent {
   testimonials_json?: string
   faq_json?: string
   whatsapp_support_phone?: string
+  promo_banner_active?: string
+  promo_banner_text?: string
 }
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
