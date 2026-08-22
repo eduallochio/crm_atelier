@@ -115,19 +115,19 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
                 href={`/ordens-servico?id=${order.id}`}
                 className="block group"
               >
-                <div className="relative flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-muted/50 hover:border-border transition-all duration-200 overflow-hidden">
+                <div className="relative flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-muted/50 hover:border-border transition-all duration-200 overflow-hidden" suppressHydrationWarning>
                   {/* Left colored strip */}
-                  <div className={cn('absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl', urgency.bar)} />
+                  <div className={cn('absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl', urgency.bar)} suppressHydrationWarning />
 
                   {/* Days remaining badge */}
                   <div className={cn(
                     'shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl border text-center',
                     urgency.badge
-                  )}>
-                    <span className="text-[15px] font-bold leading-none">
+                  )} suppressHydrationWarning>
+                    <span className="text-[15px] font-bold leading-none" suppressHydrationWarning>
                       {Math.abs(days)}
                     </span>
-                    <span className="text-[9px] font-medium uppercase tracking-wide leading-tight mt-0.5">
+                    <span className="text-[9px] font-medium uppercase tracking-wide leading-tight mt-0.5" suppressHydrationWarning>
                       {days < 0 ? 'atr.' : 'dias'}
                     </span>
                   </div>
@@ -136,7 +136,7 @@ export function UrgentOrders({ orders, isLoading }: UrgentOrdersProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[13px] font-semibold text-foreground">#{order.numero}</span>
-                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full border', urgency.badge)}>
+                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full border', urgency.badge)} suppressHydrationWarning>
                         {urgency.label}
                       </span>
                     </div>
