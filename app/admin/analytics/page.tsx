@@ -57,16 +57,21 @@ export default function AdminAnalyticsPage() {
   const [data, setData]           = useState<AnalyticsData | null>(null)
   const [events, setEvents]       = useState<EventsData | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(false)
 
-  useEffect(() => {
+  const fetchData = () => {
+    setLoading(true)
+    setError(false)
     Promise.all([
-      fetch('/api/admin/analytics').then(r => r.json()),
+      fetch('/api/admin/analytics').then(r => { if (!r.ok) throw new Error(); return r.json() }),
       fetch('/api/admin/events').then(r => r.json()).catch(() => null),
     ]).then(([analytics, evts]) => {
       setData(analytics)
       setEvents(evts)
-    }).catch(console.error).finally(() => setLoading(false))
-  }, [])
+    }).catch(() => setError(true)).finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   const totalOrgs = data
     ? Object.values(data.planDistribution).reduce((a, b) => a + b, 0)
@@ -83,8 +88,13 @@ export default function AdminAnalyticsPage() {
     )
   }
 
-  if (!data) {
-    return <div className="text-center py-20 text-gray-400">Erro ao carregar dados de analytics</div>
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-red-600 dark:text-red-400">Erro ao carregar dados de analytics.</p>
+        <button onClick={fetchData} className="text-sm font-medium text-red-600 dark:text-red-400 underline">Tentar novamente</button>
+      </div>
+    )
   }
 
   return (

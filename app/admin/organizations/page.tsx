@@ -23,19 +23,23 @@ export default function OrganizationsPage() {
   const router = useRouter()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [planFilter, setPlanFilter] = useState<string>('all')
   const [stateFilter, setStateFilter] = useState<string>('all')
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([])
 
   const fetchOrganizations = useCallback(async () => {
+    setLoading(true)
+    setError(false)
     try {
       const res = await fetch('/api/admin/organizations')
       if (!res.ok) throw new Error('Erro ao buscar organizações')
       const data = await res.json()
       setOrganizations(data)
-    } catch (error) {
-      console.error('Erro ao buscar organizações:', error)
+    } catch (err) {
+      console.error('Erro ao buscar organizações:', err)
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -105,6 +109,14 @@ export default function OrganizationsPage() {
           Nova Organização
         </Button>
       </div>
+
+      {/* Erro de carregamento */}
+      {error && (
+        <div className="flex items-center justify-between bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4">
+          <p className="text-sm text-red-700 dark:text-red-400">Erro ao carregar organizações. Verifique sua conexão.</p>
+          <button onClick={fetchOrganizations} className="text-sm font-medium text-red-700 dark:text-red-400 underline ml-4">Tentar novamente</button>
+        </div>
+      )}
 
       {/* Filtros e Busca */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">

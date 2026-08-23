@@ -70,7 +70,13 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 dark:text-red-400">{error || 'Erro ao carregar dashboard'}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Erro ao carregar dashboard'}</p>
+          <button
+            onClick={() => { setLoading(true); setError(null); window.location.reload() }}
+            className="text-sm font-medium text-red-600 dark:text-red-400 underline"
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     )

@@ -33,6 +33,7 @@ const PLAN_COLORS: Record<string, string> = {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [resetDialog, setResetDialog] = useState<{ open: boolean; user: User | null }>({ open: false, user: null })
@@ -40,9 +41,18 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
 
   const fetchUsers = useCallback(async () => {
-    const res = await fetch('/api/admin/all-users')
-    setUsers(await res.json())
-    setLoading(false)
+    setLoading(true)
+    setError(false)
+    try {
+      const res = await fetch('/api/admin/all-users')
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setUsers(Array.isArray(data) ? data : [])
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
@@ -85,6 +95,13 @@ export default function AdminUsersPage() {
           Todos os usuários da plataforma — {users.length} no total
         </p>
       </div>
+
+      {error && (
+        <div className="flex items-center justify-between bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4">
+          <p className="text-sm text-red-700 dark:text-red-400">Erro ao carregar usuários. Verifique sua conexão.</p>
+          <button onClick={fetchUsers} className="text-sm font-medium text-red-700 dark:text-red-400 underline ml-4">Tentar novamente</button>
+        </div>
+      )}
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[240px]">
