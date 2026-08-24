@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { TrendingUp, Users, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
 import { AdminMetricsCard } from '@/components/admin/admin-metrics-card'
 import { AdminPageSkeleton } from '@/components/admin/admin-skeleton'
@@ -31,35 +31,46 @@ interface MonthlyData {
   growth: number
 }
 
+async function safeJson(res: Response, label: string) {
+  const text = await res.text()
+  try {
+    const data = JSON.parse(text)
+    if (!res.ok) throw new Error(data?.error ?? `${label}: ${res.status}`)
+    return data
+  } catch {
+    throw new Error(`${label}: resposta inválida do servidor (status ${res.status})`)
+  }
+}
+
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [monthly, setMonthly] = useState<MonthlyData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/admin/dashboard').then(async (r) => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error ?? `Dashboard: ${r.status}`)
-        return data
-      }),
-      fetch('/api/admin/analytics').then(async (r) => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error ?? `Analytics: ${r.status}`)
-        return data
-      }),
-    ])
-      .then(([dashData, analyticsData]) => {
-        setMetrics(dashData)
-        if (Array.isArray(analyticsData.monthly)) setMonthly(analyticsData.monthly)
-      })
-      .catch((err) => {
-        console.error('Erro ao carregar dashboard admin:', err)
-        setError(err.message || 'Erro ao carregar dashboard')
-      })
-      .finally(() => setLoading(false))
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [dashRes, analyticsRes] = await Promise.all([
+        fetch('/api/admin/dashboard'),
+        fetch('/api/admin/analytics'),
+      ])
+      const [dashData, analyticsData] = await Promise.all([
+        safeJson(dashRes, 'Dashboard'),
+        safeJson(analyticsRes, 'Analytics'),
+      ])
+      setMetrics(dashData)
+      if (Array.isArray(analyticsData.monthly)) setMonthly(analyticsData.monthly)
+    } catch (err) {
+      console.error('Erro ao carregar dashboard admin:', err)
+      setError((err as Error).message || 'Erro ao carregar dashboard')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { loadDashboard() }, [loadDashboard])
 
   if (loading) {
     return <AdminPageSkeleton />
@@ -72,7 +83,7 @@ export default function AdminDashboard() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Erro ao carregar dashboard'}</p>
           <button
-            onClick={() => { setLoading(true); setError(null); window.location.reload() }}
+            onClick={loadDashboard}
             className="text-sm font-medium text-red-600 dark:text-red-400 underline"
           >
             Tentar novamente

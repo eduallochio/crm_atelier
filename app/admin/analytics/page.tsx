@@ -59,16 +59,33 @@ export default function AdminAnalyticsPage() {
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(false)
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true)
     setError(false)
-    Promise.all([
-      fetch('/api/admin/analytics').then(r => { if (!r.ok) throw new Error(); return r.json() }),
-      fetch('/api/admin/events').then(r => r.json()).catch(() => null),
-    ]).then(([analytics, evts]) => {
+    try {
+      const [analyticsRes, eventsRes] = await Promise.all([
+        fetch('/api/admin/analytics'),
+        fetch('/api/admin/events'),
+      ])
+
+      const parseJson = async (res: Response) => {
+        const text = await res.text()
+        try { return JSON.parse(text) } catch { return null }
+      }
+
+      const [analytics, evts] = await Promise.all([
+        parseJson(analyticsRes),
+        parseJson(eventsRes).catch(() => null),
+      ])
+
+      if (!analytics || !analyticsRes.ok) throw new Error()
       setData(analytics)
       setEvents(evts)
-    }).catch(() => setError(true)).finally(() => setLoading(false))
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchData() }, [])
