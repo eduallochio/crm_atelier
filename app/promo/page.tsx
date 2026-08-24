@@ -567,7 +567,7 @@ export default function PromoPage() {
       <section className="promo-hero">
         <div className="urgency-social">
           <span className="urgency-dot" />
-          47 pessoas visitaram essa página hoje
+          Ateliês de costura e artesanato já usam o sistema
         </div>
         <span className="promo-eyebrow">Promoção de lançamento</span>
         <div className="promo-disc-wrap">
