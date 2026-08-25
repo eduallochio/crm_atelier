@@ -2,10 +2,19 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+// Shape retornada pela API /api/plan-usage
 export interface PlanUsageData {
   plan: string
-  usage: { clients: number; services: number; orders: number }
-  limits: { clients: number; services: number; orders: number; users: number }
+  clients_count: number
+  services_count: number
+  orders_count: number
+  users_count: number
+  limits: {
+    max_clients: number
+    max_services: number
+    max_orders: number
+    max_users: number
+  }
 }
 
 export function usePlanUsage() {
@@ -20,6 +29,18 @@ export function usePlanUsage() {
   })
 }
 
+const USAGE_KEY: Record<'clients' | 'services' | 'orders', keyof PlanUsageData> = {
+  clients:  'clients_count',
+  services: 'services_count',
+  orders:   'orders_count',
+}
+
+const LIMIT_KEY: Record<'clients' | 'services' | 'orders', keyof PlanUsageData['limits']> = {
+  clients:  'max_clients',
+  services: 'max_services',
+  orders:   'max_orders',
+}
+
 /** Retorna informações de limite para um recurso específico. */
 export function usePlanLimit(resource: 'clients' | 'services' | 'orders') {
   const { data } = usePlanUsage()
@@ -28,8 +49,8 @@ export function usePlanLimit(resource: 'clients' | 'services' | 'orders') {
     return { atLimit: false, nearLimit: false, usage: 0, limit: 0, isFree: false }
   }
 
-  const usage = data.usage[resource]
-  const limit = data.limits[resource]
+  const usage = Number(data[USAGE_KEY[resource]] ?? 0)
+  const limit = Number(data.limits[LIMIT_KEY[resource]] ?? 0)
 
   return {
     isFree: true,
