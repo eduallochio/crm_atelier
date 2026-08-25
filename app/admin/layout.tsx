@@ -10,7 +10,9 @@ export default async function AdminLayout({
   let user = null
   try {
     user = await getSessionUser()
-  } catch {
+  } catch (err) {
+    // Propaga NEXT_REDIRECT/NEXT_NOT_FOUND corretamente (lançados por redirect()/notFound())
+    if ((err as Error)?.message?.startsWith('NEXT_')) throw err
     redirect('/login')
   }
 

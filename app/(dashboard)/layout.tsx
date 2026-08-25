@@ -10,7 +10,8 @@ export default async function DashboardLayout({
   let user = null
   try {
     user = await getSessionUser()
-  } catch {
+  } catch (err) {
+    if ((err as Error)?.message?.startsWith('NEXT_')) throw err
     redirect('/login')
   }
 

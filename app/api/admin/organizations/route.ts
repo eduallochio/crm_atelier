@@ -22,7 +22,7 @@ export async function GET() {
     }
 
     // Busca contagens via JOIN + GROUP BY (evita N+1 correlated subqueries)
-    const rows = await db.execute(drizzleSql`
+    const rawResult = await db.execute(drizzleSql`
       SELECT
         o.id,
         o.name,
@@ -36,9 +36,10 @@ export async function GET() {
       LEFT JOIN org_clients c ON c.organization_id = o.id
       GROUP BY o.id, o.name, o.plan, o.subscription_status, o.created_at
       ORDER BY o.created_at DESC
-    `) as any[]
+    `)
+    const rows: any[] = Array.isArray(rawResult) ? rawResult : (rawResult as any).rows ?? []
 
-    const result = (rows as any[]).map((row) => ({
+    const result = rows.map((row) => ({
       id:            row.id,
       name:          row.name,
       plan:          row.plan,
