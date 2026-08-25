@@ -21,8 +21,6 @@ interface Settings {
   maxServicesPro: number
   maxOrdersPro: number
   enableSignup: boolean
-  enableTrialPlan: boolean
-  trialDurationDays: number
   maintenanceMode?: boolean
   announcement?: string
   whatsappSupportPhone?: string
@@ -68,8 +66,6 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           max_services_pro:    settings.maxServicesPro,
           max_orders_pro:      settings.maxOrdersPro,
           enable_signup:       settings.enableSignup,
-          enable_trial:        settings.enableTrialPlan,
-          trial_duration_days: settings.trialDurationDays,
           maintenance_mode:         settings.maintenanceMode ?? false,
           announcement:             settings.announcement ?? '',
           whatsapp_support_phone:   settings.whatsappSupportPhone ?? '',
@@ -197,19 +193,7 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
             </div>
             <Switch id="enableSignup" checked={settings.enableSignup} onCheckedChange={(checked) => handleChange('enableSignup', checked)} />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="enableTrialPlan">Habilitar Plano Trial</Label>
-              <p className="text-sm text-muted-foreground">Oferecer período de teste para novos usuários</p>
-            </div>
-            <Switch id="enableTrialPlan" checked={settings.enableTrialPlan} onCheckedChange={(checked) => handleChange('enableTrialPlan', checked)} />
-          </div>
-          {settings.enableTrialPlan && (
-            <div className="space-y-2 ml-6">
-              <Label htmlFor="trialDurationDays">Duração do Trial (dias)</Label>
-              <Input id="trialDurationDays" type="number" min="1" max="90" value={settings.trialDurationDays} onChange={(e) => handleChange('trialDurationDays', e.target.value === '' ? 0 : Number(e.target.value))} />
-            </div>
-          )}
+
         </div>
 
         <hr className="border-border" />

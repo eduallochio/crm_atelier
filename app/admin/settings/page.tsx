@@ -27,8 +27,6 @@ interface SystemSettingsData {
   maxServicesPro: number
   maxOrdersPro: number
   enableSignup: boolean
-  enableTrialPlan: boolean
-  trialDurationDays: number
   maintenanceMode: boolean
   announcement: string
   whatsappSupportPhone: string
@@ -48,8 +46,6 @@ const DEFAULTS: SystemSettingsData = {
   maxServicesPro: 999999,
   maxOrdersPro: 999999,
   enableSignup: true,
-  enableTrialPlan: true,
-  trialDurationDays: 14,
   maintenanceMode: false,
   announcement: '',
   whatsappSupportPhone: '',
@@ -78,8 +74,6 @@ export default function AdminSettingsPage() {
             maxServicesPro:    data.max_services_pro      ?? DEFAULTS.maxServicesPro,
             maxOrdersPro:      data.max_orders_pro        ?? DEFAULTS.maxOrdersPro,
             enableSignup:      data.enable_signup         ?? DEFAULTS.enableSignup,
-            enableTrialPlan:   data.enable_trial          ?? DEFAULTS.enableTrialPlan,
-            trialDurationDays: data.trial_duration_days   ?? DEFAULTS.trialDurationDays,
             maintenanceMode:      data.maintenance_mode       ?? DEFAULTS.maintenanceMode,
             announcement:         data.announcement            ?? '',
             whatsappSupportPhone: data.whatsapp_support_phone  ?? '',

@@ -18,8 +18,6 @@ const DEFAULTS: Record<string, string> = {
   max_services_pro:     '999999',
   max_orders_pro:       '999999',
   enable_signup:        'true',
-  enable_trial:         'true',
-  trial_duration_days:  '14',
   maintenance_mode:         'false',
   announcement:             '',
   whatsapp_support_phone:   '',
@@ -52,8 +50,7 @@ export async function GET() {
       max_services_pro:    parseInt(map.max_services_pro)   || 999999,
       max_orders_pro:      parseInt(map.max_orders_pro)     || 999999,
       enable_signup:       map.enable_signup === 'true',
-      enable_trial:        map.enable_trial === 'true',
-      trial_duration_days: parseInt(map.trial_duration_days) || 14,
+
       maintenance_mode:         map.maintenance_mode === 'true',
       announcement:             map.announcement ?? '',
       whatsapp_support_phone:   map.whatsapp_support_phone ?? '',
@@ -77,8 +74,7 @@ export async function GET() {
       max_services_pro:    999999,
       max_orders_pro:      999999,
       enable_signup:       true,
-      enable_trial:        true,
-      trial_duration_days: 14,
+
       maintenance_mode:         false,
       announcement:             '',
       whatsapp_support_phone:   '',
@@ -103,8 +99,7 @@ export async function PUT(request: NextRequest) {
       ['max_services_pro',    String(parseInt(body.max_services_pro)   || 999999)],
       ['max_orders_pro',      String(parseInt(body.max_orders_pro)     || 999999)],
       ['enable_signup',       body.enable_signup ? 'true' : 'false'],
-      ['enable_trial',        body.enable_trial ? 'true' : 'false'],
-      ['trial_duration_days', String(parseInt(body.trial_duration_days) || 14)],
+
       ['maintenance_mode',    body.maintenance_mode ? 'true' : 'false'],
       ['announcement',           String(body.announcement ?? '')],
       ['whatsapp_support_phone', String(body.whatsapp_support_phone ?? '').replace(/\D/g, '')],
