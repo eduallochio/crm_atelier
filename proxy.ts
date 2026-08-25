@@ -1,12 +1,39 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 
-async function getSystemStatus(request: NextRequest): Promise<{ maintenanceMode: boolean; enableSignup: boolean }> {
+const STATUS_KEYS = ['maintenance_mode', 'enable_signup']
+
+// Cache em memória com TTL de 30s — funciona por instância de worker
+let statusCache: { maintenanceMode: boolean; enableSignup: boolean; at: number } | null = null
+
+async function getSystemStatus(): Promise<{ maintenanceMode: boolean; enableSignup: boolean }> {
+  if (statusCache && Date.now() - statusCache.at < 30_000) return statusCache
+
   try {
-    const url = new URL('/api/system/status', request.url)
-    const res = await fetch(url.toString(), { next: { revalidate: 30 } })
-    if (!res.ok) return { maintenanceMode: false, enableSignup: true }
-    return await res.json()
+    // Usa fetch direto para a tabela via Supabase REST — compatível com Edge Runtime
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    )
+
+    const { data } = await supabase
+      .from('admin_system_settings')
+      .select('key, value')
+      .in('key', STATUS_KEYS)
+
+    const map: Record<string, string> = {}
+    for (const row of (data ?? [])) map[row.key] = row.value
+
+    const result = {
+      maintenanceMode: map.maintenance_mode === 'true',
+      enableSignup: map.enable_signup !== 'false',
+      at: Date.now(),
+    }
+
+    statusCache = result
+    return result
   } catch {
     return { maintenanceMode: false, enableSignup: true }
   }
@@ -51,10 +78,16 @@ export default async function proxy(request: NextRequest) {
   const isLoggedIn = !!user
   const isMaster = user?.app_metadata?.is_master === true
 
+  // Landing page (/): sempre acessível (usuário logado vai direto ao dashboard)
+  if (nextUrl.pathname === '/') {
+    if (isLoggedIn) return NextResponse.redirect(new URL('/dashboard', nextUrl))
+    return supabaseResponse
+  }
+
   // Verificar status do sistema (maintenance_mode e enable_signup)
   // Admins (masters) sempre têm acesso, mesmo em manutenção
   if (!isMaster) {
-    const { maintenanceMode, enableSignup } = await getSystemStatus(request)
+    const { maintenanceMode, enableSignup } = await getSystemStatus()
 
     // Modo manutenção: redireciona todos (exceto admins) para /manutencao
     if (maintenanceMode) {
@@ -75,12 +108,6 @@ export default async function proxy(request: NextRequest) {
     if (!isMaster) {
       return NextResponse.redirect(new URL('/dashboard', nextUrl))
     }
-    return supabaseResponse
-  }
-
-  // Landing page (/): usuário logado vai direto ao dashboard
-  if (nextUrl.pathname === '/') {
-    if (isLoggedIn) return NextResponse.redirect(new URL('/dashboard', nextUrl))
     return supabaseResponse
   }
 
