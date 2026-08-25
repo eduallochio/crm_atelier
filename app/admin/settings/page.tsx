@@ -16,8 +16,6 @@ interface Admin {
 }
 
 interface SystemSettingsData {
-  siteName: string
-  supportEmail: string
   maxUsersPerOrg: number
   maxClientsPerOrg: number
   maxServicesPerOrg: number
@@ -35,8 +33,6 @@ interface SystemSettingsData {
 }
 
 const DEFAULTS: SystemSettingsData = {
-  siteName: 'Meu Atelier Sistema',
-  supportEmail: 'suporte@meuateliersistema.com.br',
   maxUsersPerOrg: 2,
   maxClientsPerOrg: 50,
   maxServicesPerOrg: 20,
@@ -63,8 +59,6 @@ export default function AdminSettingsPage() {
       .then((data) => {
         if (data && !data.error) {
           setSettings({
-            siteName:          data.site_name            ?? DEFAULTS.siteName,
-            supportEmail:      data.support_email        ?? DEFAULTS.supportEmail,
             maxUsersPerOrg:    data.max_users_free        ?? DEFAULTS.maxUsersPerOrg,
             maxClientsPerOrg:  data.max_clients_free      ?? DEFAULTS.maxClientsPerOrg,
             maxServicesPerOrg: data.max_services_free     ?? DEFAULTS.maxServicesPerOrg,

@@ -10,8 +10,6 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Settings {
-  siteName: string
-  supportEmail: string
   maxUsersPerOrg: number
   maxClientsPerOrg: number
   maxServicesPerOrg: number
@@ -55,8 +53,6 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          site_name:           settings.siteName,
-          support_email:       settings.supportEmail,
           max_users_free:      settings.maxUsersPerOrg,
           max_clients_free:    settings.maxClientsPerOrg,
           max_services_free:   settings.maxServicesPerOrg,
@@ -113,14 +109,6 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
       <div className="space-y-6">
         <div className="space-y-4">
           <h4 className="font-medium">Informações Gerais</h4>
-          <div className="space-y-2">
-            <Label htmlFor="siteName">Nome do Site</Label>
-            <Input id="siteName" value={settings.siteName} onChange={(e) => handleChange('siteName', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="supportEmail">Email de Suporte</Label>
-            <Input id="supportEmail" type="email" value={settings.supportEmail} onChange={(e) => handleChange('supportEmail', e.target.value)} />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="announcement">Aviso / Anúncio (deixe em branco para ocultar)</Label>
             <Input id="announcement" value={settings.announcement ?? ''} onChange={(e) => handleChange('announcement', e.target.value)} placeholder="Ex: Manutenção programada amanhã às 22h" />

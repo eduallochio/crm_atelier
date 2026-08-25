@@ -7,8 +7,6 @@ import { logAdminAction } from '@/lib/admin-log'
 import { logServerError } from '@/lib/log-error'
 
 const DEFAULTS: Record<string, string> = {
-  site_name:            'Meu Atelier Sistema',
-  support_email:        'suporte@meuateliersistema.com.br',
   max_users_free:       '2',
   max_clients_free:     '50',
   max_services_free:    '20',
@@ -39,8 +37,6 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      site_name:           map.site_name,
-      support_email:       map.support_email,
       max_users_free:      parseInt(map.max_users_free)     || 2,
       max_clients_free:    parseInt(map.max_clients_free)   || 50,
       max_services_free:   parseInt(map.max_services_free)  || 20,
@@ -63,8 +59,6 @@ export async function GET() {
     }
     logServerError('[GET /api/admin/system-settings]', error); console.error('[GET /api/admin/system-settings]', error)
     return NextResponse.json({
-      site_name:           DEFAULTS.site_name,
-      support_email:       DEFAULTS.support_email,
       max_users_free:      2,
       max_clients_free:    50,
       max_services_free:   20,
@@ -88,8 +82,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
 
     const entries: [string, string][] = [
-      ['site_name',           String(body.site_name ?? DEFAULTS.site_name)],
-      ['support_email',       String(body.support_email ?? DEFAULTS.support_email)],
       ['max_users_free',      String(parseInt(body.max_users_free)     || 2)],
       ['max_clients_free',    String(parseInt(body.max_clients_free)   || 50)],
       ['max_services_free',   String(parseInt(body.max_services_free)  || 20)],

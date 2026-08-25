@@ -36,6 +36,7 @@ interface LandingContent {
   whatsapp_support_phone?: string
   promo_banner_active?: string
   promo_banner_text?: string
+  announcement?: string
 }
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
@@ -161,8 +162,26 @@ export default function HomePage() {
     return () => document.removeEventListener('click', fn)
   }, [menuOpen])
 
+  const announcement = cms.announcement?.trim() || ''
+
   return (
     <>
+      {announcement && (
+        <div style={{
+          background: '#2C1810',
+          color: '#fff8f0',
+          textAlign: 'center',
+          padding: '10px 24px',
+          fontSize: 13,
+          fontWeight: 400,
+          lineHeight: 1.5,
+          letterSpacing: '0.01em',
+          position: 'relative',
+          zIndex: 100,
+        }}>
+          {announcement}
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 

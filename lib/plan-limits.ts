@@ -91,15 +91,6 @@ export async function hasLifetimeLicense(organizationId: string): Promise<boolea
   }
 }
 
-/**
- * Retorna o plano efetivo da organização considerando licença vitalícia.
- * Licenças vitalícias sempre retornam 'enterprise' independente do plano cadastrado.
- */
-export async function getEffectivePlan(organizationId: string, rawPlan: string): Promise<string> {
-  if (await hasLifetimeLicense(organizationId)) return 'enterprise'
-  return rawPlan
-}
-
 /** Retorna uma resposta de erro 403 padronizada para limite atingido. */
 export function limitExceededResponse(resource: string, limit: number) {
   return {
