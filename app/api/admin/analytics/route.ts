@@ -9,36 +9,59 @@ export async function GET() {
   try {
     await requireMaster()
 
-    // Preços reais da tabela plans
-    const planRows = await db
-      .select({ slug: plans.slug, price: plans.price })
-      .from(plans)
-      .where(eq(plans.isActive, true))
-
-    const planPrices: Record<string, number> = {}
-    for (const p of planRows) {
-      planPrices[p.slug] = parseFloat(p.price) || 0
-    }
-
-    // Crescimento mensal (últimos 12 meses)
     const twelveMonthsAgo = new Date()
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
 
-    const growthResult = await db
-      .select({
-        ym: drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
-        monthLabel: drizzleSql<string>`TO_CHAR(created_at, 'Mon')`,
-        newOrgs: count(),
-        proCount: drizzleSql<number>`COUNT(*) FILTER (WHERE plan = 'pro')::int`,
-      })
-      .from(organizations)
-      .where(gte(organizations.createdAt, twelveMonthsAgo))
-      .groupBy(
-        drizzleSql`DATE_TRUNC('month', created_at)`,
-        drizzleSql`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
-        drizzleSql`TO_CHAR(created_at, 'Mon')`,
-      )
-      .orderBy(drizzleSql`DATE_TRUNC('month', created_at) ASC`)
+    // Todas as queries em paralelo
+    const [planRows, growthResult, distResult, topResultRaw, churnResult] = await Promise.all([
+      db.select({ slug: plans.slug, price: plans.price })
+        .from(plans)
+        .where(eq(plans.isActive, true)),
+
+      db.select({
+          ym: drizzleSql<string>`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+          monthLabel: drizzleSql<string>`TO_CHAR(created_at, 'Mon')`,
+          newOrgs: count(),
+          proCount: drizzleSql<number>`COUNT(*) FILTER (WHERE plan = 'pro')::int`,
+        })
+        .from(organizations)
+        .where(gte(organizations.createdAt, twelveMonthsAgo))
+        .groupBy(
+          drizzleSql`DATE_TRUNC('month', created_at)`,
+          drizzleSql`TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM')`,
+          drizzleSql`TO_CHAR(created_at, 'Mon')`,
+        )
+        .orderBy(drizzleSql`DATE_TRUNC('month', created_at) ASC`),
+
+      db.select({ plan: organizations.plan, cnt: count() })
+        .from(organizations)
+        .groupBy(organizations.plan),
+
+      db.execute(drizzleSql`
+        SELECT
+          o.id,
+          o.name,
+          o.plan,
+          o.subscription_status AS "subscriptionStatus",
+          COUNT(DISTINCT c.id)::int  AS "clientsCount",
+          COUNT(DISTINCT os.id)::int AS "ordersCount"
+        FROM organizations o
+        LEFT JOIN org_clients        c  ON c.organization_id  = o.id
+        LEFT JOIN org_service_orders os ON os.organization_id = o.id
+        GROUP BY o.id, o.name, o.plan, o.subscription_status
+        ORDER BY COUNT(DISTINCT c.id) DESC
+        LIMIT 10
+      `),
+
+      db.select({
+          total: count(),
+          cancelled: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'cancelled')::int`,
+        })
+        .from(organizations),
+    ])
+
+    const planPrices: Record<string, number> = {}
+    for (const p of planRows) planPrices[p.slug] = parseFloat(p.price) || 0
 
     let prevNewOrgs = 0
     const monthly = growthResult.map((r) => {
@@ -54,39 +77,11 @@ export async function GET() {
       }
     })
 
-    // Distribuição por plano
-    const distResult = await db
-      .select({
-        plan: organizations.plan,
-        cnt: count(),
-      })
-      .from(organizations)
-      .groupBy(organizations.plan)
-
     const planDist: Record<string, number> = {}
-    for (const r of distResult) {
-      planDist[r.plan] = Number(r.cnt)
-    }
+    for (const r of distResult) planDist[r.plan] = Number(r.cnt)
 
-    // Top organizações por clientes — JOIN + GROUP BY evita correlated subqueries
-    const topResultRaw = await db.execute(drizzleSql`
-      SELECT
-        o.id,
-        o.name,
-        o.plan,
-        o.subscription_status AS "subscriptionStatus",
-        COUNT(DISTINCT c.id)::int  AS "clientsCount",
-        COUNT(DISTINCT os.id)::int AS "ordersCount"
-      FROM organizations o
-      LEFT JOIN org_clients        c  ON c.organization_id  = o.id
-      LEFT JOIN org_service_orders os ON os.organization_id = o.id
-      GROUP BY o.id, o.name, o.plan, o.subscription_status
-      ORDER BY COUNT(DISTINCT c.id) DESC
-      LIMIT 10
-    `)
     // db.execute retorna rows diretamente com postgres-js driver
     const topResult: any[] = Array.isArray(topResultRaw) ? topResultRaw : (topResultRaw as any).rows ?? []
-
     const topOrgs = topResult.map((r) => ({
       id:            r.id,
       name:          r.name,
@@ -96,14 +91,6 @@ export async function GET() {
       orders_count:  Number(r.ordersCount ?? 0),
       growth:        0,
     }))
-
-    // Churn
-    const churnResult = await db
-      .select({
-        total: count(),
-        cancelled: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'cancelled')::int`,
-      })
-      .from(organizations)
 
     const cr = churnResult[0]
     const churnTotal     = Number(cr.total)
