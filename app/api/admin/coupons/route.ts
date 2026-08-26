@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { coupons } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const rows = await db
       .select()
@@ -41,7 +41,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const body = await req.json()
     const { code, description, discount_type, discount_value, max_uses, expires_at, applicable_plans } = body
 

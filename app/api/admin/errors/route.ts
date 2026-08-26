@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { adminErrorLogs } from '@/lib/db/schema'
 import { desc, eq, and } from 'drizzle-orm'
-import { requireMaster, getSessionUser } from '@/lib/auth/session'
+import { requireMasterFast, getSessionUser } from '@/lib/auth/session'
 
 // Contador simples de tentativas por IP para evitar flood (in-memory, suficiente para serverless)
 const errorFloodMap = new Map<string, { count: number; resetAt: number }>()
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 // GET — lista erros (somente master)
 export async function GET(request: Request) {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const { searchParams } = new URL(request.url)
     const resolved = searchParams.get('resolved')
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 // DELETE — apaga todos os erros resolvidos
 export async function DELETE() {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const result = await db
       .delete(adminErrorLogs)
       .where(eq(adminErrorLogs.resolved, true))

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -11,7 +11,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireMaster()
+    const admin = await requireMasterFast()
     const { id } = await params
     const { plan } = await request.json()
 

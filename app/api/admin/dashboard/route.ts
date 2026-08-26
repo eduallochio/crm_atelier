@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, plans } from '@/lib/db/schema'
 import { eq, gte, sql as drizzleSql, count } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const now = new Date()
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)

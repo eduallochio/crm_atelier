@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { pageEvents } from '@/lib/db/schema'
 import { gte, sql as drizzleSql, count, isNotNull, ne } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const fourteenDaysAgo = new Date(); fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)

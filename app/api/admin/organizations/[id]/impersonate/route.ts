@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -11,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id: orgId } = await params
 
     // Busca o owner da organização

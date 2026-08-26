@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, plans } from '@/lib/db/schema'
 import { eq, sql as drizzleSql } from 'drizzle-orm'
@@ -8,7 +8,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     // Preços reais da tabela plans
     const planRows = await db
@@ -62,7 +62,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const body = await request.json()
     const { name, email, password, plan = 'free', phone, cnpj } = body

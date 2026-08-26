@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, orgServiceOrders, orgClients, orgReceivables, profiles } from '@/lib/db/schema'
 import { eq, and, gte, sql as drizzleSql, count } from 'drizzle-orm'
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
 
     const sevenDaysAgo  = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)

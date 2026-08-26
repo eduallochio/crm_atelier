@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { coupons, couponUsages } from '@/lib/db/schema'
 import { eq, and, ne } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
     const body = await req.json()
     const { code, description, discount_type, discount_value, max_uses, expires_at, is_active, applicable_plans } = body
@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
 
     // Remove usages first

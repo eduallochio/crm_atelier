@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, orgClients, orgServiceOrders, plans } from '@/lib/db/schema'
 import { eq, gte, sql as drizzleSql, count } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const twelveMonthsAgo = new Date()
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { adminSystemSettings } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
@@ -25,7 +25,7 @@ const DEFAULTS: Record<string, string> = {
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const rows = await db
       .select({ key: adminSystemSettings.key, value: adminSystemSettings.value })
@@ -78,7 +78,7 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const admin = await requireMaster()
+    const admin = await requireMasterFast()
     const body = await request.json()
 
     const entries: [string, string][] = [

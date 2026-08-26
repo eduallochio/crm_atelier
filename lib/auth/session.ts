@@ -76,7 +76,7 @@ export async function getOrganizationId(): Promise<string> {
 
 /**
  * Exige que o usuário seja master. Lança erro 403 caso contrário.
- * Use em API routes e layouts exclusivos do painel admin.
+ * Use em API routes que também precisam de organizationId.
  */
 export async function requireMaster(): Promise<SessionUser> {
   const user = await requireAuth()
@@ -84,4 +84,17 @@ export async function requireMaster(): Promise<SessionUser> {
     throw new Error('FORBIDDEN')
   }
   return user
+}
+
+/**
+ * Versão rápida: verifica master sem query ao banco.
+ * isMaster vem do app_metadata no JWT — não precisa do profile.
+ * Use em API routes admin que NÃO precisam de organizationId.
+ */
+export async function requireMasterFast(): Promise<{ id: string; email: string; isMaster: true }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('UNAUTHORIZED')
+  if (user.app_metadata?.is_master !== true) throw new Error('FORBIDDEN')
+  return { id: user.id, email: user.email ?? '', isMaster: true }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { plans } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -18,7 +18,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
     const body = await request.json()
     const {
@@ -61,7 +61,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
 
     await db.delete(plans).where(eq(plans.id, id))

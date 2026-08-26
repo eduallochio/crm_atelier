@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { profiles, organizations } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
@@ -9,7 +9,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const masterProfiles = await db
       .select({
@@ -54,7 +54,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireMaster()
+    const admin = await requireMasterFast()
     const { email, name, password } = await request.json()
 
     if (!email || !password) {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const admin = await requireMaster()
+    const admin = await requireMasterFast()
     const { id } = await request.json()
 
     if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { adminLogs } from '@/lib/db/schema'
 import { eq, gte, ilike, or, desc, asc, and } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET(request: NextRequest) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { searchParams } = new URL(request.url)
 
     const action       = searchParams.get('action') || ''

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { profiles, organizations } from '@/lib/db/schema'
 import { eq, desc, and } from 'drizzle-orm'
@@ -8,7 +8,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const profileRows = await db
       .select({
@@ -66,7 +66,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const body = await request.json()
     const { id, action, new_password } = body
 

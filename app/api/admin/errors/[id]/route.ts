@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { adminErrorLogs } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 
 // PATCH — marcar como resolvido / reabrir
 export async function PATCH(
@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
     const body = await request.json()
 
@@ -39,7 +39,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
     await db.delete(adminErrorLogs).where(eq(adminErrorLogs.id, id))
     return new NextResponse(null, { status: 204 })

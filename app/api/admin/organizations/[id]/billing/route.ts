@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -8,7 +8,7 @@ import { logServerError } from '@/lib/log-error'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const { id } = await params
 
     const [org] = await db

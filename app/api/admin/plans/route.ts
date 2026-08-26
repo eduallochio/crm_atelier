@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { plans } from '@/lib/db/schema'
 import { asc } from 'drizzle-orm'
@@ -15,7 +15,7 @@ function handleAuthError(error: unknown) {
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const rows = await db
       .select()
@@ -53,7 +53,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireMaster()
+    await requireMasterFast()
     const body = await request.json()
     const {
       slug, name, description, price, price_annual, annual_note,

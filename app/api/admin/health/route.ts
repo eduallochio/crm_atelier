@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireMaster } from '@/lib/auth/session'
+import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, adminLogs } from '@/lib/db/schema'
 import { desc, count, sql as drizzleSql } from 'drizzle-orm'
@@ -23,7 +23,7 @@ function getAdminSupabase() {
 
 export async function GET() {
   try {
-    await requireMaster()
+    await requireMasterFast()
 
     const start = Date.now()
     await db.select({ now: drizzleSql`NOW()` }).from(organizations).limit(1)
