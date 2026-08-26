@@ -115,6 +115,17 @@ export async function signup(formData: FormData) {
     }
   }
 
+  // Grava evento de conversão antes do redirect (Server Action — cliente não executa mais após redirect)
+  try {
+    const { db: dbInst } = await import('@/lib/db')
+    const { pageEvents } = await import('@/lib/db/schema')
+    await dbInst.insert(pageEvents).values({
+      page:  '/cadastro',
+      event: 'signup_completed',
+      data:  { source: 'server_action' },
+    })
+  } catch { /* não bloqueia o cadastro */ }
+
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }
