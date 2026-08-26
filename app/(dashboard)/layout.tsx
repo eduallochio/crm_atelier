@@ -1,22 +1,20 @@
 import { DashboardShell } from '@/components/layouts/dashboard-shell'
-import { getSessionUser } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { adminSystemSettings } from '@/lib/db/schema'
-import { inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
-async function getSystemFlags() {
+async function getMaintenanceMode(): Promise<boolean> {
   try {
-    const rows = await db
-      .select({ key: adminSystemSettings.key, value: adminSystemSettings.value })
+    const [row] = await db
+      .select({ value: adminSystemSettings.value })
       .from(adminSystemSettings)
-      .where(inArray(adminSystemSettings.key, ['maintenance_mode']))
-
-    const map: Record<string, string> = {}
-    for (const r of rows) map[r.key] = r.value
-    return { maintenanceMode: map.maintenance_mode === 'true' }
+      .where(eq(adminSystemSettings.key, 'maintenance_mode'))
+      .limit(1)
+    return row?.value === 'true'
   } catch {
-    return { maintenanceMode: false }
+    return false
   }
 }
 
@@ -25,22 +23,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  let user = null
-  try {
-    user = await getSessionUser()
-  } catch (err) {
-    if ((err as Error)?.message?.startsWith('NEXT_')) throw err
-    redirect('/login')
-  }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
-  const { maintenanceMode } = await getSystemFlags()
-  if (maintenanceMode) {
-    redirect('/manutencao')
-  }
+  const maintenanceMode = await getMaintenanceMode()
+  if (maintenanceMode) redirect('/manutencao')
 
   return <DashboardShell>{children}</DashboardShell>
 }

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
 import { AdminLayoutClient } from '@/components/admin/admin-layout-client'
 
 export default async function AdminLayout({
@@ -7,22 +7,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  let user = null
-  try {
-    user = await getSessionUser()
-  } catch (err) {
-    // Propaga NEXT_REDIRECT/NEXT_NOT_FOUND corretamente (lançados por redirect()/notFound())
-    if ((err as Error)?.message?.startsWith('NEXT_')) throw err
-    redirect('/login')
-  }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  if (!user.isMaster) {
-    redirect('/dashboard')
-  }
+  if (!user) redirect('/login')
+  if (user.app_metadata?.is_master !== true) redirect('/dashboard')
 
   return <AdminLayoutClient>{children}</AdminLayoutClient>
 }
