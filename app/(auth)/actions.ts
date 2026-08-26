@@ -21,6 +21,23 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  // Verifica se cadastros estão habilitados
+  try {
+    const { db } = await import('@/lib/db')
+    const { adminSystemSettings } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
+    const [row] = await db
+      .select({ value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(eq(adminSystemSettings.key, 'enable_signup'))
+      .limit(1)
+    if (row && row.value === 'false') {
+      return { error: 'Novos cadastros estão temporariamente desabilitados.' }
+    }
+  } catch {
+    // Falha silenciosa — não bloqueia o cadastro se a consulta falhar
+  }
+
   const supabase = await createClient()
 
   const email      = formData.get('email')       as string
