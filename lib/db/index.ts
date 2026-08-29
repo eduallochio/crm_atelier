@@ -1,11 +1,12 @@
 /**
  * Drizzle ORM client — CRM Atelier
  *
- * IMPORTANTE: prepare: false é obrigatório para funcionar com pgBouncer do Supabase.
+ * IMPORTANTE: prepare: false é obrigatório para funcionar com o pooler do Supabase (Supavisor).
  * Sem isso as queries falham em produção no Vercel.
  *
- * DATABASE_URL deve apontar para a connection string direta (porta 5432),
- * não via pgBouncer (porta 6543).
+ * DATABASE_URL em produção deve apontar para o Transaction pooler (porta 6543),
+ * não para a conexão direta (porta 5432) — conexão direta esgota rápido
+ * o limite de conexões simultâneas do Postgres sob carga serverless.
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -21,7 +22,7 @@ declare global {
 function createQueryClient() {
   return postgres(process.env.DATABASE_URL!, {
     prepare: false,   // obrigatório para pgBouncer transaction mode (porta 6543)
-    max: 1,           // serverless: uma conexão por instância
+    max: 5,           // permite que queries paralelas (Promise.all) usem conexões distintas em vez de competir por um único socket
     connect_timeout: 10,
     idle_timeout: 20,
   })

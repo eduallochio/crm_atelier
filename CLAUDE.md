@@ -151,9 +151,10 @@ form.handleSubmit(onSubmit, (errors) => {
 
 ### Drizzle config
 
-- `drizzle.config.ts` lê `DATABASE_URL` do `.env` (não `.env.local`)
-- `.env` contém apenas `DATABASE_URL` porta 5432 (conexão direta)
+- `drizzle.config.ts` lê `DATABASE_URL` do `.env` (não `.env.local`) — usa conexão direta (porta 5432), ok para migrations locais (conexão única, curta duração)
 - `.env.local` contém todas as variáveis de ambiente do projeto
+- **Produção (Vercel) usa o Transaction pooler do Supabase (porta 6543)** — `lib/db/index.ts` cria o client com `max: 5` para permitir que queries paralelas (`Promise.all`) usem conexões distintas em vez de competir por um único socket
+- Conexão direta (5432) em produção esgota rápido o limite de conexões do Postgres sob carga serverless — não usar
 
 ### Admin com Supabase Admin API
 
