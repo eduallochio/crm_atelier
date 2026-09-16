@@ -36,6 +36,7 @@ interface LandingContent {
   whatsapp_support_phone?: string
   promo_banner_active?: string
   promo_banner_text?: string
+  promo_banner_deadline?: string
   announcement?: string
 }
 
@@ -134,6 +135,9 @@ export default function HomePage() {
   const [cms, setCms]             = useState<LandingContent>({})
   const track = useTrack()
   usePageView('/')
+
+  const bannerExpired = !!cms.promo_banner_deadline && Date.now() > new Date(cms.promo_banner_deadline).getTime()
+  const bannerVisible = cms.promo_banner_active === 'true' && !!cms.promo_banner_text && !bannerExpired
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40)
@@ -489,7 +493,7 @@ export default function HomePage() {
       `}</style>
 
       {/* ── BANNER PROMOCIONAL ── fora do ink div para ficar acima do nav fixed */}
-      {cms.promo_banner_active === 'true' && cms.promo_banner_text && (
+      {bannerVisible && (
         <div style={{
           background: 'linear-gradient(90deg, #C8253A 0%, #9b1a2a 100%)',
           color: '#fff',
@@ -502,7 +506,7 @@ export default function HomePage() {
           position: 'relative',
           zIndex: 10,
         }}>
-          <span dangerouslySetInnerHTML={{ __html: cms.promo_banner_text }} />
+          <span dangerouslySetInnerHTML={{ __html: cms.promo_banner_text ?? '' }} />
           {' '}
           <a href="/promo" style={{ color: '#ffd4a8', textDecoration: 'underline', fontWeight: 600 }}>
             Ver oferta →
@@ -527,7 +531,7 @@ export default function HomePage() {
         <NavBar
           scrolled={scrolled}
           onMenuOpen={() => setMenuOpen(o => !o)}
-          bannerOffset={cms.promo_banner_active === 'true' && cms.promo_banner_text ? 41 : 0}
+          bannerOffset={bannerVisible ? 41 : 0}
         />
 
         {/* ── HERO ── */}

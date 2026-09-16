@@ -17,6 +17,7 @@ const KEYS = [
   'whatsapp_support_phone',
   'promo_banner_active',
   'promo_banner_text',
+  'promo_banner_deadline',
   'announcement',
 ]
 

@@ -24,6 +24,7 @@ interface Settings {
   whatsappSupportPhone?: string
   promoBannerActive?: boolean
   promoBannerText?: string
+  promoBannerDeadline?: string
 }
 
 interface SystemSettingsProps {
@@ -67,6 +68,7 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
           whatsapp_support_phone:   settings.whatsappSupportPhone ?? '',
           promo_banner_active:      String(settings.promoBannerActive ?? false),
           promo_banner_text:        settings.promoBannerText ?? '',
+          promo_banner_deadline:    settings.promoBannerDeadline ?? '',
         }),
       })
       if (!res.ok) throw new Error('Erro ao salvar')
@@ -210,16 +212,30 @@ export function SystemSettings({ settings: initialSettings }: SystemSettingsProp
             <Switch id="promoBannerActive" checked={settings.promoBannerActive ?? false} onCheckedChange={(checked) => handleChange('promoBannerActive', checked)} />
           </div>
           {(settings.promoBannerActive) && (
-            <div className="space-y-2">
-              <Label htmlFor="promoBannerText">Texto do banner</Label>
-              <Input
-                id="promoBannerText"
-                value={settings.promoBannerText ?? ''}
-                onChange={(e) => handleChange('promoBannerText', e.target.value)}
-                placeholder="Ex: 🎉 Promoção especial: 2 meses pelo preço de 1! Use o cupom PROMO50"
-              />
-              <p className="text-xs text-muted-foreground">Suporta emojis. Um link "Ver oferta →" para /promo é adicionado automaticamente.</p>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="promoBannerText">Texto do banner</Label>
+                <Input
+                  id="promoBannerText"
+                  value={settings.promoBannerText ?? ''}
+                  onChange={(e) => handleChange('promoBannerText', e.target.value)}
+                  placeholder="Ex: 🎉 Promoção especial: 2 meses pelo preço de 1! Use o cupom PROMO50"
+                />
+                <p className="text-xs text-muted-foreground">Suporta emojis. Um link "Ver oferta →" para /promo é adicionado automaticamente.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="promoBannerDeadline">Prazo da oferta (opcional)</Label>
+                <Input
+                  id="promoBannerDeadline"
+                  type="datetime-local"
+                  value={settings.promoBannerDeadline ?? ''}
+                  onChange={(e) => handleChange('promoBannerDeadline', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Quando esse prazo passar, o banner e a página /promo somem automaticamente — não precisa desativar manualmente. Deixe em branco para não expirar sozinho.
+                </p>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -30,6 +30,7 @@ interface SystemSettingsData {
   whatsappSupportPhone: string
   promoBannerActive: boolean
   promoBannerText: string
+  promoBannerDeadline: string
 }
 
 const DEFAULTS: SystemSettingsData = {
@@ -47,6 +48,7 @@ const DEFAULTS: SystemSettingsData = {
   whatsappSupportPhone: '',
   promoBannerActive: false,
   promoBannerText: '',
+  promoBannerDeadline: '',
 }
 
 export default function AdminSettingsPage() {
@@ -73,6 +75,7 @@ export default function AdminSettingsPage() {
             whatsappSupportPhone: data.whatsapp_support_phone  ?? '',
             promoBannerActive:    data.promo_banner_active === true || data.promo_banner_active === 'true',
             promoBannerText:      data.promo_banner_text ?? '',
+            promoBannerDeadline:  data.promo_banner_deadline ?? '',
           })
         }
       })

@@ -21,6 +21,7 @@ const DEFAULTS: Record<string, string> = {
   whatsapp_support_phone:   '',
   promo_banner_active:      'false',
   promo_banner_text:        '',
+  promo_banner_deadline:    '',
 }
 
 export async function GET() {
@@ -52,6 +53,7 @@ export async function GET() {
       whatsapp_support_phone:   map.whatsapp_support_phone ?? '',
       promo_banner_active:      map.promo_banner_active === 'true',
       promo_banner_text:        map.promo_banner_text ?? '',
+      promo_banner_deadline:    map.promo_banner_deadline ?? '',
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
@@ -97,6 +99,7 @@ export async function PUT(request: NextRequest) {
       ['whatsapp_support_phone', String(body.whatsapp_support_phone ?? '').replace(/\D/g, '')],
       ['promo_banner_active',    body.promo_banner_active ? 'true' : 'false'],
       ['promo_banner_text',      String(body.promo_banner_text ?? '')],
+      ['promo_banner_deadline',  String(body.promo_banner_deadline ?? '')],
     ]
 
     // Upsert each setting
