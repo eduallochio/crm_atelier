@@ -13,7 +13,23 @@ interface State {
   error: Error | null
 }
 
-async function reportError(error: Error, componentStack?: string, errorType = 'boundary') {
+// Indícios de que uma extensão/serviço de tradução alterou o DOM antes da hidratação
+// (causa comum do React #418 em Chrome mobile — Google Translate reescreve texto do servidor)
+function detectTranslationInterference(): Record<string, unknown> {
+  try {
+    const html = document.documentElement
+    return {
+      htmlLang:        html.lang || null,
+      htmlClassName:   html.className || null,
+      hasGoogleTranslateEl: !!document.querySelector('.goog-te-banner-frame, #google_translate_element, .skiptranslate'),
+      navigatorLanguage: navigator.language,
+    }
+  } catch {
+    return {}
+  }
+}
+
+async function reportError(error: Error, componentStack?: string, errorType = 'boundary', extra?: Record<string, unknown>) {
   try {
     await fetch('/api/admin/errors', {
       method: 'POST',
@@ -25,6 +41,12 @@ async function reportError(error: Error, componentStack?: string, errorType = 'b
         errorType,
         severity:       'error',
         url:            window.location.href,
+        extra: {
+          ...detectTranslationInterference(),
+          screenWidth:  window.innerWidth,
+          screenHeight: window.innerHeight,
+          ...extra,
+        },
       }),
     })
   } catch {
@@ -90,7 +112,14 @@ export function useGlobalErrorReporter() {
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (event.message === 'NEXT_REDIRECT' || event.message?.startsWith('NEXT_')) return
-      reportError(new Error(event.message), undefined, 'runtime')
+      // event.error preserva o stack real (com o número do erro React, ex: #418);
+      // event.message sozinho perde essa informação
+      const error = event.error instanceof Error ? event.error : new Error(event.message)
+      reportError(error, undefined, 'runtime', {
+        filename: event.filename || null,
+        lineno:   event.lineno ?? null,
+        colno:    event.colno ?? null,
+      })
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
