@@ -108,6 +108,11 @@ export async function POST(req: NextRequest) {
     let discount: { value: number; type: 'FIXED' | 'PERCENTAGE' } | undefined
     let couponRow: typeof coupons.$inferSelect | null = null
 
+    // CPF/CNPJ do pagador — cartão informa o do titular; PIX usa o CNPJ da organização
+    const payerCpfCnpj = (
+      billing_type === 'CREDIT_CARD' ? card_holder_cpf : org.cnpj
+    )?.replace(/\D/g, '') || null
+
     if (coupon_code) {
       const [found] = await db
         .select()
@@ -127,6 +132,22 @@ export async function POST(req: NextRequest) {
       const applicable = found.applicablePlans as string[] | null
       if (applicable && applicable.length > 0 && !applicable.includes(plan)) {
         return NextResponse.json({ error: 'Cupom não aplicável a este plano' }, { status: 400 })
+      }
+
+      // Bloqueia reuso do mesmo cupom pelo mesmo CPF/CNPJ, mesmo em outra organização
+      if (payerCpfCnpj) {
+        const [alreadyUsed] = await db
+          .select({ id: couponUsages.id })
+          .from(couponUsages)
+          .where(and(
+            eq(couponUsages.couponId, found.id),
+            eq(couponUsages.cpfCnpj, payerCpfCnpj),
+          ))
+          .limit(1)
+
+        if (alreadyUsed) {
+          return NextResponse.json({ error: 'Este cupom já foi utilizado com este CPF/CNPJ' }, { status: 400 })
+        }
       }
 
       couponRow = found
@@ -218,6 +239,7 @@ export async function POST(req: NextRequest) {
       await db.insert(couponUsages).values({
         couponId:       couponRow.id,
         organizationId: org.id,
+        cpfCnpj:        payerCpfCnpj,
       })
       await db
         .update(coupons)

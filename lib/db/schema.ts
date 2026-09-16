@@ -602,10 +602,12 @@ export const couponUsages = pgTable('coupon_usages', {
   id:             uuid('id').primaryKey().defaultRandom(),
   couponId:       uuid('coupon_id').notNull().references(() => coupons.id),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id),
+  cpfCnpj:        text('cpf_cnpj'), // CPF/CNPJ do pagador (normalizado, só dígitos) — usado para bloquear reuso do mesmo cupom por pessoa, mesmo em outra conta
   usedAt:         timestamp('used_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_coupon_usages_coupon').on(t.couponId),
   index('idx_coupon_usages_org').on(t.organizationId),
+  index('idx_coupon_usages_cpf_cnpj').on(t.cpfCnpj),
 ])
 
 // ─── 34. ORG MONTHLY GOALS ────────────────────────────────────────────────────
