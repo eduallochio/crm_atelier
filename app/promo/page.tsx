@@ -5,7 +5,26 @@ import { useEffect, useState } from 'react'
 import { usePageView, useTrack } from '@/hooks/use-track'
 
 const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20promo%C3%A7%C3%A3o%20de%2050%25%20do%20Meu%20Atelier%20Sistema%20e%20gostaria%20de%20saber%20mais!'
-const DEADLINE = new Date('2026-09-15T23:59:59')
+
+// Prazo da oferta vem de /api/landing (promo_banner_deadline, configurável no admin).
+// Sem prazo configurado = oferta sempre ativa.
+function usePromoDeadline() {
+  const [deadline, setDeadline] = useState<Date | null>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/landing')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.promo_banner_deadline) setDeadline(new Date(data.promo_banner_deadline))
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true))
+  }, [])
+
+  const expired = loaded && deadline !== null && Date.now() > deadline.getTime()
+  return { deadline, loaded, expired }
+}
 
 const features = [
   {
@@ -63,13 +82,16 @@ const faqs = [
   },
 ]
 
-function Countdown() {
+function Countdown({ deadline }: { deadline: Date }) {
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 })
 
   useEffect(() => {
     function calc() {
-      const diff = DEADLINE.getTime() - Date.now()
-      if (diff <= 0) return
+      const diff = deadline.getTime() - Date.now()
+      if (diff <= 0) {
+        setTime({ d: 0, h: 0, m: 0, s: 0 })
+        return
+      }
       setTime({
         d: Math.floor(diff / 86400000),
         h: Math.floor((diff % 86400000) / 3600000),
@@ -80,7 +102,7 @@ function Countdown() {
     calc()
     const id = setInterval(calc, 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [deadline])
 
   const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -112,7 +134,7 @@ function StickyCta() {
       <div className="sticky-cta-inner">
         <div className="sticky-cta-text">
           <strong>R$ 49,90 por 2 meses</strong>
-          Cupom PROMO50 · Oferta válida até 15/09
+          Cupom PROMO50 · Por tempo limitado
         </div>
         <Link href="/cadastro" className="sticky-cta-btn">Assinar agora</Link>
       </div>
@@ -248,9 +270,44 @@ function CopyCoupon() {
   )
 }
 
+function PromoExpired() {
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+      padding: '24px', fontFamily: 'DM Sans, sans-serif',
+      background: '#F7F3F1', color: '#1A0F0F',
+    }}>
+      <Link href="/" style={{ fontFamily: 'Playfair Display, serif', fontStyle: 'italic', fontSize: 18, color: '#1A0F0F', textDecoration: 'none', marginBottom: 32 }}>
+        Meu Atelier Sistema
+      </Link>
+      <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 32, marginBottom: 12, maxWidth: 480 }}>
+        Essa oferta já encerrou
+      </h1>
+      <p style={{ color: '#7A6A68', fontSize: 16, maxWidth: 440, marginBottom: 28 }}>
+        Mas você ainda pode conhecer o Meu Atelier Sistema e começar a organizar seu ateliê hoje mesmo.
+      </p>
+      <Link
+        href="/cadastro"
+        style={{
+          background: '#C8253A', color: '#fff', padding: '14px 32px',
+          borderRadius: 8, fontWeight: 600, textDecoration: 'none', fontSize: 16,
+        }}
+      >
+        Ver planos e criar conta
+      </Link>
+    </div>
+  )
+}
+
 export default function PromoPage() {
   usePageView('/promo')
   const track = useTrack()
+  const { deadline, loaded, expired } = usePromoDeadline()
+
+  if (loaded && expired) {
+    return <PromoExpired />
+  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -260,7 +317,7 @@ export default function PromoPage() {
     url: 'https://meuateliersistema.com.br/promo',
     priceCurrency: 'BRL',
     price: '49.90',
-    priceValidUntil: '2026-09-15',
+    priceValidUntil: deadline ? deadline.toISOString().slice(0, 10) : undefined,
     seller: { '@type': 'Organization', name: 'Meu Atelier Sistema', url: 'https://meuateliersistema.com.br' },
     eligibleCustomerType: 'https://schema.org/NewCustomer',
     availability: 'https://schema.org/InStock',
@@ -355,6 +412,12 @@ export default function PromoPage() {
         .mockup-bar { background: var(--bg2); padding: 10px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
         .mockup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         .mockup-url { flex: 1; background: var(--bg); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-align: center; margin: 0 12px; font-family: monospace; }
+        .mockup-screenshot { display: block; width: 100%; height: auto; }
+        .mockup-screenshot-mobile { display: none; max-width: 360px; margin: 0 auto; border-radius: 20px; box-shadow: 0 24px 80px rgba(0,0,0,0.15); }
+        @media (max-width: 720px) {
+          .mockup-chrome-desktop { display: none; }
+          .mockup-screenshot-mobile { display: block; }
+        }
         /* app shell */
         .mk-shell { display: flex; min-height: 380px; background: var(--surface); overflow: hidden; }
         /* sidebar — oculta em mobile */
@@ -566,10 +629,12 @@ export default function PromoPage() {
       </nav>
 
       {/* URGENCY BAR */}
-      <div className="urgency-bar">
-        <p>Promoção encerra em</p>
-        <Countdown />
-      </div>
+      {deadline && (
+        <div className="urgency-bar">
+          <p>Promoção encerra em</p>
+          <Countdown deadline={deadline} />
+        </div>
+      )}
 
       {/* HERO */}
       <section className="promo-hero">
@@ -625,7 +690,7 @@ export default function PromoPage() {
       <section className="mockup-section">
         <h2>Veja como é simples de usar</h2>
         <p>Interface limpa, direto ao ponto — feita para quem trabalha com costura, não com tecnologia</p>
-        <div className="mockup-chrome">
+        <div className="mockup-chrome mockup-chrome-desktop">
           {/* browser bar */}
           <div className="mockup-bar">
             <div className="mockup-dot" style={{ background: '#FF5F57' }} />
@@ -633,83 +698,19 @@ export default function PromoPage() {
             <div className="mockup-dot" style={{ background: '#28C840' }} />
             <div className="mockup-url">meuateliersistema.com.br/ordens-servico</div>
           </div>
-          {/* app shell */}
-          <div className="mk-shell">
-            {/* sidebar */}
-            <div className="mk-sidebar">
-              <div className="mk-logo">
-                <div className="mk-logo-text">Meu Atelier</div>
-                <div className="mk-logo-sub">Plano Pro</div>
-              </div>
-              {[
-                { label: 'Principal', items: [{ name: 'Dashboard', active: false }] },
-                { label: 'Gestão', items: [
-                  { name: 'Clientes', active: false },
-                  { name: 'Serviços', active: false },
-                  { name: 'Ordens de Serviço', active: true },
-                ]},
-                { label: 'Financeiro', items: [{ name: 'Financeiro', active: false }] },
-              ].map(sec => (
-                <div key={sec.label}>
-                  <div className="mk-nav-section">{sec.label}</div>
-                  {sec.items.map(item => (
-                    <div key={item.name} className={`mk-nav-item${item.active ? ' active' : ''}`}>
-                      <svg className="mk-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {item.name === 'Dashboard' && <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>}
-                        {item.name === 'Clientes' && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>}
-                        {item.name === 'Serviços' && <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5zM16 8L2 22M17.5 15H9"/>}
-                        {item.name === 'Ordens de Serviço' && <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>}
-                        {item.name === 'Financeiro' && <><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}
-                      </svg>
-                      {item.name}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            {/* main */}
-            <div className="mk-main">
-              <div className="mk-topbar">
-                <div className="mk-page-title">Ordens de Serviço</div>
-                <div className="mk-btn">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Nova OS
-                </div>
-              </div>
-              <div className="mk-content">
-                {/* stat cards com gradiente+glow igual ao sistema real */}
-                <div className="mk-stats">
-                  {[
-                    { label: 'Pendentes', val: '8', color: '#EAB308', bg: 'rgba(234,179,8,0.08)' },
-                    { label: 'Em Andamento', val: '5', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
-                    { label: 'Concluídas', val: '38', color: '#22C55E', bg: 'rgba(34,197,94,0.08)' },
-                    { label: 'Atrasadas', val: '2', color: '#C8253A', bg: 'rgba(200,37,58,0.08)' },
-                  ].map(s => (
-                    <div key={s.label} className="mk-stat" style={{ background: s.bg }}>
-                      <div className="mk-stat-overlay" style={{ background: s.color }} />
-                      <div className="mk-stat-glow" style={{ background: s.color }} />
-                      <div className="mk-stat-eyebrow">{s.label}</div>
-                      <div className="mk-stat-val" style={{ color: s.color }}>{s.val}</div>
-                    </div>
-                  ))}
-                </div>
-                {/* table */}
-                <div className="mk-table-wrap">
-                  <table className="mk-table">
-                    <thead>
-                      <tr><th>#</th><th>Cliente</th><th>Serviço</th><th>Entrega</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr><td>#000042</td><td>Ana Souza</td><td>Vestido de noiva</td><td>20/08</td><td><span className="mk-badge mk-badge-prog">● Em andamento</span></td></tr>
-                      <tr><td>#000041</td><td>Carla Mendes</td><td>Calça jeans — ajuste</td><td>18/08</td><td><span className="mk-badge mk-badge-pend">● Pendente</span></td></tr>
-                      <tr><td>#000040</td><td>Joana Lima</td><td>Blusa bordada</td><td>15/08</td><td><span className="mk-badge mk-badge-done">● Concluída</span></td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* screenshot real do sistema — desktop */}
+          <img
+            src="/screenshots/ordens-servico.png"
+            alt="Tela de Ordens de Serviço do Meu Atelier Sistema"
+            className="mockup-screenshot"
+          />
         </div>
+        {/* screenshot real do sistema — mobile, sem moldura de navegador */}
+        <img
+          src="/screenshots/ordens-servico-mobile.png"
+          alt="Tela de Ordens de Serviço do Meu Atelier Sistema no celular"
+          className="mockup-screenshot mockup-screenshot-mobile"
+        />
       </section>
 
       {/* VIDEO */}
