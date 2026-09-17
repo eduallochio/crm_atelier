@@ -30,10 +30,12 @@ export async function GET() {
         o.subscription_status AS "subscriptionStatus",
         o.created_at          AS "createdAt",
         COUNT(DISTINCT p.id)::int  AS "usersCount",
-        COUNT(DISTINCT c.id)::int  AS "clientsCount"
+        COUNT(DISTINCT c.id)::int  AS "clientsCount",
+        COUNT(DISTINCT so.id)::int AS "ordersCount"
       FROM organizations o
-      LEFT JOIN profiles    p ON p.organization_id = o.id
-      LEFT JOIN org_clients c ON c.organization_id = o.id
+      LEFT JOIN profiles          p  ON p.organization_id = o.id
+      LEFT JOIN org_clients       c  ON c.organization_id = o.id
+      LEFT JOIN org_service_orders so ON so.organization_id = o.id
       GROUP BY o.id, o.name, o.plan, o.subscription_status, o.created_at
       ORDER BY o.created_at DESC
     `)
@@ -47,6 +49,7 @@ export async function GET() {
       created_at:    row.createdAt,
       users_count:   Number(row.usersCount ?? 0),
       clients_count: Number(row.clientsCount ?? 0),
+      orders_count:  Number(row.ordersCount ?? 0),
       mrr:           planPrices[row.plan] ?? 0,
     }))
 

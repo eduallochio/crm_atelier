@@ -16,6 +16,7 @@ interface Organization {
   created_at: string
   users_count: number
   clients_count: number
+  orders_count: number
   mrr: number
 }
 
@@ -70,7 +71,7 @@ export default function OrganizationsPage() {
     const selectedOrgData = organizations.filter((org) => selectedOrgs.includes(org.id))
     
     // Criar CSV
-    const headers = ['ID', 'Nome', 'Plano', 'Status', 'Usuários', 'Clientes', 'MRR', 'Cadastro']
+    const headers = ['ID', 'Nome', 'Plano', 'Status', 'Usuários', 'Clientes', 'OS', 'MRR', 'Cadastro']
     const rows = selectedOrgData.map((org) => [
       org.id,
       org.name,
@@ -78,6 +79,7 @@ export default function OrganizationsPage() {
       org.state,
       org.users_count.toString(),
       org.clients_count.toString(),
+      org.orders_count.toString(),
       org.mrr.toString(),
       new Date(org.created_at).toLocaleDateString('pt-BR'),
     ])

@@ -16,6 +16,7 @@ interface Organization {
   created_at: string
   users_count: number
   clients_count: number
+  orders_count: number
   mrr: number
 }
 
@@ -53,7 +54,7 @@ export function OrganizationTable({
     return (
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="border-b border-gray-200 dark:border-gray-800 px-6 py-3 bg-gray-50 dark:bg-gray-800 flex gap-6">
-          {[32, 20, 16, 12, 14, 20].map((w, i) => (
+          {[32, 20, 16, 12, 14, 14, 20].map((w, i) => (
             <Skeleton key={i} className={`h-3 w-${w}`} />
           ))}
         </div>
@@ -63,6 +64,7 @@ export function OrganizationTable({
             <Skeleton className="h-4 w-36" />
             <Skeleton className="h-5 w-14 rounded-full" />
             <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-20" />
@@ -113,6 +115,9 @@ export function OrganizationTable({
                 Clientes
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                OS
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 MRR
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -154,6 +159,9 @@ export function OrganizationTable({
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                   {org.clients_count}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                  {org.orders_count}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {org.mrr > 0 ? `R$ ${org.mrr.toFixed(2)}` : '-'}
