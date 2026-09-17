@@ -26,6 +26,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Repeat } from 'lucide-react'
+import { useStopRecurringExpense } from '@/hooks/use-financial'
 import {
   Select,
   SelectContent,
@@ -44,6 +47,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
   const createMutation = useCreatePayable()
   const updateMutation = useUpdatePayable()
+  const stopRecurringMutation = useStopRecurringExpense()
   const { data: suppliers = [] } = useActiveSuppliers()
   const { data: categories = [] } = useFinancialCategories()
   const expenseCategories = categories.filter(c => c.tipo === 'despesa')
@@ -61,6 +65,7 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
       categoria: '',
       forma_pagamento: '',
       observacoes: '',
+      recorrente: false,
     },
     mode: 'onChange',
   })
@@ -216,6 +221,47 @@ export function PayableDialog({ open, onOpenChange, payable }: PayableDialogProp
                 )}
               />
             </div>
+
+            {!payable && (
+              <FormField
+                control={form.control}
+                name="recorrente"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="flex items-center gap-1.5 cursor-pointer">
+                        <Repeat className="h-3.5 w-3.5" />
+                        Repetir mensalmente
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Gera automaticamente uma nova conta todo mês, no mesmo dia. O valor de cada mês pode ser ajustado individualmente.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {payable?.recurring_expense_id && (
+              <div className="flex items-center justify-between rounded-md border p-3 bg-muted/40">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Repeat className="h-3.5 w-3.5" />
+                  Esta conta se repete mensalmente
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={stopRecurringMutation.isPending}
+                  onClick={() => stopRecurringMutation.mutate(payable.recurring_expense_id!)}
+                >
+                  Parar repetição
+                </Button>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <FormField

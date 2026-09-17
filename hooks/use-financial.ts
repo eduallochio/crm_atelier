@@ -301,6 +301,29 @@ export function useUpdatePayable() {
   })
 }
 
+export function useStopRecurringExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (recurringExpenseId: string) => {
+      const res = await fetch(`/api/financial/recurring-expenses/${recurringExpenseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo: false }),
+      })
+      if (!res.ok) throw new Error('Erro ao parar repetição')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payables'] })
+      toast.success('Repetição interrompida. Contas já geradas continuam normais.')
+    },
+    onError: () => {
+      toast.error('Erro ao parar repetição')
+    },
+  })
+}
+
 export function useDeletePayable() {
   const queryClient = useQueryClient()
 

@@ -292,25 +292,50 @@ export const orgReceivables = pgTable('org_receivables', {
 // ─── 16. ORG PAYABLES ─────────────────────────────────────────────────────────
 
 export const orgPayables = pgTable('org_payables', {
-  id:             uuid('id').primaryKey().defaultRandom(),
-  organizationId: uuid('organization_id').notNull().references(() => organizations.id),
-  supplierId:     uuid('supplier_id').references(() => orgSuppliers.id, { onDelete: 'set null' }),
-  categoryId:     uuid('category_id').references(() => orgFinancialCategories.id, { onDelete: 'no action' }),
-  descricao:      text('descricao').notNull(),
-  valor:          numeric('valor', { precision: 10, scale: 2 }).notNull(),
-  dataVencimento: date('data_vencimento').notNull(),
-  dataPagamento:  date('data_pagamento'),
-  status:         text('status').notNull().default('pendente'),
-  categoria:      text('categoria'),
-  formaPagamento: text('forma_pagamento'),
-  observacoes:    text('observacoes'),
-  createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt:      timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:                  uuid('id').primaryKey().defaultRandom(),
+  organizationId:      uuid('organization_id').notNull().references(() => organizations.id),
+  supplierId:          uuid('supplier_id').references(() => orgSuppliers.id, { onDelete: 'set null' }),
+  categoryId:          uuid('category_id').references(() => orgFinancialCategories.id, { onDelete: 'no action' }),
+  recurringExpenseId:  uuid('recurring_expense_id').references(() => orgRecurringExpenses.id, { onDelete: 'set null' }),
+  descricao:           text('descricao').notNull(),
+  valor:               numeric('valor', { precision: 10, scale: 2 }).notNull(),
+  dataVencimento:      date('data_vencimento').notNull(),
+  dataPagamento:       date('data_pagamento'),
+  status:              text('status').notNull().default('pendente'),
+  categoria:           text('categoria'),
+  formaPagamento:      text('forma_pagamento'),
+  observacoes:         text('observacoes'),
+  createdAt:           timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt:           timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_payables_org').on(t.organizationId),
   index('idx_payables_status').on(t.status),
   index('idx_payables_venc').on(t.dataVencimento),
   index('idx_payables_org_status').on(t.organizationId, t.status),
+  index('idx_payables_recurring').on(t.recurringExpenseId),
+])
+
+// ─── 16b. ORG RECURRING EXPENSES ────────────────────────────────────────────────
+// Template de despesa recorrente (ex: aluguel, energia, água). O valor de cada
+// mês é registrado normalmente em org_payables e pode variar sem afetar o
+// template — o valor aqui é só a sugestão inicial usada ao gerar a próxima conta.
+
+export const orgRecurringExpenses = pgTable('org_recurring_expenses', {
+  id:                uuid('id').primaryKey().defaultRandom(),
+  organizationId:    uuid('organization_id').notNull().references(() => organizations.id),
+  supplierId:        uuid('supplier_id').references(() => orgSuppliers.id, { onDelete: 'set null' }),
+  categoryId:        uuid('category_id').references(() => orgFinancialCategories.id, { onDelete: 'no action' }),
+  descricao:         text('descricao').notNull(),
+  valorPadrao:       numeric('valor_padrao', { precision: 10, scale: 2 }).notNull(),
+  diaVencimento:     integer('dia_vencimento').notNull(),
+  formaPagamento:    text('forma_pagamento'),
+  ativo:             boolean('ativo').notNull().default(true),
+  ultimaGeracaoMes:  date('ultima_geracao_mes'),
+  createdAt:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_recurring_expenses_org').on(t.organizationId),
+  index('idx_recurring_expenses_ativo').on(t.ativo),
 ])
 
 // ─── 17. ORG TRANSACTIONS ─────────────────────────────────────────────────────

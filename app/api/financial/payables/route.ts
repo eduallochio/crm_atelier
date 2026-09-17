@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgPayables, orgSuppliers } from '@/lib/db/schema'
+import { orgPayables, orgSuppliers, orgRecurringExpenses } from '@/lib/db/schema'
 import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -15,6 +15,7 @@ export async function GET() {
         organizationId: orgPayables.organizationId,
         supplierId:     orgPayables.supplierId,
         categoryId:     orgPayables.categoryId,
+        recurringExpenseId: orgPayables.recurringExpenseId,
         descricao:      orgPayables.descricao,
         valor:          orgPayables.valor,
         dataVencimento: orgPayables.dataVencimento,
@@ -44,6 +45,7 @@ export async function GET() {
       organization_id: r.organizationId,
       supplier_id:     r.supplierId,
       category_id:     r.categoryId,
+      recurring_expense_id: r.recurringExpenseId,
       descricao:       r.descricao,
       valor:           r.valor,
       data_vencimento: r.dataVencimento,
@@ -76,12 +78,32 @@ export async function POST(request: Request) {
       : null
     const categoryId = body.category_id || null
 
+    let recurringExpenseId: string | null = null
+    if (body.recorrente) {
+      const diaVencimento = new Date(`${body.data_vencimento}T00:00:00`).getDate()
+      const [recurring] = await db
+        .insert(orgRecurringExpenses)
+        .values({
+          organizationId: user.organizationId,
+          supplierId,
+          categoryId,
+          descricao:        body.descricao,
+          valorPadrao:      String(valor),
+          diaVencimento,
+          formaPagamento:   body.forma_pagamento || null,
+          ultimaGeracaoMes: body.data_vencimento,
+        })
+        .returning({ id: orgRecurringExpenses.id })
+      recurringExpenseId = recurring.id
+    }
+
     const [row] = await db
       .insert(orgPayables)
       .values({
         organizationId: user.organizationId,
         supplierId,
         categoryId,
+        recurringExpenseId,
         descricao:      body.descricao,
         valor:          String(valor),
         dataVencimento: body.data_vencimento,
@@ -94,20 +116,21 @@ export async function POST(request: Request) {
       .returning()
 
     return NextResponse.json({
-      id:              row.id,
-      organization_id: row.organizationId,
-      supplier_id:     row.supplierId,
-      category_id:     row.categoryId,
-      descricao:       row.descricao,
-      valor:           row.valor,
-      data_vencimento: row.dataVencimento,
-      data_pagamento:  row.dataPagamento,
-      categoria:       row.categoria,
-      forma_pagamento: row.formaPagamento,
-      observacoes:     row.observacoes,
-      status:          row.status,
-      created_at:      row.createdAt,
-      updated_at:      row.updatedAt,
+      id:                    row.id,
+      organization_id:       row.organizationId,
+      supplier_id:           row.supplierId,
+      category_id:           row.categoryId,
+      recurring_expense_id:  row.recurringExpenseId,
+      descricao:             row.descricao,
+      valor:                 row.valor,
+      data_vencimento:       row.dataVencimento,
+      data_pagamento:        row.dataPagamento,
+      categoria:             row.categoria,
+      forma_pagamento:       row.formaPagamento,
+      observacoes:           row.observacoes,
+      status:                row.status,
+      created_at:            row.createdAt,
+      updated_at:            row.updatedAt,
     }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

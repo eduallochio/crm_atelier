@@ -81,6 +81,7 @@ export const payableSchema = z.object({
   categoria: z.string().optional(),
   forma_pagamento: z.string().optional(),
   observacoes: z.string().optional(),
+  recorrente: z.boolean().optional(),
 })
 
 export type PayableInput = z.infer<typeof payableSchema>
@@ -91,6 +92,7 @@ export interface Payable {
   supplier_id: string | null
   fornecedor: string | null
   category_id: string | null
+  recurring_expense_id: string | null
   descricao: string
   valor: number
   data_vencimento: string
