@@ -57,7 +57,22 @@ export async function PUT(request: Request) {
     const supabase = await createClient()
 
     if (body.new_password) {
-      // Update password via Supabase Auth
+      if (!body.current_password) {
+        return NextResponse.json({ error: 'Informe sua senha atual' }, { status: 400 })
+      }
+
+      // Reautentica com a senha atual antes de trocar — evita que alguém com
+      // a sessão aberta (ex: aba esquecida) troque a senha sem saber a atual
+      const { data: authData } = await supabase.auth.getUser()
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email:    authData.user?.email ?? '',
+        password: body.current_password,
+      })
+
+      if (reauthError) {
+        return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 400 })
+      }
+
       const { error: authError } = await supabase.auth.updateUser({
         password: body.new_password,
       })
