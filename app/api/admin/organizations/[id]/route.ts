@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, plans } from '@/lib/db/schema'
+import { organizations, plans, profiles, orgClients } from '@/lib/db/schema'
 import { eq, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -30,11 +30,14 @@ export async function GET(
           zipCode:            organizations.zipCode,
           website:            organizations.website,
           lifetimeLicense:    organizations.lifetimeLicense,
-          usersCount:   drizzleSql<number>`(SELECT COUNT(*) FROM profiles WHERE profiles.organization_id = ${organizations.id})::int`,
-          clientsCount: drizzleSql<number>`(SELECT COUNT(*) FROM org_clients WHERE org_clients.organization_id = ${organizations.id})::int`,
+          usersCount:   drizzleSql<number>`COUNT(DISTINCT ${profiles.id})::int`,
+          clientsCount: drizzleSql<number>`COUNT(DISTINCT ${orgClients.id})::int`,
         })
         .from(organizations)
+        .leftJoin(profiles, eq(profiles.organizationId, organizations.id))
+        .leftJoin(orgClients, eq(orgClients.organizationId, organizations.id))
         .where(eq(organizations.id, id))
+        .groupBy(organizations.id)
         .limit(1),
       db.select({ slug: plans.slug, price: plans.price }).from(plans).where(eq(plans.isActive, true)),
     ])
