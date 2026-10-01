@@ -56,18 +56,25 @@ function fmtBRL(v: number) {
 }
 
 export function BillingTab({ organization }: BillingTabProps) {
-  const [data, setData]       = useState<SubscriptionData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState<string | null>(null)
+  const [data, setData]         = useState<SubscriptionData | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState<string | null>(null)
+  const [cancelled, setCancelled] = useState(false)
 
   async function load() {
     setLoading(true)
     setError(null)
+    setCancelled(false)
     try {
       const res = await fetch(`/api/admin/organizations/${organization.id}/billing`)
-      if (!res.ok) throw new Error('Erro ao carregar faturamento')
       const json = await res.json()
-      if (json.error) throw new Error(json.error)
+      if (!res.ok) {
+        if (json.cancelled) {
+          setCancelled(true)
+          return
+        }
+        throw new Error(json.error ?? 'Erro ao carregar faturamento')
+      }
       setData(json)
     } catch (e) {
       setError((e as Error).message)
@@ -83,6 +90,15 @@ export function BillingTab({ organization }: BillingTabProps) {
       <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
         <Loader2 className="w-5 h-5 animate-spin" />
         Carregando faturamento...
+      </div>
+    )
+  }
+
+  if (cancelled) {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-12 text-center">
+        <CreditCard className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+        <p className="text-gray-500 dark:text-gray-400">Esta organização não possui mais assinatura ativa no Asaas — foi cancelada.</p>
       </div>
     )
   }

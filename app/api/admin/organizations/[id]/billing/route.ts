@@ -21,10 +21,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Organização não possui assinatura ativa no Asaas.' }, { status: 404 })
     }
 
-    const [subscription, payments] = await Promise.all([
-      getSubscription(org.asaasSubscriptionId),
-      getSubscriptionPayments(org.asaasSubscriptionId),
-    ])
+    let subscription, payments
+    try {
+      [subscription, payments] = await Promise.all([
+        getSubscription(org.asaasSubscriptionId),
+        getSubscriptionPayments(org.asaasSubscriptionId),
+      ])
+    } catch (asaasError) {
+      // Assinatura cancelada/excluída no Asaas — não é falha técnica, é esperado
+      if ((asaasError as Error).message.includes('→ 404')) {
+        return NextResponse.json({ error: 'Assinatura cancelada ou não encontrada no Asaas.', cancelled: true }, { status: 404 })
+      }
+      throw asaasError
+    }
 
     return NextResponse.json({
       id:          subscription.id,
