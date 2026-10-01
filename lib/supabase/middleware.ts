@@ -29,7 +29,14 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANTE: usar getUser() e nunca getSession() no servidor
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser()
+
+  // Refresh token inválido/expirado: limpa os cookies de sessão para evitar
+  // que o cliente continue reenviando o mesmo token quebrado indefinidamente
+  if (error?.code === 'refresh_token_not_found' || error?.status === 400) {
+    await supabase.auth.signOut()
+  }
 
   return { supabaseResponse, user }
 }
