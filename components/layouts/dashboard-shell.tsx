@@ -9,7 +9,13 @@ import { SessionGuard } from '@/components/layouts/session-guard'
 
 // ssr: false garante que o Sidebar (que usa useQuery) nunca seja
 // renderizado no servidor, evitando o erro "No QueryClient set"
-const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), { ssr: false })
+// loading: mantém o espaço reservado (largura fixa) até a hidratação
+// completar — evita DOM vazio/instável nessa janela (ligado a hydration
+// mismatches intermitentes observados em mobile)
+const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), {
+  ssr: false,
+  loading: () => <div className="hidden lg:block fixed top-0 left-0 z-40 h-screen w-64" />,
+})
 
 const REMINDER_KEY = 'cashier_reminder_date'
 const RENEWAL_REMINDER_KEY = 'renewal_reminder_date'
