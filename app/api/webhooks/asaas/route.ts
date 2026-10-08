@@ -171,6 +171,13 @@ export async function POST(req: NextRequest) {
           .set({ subscriptionStatus: 'overdue' })
           .where(eq(organizations.id, orgId))
         console.log(`[webhook/asaas] ${event} → org ${orgId} → status overdue (estorno/chargeback)`)
+
+        // Chargeback/estorno é um evento financeiro sensível — registra para
+        // aparecer em /fix-payment-errors, não só no console (efêmero)
+        logServerError(
+          '[webhook/asaas] chargeback/estorno',
+          new Error(`${event} para organização ${orgId} (payment ${payment.id ?? 'desconhecido'}, valor R$ ${payment.value ?? '?'})`)
+        )
       }
       return NextResponse.json({ ok: true })
     }
