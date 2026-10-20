@@ -29,8 +29,33 @@ function detectTranslationInterference(): Record<string, unknown> {
   }
 }
 
+// Contexto extra para diagnosticar hydration mismatch (#418) sem precisar
+// decodificar o stack trace — que no React minificado nunca aponta pro
+// componente real, só pro código interno do React que detecta o erro.
+function captureHydrationContext(): Record<string, unknown> {
+  try {
+    const body = document.body
+    return {
+      // Referrer revela se veio de um in-app browser (WhatsApp/Instagram/etc.),
+      // que usa um webview com user-agent/viewport diferentes do Chrome real
+      referrer: document.referrer || null,
+      // Snapshot truncado do DOM — pode mostrar atributo/texto divergente
+      // mesmo que o React já tenha reconciliado parte da árvore
+      bodyHtmlSnippet: body?.outerHTML?.slice(0, 1500) ?? null,
+      visualViewportHeight: window.visualViewport?.height ?? null,
+      innerHeightVsVisual: window.visualViewport
+        ? window.innerHeight - window.visualViewport.height
+        : null,
+      isStandalonePwa: window.matchMedia('(display-mode: standalone)').matches,
+    }
+  } catch {
+    return {}
+  }
+}
+
 async function reportError(error: Error, componentStack?: string, errorType = 'boundary', extra?: Record<string, unknown>) {
   try {
+    const isHydrationError = /Minified React error #418|Hydration failed/.test(error.message)
     await fetch('/api/admin/errors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,6 +70,7 @@ async function reportError(error: Error, componentStack?: string, errorType = 'b
           ...detectTranslationInterference(),
           screenWidth:  window.innerWidth,
           screenHeight: window.innerHeight,
+          ...(isHydrationError ? captureHydrationContext() : {}),
           ...extra,
         },
       }),
