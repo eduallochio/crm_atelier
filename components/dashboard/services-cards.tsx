@@ -35,13 +35,14 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
   const { data: stats } = useServiceStats()
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && !deleteService.isPending) {
       await deleteService.mutateAsync(deleteId)
       setDeleteId(null)
     }
   }
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    if (toggleStatus.isPending) return
     await toggleStatus.mutateAsync({ id, ativo: !currentStatus })
   }
 
@@ -207,6 +208,7 @@ export function ServicesCards({ services, onEdit, onDuplicate }: ServicesCardsPr
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={deleteService.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
               Excluir
