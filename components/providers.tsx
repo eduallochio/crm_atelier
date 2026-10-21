@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState, useEffect } from 'react'
 import { useSystemPreferences } from '@/hooks/use-settings'
 import { ErrorBoundary, useGlobalErrorReporter } from '@/components/error-boundary'
+import { NewVersionToast } from '@/components/new-version-toast'
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: preferences } = useSystemPreferences()
@@ -63,6 +64,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ErrorBoundary>
         <GlobalErrorReporter>
           <ThemeProvider>
+            <NewVersionToast />
             {children}
           </ThemeProvider>
         </GlobalErrorReporter>

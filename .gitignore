@@ -58,7 +58,6 @@ docs
 banco
 context.md
 banco-adm
-.github/
 docs-banco/
 
 # Supabase migration workspace (SQL drafts, dumps, segredos)

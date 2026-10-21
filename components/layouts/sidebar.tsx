@@ -152,6 +152,18 @@ export function Sidebar() {
     gcTime:    10 * 60 * 1000,
   })
 
+  const { data: versionData } = useQuery({
+    queryKey: ['version'],
+    queryFn: async () => {
+      const res = await fetch('/api/version', { cache: 'no-store' })
+      if (!res.ok) return null
+      return res.json() as Promise<{ buildId: string; version: string }>
+    },
+    staleTime: 60 * 60 * 1000,
+    gcTime:    60 * 60 * 1000,
+  })
+  const shortVersion = versionData?.version ?? null
+
   const userProfile = meData ? { name: meData.name, email: meData.email, organization: meData.organizationName } : null
   const orgSettings = meData ? { name: meData.organizationName, logo_url: meData.logoUrl } : null
   const isMaster: boolean = meData?.isMaster === true
@@ -391,6 +403,11 @@ export function Sidebar() {
             </div>
           ) : (
             <div className="h-12 rounded-xl bg-white/[0.04] animate-pulse mx-2" />
+          )}
+          {shortVersion && (
+            <p className="px-4 pt-1.5 text-[9px] text-[#333] tracking-wide select-none">
+              v{shortVersion}
+            </p>
           )}
         </div>
       </div>

@@ -1,0 +1,9 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "crm_atelier",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
