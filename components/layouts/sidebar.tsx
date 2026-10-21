@@ -169,6 +169,8 @@ export function Sidebar() {
   const isMaster: boolean = meData?.isMaster === true
   const badges: Record<string, number> = meData?.badges ?? {}
   const alerts: Record<string, number> = meData?.alerts ?? {}
+  const plan: string = meData?.plan ?? 'free'
+  const isPro = plan === 'pro' || plan === 'enterprise'
 
   useEffect(() => {
     navigation.forEach(group => {
@@ -395,6 +397,21 @@ export function Sidebar() {
                 <p className={cn('text-[10px] truncate mt-[1px]', theme.userEmail)}>
                   {userProfile.email}
                 </p>
+                {isPro ? (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold px-1.5 py-[1px] rounded-full"
+                    style={{ background: 'rgba(212,168,90,0.15)', color: '#d4a85a', border: '1px solid rgba(212,168,90,0.3)' }}>
+                    ✓ PRO
+                  </span>
+                ) : (
+                  <Link
+                    href="/configuracoes?tab=assinatura"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    title="Fazer upgrade para o plano Pro"
+                    className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold px-1.5 py-[1px] rounded-full bg-white/[0.06] text-[#888] hover:bg-[#c8714a]/[0.18] hover:text-[#c8714a] transition-colors"
+                  >
+                    FREE · fazer upgrade
+                  </Link>
+                )}
               </div>
               <button onClick={handleLogout} title="Sair"
                 className="p-1.5 rounded-md text-[#333] hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
