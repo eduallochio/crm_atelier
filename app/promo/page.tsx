@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePageView, useTrack } from '@/hooks/use-track'
 
 const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20promo%C3%A7%C3%A3o%20de%2050%25%20do%20Meu%20Atelier%20Sistema%20e%20gostaria%20de%20saber%20mais!'
@@ -143,16 +143,36 @@ function StickyCta() {
 }
 
 function VideoDemo() {
+  const ref = useRef<HTMLVideoElement>(null)
+
+  // toca sozinho e sem som; com "reduzir movimento" fica parado e mostra os controles
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.controls = true; return }
+    v.play().catch(() => { v.controls = true })
+  }, [])
+
   return (
     <section className="video-section">
       <h2>Veja o sistema funcionando</h2>
       <p>Do cadastro do cliente até o envio da ordem de serviço</p>
       <div className="video-wrap">
-        <img
-          src="/meuatelier.gif"
-          alt="Meu Atelier Sistema em uso"
+        <video
+          ref={ref}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/screenshots/landing-os-video-poster.webp"
+          aria-label="Gravação da tela do Meu Atelier no celular: criando uma ordem de serviço com cliente, status, data de entrega, forma de pagamento, serviços e desconto"
+          width={480}
+          height={892}
           style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
-        />
+        >
+          <source src="/screenshots/landing-os-video.webm" type="video/webm" />
+          <source src="/screenshots/landing-os-video.mp4" type="video/mp4" />
+        </video>
       </div>
     </section>
   )
@@ -539,7 +559,7 @@ export default function PromoPage() {
         .video-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
         .video-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
         .video-section > p { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
-        .video-wrap { max-width: 380px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); aspect-ratio: 9/16; position: relative; background: var(--surface); }
+        .video-wrap { max-width: 380px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); aspect-ratio: 480/892; position: relative; background: var(--surface); }
 
         /* COMPARISON TABLE */
         .compare-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 0; }
