@@ -1,310 +1,103 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet,
-  AlertCircle,
-  Calendar,
-  Receipt,
-  CreditCard,
-  ArrowUpCircle,
-  ArrowDownCircle,
-} from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
 import { useFinancialStats } from '@/hooks/use-financial-stats'
+import { TransactionDialog } from '@/components/financial/transaction-dialog'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { FIN_CSS, FinanceTabs, brl } from '@/components/financeiro/finance-ui'
+import { CashDrawer } from '@/components/financeiro/cash-drawer'
+import { WeekBills } from '@/components/financeiro/week-bills'
 
+type Period = '7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'
+const PERIODS: { key: Period; label: string }[] = [
+  { key: '7days', label: 'Últimos 7 dias' },
+  { key: '30days', label: 'Últimos 30 dias' },
+  { key: 'thisMonth', label: 'Este mês' },
+  { key: 'lastMonth', label: 'Mês passado' },
+  { key: 'all', label: 'Tudo' },
+]
+
+/** Bancada do dia: o caixa aberto à esquerda, o período e as contas da semana à direita */
 export default function FinanceiroPage() {
-  const [dateFilter, setDateFilter] = useState<'7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'>('thisMonth')
-  const { data: stats, isLoading } = useFinancialStats(dateFilter)
+  const [period, setPeriod] = useState<Period>('thisMonth')
+  const [newOpen, setNewOpen] = useState(false)
+  const { data: stats, isLoading } = useFinancialStats(period)
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    })
-  }
-
-  if (isLoading) {
-    return (
-      <div>
-        <Header 
-          title="Financeiro"
-          description="Controle financeiro do ateliê"
-        />
-        <Loader text="Carregando dados financeiros..." />
-      </div>
-    )
-  }
+  const saldo = Number(stats?.saldoMes) || 0
+  const months = stats?.fluxoCaixa ?? []
+  const peak = Math.max(1, ...months.map((m) => Math.abs(Number(m.saldo) || 0)))
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label ?? ''
+  const value = (n: unknown) => (isLoading ? <span className="inline-block h-8 w-36 animate-pulse rounded bg-muted align-middle" /> : brl(Number(n) || 0))
 
   return (
     <div>
-      <Header 
+      <style>{MASTER_DETAIL_CSS + FIN_CSS}</style>
+      <Header
         title="Financeiro"
-        description="Controle financeiro do ateliê"
+        description="O caixa de hoje e as contas da semana"
+        action={
+          <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Lançamento</span><span className="sm:hidden">Novo</span>
+          </button>
+        }
       />
-      
-      <div className="p-6 space-y-6">
-        {/* Filtros de Período */}
-        <div className="bg-card rounded-lg border border-border p-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-foreground">Período:</span>
-            <Button
-              variant={dateFilter === '7days' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDateFilter('7days')}
-            >
-              Últimos 7 dias
-            </Button>
-            <Button
-              variant={dateFilter === '30days' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDateFilter('30days')}
-            >
-              Últimos 30 dias
-            </Button>
-            <Button
-              variant={dateFilter === 'thisMonth' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDateFilter('thisMonth')}
-            >
-              Este mês
-            </Button>
-            <Button
-              variant={dateFilter === 'lastMonth' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDateFilter('lastMonth')}
-            >
-              Mês passado
-            </Button>
-            <Button
-              variant={dateFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDateFilter('all')}
-            >
-              Tudo
-            </Button>
-          </div>
-        </div>
-        
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Saldo Atual */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className={`absolute inset-0 opacity-[0.07] dark:opacity-[0.12] pointer-events-none ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full opacity-20 blur-2xl pointer-events-none ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className="p-5 pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo Atual</p>
-                <div className={`p-2 rounded-xl shadow-sm ${(stats?.saldoAtual || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
-                  <Wallet className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <p className={`text-2xl font-bold ${(stats?.saldoAtual || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {formatCurrency(stats?.saldoAtual || 0)}
-              </p>
-              <div className="h-px bg-border/50 mt-3 mb-2" />
-              <p className="text-[11px] text-muted-foreground">Receitas − Despesas</p>
-            </div>
-          </div>
+      <FinanceTabs />
 
-          {/* A Receber */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-5 pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Receber</p>
-                <div className="p-2 rounded-xl bg-blue-500 shadow-sm">
-                  <ArrowUpCircle className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {formatCurrency(stats?.totalAReceber || 0)}
-              </p>
-              {(stats?.receitasAtrasadas || 0) > 0 && (
-                <>
-                  <div className="h-px bg-border/50 mt-3 mb-2" />
-                  <p className="text-[11px] text-red-500 dark:text-red-400">{formatCurrency(stats?.receitasAtrasadas || 0)} em atraso</p>
-                </>
-              )}
-            </div>
-          </div>
+      <div className="grid items-start gap-4 p-3 sm:p-6 lg:grid-cols-[minmax(340px,400px)_1fr] lg:gap-5">
+        <CashDrawer />
 
-          {/* A Pagar */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute inset-0 bg-orange-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-orange-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-5 pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">A Pagar</p>
-                <div className="p-2 rounded-xl bg-orange-500 shadow-sm">
-                  <ArrowDownCircle className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {formatCurrency(stats?.totalAPagar || 0)}
-              </p>
-              {(stats?.despesasAtrasadas || 0) > 0 && (
-                <>
-                  <div className="h-px bg-border/50 mt-3 mb-2" />
-                  <p className="text-[11px] text-red-500 dark:text-red-400">{formatCurrency(stats?.despesasAtrasadas || 0)} em atraso</p>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Saldo do Mês */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className={`absolute inset-0 opacity-[0.07] dark:opacity-[0.12] pointer-events-none ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full opacity-20 blur-2xl pointer-events-none ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className="p-5 pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Saldo do Mês</p>
-                <div className={`p-2 rounded-xl shadow-sm ${(stats?.saldoMes || 0) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
-                  <Calendar className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <p className={`text-2xl font-bold ${(stats?.saldoMes || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {formatCurrency(stats?.saldoMes || 0)}
-              </p>
-              <div className="h-px bg-border/50 mt-3 mb-2" />
-              <p className="text-[11px] text-muted-foreground">Entradas: {formatCurrency(stats?.entradasMes || 0)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Alertas */}
-        {((stats?.recebiveisVencendo || 0) > 0 || (stats?.pagaveisVencendo || 0) > 0) && (
-          <Alert variant="warning">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Contas Vencendo nos Próximos 7 Dias</AlertTitle>
-            <AlertDescription>
-              <div className="space-y-1">
-                {(stats?.recebiveisVencendo || 0) > 0 && (
-                  <p>• {stats?.recebiveisVencendo} conta(s) a receber</p>
-                )}
-                {(stats?.pagaveisVencendo || 0) > 0 && (
-                  <p>• {stats?.pagaveisVencendo} conta(s) a pagar</p>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Gráfico de Fluxo de Caixa */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Fluxo de Caixa (Últimos 6 Meses)</h3>
-          <div className="space-y-3">
-            {stats?.fluxoCaixa?.map((item, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <div className="w-20 text-sm text-muted-foreground font-medium">
-                  {item.mes}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 bg-muted rounded-full h-6 relative overflow-hidden">
-                      <div 
-                        className="absolute left-0 top-0 h-full bg-green-500 dark:bg-green-600 transition-all"
-                        style={{ width: `${Math.min((item.entradas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-foreground">
-                        {formatCurrency(item.entradas)}
-                      </span>
-                    </div>
-                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-6 relative overflow-hidden">
-                      <div 
-                        className="absolute left-0 top-0 h-full bg-red-500 dark:bg-red-600 transition-all"
-                        style={{ width: `${Math.min((item.saidas / Math.max(...(stats.fluxoCaixa?.map(f => Math.max(f.entradas, f.saidas)) || [1]))) * 100, 100)}%` }}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-foreground">
-                        {formatCurrency(item.saidas)}
-                      </span>
-                    </div>
-                    <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-                <div className={`w-24 text-right text-sm font-semibold ${
-                  item.saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {formatCurrency(item.saldo)}
-                </div>
-              </div>
+        <div className="min-w-0 space-y-4">
+          <div className="flex flex-wrap gap-1.5 lg:justify-end" role="group" aria-label="Período">
+            {PERIODS.map((p) => (
+              <button key={p.key} type="button" className="cli-chip" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)}>{p.label}</button>
             ))}
           </div>
-        </div>
 
-        {/* Ações Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <a
-            href="/financeiro/receber"
-            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-950/70 transition-colors">
-                <Receipt className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground">Contas a Receber</h4>
-                <p className="text-sm text-muted-foreground">Gerenciar recebimentos</p>
-              </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="fin-card px-4 py-3.5">
+              <p className="fin-cap">Saldo · {periodLabel}</p>
+              <p className={`fin-num mt-2 text-[34px] ${saldo < 0 ? 'fin-late' : ''}`}>{value(saldo)}</p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                Entrou <b className="font-semibold text-foreground tabular-nums">{brl(Number(stats?.entradasMes) || 0)}</b><br />
+                Saiu <b className="font-semibold text-foreground tabular-nums">{brl(Number(stats?.saidasMes) || 0)}</b><br />
+                Saldo geral <b className={`font-semibold tabular-nums ${(Number(stats?.saldoAtual) || 0) < 0 ? 'fin-late' : 'text-foreground'}`}>{brl(Number(stats?.saldoAtual) || 0)}</b>
+              </p>
+              {months.length > 0 && (
+                <div className="spark mt-2.5" role="img" aria-label="Saldo dos últimos meses">
+                  {months.map((m, i) => (
+                    <i key={m.mesCompleto ?? i} title={`${m.mes}: ${brl(Number(m.saldo) || 0)}`}
+                      className={`${i === months.length - 1 ? 'cur' : ''} ${(Number(m.saldo) || 0) < 0 ? 'neg' : ''}`}
+                      style={{ height: `${Math.max(6, (Math.abs(Number(m.saldo) || 0) / peak) * 100)}%` }} />
+                  ))}
+                </div>
+              )}
             </div>
-          </a>
+            <Link href="/financeiro/receber" className="fin-card block px-4 py-3.5 transition-colors hover:border-[#D4A85A]">
+              <p className="fin-cap">A receber</p>
+              <p className="fin-num mt-2 text-[34px]">{value(stats?.totalAReceber)}</p>
+              {(Number(stats?.receitasAtrasadas) || 0) > 0
+                ? <p className="fin-late mt-1.5 text-[12.5px] font-semibold">{brl(Number(stats?.receitasAtrasadas))} em atraso</p>
+                : <p className="mt-1.5 text-[12.5px] text-muted-foreground">nada em atraso</p>}
+              {(Number(stats?.recebiveisVencendo) || 0) > 0 && <p className="text-[12.5px] text-muted-foreground">{String(stats?.recebiveisVencendo)} vencendo em 7 dias</p>}
+            </Link>
+            <Link href="/financeiro/pagar" className="fin-card block px-4 py-3.5 transition-colors hover:border-[#D4A85A]">
+              <p className="fin-cap">A pagar</p>
+              <p className="fin-num mt-2 text-[34px]">{value(stats?.totalAPagar)}</p>
+              {(Number(stats?.despesasAtrasadas) || 0) > 0
+                ? <p className="fin-late mt-1.5 text-[12.5px] font-semibold">+ {brl(Number(stats?.despesasAtrasadas))} em atraso</p>
+                : <p className="mt-1.5 text-[12.5px] text-muted-foreground">nada em atraso</p>}
+              {(Number(stats?.pagaveisVencendo) || 0) > 0 && <p className="text-[12.5px] text-muted-foreground">{String(stats?.pagaveisVencendo)} vencendo em 7 dias</p>}
+            </Link>
+          </div>
 
-          <a
-            href="/financeiro/pagar"
-            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-50 dark:bg-orange-950/50 rounded-lg group-hover:bg-orange-100 dark:group-hover:bg-orange-950/70 transition-colors">
-                <CreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground">Contas a Pagar</h4>
-                <p className="text-sm text-muted-foreground">Gerenciar pagamentos</p>
-              </div>
-            </div>
-          </a>
-
-          <a
-            href="/financeiro/fluxo-caixa"
-            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-50 dark:bg-green-950/50 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-950/70 transition-colors">
-                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground">Fluxo de Caixa</h4>
-                <p className="text-sm text-muted-foreground">Visualizar transações</p>
-              </div>
-            </div>
-          </a>
-
-          <a
-            href="/financeiro/caixa"
-            className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg group-hover:bg-purple-100 dark:group-hover:bg-purple-950/70 transition-colors">
-                <Wallet className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground">Caixa</h4>
-                <p className="text-sm text-muted-foreground">Controle de caixa</p>
-              </div>
-            </div>
-          </a>
+          <WeekBills />
         </div>
       </div>
+
+      <TransactionDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   )
 }
