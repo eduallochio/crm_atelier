@@ -404,7 +404,7 @@ function Landing() {
           color: var(--cream);
         }
 
-        .m-root { position: relative; background: var(--ink); color: var(--cream); }
+        .m-root { position: relative; background: var(--ink); color: var(--cream); overflow-x: clip; }
         .m-wrap { max-width: 1240px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); }
         .m-section { padding: clamp(80px, 10vw, 128px) 0; }
         .m-h2 { margin: 0; text-align: center; font-size: clamp(36px, 5vw, 64px); line-height: 1.05; }
@@ -512,6 +512,32 @@ function Landing() {
           .wa-btn svg { width: 24px; height: 24px; }
         }
 
+        /* ── celular pequeno ── */
+        @media (max-width: 600px) {
+          .m-section { padding: 64px 0; }
+          .hero-top { gap: 32px; padding-bottom: 40px; }
+          .hero h1 { margin-top: 18px; }
+          .hero-machine { max-width: 380px; }
+          /* no celular mostramos só o celular, maior e centralizado */
+          .shot-desk { display: none; }
+          .shots-stage { padding-bottom: 8px !important; }
+          .m-phone { position: relative; right: auto; bottom: auto; margin: 0 auto; width: min(64%, 250px); border-radius: 40px; padding: 9px; }
+          .m-screen { border-radius: 32px; }
+          .m-status { height: 28px; font-size: 11px; padding: 2px 16px 0 20px; }
+          .m-island { top: 7px; height: 16px; }
+          .stats-grid { grid-template-columns: 1fr 1fr; gap: 22px 12px; }
+          .hero-stat { padding-left: 14px !important; }
+          .hero-stat .display { font-size: 32px !important; }
+          .m-steps-needle { display: none; }
+          .m-step-card { padding: 20px !important; }
+          .m-step-card h3 { font-size: 23px !important; }
+          .m-feat { gap: 14px; padding: 22px 0; }
+          .m-ic { width: 42px; height: 42px; border-radius: 10px; }
+          .m-quote-text { font-size: 19px !important; }
+          .m-plan-price { font-size: 46px !important; }
+          .m-compare-grid { gap: 14px; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           html { scroll-behavior: auto; }
           .btn-primary, .btn-ghost, [data-seam-reveal] { transition: none; }
@@ -590,7 +616,7 @@ function Landing() {
 
           {/* prints reais do sistema */}
           <div ref={shotsRef} className="m-wrap" style={{ position: 'relative', paddingTop: 8, paddingBottom: 40, perspective: 1600 }}>
-            <div style={{ position: 'relative', paddingBottom: 60, maxWidth: 980, margin: '0 auto' }}>
+            <div className="shots-stage" style={{ position: 'relative', paddingBottom: 60, maxWidth: 980, margin: '0 auto' }}>
               <div className="m-frame shot-desk" style={{ transformOrigin: '50% 100%' }}>
                 <div className="m-frame-bar" aria-hidden="true"><i /><i /><i /></div>
                 <Image src="/screenshots/landing-os-desktop.webp" alt="Tela real de Ordens de Serviço: total, pendentes, em andamento, concluídas e atrasadas, com busca e lista de ordens" width={1598} height={870} sizes="(max-width: 1040px) 100vw, 980px" />
@@ -655,7 +681,7 @@ function Landing() {
               <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
                 <path ref={weaveRef} d="M24 0V10" fill="none" stroke="var(--terra)" strokeWidth="2" strokeLinecap="round" />
               </svg>
-              <svg ref={needleIconRef} width="44" height="12" viewBox="0 0 44 12" style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none', zIndex: 2, opacity: 0 }} aria-hidden="true">
+              <svg ref={needleIconRef} className="m-steps-needle" width="44" height="12" viewBox="0 0 44 12" style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none', zIndex: 2, opacity: 0 }} aria-hidden="true">
                 <path d={NEEDLE_PATH} fill="#8A7A6A" stroke="#2C1810" strokeWidth=".8" />
                 <ellipse cx="8" cy="6" rx="3" ry="1" fill="#F7F0E6" />
               </svg>
@@ -663,7 +689,7 @@ function Landing() {
                 {steps.map((s) => (
                   <li key={s.n} className="m-step" style={{ position: 'relative' }}>
                     <span className="m-bubble display">{s.n}</span>
-                    <div style={{ background: 'var(--card)', border: '1px solid rgba(212,168,90,.3)', borderRadius: 16, padding: '26px 28px' }}>
+                    <div className="m-step-card" style={{ background: 'var(--card)', border: '1px solid rgba(212,168,90,.3)', borderRadius: 16, padding: '26px 28px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                         <h3 className="display" style={{ margin: 0, fontSize: 26, fontWeight: 500, color: 'var(--ink)' }}>{s.title}</h3>
                         {s.detail && <span style={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: '#8A4B2C', border: '1px solid rgba(200,113,74,.45)', padding: '4px 10px' }}>{s.detail}</span>}
@@ -756,7 +782,7 @@ function Landing() {
                   <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
                 ))}
               </div>
-              <blockquote className="display" style={{ margin: '22px 0 28px', fontSize: 'clamp(22px,2.4vw,28px)', lineHeight: 1.5, fontStyle: 'italic', color: 'var(--ink)', fontWeight: 400 }}>
+              <blockquote className="display m-quote-text" style={{ margin: '22px 0 28px', fontSize: 'clamp(22px,2.4vw,28px)', lineHeight: 1.5, fontStyle: 'italic', color: 'var(--ink)', fontWeight: 400 }}>
                 &ldquo;Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. E a facilidade de enviar a ordem de serviço para o cliente, ele saber exatamente o que vai ser feito e acompanhar, faz toda a diferença. Não imagino trabalhar sem ele.&rdquo;
               </blockquote>
               <figcaption style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -840,7 +866,7 @@ function Landing() {
                     )}
                     <p className="display" style={{ margin: 0, fontSize: 28 }}>{plan.name}</p>
                     <p style={{ margin: '10px 0 0' }}>
-                      <span className="display" style={{ fontSize: 56, lineHeight: 1 }}>R$ {whole}</span>
+                      <span className="display m-plan-price" style={{ fontSize: 56, lineHeight: 1 }}>R$ {whole}</span>
                       <span style={{ fontSize: 14, color: mid }}>{cents ? `,${cents} /mês` : ' /mês'}</span>
                     </p>
                     <p style={{ margin: '4px 0 22px', fontSize: 13, color: mid, minHeight: 20 }}>{plan.annual_note || plan.description || ' '}</p>
