@@ -760,7 +760,7 @@ function Landing() {
             <div className="shots-stage" style={{ position: 'relative', paddingBottom: 60, maxWidth: 980, margin: '0 auto' }}>
               <div className="m-frame shot-desk" style={{ transformOrigin: '50% 100%' }}>
                 <div className="m-frame-bar" aria-hidden="true"><i /><i /><i /></div>
-                <Image src="/screenshots/landing-os-desktop.webp" alt="Tela real de Ordens de Serviço: total, pendentes, em andamento, concluídas e atrasadas, com busca e lista de ordens" width={1598} height={870} sizes="(max-width: 1040px) 100vw, 980px" />
+                <Image src="/screenshots/sistema-ordens-desktop.webp" alt="Tela real de Ordens de Serviço: lista com filtros por status e prazo, e a ordem aberta ao lado com andamento, valores e cliente" width={1600} height={872} sizes="(max-width: 1040px) 100vw, 980px" />
               </div>
               <div className="m-phone shot-mob">
                 <span className="m-btn-side" style={{ left: -3, top: '18%', height: '7%' }} />
@@ -776,7 +776,7 @@ function Landing() {
                       <rect x="25.5" y="1.2" width="10.5" height="7.6" rx="2" stroke="#111" strokeOpacity=".45" fill="none" /><rect x="26.8" y="2.5" width="7.9" height="5" rx="1.1" fill="#111" /><rect x="36.6" y="3.7" width="1.2" height="2.6" rx=".5" fill="#111" fillOpacity=".45" />
                     </svg>
                   </div>
-                  <Image src="/screenshots/landing-os-mobile.webp" alt="A mesma tela de Ordens de Serviço no celular" width={718} height={1332} sizes="230px" />
+                  <Image src="/screenshots/sistema-ordens-mobile.webp" alt="A mesma tela de Ordens de Serviço no celular" width={780} height={1446} sizes="230px" />
                   <span className="m-fade" aria-hidden="true" />
                   <span className="m-home" aria-hidden="true" />
                 </div>

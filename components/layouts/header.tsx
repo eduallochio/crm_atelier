@@ -12,7 +12,7 @@ export function Header({ title, description, action }: HeaderProps) {
       <div className="pl-16 pr-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:mr-52 lg:mr-56">
           <div className="flex-1 min-w-0 pr-40 sm:pr-0">
-            <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">{title}</h1>
+            <h1 className="text-lg leading-tight font-bold text-foreground [text-wrap:balance] sm:truncate sm:text-2xl">{title}</h1>
             {description && (
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>
             )}
