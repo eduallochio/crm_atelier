@@ -26,6 +26,7 @@ import {
   X,
   User,
   ChevronDown,
+  Check,
   ChevronRight,
   Truck,
   TrendingDown,
@@ -41,7 +42,7 @@ import {
   ArrowLeftRight,
   LucideIcon,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ThemeToggle } from './theme-toggle'
 
@@ -74,7 +75,8 @@ const navigation: NavigationSection[] = [
     ],
   },
   {
-    section: 'Financeiro',
+    // antes eram duas seções ("Financeiro" e "Estoque") com um único item de mesmo nome
+    section: 'Finanças e estoque',
     items: [
       {
         name: 'Financeiro',
@@ -88,11 +90,6 @@ const navigation: NavigationSection[] = [
           { name: 'Contas a Receber', href: '/financeiro/receber', icon: TrendingUp },
         ],
       },
-    ],
-  },
-  {
-    section: 'Estoque',
-    items: [
       {
         name: 'Estoque',
         href: '/estoque',
@@ -117,30 +114,82 @@ const navigation: NavigationSection[] = [
   },
 ]
 
-// Sidebar sempre com fundo escuro (consistente entre dark e light mode)
-// No light mode o sidebar mantém o fundo #0f0f0f — padrão premium de SaaS
-const theme = {
-  sidebar:      'bg-[#0f0f0f] border-r border-white/[0.06]',
-  header:       'border-b border-white/[0.06]',
-  sectionLabel: 'text-[#444]',
-  itemInactive: 'text-[#aaa] hover:text-white hover:bg-white/[0.06]',
-  itemActive:   'text-[#c8714a] bg-[#c8714a]/[0.12]',
-  iconInactive: 'text-[#666] group-hover:text-white',
-  iconActive:   'text-[#c8714a]',
-  subBorder:    'border-white/[0.07]',
-  footerBorder: 'border-white/[0.07]',
-  orgName:      'text-[#f0e6d0]',
-  orgSub:       'text-[#3a3a3a]',
-  userName:     'text-[#d0d0d0]',
-  userEmail:    'text-[#404040]',
-  mobileToggle: 'bg-[#0f0f0f] border border-white/10 text-[#888] hover:text-white',
+// Sidebar no tecido da marca: tinta #2C1810 com linho, terracota para o ativo,
+// dourado nos rótulos e costura tracejada (separadores, submenu e o pesponto
+// que corre até o item ativo). Igual nos temas claro e escuro.
+const SIDEBAR_CSS = `
+.sb{position:fixed;top:0;left:0;z-index:40;width:16rem;height:100vh;height:100dvh;display:flex;flex-direction:column;color:#F7F0E6;
+  background-color:#2C1810;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 4px),repeating-linear-gradient(90deg,rgba(255,255,255,.014) 0 1px,transparent 1px 4px);
+  border-right:1px solid rgba(212,168,90,.14);transition:transform .3s cubic-bezier(.2,0,0,1)}
+.sb-head{display:flex;align-items:center;gap:12px;height:68px;padding:0 18px;border-bottom:1px dashed rgba(212,168,90,.22);flex:none}
+.sb-logo{position:relative;width:38px;height:38px;flex:none;border-radius:10px;overflow:hidden}
+.sb-org{min-width:0}
+.sb-org-name{display:block;margin:0;font-family:var(--font-cormorant),'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:19px;line-height:1.15;color:#F7F0E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-org-sub{display:block;margin-top:2px;font-size:11px;letter-spacing:.06em;color:rgba(247,240,230,.62)}
+.sb-nav{position:relative;flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 12px;scrollbar-width:thin;scrollbar-color:rgba(212,168,90,.25) transparent}
+.sb-sec+.sb-sec{margin-top:18px}
+.sb-sec-l{margin:0 0 6px;padding:0 12px;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(212,168,90,.8)}
+.sb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.sb-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:42px;padding:0 12px;border:0;border-radius:8px;background:none;
+  color:rgba(247,240,230,.8);font-size:14.5px;font-weight:500;text-decoration:none;text-align:left;cursor:pointer;transition:background-color .15s,color .15s}
+.sb-item .sb-ic{flex:none;width:18px;height:18px;color:rgba(247,240,230,.58);transition:color .15s}
+.sb-item:hover{background:rgba(247,240,230,.06);color:#F7F0E6}
+.sb-item:hover .sb-ic{color:#F7F0E6}
+.sb-item:focus-visible,.sb-link:focus-visible,.sb-out:focus-visible,.sb-plan:focus-visible{outline:2px solid #D4A85A;outline-offset:-2px}
+.sb-item.is-on{color:#F7F0E6;background:rgba(200,113,74,.16)}
+.sb-item.is-on .sb-ic{color:#E39B78}
+.sb-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-chev{flex:none;width:14px;height:14px;color:rgba(247,240,230,.5);transition:transform .25s cubic-bezier(.2,0,0,1)}
+.sb-item[aria-expanded="true"] .sb-chev{transform:rotate(90deg)}
+.sb-badge{flex:none;min-width:22px;height:20px;padding:0 7px;border-radius:10px;font-size:11px;font-weight:700;line-height:20px;text-align:center;font-variant-numeric:tabular-nums}
+.sb-badge.alert{background:rgba(226,97,74,.22);color:#F4A08C}
+.sb-badge.count{background:rgba(212,168,90,.18);color:#E8C98A}
+.sb-subwrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s cubic-bezier(.2,0,0,1)}
+.sb-subwrap.open{grid-template-rows:1fr}
+.sb-sub{overflow:hidden;list-style:none;margin:0 0 0 23px;padding:0 0 0 12px;display:flex;flex-direction:column;gap:1px;border-left:1.5px dashed rgba(212,168,90,.3)}
+.sb-sub>li:first-child{margin-top:4px}.sb-sub>li:last-child{margin-bottom:6px}
+.sb-sub .sb-item{min-height:38px;font-size:14px}
+.sb-sub .sb-ic{width:16px;height:16px}
+.sb-ind{position:absolute;left:0;top:0;width:3px;height:42px;pointer-events:none;z-index:2;opacity:0;
+  transition:transform .32s cubic-bezier(.2,0,0,1),height .32s cubic-bezier(.2,0,0,1),opacity .2s}
+.sb-ind::before{content:'';position:absolute;inset:6px 0;border-radius:2px;background:repeating-linear-gradient(180deg,#E39B78 0 5px,transparent 5px 8px);transform-origin:top}
+.sb-ind.sew::before{animation:sb-sew .45s cubic-bezier(.2,0,0,1) backwards}
+@keyframes sb-sew{from{transform:scaleY(0)}}
+.sb-foot{flex:none;border-top:1px dashed rgba(212,168,90,.22);padding:10px 12px 12px}
+.sb-link{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:0 12px;border:0;border-radius:8px;background:none;color:rgba(247,240,230,.72);font-size:13.5px;text-decoration:none;text-align:left;cursor:pointer;transition:background-color .15s,color .15s}
+.sb-link:hover{background:rgba(247,240,230,.06);color:#F7F0E6}
+.sb-link.gold{color:#E0BC74}
+.sb-link svg{flex:none;width:16px;height:16px}
+.sb-user{display:flex;align-items:center;gap:10px;margin-top:6px;padding:10px;border-radius:10px;background:rgba(247,240,230,.05)}
+.sb-av{width:36px;height:36px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#C8714A;color:#FFF8F0;font-size:13px;font-weight:600}
+.sb-uinfo{flex:1;min-width:0}
+.sb-uname{display:block;font-size:13.5px;font-weight:600;color:#F7F0E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-umail{display:block;font-size:11.5px;color:rgba(247,240,230,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-plan{display:inline-flex;align-items:center;gap:4px;margin-top:5px;height:20px;padding:0 8px;border-radius:10px;font-size:10px;font-weight:700;line-height:20px;letter-spacing:.08em;text-decoration:none}
+.sb-plan.pro{border:1px solid rgba(212,168,90,.55);color:#E8C98A}
+.sb-plan.free{background:rgba(200,113,74,.22);color:#F2B08F;transition:background-color .15s}
+.sb-plan.free:hover{background:rgba(200,113,74,.34)}
+.sb-out{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:rgba(247,240,230,.62);cursor:pointer;transition:background-color .15s,color .15s}
+.sb-out:hover{background:rgba(226,97,74,.18);color:#F4A08C}
+.sb-ver{margin:8px 12px 0;font-size:10.5px;color:rgba(247,240,230,.48);font-variant-numeric:tabular-nums;user-select:none}
+.sb-skel{height:56px;margin-top:6px;border-radius:10px;background:rgba(247,240,230,.05)}
+@media (max-width:1023px){.sb.is-closed{transform:translateX(-100%)}.sb-head{padding-left:64px}}
+@media (prefers-reduced-motion:reduce){.sb,.sb-ind,.sb-subwrap,.sb-chev{transition:none}.sb-ind.sew::before{animation:none}}
+`
+
+function Count({ alert, badge }: { alert: number; badge: number }) {
+  if (alert > 0) return <span className="sb-badge alert" aria-label={`${alert} com atraso`}>{alert > 99 ? '99+' : alert}</span>
+  if (badge > 0) return <span className="sb-badge count">{badge > 99 ? '99+' : badge}</span>
+  return null
 }
 
 export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
-
+  const navRef = useRef<HTMLElement>(null)
+  const indRef = useRef<HTMLSpanElement>(null)
+  const lastPath = useRef<string | null>(null)
   const { data: meData } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
@@ -197,247 +246,191 @@ export function Sidebar() {
   const initials = userProfile?.name
     ?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?'
 
-  const SidebarContent = () => (
-    <aside
-      data-tour="sidebar"
-      className={cn(
-        'fixed top-0 left-0 z-40 h-screen w-64 flex flex-col',
-        'transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-        theme.sidebar,
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      )}
-    >
-      {/* ── Header ── */}
-      <div className={cn('flex items-center gap-3 h-[62px] px-4 shrink-0', theme.header)}>
-        {/* Ícone fixo — logo da org sobreposta se existir */}
-        <div className="relative h-9 w-9 shrink-0">
-          <div className="h-9 w-9 rounded-xl overflow-hidden shadow-lg">
-            <Image src="/logo-icon.svg" alt="Meu Atelier" width={36} height={36}
-              className="h-9 w-9 object-cover" />
-          </div>
+  // pesponto: corre até o item ativo (ou até o grupo, se o submenu dele estiver fechado)
+  const placeIndicator = useCallback((sew: boolean) => {
+    const nav = navRef.current, ind = indRef.current
+    if (!nav || !ind) return
+    const el = nav.querySelector<HTMLElement>('[data-ind="true"]')
+    if (!el) { ind.style.opacity = '0'; return }
+    const nr = nav.getBoundingClientRect(), er = el.getBoundingClientRect()
+    ind.style.transform = `translate(${er.left - nr.left}px, ${er.top - nr.top + nav.scrollTop}px)`
+    ind.style.height = `${er.height}px`
+    ind.style.opacity = '1'
+    if (sew) { ind.classList.remove('sew'); void ind.offsetWidth; ind.classList.add('sew') }
+  }, [])
+
+  useLayoutEffect(() => {
+    const changed = lastPath.current !== pathname
+    lastPath.current = pathname
+    placeIndicator(changed)
+    // acompanha o submenu abrindo/fechando (280ms)
+    let raf = 0
+    const t0 = performance.now()
+    const follow = () => { placeIndicator(false); if (performance.now() - t0 < 320) raf = requestAnimationFrame(follow) }
+    raf = requestAnimationFrame(follow)
+    return () => cancelAnimationFrame(raf)
+  }, [pathname, expandedMenus, isMobileMenuOpen, placeIndicator])
+
+  useEffect(() => {
+    const onResize = () => placeIndicator(false)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [placeIndicator])
+
+  const isOn = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+
+  // função (e não componente) para o menu não ser desmontado a cada render
+  // (antes a rolagem do menu voltava ao topo ao abrir um submenu)
+  const renderSidebar = () => (
+    <aside data-tour="sidebar" className={cn('sb', !isMobileMenuOpen && 'is-closed')} aria-label="Menu do sistema">
+      {/* ── Ateliê ── */}
+      <div className="sb-head">
+        <div className="sb-logo">
+          <Image src="/logo-icon.svg" alt="" width={38} height={38} className="h-full w-full object-cover" />
           {orgSettings?.logo_url && (
-            <Image src={orgSettings.logo_url} alt="Logo" width={36} height={36}
-              className="absolute inset-0 h-9 w-9 object-contain rounded-xl" />
+            <Image src={orgSettings.logo_url} alt="" width={38} height={38}
+              className="absolute inset-0 h-full w-full object-contain bg-[#2C1810]" />
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className={cn('text-[14px] font-bold truncate leading-tight', theme.orgName)}
-            style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}>
-            {orgSettings?.name || 'Meu Atelier'}
-          </h1>
-          <p className={cn('text-[10px] mt-[1px] tracking-wide', theme.orgSub)}>Painel de Gestão</p>
+        <div className="sb-org">
+          <p className="sb-org-name">{orgSettings?.name || 'Meu Atelier'}</p>
+          <span className="sb-org-sub">Painel de gestão</span>
         </div>
       </div>
 
-      {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-5">
+      {/* ── Navegação ── */}
+      <nav ref={navRef} className="sb-nav" aria-label="Menu principal" onScroll={() => placeIndicator(false)}>
+        <span ref={indRef} className="sb-ind" aria-hidden="true" />
         {navigation.map((group) => (
-          <div key={group.section}>
-            {/* Label de seção */}
-            <p className={cn('px-2.5 mb-1.5 text-[9px] font-semibold uppercase tracking-[0.12em]', theme.sectionLabel)}>
-              {group.section}
-            </p>
-
-            <div className="space-y-[1px]">
+          <div key={group.section} className="sb-sec">
+            <p className="sb-sec-l">{group.section}</p>
+            <ul className="sb-list">
               {group.items.map((item) => {
-                const isActive    = pathname === item.href
-                const isSubActive = item.subitems?.some(s => pathname === s.href || pathname.startsWith(s.href + '/'))
+                const isActive    = isOn(item.href) && !item.subitems
+                const isSubActive = item.subitems?.some(s => pathname === s.href || pathname.startsWith(s.href + '/')) ?? false
                 const highlighted = isActive || isSubActive
                 const isExpanded  = expandedMenus[item.name] ?? highlighted
                 const badge  = badges[item.href] || 0
                 const alert  = alerts[item.href] || 0
 
-                const sharedItemClass = cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium',
-                  'transition-all duration-150 group relative',
-                  highlighted ? theme.itemActive : theme.itemInactive
-                )
-
-                return (
-                  <div key={item.name}>
-                    {item.subitems ? (
-                      <button
-                        data-tour={item.tourId}
-                        onClick={() => setExpandedMenus(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                        className={sharedItemClass}
-                      >
-                        {/* Pill indicador ativo */}
-                        {highlighted && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-[#c8714a]" />
-                        )}
-                        <item.icon className={cn('h-5 w-5 shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
-                        <span className="flex-1 text-left">{item.name}</span>
-                        {alert > 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-red-500/20 text-red-400">
-                            {alert > 99 ? '99+' : alert}
-                          </span>
-                        )}
-                        {badge > 0 && alert === 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-px rounded-full text-[#c8714a]"
-                            style={{ background: 'rgba(200,113,74,0.18)' }}>
-                            {badge > 99 ? '99+' : badge}
-                          </span>
-                        )}
-                        <ChevronRight className={cn(
-                          'h-3.5 w-3.5 text-[#333] transition-transform duration-200',
-                          isExpanded && 'rotate-90'
-                        )} />
-                      </button>
-                    ) : (
+                if (!item.subitems) {
+                  return (
+                    <li key={item.name}>
                       <Link
                         href={item.href}
                         data-tour={item.tourId}
+                        data-ind={isActive ? 'true' : undefined}
+                        aria-current={isActive ? 'page' : undefined}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={sharedItemClass}
+                        className={cn('sb-item', isActive && 'is-on')}
                       >
-                        {isActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-[#c8714a]" />
-                        )}
-                        <item.icon className={cn('h-5 w-5 shrink-0', highlighted ? theme.iconActive : theme.iconInactive)} />
-                        <span className="flex-1">{item.name}</span>
-                        {alert > 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-red-500/20 text-red-400">
-                            {alert > 99 ? '99+' : alert}
-                          </span>
-                        )}
-                        {badge > 0 && alert === 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-px rounded-full text-[#c8714a]"
-                            style={{ background: isActive ? 'rgba(200,113,74,0.18)' : 'rgba(255,255,255,0.06)' }}>
-                            {badge > 99 ? '99+' : badge}
-                          </span>
-                        )}
+                        <item.icon className="sb-ic" aria-hidden="true" />
+                        <span className="sb-txt">{item.name}</span>
+                        <Count alert={alert} badge={badge} />
                       </Link>
-                    )}
+                    </li>
+                  )
+                }
 
-                    {/* Submenu expandido */}
-                    {item.subitems && isExpanded && (
-                      <div className={cn('mt-1 ml-4 pl-3 border-l space-y-[1px]', theme.subBorder)}>
+                const subId = `sb-sub-${item.href.slice(1)}`
+                return (
+                  <li key={item.name}>
+                    <button
+                      type="button"
+                      data-tour={item.tourId}
+                      data-ind={isSubActive && !isExpanded ? 'true' : undefined}
+                      aria-expanded={isExpanded}
+                      aria-controls={subId}
+                      onClick={() => setExpandedMenus(prev => ({ ...prev, [item.name]: !isExpanded }))}
+                      className={cn('sb-item', highlighted && 'is-on')}
+                    >
+                      <item.icon className="sb-ic" aria-hidden="true" />
+                      <span className="sb-txt">{item.name}</span>
+                      <Count alert={alert} badge={badge} />
+                      <ChevronRight className="sb-chev" aria-hidden="true" />
+                    </button>
+                    <div className={cn('sb-subwrap', isExpanded && 'open')} inert={!isExpanded}>
+                      <ul id={subId} className="sb-sub">
                         {item.subitems.map((sub) => {
                           const isSubItemActive = pathname === sub.href
-                          const subAlert  = alerts[sub.href] || 0
-                          const subBadge  = badges[sub.href] || 0
                           return (
-                            <Link
-                              key={sub.name}
-                              href={sub.href}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className={cn(
-                                'flex items-center gap-2.5 px-3 py-2 rounded-md text-[14px] font-medium',
-                                'transition-all duration-150 group relative',
-                                isSubItemActive
-                                  ? 'text-[#c8714a] bg-[#c8714a]/[0.10]'
-                                  : 'text-[#888] hover:text-white hover:bg-white/[0.05]'
-                              )}
-                            >
-                              {isSubItemActive && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[14px] rounded-r-full bg-[#c8714a]" />
-                              )}
-                              <sub.icon className={cn('h-[18px] w-[18px] shrink-0',
-                                isSubItemActive ? 'text-[#c8714a]' : 'text-[#666] group-hover:text-white'
-                              )} />
-                              <span className="flex-1">{sub.name}</span>
-                              {subAlert > 0 && (
-                                <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-red-500/20 text-red-400">
-                                  {subAlert > 99 ? '99+' : subAlert}
-                                </span>
-                              )}
-                              {subBadge > 0 && subAlert === 0 && (
-                                <span className="text-[10px] font-bold px-1.5 py-px rounded-full text-[#c8714a]"
-                                  style={{ background: 'rgba(200,113,74,0.18)' }}>
-                                  {subBadge > 99 ? '99+' : subBadge}
-                                </span>
-                              )}
-                            </Link>
+                            <li key={sub.name}>
+                              <Link
+                                href={sub.href}
+                                data-ind={isSubItemActive && isExpanded ? 'true' : undefined}
+                                aria-current={isSubItemActive ? 'page' : undefined}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn('sb-item', isSubItemActive && 'is-on')}
+                              >
+                                <sub.icon className="sb-ic" aria-hidden="true" />
+                                <span className="sb-txt">{sub.name}</span>
+                                <Count alert={alerts[sub.href] || 0} badge={badges[sub.href] || 0} />
+                              </Link>
+                            </li>
                           )
                         })}
-                      </div>
-                    )}
-                  </div>
+                      </ul>
+                    </div>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
-      {/* ── Footer ── */}
-      <div className={cn('shrink-0 border-t', theme.footerBorder)}>
-        {/* Admin + Tour */}
-        <div className="px-2.5 pt-2 pb-1 flex flex-col gap-[1px]">
-          {isMaster && (
-            <Link href="/admin"
-              className="flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[12px] font-medium text-[#d4a85a] hover:text-[#e8c46a] hover:bg-[#d4a85a]/[0.08] transition-colors">
-              <Shield className="h-3.5 w-3.5 shrink-0" />
-              Painel Admin
-            </Link>
-          )}
-          <button
-            onClick={() => window.dispatchEvent(new Event('start-tour'))}
-            className="flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[12px] font-medium text-[#555] hover:text-[#aaa] hover:bg-white/[0.04] transition-colors w-full text-left"
-          >
-            <HelpCircle className="h-3.5 w-3.5 shrink-0" />
-            Ver tour do sistema
-          </button>
-        </div>
+      {/* ── Rodapé ── */}
+      <div className="sb-foot">
+        {isMaster && (
+          <Link href="/admin" className="sb-link gold" onClick={() => setIsMobileMenuOpen(false)}>
+            <Shield aria-hidden="true" />
+            Painel Admin
+          </Link>
+        )}
+        <button type="button" className="sb-link" onClick={() => window.dispatchEvent(new Event('start-tour'))}>
+          <HelpCircle aria-hidden="true" />
+          Ver tour do sistema
+        </button>
 
-        {/* User card */}
-        <div className={cn('px-2.5 pb-3 pt-1 border-t', theme.footerBorder)}>
-          {userProfile ? (
-            <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors group cursor-default">
-              <Avatar className="w-8 h-8 shrink-0">
-                <AvatarFallback className="text-xs font-bold"
-                  style={{ background: 'linear-gradient(135deg,#c8714a,#d4a85a)', color: '#1a0f00' }}>
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className={cn('text-[12px] font-semibold truncate leading-tight', theme.userName)}>
-                  {userProfile.name}
-                </p>
-                <p className={cn('text-[10px] truncate mt-[1px]', theme.userEmail)}>
-                  {userProfile.email}
-                </p>
-                {isPro ? (
-                  <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold px-1.5 py-[1px] rounded-full"
-                    style={{ background: 'rgba(212,168,90,0.15)', color: '#d4a85a', border: '1px solid rgba(212,168,90,0.3)' }}>
-                    ✓ PRO
-                  </span>
-                ) : (
-                  <Link
-                    href="/configuracoes?tab=assinatura"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    title="Fazer upgrade para o plano Pro"
-                    className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold px-1.5 py-[1px] rounded-full bg-white/[0.06] text-[#888] hover:bg-[#c8714a]/[0.18] hover:text-[#c8714a] transition-colors"
-                  >
-                    FREE · fazer upgrade
-                  </Link>
-                )}
-              </div>
-              <button onClick={handleLogout} title="Sair"
-                className="p-1.5 rounded-md text-[#333] hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
+        {userProfile ? (
+          <div className="sb-user">
+            <span className="sb-av" aria-hidden="true">{initials}</span>
+            <div className="sb-uinfo">
+              <span className="sb-uname">{userProfile.name}</span>
+              <span className="sb-umail">{userProfile.email}</span>
+              {isPro ? (
+                <span className="sb-plan pro"><Check className="h-[11px] w-[11px]" strokeWidth={3} aria-hidden="true" />PRO</span>
+              ) : (
+                <Link
+                  href="/configuracoes?tab=assinatura"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title="Fazer upgrade para o plano Pro"
+                  className="sb-plan free"
+                >
+                  FREE · fazer upgrade
+                </Link>
+              )}
             </div>
-          ) : (
-            <div className="h-12 rounded-xl bg-white/[0.04] animate-pulse mx-2" />
-          )}
-          {shortVersion && (
-            <p className="px-4 pt-1.5 text-[9px] text-[#333] tracking-wide select-none">
-              v{shortVersion}
-            </p>
-          )}
-        </div>
+            <button type="button" onClick={handleLogout} className="sb-out" aria-label="Sair" title="Sair">
+              <LogOut className="h-[17px] w-[17px]" aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <div className="sb-skel" />
+        )}
+        {shortVersion && <p className="sb-ver">v{shortVersion}</p>}
       </div>
     </aside>
   )
 
   return (
     <>
+      <style>{SIDEBAR_CSS}</style>
       {/* Mobile toggle */}
       <div className="lg:hidden fixed top-3.5 left-4 z-50">
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className={cn('w-9 h-9 flex items-center justify-center rounded-lg shadow-lg transition-colors', theme.mobileToggle)}
-          aria-label="Abrir menu">
+          className="w-9 h-9 flex items-center justify-center rounded-lg shadow-lg transition-colors bg-[#2C1810] border border-[#D4A85A]/30 text-[#F7F0E6]/80 hover:text-[#F7F0E6]"
+          aria-label={isMobileMenuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={isMobileMenuOpen}>
           {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </div>
@@ -545,7 +538,7 @@ export function Sidebar() {
           onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
-      <SidebarContent />
+      {renderSidebar()}
     </>
   )
 }
