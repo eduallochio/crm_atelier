@@ -81,12 +81,21 @@ export default function EmbroideredTitle({ lines, play, animated, className }: P
     return () => { alive = false; ro.disconnect() }
   }, [animated])
 
+  // o atributo do script inline só segura o texto até o bordado montar; depois quem manda
+  // é a classe .emb-on (e, sem animação, o texto volta a aparecer normalmente)
+  useEffect(() => {
+    if (!animated || boxes) {
+      ;(window as unknown as { __embReady?: boolean }).__embReady = true
+      document.documentElement.removeAttribute('data-embroider')
+    }
+  }, [animated, boxes])
+
   // o bordado
   useEffect(() => {
     const s = svg.current
     if (!s || !boxes || !animated) return
-    ;(window as unknown as { __embReady?: boolean }).__embReady = true
-    if (played.current) return
+    // já bordado (ex.: animações pausadas e retomadas): mostra pronto
+    if (played.current) { gsap.set(s, { opacity: 1 }); return }
     if (!play) return
     played.current = true
     const q = gsap.utils.selector(s)

@@ -145,7 +145,7 @@ const brl = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 const lcFirst = (t: string) => (/^[A-ZÀ-Ú][a-zà-ú]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t)
 const listPt = (items: string[]) => items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`
 /** meses grátis do plano anual em relação ao mensal (ex.: 49,90 × 12 vs 498 → 2) */
-const monthsFree = (p: PublicPlan) => (p.price > 0 && p.price_annual ? Math.round(12 - p.price_annual / p.price) : 0)
+const monthsFree = (p: PublicPlan) => (p.price > 0 && p.price_annual ? Math.max(0, Math.floor(12 - p.price_annual / p.price + 1e-6)) : 0)
 
 type Faq = { question: string; answer: string }
 
@@ -230,6 +230,7 @@ function Landing() {
   const ctaNeedleRef = useRef<SVGSVGElement>(null)
   const ctaSewRef = useRef<HTMLDivElement>(null)
   const heroPlayed = useRef(false)
+  const entrancesDone = useRef(false)
 
   const bannerExpired = !!cms.promo_banner_deadline && Date.now() > new Date(cms.promo_banner_deadline).getTime()
   const bannerVisible = cms.promo_banner_active === 'true' && !!cms.promo_banner_text && !bannerExpired
@@ -357,6 +358,10 @@ function Landing() {
       // velocidade da rolagem acelera a máquina
       ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (st) => machine.current?.boost(Math.abs(st.getVelocity()) / 1500) })
 
+      // as entradas das seções acontecem uma vez só: pausar e retomar as animações não as repete
+      if (entrancesDone.current) return
+      entrancesDone.current = true
+
       // prints
       gsap.from('.shot-desk', { autoAlpha: 0, y: 60, rotationX: 14, duration: 0.9, ease: 'power3.out', scrollTrigger: once(shotsRef.current) })
       gsap.from('.shot-mob', { autoAlpha: 0, y: 80, duration: 0.8, delay: 0.25, ease: 'power3.out', scrollTrigger: once(shotsRef.current) })
@@ -388,6 +393,12 @@ function Landing() {
     }, root)
     return () => ctx.revert()
   }, [introDone, animated])
+
+  // conteúdo do painel ou planos chegando depois mudam a altura das seções: recalcula os gatilhos
+  useEffect(() => {
+    const id = requestAnimationFrame(() => ScrollTrigger.refresh())
+    return () => cancelAnimationFrame(id)
+  }, [cms, plans])
 
   /* ── passos: a linha trança entre os números e a agulha acompanha a rolagem ── */
   useEffect(() => {
@@ -488,6 +499,7 @@ function Landing() {
         }
 
         .m-root { position: relative; background: var(--ink); color: var(--cream); overflow-x: clip; }
+        @supports not (overflow: clip) { .m-root { overflow-x: hidden; } }
         .m-wrap { max-width: 1240px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); }
         .m-section { padding: clamp(80px, 10vw, 128px) 0; }
         .m-h2 { margin: 0; text-align: center; font-size: clamp(36px, 5vw, 64px); line-height: 1.05; }
@@ -601,10 +613,10 @@ function Landing() {
         .bill-toggle { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 380px); margin: 0 auto 40px; padding: 4px; border: 1px solid rgba(212,168,90,.3); border-radius: 999px; }
         .bill-pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px; background: var(--terra); transition: transform .4s cubic-bezier(.4,0,.2,1); }
         .bill-toggle button { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; background: none; border: 0; border-radius: 999px; color: rgba(247,240,230,.72); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: color .3s; }
-        .bill-toggle button[aria-checked="true"] { color: var(--card); }
+        .bill-toggle button[aria-pressed="true"] { color: var(--card); }
         .bill-toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
         .bill-save { white-space: nowrap; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; background: rgba(212,168,90,.18); color: var(--gold); }
-        .bill-toggle button[aria-checked="true"] .bill-save { background: rgba(255,248,240,.2); color: var(--card); }
+        .bill-toggle button[aria-pressed="true"] .bill-save { background: rgba(255,248,240,.2); color: var(--card); }
         .bill-anim { animation: bill-in .45s cubic-bezier(.2,.7,.2,1) backwards; }
         @keyframes bill-in { from { opacity: 0; transform: translateY(8px); } }
 
@@ -702,7 +714,7 @@ function Landing() {
       <IntroCut animated={animated} ready={motion.ready} onOpen={onIntroOpen} onDone={onIntroDone} />
 
       <div ref={rootRef} className="m-root">
-        <SeamThread rootRef={rootRef} getMachineSvg={getMachineSvg} shotsRef={shotsRef} start={introDone} animated={animated} />
+        <SeamThread rootRef={rootRef} getMachineSvg={getMachineSvg} shotsRef={shotsRef} start={introDone} animated={animated} ready={motion.ready} />
 
         {/* ── MOBILE MENU (Staggered) ── */}
         <StaggeredMenu
@@ -971,10 +983,10 @@ function Landing() {
             />
             <p style={{ margin: `0 0 ${annualPlan ? 28 : 52}px`, textAlign: 'center', color: 'rgba(247,240,230,.68)', fontSize: 15 }}>Sem cartão de crédito para começar.</p>
             {annualPlan && (
-              <div className="bill-toggle" role="radiogroup" aria-label="Período de cobrança">
+              <div className="bill-toggle" role="group" aria-label="Período de cobrança">
                 <span className="bill-pill" aria-hidden="true" style={{ transform: billing === 'anual' ? 'translateX(100%)' : 'none' }} />
                 {(['mensal', 'anual'] as const).map((b) => (
-                  <button key={b} type="button" role="radio" aria-checked={billing === b} onClick={() => { setBilling(b); track('billing_toggle', { cycle: b }) }}>
+                  <button key={b} type="button" aria-pressed={billing === b} onClick={() => { setBilling(b); track('billing_toggle', { cycle: b }) }}>
                     {b === 'mensal' ? 'Mensal' : 'Anual'}
                     {b === 'anual' && annualSave > 0 && <span className="bill-save">{annualSave} meses grátis</span>}
                   </button>

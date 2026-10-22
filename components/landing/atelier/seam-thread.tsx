@@ -26,6 +26,8 @@ interface Props {
   start: boolean
   /** false = movimento reduzido/pausado: costura pronta, sem agulha */
   animated: boolean
+  /** a preferência de movimento já foi lida (antes disso não faz nada) */
+  ready: boolean
 }
 
 const GOLD = '#D4A85A'
@@ -34,7 +36,9 @@ const FRAGS = 8
 
 type El = SVGElement | null
 
-export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, animated }: Props) {
+export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, animated, ready }: Props) {
+  // posição da costura sobrevive a pausar/retomar as animações (não recomeça do topo)
+  const keep = useRef({ cur: 0, max: 0 })
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const r = useRef<Record<string, El>>({})
@@ -45,7 +49,7 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
     const wrap = wrapRef.current
     const svg = svgRef.current
     const R = r.current
-    if (!root || !wrap || !svg) return
+    if (!root || !wrap || !svg || !ready) return
     const revealEls = () => Array.from(root.querySelectorAll<HTMLElement>('[data-seam-reveal]'))
 
     // ── estado ──
@@ -63,7 +67,9 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
     const layout = () => {
       const rr = root.getBoundingClientRect()
       const W = root.clientWidth
-      const H = root.scrollHeight
+      // altura do conteúdo (offsetHeight): scrollHeight incluiria a própria camada da costura
+      // e a página nunca encolheria (ex.: girar o celular ou estreitar e alargar a janela)
+      const H = root.offsetHeight
       const rel = (el: Element) => { const b = el.getBoundingClientRect(); return { l: b.left - rr.left, t: b.top - rr.top, b: b.bottom - rr.top } }
       s.small = W < 760
       // alinha à margem da coluna de conteúdo (max 1240px) em telas largas
@@ -214,6 +220,8 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
     if (!start) return () => { root.classList.remove('seam-armed') }
 
     layout()
+    s.cur = s.lastFrag = Math.min(keep.current.cur, s.T)
+    s.max = Math.min(keep.current.max, s.T)
     gsap.to(wrap, { opacity: 1, duration: 0.5, ease: 'power1.out' })
     const tieTl = gsap.timeline({ paused: true, onUpdate: () => { draw(gsap.ticker.time) } })
       .to(tie, { knot: 1, duration: 0.55, ease: 'power2.inOut' })
@@ -231,7 +239,8 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
     const tick = (time: number, dt: number) => {
       if (!s.dirty && s.settled) return
       const d = Math.min(dt, 50) / 1000
-      s.goal = lenForY(targetY())
+      const ty = targetY()
+      s.goal = lenForY(ty)
       s.dirty = false
       const diff = s.goal - s.cur
       const prev = s.cur
@@ -249,6 +258,10 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
       const p = draw(time)
       if (s.dir < 0 && s.moving && s.lastFrag - s.cur > 22) { dropFrag(p.x, p.y); s.lastFrag = s.cur }
       if (s.dir > 0) s.lastFrag = s.cur
+      // garantia: um título que já está bem acima da linha de leitura aparece mesmo se a agulha atrasar
+      if (s.reveals.length) s.reveals = s.reveals.filter((rv) => { if (ty >= rv.y + 240) { rv.el.classList.add('is-sewn'); return false } return true })
+      keep.current.cur = s.cur
+      keep.current.max = s.max
     }
     gsap.ticker.add(tick)
 
@@ -272,7 +285,7 @@ export default function SeamThread({ rootRef, getMachineSvg, shotsRef, start, an
       cancelAnimationFrame(raf)
       root.classList.remove('seam-armed')
     }
-  }, [rootRef, shotsRef, getMachineSvg, start, animated])
+  }, [rootRef, shotsRef, getMachineSvg, start, animated, ready])
 
   return (
     <div ref={wrapRef} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 0, zIndex: 15, pointerEvents: 'none', opacity: 0 }}>

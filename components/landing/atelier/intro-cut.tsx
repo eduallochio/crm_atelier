@@ -46,17 +46,27 @@ export default function IntroCut({ animated, ready, onOpen, onDone }: Props) {
 
   useEffect(() => {
     if (!ready) return
+    let seen = false
+    try { seen = sessionStorage.getItem(KEY) === '1' } catch { /* storage bloqueado */ }
     const skipAttr = document.documentElement.getAttribute('data-intro') === 'skip'
-    if (!animated || skipAttr || !root.current) {
+    // o script inline só roda na carga da página; voltar para "/" pela navegação do site também precisa respeitar o "uma vez por sessão"
+    if (!animated || skipAttr || seen || !root.current) {
       document.documentElement.setAttribute('data-intro', 'skip')
       doneRef.current()
       return
     }
-    try { sessionStorage.setItem(KEY, '1') } catch { /* storage bloqueado */ }
 
     const vw = window.innerWidth
+    // enquanto a abertura cobre a tela, o conteúdo de trás não recebe foco pelo Tab
+    const page = document.querySelector('.m-root')
+    page?.setAttribute('inert', '')
     const t = gsap.timeline({
-      onComplete: () => { setGone(true); doneRef.current() },
+      onComplete: () => {
+        page?.removeAttribute('inert')
+        document.documentElement.setAttribute('data-intro', 'skip')
+        setGone(true)
+        doneRef.current()
+      },
     })
     t.timeScale(1.7)
     t.fromTo(stitchMask.current, { strokeDasharray: 1440, strokeDashoffset: 1440 }, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
@@ -65,7 +75,11 @@ export default function IntroCut({ animated, ready, onOpen, onDone }: Props) {
       .fromTo(scissors.current, { x: 0, rotation: -8 }, { x: vw + 160, duration: 1.0, ease: 'power2.in' }, 1.25)
       .to(scissors.current, { rotation: 8, duration: 0.09, repeat: 9, yoyo: true, ease: 'sine.inOut' }, 1.25)
       .addLabel('open', 2.05)
-      .call(() => openRef.current?.(), undefined, 'open')
+      .call(() => {
+        // só conta como vista quando a tela abre (se o efeito for desfeito antes, ela toca de novo)
+        try { sessionStorage.setItem(KEY, '1') } catch { /* storage bloqueado */ }
+        openRef.current?.()
+      }, undefined, 'open')
       .to(brand.current, { y: -40, autoAlpha: 0, duration: 0.5, ease: 'power2.in' }, 'open-=0.15')
       .to(tag.current, { y: 40, autoAlpha: 0, duration: 0.5, ease: 'power2.in' }, 'open-=0.15')
       .to(top.current, { yPercent: -100, duration: 0.95, ease: 'power4.inOut' }, 'open')
@@ -78,6 +92,7 @@ export default function IntroCut({ animated, ready, onOpen, onDone }: Props) {
     return () => {
       el.removeEventListener('wheel', skipOnScroll)
       el.removeEventListener('touchmove', skipOnScroll)
+      page?.removeAttribute('inert')
       t.kill()
     }
   }, [animated, ready])
