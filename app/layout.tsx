@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
+import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -54,7 +49,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Meu Atelier - Dashboard',
+        alt: 'Meu Atelier — sistema de gestão para ateliês de costura e artesanato',
       },
     ],
   },
@@ -115,7 +110,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${cormorant.variable} font-sans antialiased bg-background text-foreground`}>
         <Providers>
           {children}
           <Toaster position="top-right" richColors />

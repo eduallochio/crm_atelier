@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { ArrowLeft, FileText, Shield, Ban, AlertTriangle, Scale } from 'lucide-react'
+import { pageMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = pageMetadata({
+  path: '/termos',
   title: 'Termos de Uso - Meu Atelier Sistema',
   description: 'Termos e Condições de Uso do Meu Atelier Sistema',
-}
+})
 
 const terra   = '#c8714a'
 const dourado = '#d4a85a'
