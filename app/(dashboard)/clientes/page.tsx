@@ -1,265 +1,233 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Search, Users, UserPlus, ShoppingBag, Phone, Filter, SortAsc, Cake, LayoutGrid, List } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import { useMemo, useState } from 'react'
+import { Cake, Plus, Search, SearchX, Users } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
 import { useClients } from '@/hooks/use-clients'
-import { useClientStats } from '@/hooks/use-client-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
-import { usePagination } from '@/hooks/use-pagination'
-import { ClientsTable } from '@/components/dashboard/clients-table'
-import { ClientsCards } from '@/components/dashboard/clients-cards'
 import { ClientDialog } from '@/components/forms/client-dialog'
-import { ClientOrdersDialog } from '@/components/dashboard/client-orders-dialog'
+import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
+import { ClientDetail } from '@/components/dashboard/client-detail'
+import { initialsOf, isBirthdayThisMonth, isNewThisMonth, placeOf } from '@/components/dashboard/client-utils'
 import type { Client } from '@/lib/validations/client'
 
+type Chip = '' | 'bday' | 'new' | 'nophone' | 'noemail'
+type Sort = 'recent' | 'oldest' | 'name'
+
+const CHIPS: { key: Exclude<Chip, ''>; label: string }[] = [
+  { key: 'bday', label: 'Aniversariantes do mês' },
+  { key: 'new', label: 'Novos no mês' },
+  { key: 'nophone', label: 'Sem telefone' },
+  { key: 'noemail', label: 'Sem e-mail' },
+]
+
+/** Lista de clientes à esquerda e a ficha da cliente escolhida à direita (no celular, uma de cada vez) */
 export default function ClientesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [ordersDialogOpen, setOrdersDialogOpen] = useState(false)
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterPhone, setFilterPhone] = useState<'all' | 'with' | 'without'>('all')
-  const [filterEmail, setFilterEmail] = useState<'all' | 'with' | 'without'>('all')
-  const [sortBy, setSortBy] = useState<'name' | 'recent' | 'oldest'>('recent')
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [orderOpen, setOrderOpen] = useState(false)
+  const [editing, setEditing] = useState<Client | null>(null)
+  const [orderClientId, setOrderClientId] = useState<string | undefined>()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mobileDetail, setMobileDetail] = useState(false)
+  const [query, setQuery] = useState('')
+  const [chip, setChip] = useState<Chip>('')
+  const [sortBy, setSortBy] = useState<Sort>('recent')
 
   const { data: clients = [], isLoading } = useClients()
-  const { data: stats } = useClientStats()
   const clientLimit = usePlanLimit('clients')
 
-  const handleEdit = (client: Client) => {
-    setSelectedClient(client)
-    setDialogOpen(true)
-  }
+  const counts = useMemo(() => ({
+    bday: clients.filter((c) => isBirthdayThisMonth(c)).length,
+    new: clients.filter((c) => isNewThisMonth(c)).length,
+  }), [clients])
 
-  const handleViewOrders = (client: Client) => {
-    setSelectedClient(client)
-    setOrdersDialogOpen(true)
-  }
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return clients
+      .filter((c) => {
+        if (q && !`${c.nome} ${c.email ?? ''} ${c.telefone ?? ''}`.toLowerCase().includes(q)) return false
+        if (chip === 'bday' && !isBirthdayThisMonth(c)) return false
+        if (chip === 'new' && !isNewThisMonth(c)) return false
+        if (chip === 'nophone' && c.telefone) return false
+        if (chip === 'noemail' && c.email) return false
+        return true
+      })
+      .sort((a, b) => {
+        if (sortBy === 'name') return a.nome.localeCompare(b.nome, 'pt-BR')
+        const d = new Date(b.data_cadastro).getTime() - new Date(a.data_cadastro).getTime()
+        return sortBy === 'recent' ? d : -d
+      })
+  }, [clients, query, chip, sortBy])
 
-  const handleNewClient = () => {
-    setSelectedClient(null)
-    setDialogOpen(true)
-  }
+  // no computador, sempre há uma cliente aberta na ficha (a primeira da lista, se a escolhida
+  // não estiver mais nela — filtrada ou excluída)
+  const selected = list.find((c) => c.id === selectedId) ?? list[0] ?? null
 
-  // Filtrar clientes pela busca
-  const filteredClients = clients.filter((client) => {
-    const query = searchQuery.toLowerCase()
-    const matchesSearch = (
-      client.nome.toLowerCase().includes(query) ||
-      client.email?.toLowerCase().includes(query) ||
-      client.telefone?.toLowerCase().includes(query)
-    )
+  const openClient = (c: Client) => { setSelectedId(c.id); setMobileDetail(true) }
+  const handleNew = () => { setEditing(null); setDialogOpen(true) }
+  const handleEdit = (c: Client) => { setEditing(c); setDialogOpen(true) }
+  const handleNewOrder = (c: Client) => { setOrderClientId(c.id); setOrderOpen(true) }
+  const clearFilters = () => { setQuery(''); setChip('') }
 
-    // Filtro de telefone
-    const matchesPhone = 
-      filterPhone === 'all' ? true :
-      filterPhone === 'with' ? !!client.telefone :
-      !client.telefone
-
-    // Filtro de email
-    const matchesEmail = 
-      filterEmail === 'all' ? true :
-      filterEmail === 'with' ? !!client.email :
-      !client.email
-
-    return matchesSearch && matchesPhone && matchesEmail
-  }).sort((a, b) => {
-    // Ordenação
-    if (sortBy === 'name') {
-      return a.nome.localeCompare(b.nome)
-    } else if (sortBy === 'recent') {
-      return new Date(b.data_cadastro).getTime() - new Date(a.data_cadastro).getTime()
-    } else {
-      return new Date(a.data_cadastro).getTime() - new Date(b.data_cadastro).getTime()
-    }
-  })
-
-  const {
-    page, pageSize, totalItems, totalPages, paginatedItems: paginatedClients, setPage, setPageSize,
-  } = usePagination(filteredClients)
+  const limitBar = clientLimit.isFree && clientLimit.limit ? (
+    <div className="hidden min-w-[170px] sm:block" title="Clientes usados no plano Free">
+      <p className="mb-1.5 flex justify-between text-xs text-muted-foreground">
+        Plano Free
+        <b className={clientLimit.atLimit ? 'text-red-600' : 'text-[#8A4B2C] dark:text-[#E39B78]'}>{clientLimit.usage} de {clientLimit.limit}</b>
+      </p>
+      <div className="cli-thread" aria-hidden="true">
+        <span style={{ transform: `scaleX(${Math.min(1, clientLimit.usage / clientLimit.limit)})` }} />
+      </div>
+    </div>
+  ) : null
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
+      <style>{CSS}</style>
       <Header
         title="Clientes"
         description="Gerencie seus clientes"
+        action={
+          <>
+            {limitBar}
+            <button type="button" onClick={handleNew} disabled={clientLimit.atLimit}
+              title={clientLimit.atLimit ? `Limite do plano Free atingido (${clientLimit.limit} clientes). Faça upgrade para continuar.` : undefined}
+              className="cli-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo cliente</span><span className="sm:hidden">Novo</span>
+            </button>
+          </>
+        }
       />
-      
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {[
-            { label: 'Total Clientes',   value: stats?.totalClients || 0,       icon: Users,       icon_bg: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400',   grad: 'bg-blue-500' },
-            { label: 'Novos Este Mês',   value: stats?.newThisMonth || 0,        icon: UserPlus,    icon_bg: 'bg-green-500',   text: 'text-green-600 dark:text-green-400', grad: 'bg-green-500' },
-            { label: 'Ordens Abertas',   value: stats?.withActiveOrders || 0,    icon: ShoppingBag, icon_bg: 'bg-orange-500',  text: 'text-orange-600 dark:text-orange-400', grad: 'bg-orange-500' },
-            { label: 'Com Telefone',     value: stats?.withPhone || 0,           icon: Phone,       icon_bg: 'bg-purple-500',  text: 'text-purple-600 dark:text-purple-400', grad: 'bg-purple-500' },
-            { label: 'Aniversários Mês', value: stats?.birthdayThisMonth || 0,  icon: Cake,        icon_bg: 'bg-pink-500',    text: 'text-pink-600 dark:text-pink-400',   grad: 'bg-pink-500', extra: 'col-span-2 sm:col-span-1' },
-          ].map(({ label, value, icon: Icon, icon_bg, text, grad, extra }) => (
-            <div key={label} className={`relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ${extra || ''}`}>
-              <div className={`absolute inset-0 ${grad} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
-              <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${grad} opacity-20 blur-2xl pointer-events-none`} />
-              <div className="p-4 sm:p-5 pt-5 sm:pt-6">
-                <div className="flex items-start justify-between mb-3">
-                  <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-tight">{label}</p>
-                  <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${icon_bg} shadow-sm shrink-0`}>
-                    <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                  </div>
-                </div>
-                <p className={`text-2xl sm:text-3xl font-bold ${text}`}>{value}</p>
+
+      {clientLimit.atLimit && (
+        <div className="mx-3 mt-3 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 sm:mx-6 dark:border-red-800 dark:bg-red-950/30">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-400">Limite de clientes atingido ({clientLimit.usage}/{clientLimit.limit})</p>
+            <p className="mt-0.5 text-xs text-red-600 dark:text-red-500">Você atingiu o limite do plano Free. Faça upgrade para o plano Pro para cadastrar mais clientes.</p>
+          </div>
+          <a href="/configuracoes?tab=assinatura" className="shrink-0 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700">Fazer upgrade</a>
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1">
+        {/* ── lista ── */}
+        <section aria-label="Lista de clientes"
+          className={`flex min-h-0 w-full flex-col border-border/70 bg-card lg:w-[400px] lg:shrink-0 lg:border-r xl:w-[430px] ${mobileDetail ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="border-b border-dashed border-border px-4 pt-4 pb-3 sm:px-5">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nome, e-mail ou telefone" aria-label="Buscar clientes"
+                className="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-[15px] outline-none focus:border-[#C8714A] focus:ring-3 focus:ring-[#C8714A]/15" />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtros">
+              {CHIPS.map(({ key, label }) => {
+                const n = key === 'bday' ? counts.bday : key === 'new' ? counts.new : null
+                return (
+                  <button key={key} type="button" aria-pressed={chip === key} onClick={() => setChip(chip === key ? '' : key)} className="cli-chip">
+                    {key === 'bday' && <Cake className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {label}{n ? <span className="tabular-nums opacity-70">{n}</span> : null}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-[13px] text-muted-foreground" aria-live="polite">
+                {isLoading ? 'Carregando...' : `${list.length} ${list.length === 1 ? 'cliente' : 'clientes'}`}
+              </p>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as Sort)} aria-label="Ordenar"
+                className="h-9 rounded-lg border border-border bg-background px-2.5 text-[13px] font-medium">
+                <option value="recent">Mais recentes</option>
+                <option value="oldest">Mais antigos</option>
+                <option value="name">A–Z</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            {isLoading ? (
+              <ul className="space-y-1 px-1">{Array.from({ length: 6 }, (_, i) => <li key={i} className="h-14 animate-pulse rounded-lg bg-muted/60" />)}</ul>
+            ) : clients.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <Users className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nenhuma cliente cadastrada ainda</p>
+                Cadastre a primeira e ela aparece aqui, com contato, aniversário e histórico de ordens.
+                <div className="mt-4"><button type="button" onClick={handleNew} className="cli-primary">
+                  <Plus className="h-4 w-4" aria-hidden="true" />Novo cliente</button></div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Banner de limite atingido */}
-        {clientLimit.atLimit && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-4 py-3">
-            <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">!</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                Limite de clientes atingido ({clientLimit.usage}/{clientLimit.limit})
-              </p>
-              <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">
-                Você atingiu o limite do plano Free. Faça upgrade para o plano Pro para cadastrar mais clientes.
-              </p>
-            </div>
-            <Button size="sm" className="shrink-0 bg-red-600 hover:bg-red-700 text-white h-8 text-xs">
-              Fazer Upgrade
-            </Button>
+            ) : list.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <SearchX className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nada encontrado</p>
+                Nenhuma cliente {query ? <>com &ldquo;{query}&rdquo;</> : 'com esse filtro'}.
+                <div className="mt-4"><button type="button" onClick={clearFilters} className="cli-ghost">Limpar busca e filtros</button></div>
+              </div>
+            ) : (
+              <ul>
+                {list.map((c) => {
+                  const on = selected?.id === c.id
+                  return (
+                    <li key={c.id}>
+                      <button type="button" onClick={() => openClient(c)} aria-current={on ? 'true' : undefined}
+                        className={`cli-row ${on ? 'is-on' : ''}`}>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C8714A]/15 text-[13px] font-semibold text-[#8A4B2C] dark:text-[#E39B78]" aria-hidden="true">
+                          {initialsOf(c.nome)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <b className="block truncate text-[14.5px] font-semibold text-foreground">{c.nome}</b>
+                          <span className="block truncate text-[12.5px] text-muted-foreground">{c.telefone || c.email || placeOf(c) || 'Sem contato'}</span>
+                        </span>
+                        {isBirthdayThisMonth(c) && <Cake className="h-4 w-4 shrink-0 text-[#C8714A]" aria-label="Aniversário este mês" />}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
-        )}
+        </section>
 
-        {/* Barra de Ações */}
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nome, email ou telefone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-1 border rounded-md p-1 shrink-0">
-              <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} title="Lista">
-                <List className="h-4 w-4" />
-              </Button>
-              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} title="Cards">
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              {clientLimit.isFree && (
-                <span className={`hidden sm:block text-xs font-medium ${clientLimit.atLimit ? 'text-red-500' : clientLimit.nearLimit ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                  {clientLimit.usage}/{clientLimit.limit} clientes
-                </span>
-              )}
-              <Button
-                onClick={handleNewClient}
-                size="sm"
-                className="shrink-0"
-                disabled={clientLimit.atLimit}
-                title={clientLimit.atLimit ? `Limite do plano Free atingido (${clientLimit.limit} clientes). Faça upgrade para continuar.` : undefined}
-              >
-                <Plus className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Novo Cliente</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Filtros */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Select value={filterPhone} onValueChange={(v) => setFilterPhone(v as 'all' | 'with' | 'without')}>
-              <SelectTrigger className="w-auto shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Telefone: Todos</SelectItem>
-                <SelectItem value="with">Com Telefone</SelectItem>
-                <SelectItem value="without">Sem Telefone</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterEmail} onValueChange={(v) => setFilterEmail(v as 'all' | 'with' | 'without')}>
-              <SelectTrigger className="w-auto shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Email: Todos</SelectItem>
-                <SelectItem value="with">Com Email</SelectItem>
-                <SelectItem value="without">Sem Email</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'recent' | 'oldest')}>
-              <SelectTrigger className="w-auto shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Mais Recentes</SelectItem>
-                <SelectItem value="oldest">Mais Antigos</SelectItem>
-                <SelectItem value="name">A-Z</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Contador */}
-        <div className="text-sm text-muted-foreground">
-          {isLoading ? (
-            <span>Carregando...</span>
-          ) : (
-            <span>
-              {filteredClients.length} {filteredClients.length === 1 ? 'cliente' : 'clientes'}
-              {searchQuery && ` encontrado(s)`}
-            </span>
-          )}
-        </div>
-
-        {/* Tabela/Cards de Clientes */}
-        {isLoading ? (
-          <Loader text="Carregando clientes..." />
-        ) : viewMode === 'list' ? (
-          <ClientsTable clients={paginatedClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
-        ) : (
-          <ClientsCards clients={paginatedClients} onEdit={handleEdit} onViewOrders={handleViewOrders} />
-        )}
-
-        {!isLoading && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            itemLabel="clientes"
-          />
-        )}
+        {/* ── ficha ── */}
+        <section aria-label="Ficha da cliente" className={`min-h-0 flex-1 overflow-y-auto ${mobileDetail ? 'block' : 'hidden lg:block'}`}>
+          {selected ? (
+            <ClientDetail
+              client={selected}
+              onEdit={handleEdit}
+              onNewOrder={handleNewOrder}
+              onDeleted={() => { setSelectedId(null); setMobileDetail(false) }}
+              onBack={() => setMobileDetail(false)}
+            />
+          ) : !isLoading && clients.length > 0 ? (
+            <p className="p-10 text-sm text-muted-foreground">Escolha uma cliente na lista.</p>
+          ) : null}
+        </section>
       </div>
 
-      {/* Dialog de Criar/Editar Cliente */}
-      <ClientDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        client={selectedClient}
-      />
-
-      {/* Dialog de Histórico de Ordens */}
-      <ClientOrdersDialog
-        open={ordersDialogOpen}
-        onOpenChange={setOrdersDialogOpen}
-        client={selectedClient}
-      />
+      <ClientDialog open={dialogOpen} onOpenChange={setDialogOpen} client={editing} />
+      <ServiceOrderDialog open={orderOpen} onOpenChange={setOrderOpen} defaultClientId={orderClientId} />
     </div>
   )
 }
+
+const CSS = `
+.font-serif-display { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+.cli-primary { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 18px; border-radius: 2px; background: #C8714A; color: #FFF8F0; font-size: 12.5px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; transition: background-color .2s; }
+.cli-primary:hover:not(:disabled) { background: #B45E37; }
+.cli-primary:disabled { opacity: .55; cursor: not-allowed; }
+.cli-ghost { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 2px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font-size: 13.5px; font-weight: 500; transition: border-color .2s, background-color .2s; }
+.cli-ghost:hover { border-color: #D4A85A; }
+.cli-primary:focus-visible, .cli-ghost:focus-visible, .cli-chip:focus-visible, .cli-row:focus-visible { outline: 2px solid #C8714A; outline-offset: 2px; }
+.cli-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; transition: border-color .15s, background-color .15s, color .15s; }
+.cli-chip:hover { border-color: #D4A85A; }
+.cli-chip[aria-pressed="true"] { background: #2C1810; border-color: #2C1810; color: #F7F0E6; }
+.dark .cli-chip[aria-pressed="true"] { background: #F7F0E6; border-color: #F7F0E6; color: #2C1810; }
+.cli-row { position: relative; display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; text-align: left; transition: background-color .12s; }
+.cli-row:hover { background: color-mix(in oklab, var(--muted) 70%, transparent); }
+.cli-row.is-on { background: rgba(200,113,74,.1); }
+.cli-row.is-on::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: repeating-linear-gradient(180deg, #C8714A 0 5px, transparent 5px 8px); }
+.cli-thread { height: 3px; background: repeating-linear-gradient(90deg, rgba(200,113,74,.22) 0 7px, transparent 7px 11px); }
+.cli-thread > span { display: block; height: 100%; transform-origin: left; background: repeating-linear-gradient(90deg, #C8714A 0 7px, transparent 7px 11px); }
+.cli-det { animation: cli-in .26s cubic-bezier(.2,0,0,1) backwards; }
+@keyframes cli-in { from { opacity: 0; transform: translateX(12px); } }
+@media (prefers-reduced-motion: reduce) { .cli-det { animation: none; } }
+`

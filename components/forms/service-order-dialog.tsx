@@ -51,9 +51,11 @@ interface MaterialRow {
 interface ServiceOrderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** cliente já escolhida ao abrir (ex.: "Nova ordem" na ficha da cliente) */
+  defaultClientId?: string
 }
 
-export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogProps) {
+export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: ServiceOrderDialogProps) {
   const [items, setItems] = useState<ServiceOrderItemInput[]>([])
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
@@ -166,7 +168,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         : undefined
 
       reset({
-        client_id: '',
+        client_id: defaultClientId ?? '',
         status: 'pendente' as const,
         data_prevista: undefined,
         forma_pagamento: undefined,
@@ -189,7 +191,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       setMaterialQtd(1)
       setProductSearchValue('')
     }
-  }, [open, reset, notifSettings])
+  }, [open, reset, notifSettings, defaultClientId])
 
   const updateItemObservacoes = (index: number, obs: string) => {
     const updated = items.map((item, i) =>

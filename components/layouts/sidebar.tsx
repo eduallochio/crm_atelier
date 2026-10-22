@@ -165,7 +165,7 @@ const SIDEBAR_CSS = `
 .sb-uinfo{flex:1;min-width:0}
 .sb-uname{display:block;font-size:13.5px;font-weight:600;color:#F7F0E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-umail{display:block;font-size:11.5px;color:rgba(247,240,230,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-plan{display:inline-flex;align-items:center;gap:4px;margin-top:5px;height:20px;padding:0 8px;border-radius:10px;font-size:10px;font-weight:700;line-height:20px;letter-spacing:.08em;text-decoration:none}
+.sb-plan{display:inline-flex;align-items:center;gap:4px;margin-top:5px;height:20px;padding:0 8px;border-radius:10px;font-size:10px;font-weight:700;line-height:20px;letter-spacing:.04em;white-space:nowrap;text-decoration:none}
 .sb-plan.pro{border:1px solid rgba(212,168,90,.55);color:#E8C98A}
 .sb-plan.free{background:rgba(200,113,74,.22);color:#F2B08F;transition:background-color .15s}
 .sb-plan.free:hover{background:rgba(200,113,74,.34)}
