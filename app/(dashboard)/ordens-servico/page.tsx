@@ -1,537 +1,357 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Search, Eye, Banknote, CheckCircle2, Clock, RefreshCw, FileText, AlertTriangle, Layers } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import { useMemo, useState } from 'react'
+import { CheckSquare, ClipboardList, Plus, Search, SearchX, Square, Trash2, X } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
-import { useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
+import { useDeleteServiceOrder, useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
-import { usePagination } from '@/hooks/use-pagination'
-import { ServiceOrdersTable } from '@/components/dashboard/service-orders-table'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
-import { OrderTimeline } from '@/components/dashboard/order-timeline'
-import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
-import type { ServiceOrder } from '@/lib/validations/service-order'
+import { OrderDetail, ORDER_CSS } from '@/components/dashboard/order-detail'
+import { OrderPaymentDialog } from '@/components/dashboard/order-payment-dialog'
+import { formatBRL } from '@/components/dashboard/client-utils'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ORDER_STATUS, deadlineLabel, isOverdue, isToReceive, numeroOS, parseLocalDate, type OrderStatus,
+} from '@/components/dashboard/order-utils'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import type { ServiceOrder } from '@/lib/validations/service-order'
 
+type Chip = '' | 'pendente' | 'em_andamento' | 'overdue' | 'receive' | 'concluido' | 'cancelado'
+type Period = 'all' | 'today' | 'week' | 'month'
+type Sort = 'recent' | 'deadline' | 'value'
+
+const CHIPS: { key: Exclude<Chip, ''>; label: string }[] = [
+  { key: 'pendente', label: 'Pendentes' },
+  { key: 'em_andamento', label: 'Em andamento' },
+  { key: 'overdue', label: 'Atrasadas' },
+  { key: 'receive', label: 'A receber' },
+  { key: 'concluido', label: 'Concluídas' },
+  { key: 'cancelado', label: 'Canceladas' },
+]
+
+function matchesChip(o: ServiceOrder, chip: Chip) {
+  if (!chip) return true
+  if (chip === 'overdue') return isOverdue(o)
+  if (chip === 'receive') return isToReceive(o)
+  return o.status === chip
+}
+
+function inPeriod(o: ServiceOrder, period: Period) {
+  if (period === 'all') return true
+  const d = parseLocalDate(o.data_abertura)
+  if (!d) return false
+  const t = new Date(); t.setHours(0, 0, 0, 0)
+  if (period === 'today') return d.getTime() === t.getTime()
+  const from = new Date(t)
+  if (period === 'week') from.setDate(from.getDate() - 7)
+  else from.setMonth(from.getMonth() - 1)
+  return d >= from
+}
+
+/** Ordens à esquerda e a ficha da ordem escolhida à direita (no celular, uma de cada vez) */
 export default function OrdensServicoPage() {
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [dateFilter, setDateFilter] = useState<string>('all')
+  const [newOpen, setNewOpen] = useState(false)
+  const [paying, setPaying] = useState<ServiceOrder | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mobileDetail, setMobileDetail] = useState(false)
+  const [query, setQuery] = useState('')
+  const [chip, setChip] = useState<Chip>('')
+  const [period, setPeriod] = useState<Period>('all')
+  const [sortBy, setSortBy] = useState<Sort>('recent')
+  // seleção em lote
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const { data: orders = [], isLoading } = useServiceOrders()
   const updateOrder = useUpdateServiceOrder()
+  const deleteOrder = useDeleteServiceOrder()
   const orderLimit = usePlanLimit('orders')
 
-  // Sempre usa a versão mais recente do cache — evita dados obsoletos no dialog de detalhes
-  const currentSelectedOrder = selectedOrder
-    ? (orders.find(o => o.id === selectedOrder.id) ?? selectedOrder)
-    : null
+  const counts = useMemo(() => {
+    const c = {} as Record<Exclude<Chip, ''>, number>
+    for (const { key } of CHIPS) c[key] = orders.filter((o) => matchesChip(o, key)).length
+    return c
+  }, [orders])
 
-  const handleView = (order: ServiceOrder) => {
-    setSelectedOrder(order)
-    setViewDialogOpen(true)
-  }
-
-  const parseLocalDate = (dateStr: string | null | undefined): Date => {
-    if (!dateStr) return new Date()
-    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
-    return new Date(y, m - 1, d)
-  }
-
-  // Filtrar ordens
-  const filteredOrders = orders.filter((order) => {
-    const query = searchQuery.toLowerCase()
-    const matchesSearch = (order.client?.nome?.toLowerCase() ?? '').includes(query) ||
-      order.numero.toString().includes(query)
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-
-    // Filtro de data
-    let matchesDate = true
-    if (dateFilter !== 'all') {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const orderDate = parseLocalDate(order.data_abertura)
-
-      switch (dateFilter) {
-        case 'today':
-          matchesDate = orderDate.getTime() === today.getTime()
-          break
-        case 'week': {
-          const weekAgo = new Date(today)
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          matchesDate = orderDate >= weekAgo
-          break
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase().replace(/^#/, '')
+    return orders
+      .filter((o) => {
+        if (q && !`${o.numero} ${String(o.numero).padStart(6, '0')} ${o.client?.nome ?? ''}`.toLowerCase().includes(q)) return false
+        return matchesChip(o, chip) && inPeriod(o, period)
+      })
+      .sort((a, b) => {
+        if (sortBy === 'value') return (Number(b.valor_total) || 0) - (Number(a.valor_total) || 0)
+        if (sortBy === 'deadline') {
+          // em aberto com prazo primeiro, do mais próximo (ou mais atrasado) ao mais distante
+          const da = a.status === 'pendente' || a.status === 'em_andamento' ? parseLocalDate(a.data_prevista)?.getTime() ?? Infinity : Infinity
+          const db = b.status === 'pendente' || b.status === 'em_andamento' ? parseLocalDate(b.data_prevista)?.getTime() ?? Infinity : Infinity
+          if (da !== db) return da - db
         }
-        case 'month': {
-          const monthAgo = new Date(today)
-          monthAgo.setMonth(monthAgo.getMonth() - 1)
-          matchesDate = orderDate >= monthAgo
-          break
-        }
-        case 'overdue':
-          if (order.data_prevista && order.status !== 'concluido' && order.status !== 'cancelado') {
-            matchesDate = parseLocalDate(order.data_prevista) < today
-          } else {
-            matchesDate = false
-          }
-          break
-      }
-    }
+        return b.numero - a.numero
+      })
+  }, [orders, query, chip, period, sortBy])
 
-    return matchesSearch && matchesStatus && matchesDate
+  // no computador, sempre há uma ordem aberta na ficha (a primeira da lista, se a escolhida
+  // não estiver mais nela — filtrada ou excluída)
+  const selected = list.find((o) => o.id === selectedId) ?? list[0] ?? null
+
+  const openOrder = (o: ServiceOrder) => { setSelectedId(o.id); setMobileDetail(true) }
+  const clearFilters = () => { setQuery(''); setChip(''); setPeriod('all') }
+  const togglePick = (id: string) => setPicked((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
   })
+  const stopPicking = () => { setPicking(false); setPicked(new Set()) }
 
-  const {
-    page, pageSize, totalItems, totalPages, paginatedItems: paginatedOrders, setPage, setPageSize,
-  } = usePagination(filteredOrders)
-
-  // Estatísticas
-  const stats = {
-    total: orders.length,
-    pendente: orders.filter(o => o.status === 'pendente').length,
-    em_andamento: orders.filter(o => o.status === 'em_andamento').length,
-    concluido: orders.filter(o => o.status === 'concluido').length,
-    atrasadas: orders.filter(o => {
-      if (o.status === 'concluido' || o.status === 'cancelado') return false
-      if (!o.data_prevista) return false
-      const today = new Date(); today.setHours(0, 0, 0, 0)
-      return parseLocalDate(o.data_prevista) < today
-    }).length,
+  const bulkStatus = async (status: OrderStatus) => {
+    setBulkBusy(true)
+    try {
+      for (const id of picked) await updateOrder.mutateAsync({ id, input: { status } })
+    } catch { /* o hook já mostra o erro */ } finally {
+      setBulkBusy(false)
+      stopPicking()
+    }
   }
+
+  const bulkDelete = async () => {
+    setBulkBusy(true)
+    try {
+      for (const id of picked) await deleteOrder.mutateAsync(id)
+    } catch { /* o hook já mostra o erro */ } finally {
+      setBulkBusy(false)
+      setConfirmBulkDelete(false)
+      stopPicking()
+    }
+  }
+
+  const limitBar = orderLimit.isFree && orderLimit.limit ? (
+    <div className="hidden min-w-[170px] sm:block" title="Ordens usadas no plano Free">
+      <p className="mb-1.5 flex justify-between text-xs text-muted-foreground">
+        Plano Free
+        <b className={orderLimit.atLimit ? 'text-red-600' : 'text-[#8A4B2C] dark:text-[#E39B78]'}>{orderLimit.usage} de {orderLimit.limit}</b>
+      </p>
+      <div className="cli-thread" aria-hidden="true">
+        <span style={{ transform: `scaleX(${Math.min(1, orderLimit.usage / orderLimit.limit)})` }} />
+      </div>
+    </div>
+  ) : null
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
+      <style>{MASTER_DETAIL_CSS + ORDER_CSS}</style>
       <Header
         title="Ordens de Serviço"
         description="Gerencie as ordens de serviço"
+        action={
+          <>
+            {limitBar}
+            <button type="button" onClick={() => setNewOpen(true)} disabled={orderLimit.atLimit}
+              title={orderLimit.atLimit ? `Limite do plano Free atingido (${orderLimit.limit} ordens). Faça upgrade para continuar.` : undefined}
+              className="cli-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Nova ordem</span><span className="sm:hidden">Nova</span>
+            </button>
+          </>
+        }
       />
-      
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Estatísticas */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
-          {/* Total */}
-          <button
-            onClick={() => { setStatusFilter('all'); setDateFilter('all') }}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
-              statusFilter === 'all' && dateFilter === 'all'
-                ? 'border-slate-400 ring-2 ring-slate-300 dark:ring-slate-600'
-                : 'border-border/40'
-            }`}
-          >
-            <div className="absolute inset-0 bg-slate-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-slate-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-3 sm:p-5">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
-                <div className="p-1.5 sm:p-2 rounded-xl bg-slate-500 shadow-sm shrink-0">
-                  <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{stats.total}</p>
-              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">todas as ordens</p>
-            </div>
-          </button>
 
-          {/* Pendente */}
-          <button
-            onClick={() => { setStatusFilter('pendente'); setDateFilter('all') }}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
-              statusFilter === 'pendente' && dateFilter === 'all'
-                ? 'border-amber-400 ring-2 ring-amber-300 dark:ring-amber-700'
-                : 'border-border/40'
-            }`}
-          >
-            <div className="absolute inset-0 bg-amber-400 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-amber-400 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-3 sm:p-5">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pendente</p>
-                <div className="p-1.5 sm:p-2 rounded-xl bg-amber-400 shadow-sm shrink-0">
-                  <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 mb-2 sm:mb-3">{stats.pendente}</p>
-              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">aguardando</p>
-            </div>
-          </button>
-
-          {/* Em Andamento */}
-          <button
-            onClick={() => { setStatusFilter('em_andamento'); setDateFilter('all') }}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
-              statusFilter === 'em_andamento' && dateFilter === 'all'
-                ? 'border-blue-400 ring-2 ring-blue-300 dark:ring-blue-700'
-                : 'border-border/40'
-            }`}
-          >
-            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-3 sm:p-5">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Andamento</p>
-                <div className="p-1.5 sm:p-2 rounded-xl bg-blue-500 shadow-sm shrink-0">
-                  <Layers className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2 sm:mb-3">{stats.em_andamento}</p>
-              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">em execução</p>
-            </div>
-          </button>
-
-          {/* Concluído */}
-          <button
-            onClick={() => { setStatusFilter('concluido'); setDateFilter('all') }}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-left ${
-              statusFilter === 'concluido' && dateFilter === 'all'
-                ? 'border-emerald-400 ring-2 ring-emerald-300 dark:ring-emerald-700'
-                : 'border-border/40'
-            }`}
-          >
-            <div className="absolute inset-0 bg-emerald-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-emerald-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-3 sm:p-5">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Concluído</p>
-                <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500 shadow-sm shrink-0">
-                  <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-2 sm:mb-3">{stats.concluido}</p>
-              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">finalizadas</p>
-            </div>
-          </button>
-
-          {/* Atrasadas */}
-          <button
-            onClick={() => { setStatusFilter('all'); setDateFilter('overdue') }}
-            className={`relative bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-3 sm:col-span-1 text-left ${
-              dateFilter === 'overdue'
-                ? 'border-red-400 ring-2 ring-red-300 dark:ring-red-700'
-                : 'border-border/40'
-            }`}
-          >
-            <div className="absolute inset-0 bg-red-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-red-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-3 sm:p-5">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Atrasadas</p>
-                <div className="p-1.5 sm:p-2 rounded-xl bg-red-500 shadow-sm shrink-0">
-                  <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400 mb-2 sm:mb-3">{stats.atrasadas}</p>
-              <div className="h-px bg-border/50 mb-1.5 sm:mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">fora do prazo</p>
-            </div>
-          </button>
+      {orderLimit.atLimit && (
+        <div className="mx-3 mt-3 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 sm:mx-6 dark:border-red-800 dark:bg-red-950/30">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-400">Limite de ordens de serviço atingido ({orderLimit.usage}/{orderLimit.limit})</p>
+            <p className="mt-0.5 text-xs text-red-600 dark:text-red-500">Você atingiu o limite do plano Free. Faça upgrade para o plano Pro para criar mais ordens.</p>
+          </div>
+          <a href="/configuracoes?tab=assinatura" className="shrink-0 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700">Fazer upgrade</a>
         </div>
+      )}
 
-        {/* Banner de limite atingido */}
-        {orderLimit.atLimit && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-4 py-3">
-            <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">!</span>
+      <div className="flex min-h-0 flex-1">
+        {/* ── lista ── */}
+        <section aria-label="Lista de ordens"
+          className={`flex min-h-0 w-full flex-col border-border/70 bg-card lg:w-[420px] lg:shrink-0 lg:border-r xl:w-[450px] ${mobileDetail ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="border-b border-dashed border-border px-4 pt-4 pb-3 sm:px-5">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por número ou cliente" aria-label="Buscar ordens"
+                className="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-[15px] outline-none focus:border-[#C8714A] focus:ring-3 focus:ring-[#C8714A]/15" />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtros">
+              {CHIPS.map(({ key, label }) => (
+                <button key={key} type="button" aria-pressed={chip === key} onClick={() => setChip(chip === key ? '' : key)}
+                  className={`cli-chip ${key === 'overdue' && counts.overdue ? 'ord-chip-late' : ''}`}>
+                  {label}{counts[key] ? <span className="tabular-nums opacity-70">{counts[key]}</span> : null}
+                </button>
+              ))}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                Limite de ordens de serviço atingido ({orderLimit.usage}/{orderLimit.limit})
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="shrink-0 text-[13px] text-muted-foreground" aria-live="polite">
+                {isLoading ? 'Carregando...' : `${list.length} ${list.length === 1 ? 'ordem' : 'ordens'}`}
               </p>
-              <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">
-                Você atingiu o limite do plano Free. Faça upgrade para o plano Pro para criar mais ordens.
+              <div className="flex min-w-0 gap-1.5">
+                <select value={period} onChange={(e) => setPeriod(e.target.value as Period)} aria-label="Período"
+                  className="h-9 min-w-0 rounded-lg border border-border bg-background px-2.5 text-[13px] font-medium">
+                  <option value="all">Período</option>
+                  <option value="today">Hoje</option>
+                  <option value="week">Últimos 7 dias</option>
+                  <option value="month">Último mês</option>
+                </select>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as Sort)} aria-label="Ordenar"
+                  className="h-9 min-w-0 rounded-lg border border-border bg-background px-2.5 text-[13px] font-medium">
+                  <option value="recent">Recentes</option>
+                  <option value="deadline">Prazo</option>
+                  <option value="value">Valor</option>
+                </select>
+                {list.length > 0 && (
+                  <button type="button" onClick={() => (picking ? stopPicking() : setPicking(true))} aria-pressed={picking}
+                    aria-label={picking ? 'Concluir seleção' : 'Selecionar ordens'}
+                    className="cli-chip shrink-0" style={{ borderRadius: 8, minHeight: 36 }}>
+                    <CheckSquare className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                    <span className="hidden sm:inline">{picking ? 'Pronto' : 'Selecionar'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            {isLoading ? (
+              <ul className="space-y-1 px-1">{Array.from({ length: 6 }, (_, i) => <li key={i} className="h-16 animate-pulse rounded-lg bg-muted/60" />)}</ul>
+            ) : orders.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <ClipboardList className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nenhuma ordem ainda</p>
+                Crie a primeira e ela aparece aqui, com prazo, pagamento e o andamento do trabalho.
+                <div className="mt-4"><button type="button" onClick={() => setNewOpen(true)} className="cli-primary">
+                  <Plus className="h-4 w-4" aria-hidden="true" />Nova ordem</button></div>
+              </div>
+            ) : list.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <SearchX className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nada encontrado</p>
+                Nenhuma ordem {query ? <>com &ldquo;{query}&rdquo;</> : 'com esse filtro'}.
+                <div className="mt-4"><button type="button" onClick={clearFilters} className="cli-ghost">Limpar busca e filtros</button></div>
+              </div>
+            ) : (
+              <ul>
+                {list.map((o) => {
+                  const on = !picking && selected?.id === o.id
+                  const isPicked = picked.has(o.id)
+                  const st = ORDER_STATUS[o.status]
+                  const dl = deadlineLabel(o)
+                  const servicos = o.items?.map((i) => i.service_nome).join(' · ')
+                  return (
+                    <li key={o.id}>
+                      <button type="button"
+                        onClick={() => (picking ? togglePick(o.id) : openOrder(o))}
+                        aria-current={on ? 'true' : undefined}
+                        aria-pressed={picking ? isPicked : undefined}
+                        className={`cli-row items-start ${on ? 'is-on' : ''} ${picking && isPicked ? 'is-on' : ''}`}>
+                        {picking && (isPicked
+                          ? <CheckSquare className="mt-0.5 h-5 w-5 shrink-0 text-[#C8714A]" aria-hidden="true" />
+                          : <Square className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />)}
+                        <span className="min-w-0 flex-1 pl-1">
+                          <span className="flex items-baseline gap-2">
+                            <b className="shrink-0 text-[13px] font-semibold tabular-nums text-muted-foreground">{numeroOS(o.numero)}</b>
+                            <b className={`truncate text-[14.5px] font-semibold ${o.status === 'cancelado' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                              {o.client?.nome || 'Cliente não informado'}
+                            </b>
+                          </span>
+                          <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">{servicos || 'Sem serviços'}</span>
+                          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className={`inline-flex h-5 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold ${st.cls}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} aria-hidden="true" />{st.label}
+                            </span>
+                            {dl && dl.tone !== 'ok' && (
+                              <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold ${dl.tone === 'late' ? 'bg-red-600/12 text-red-700 dark:text-red-400' : 'bg-[#C8714A]/15 text-[#8A4B2C] dark:text-[#E39B78]'}`}>
+                                {dl.text}
+                              </span>
+                            )}
+                            {isToReceive(o) && (
+                              <span className="inline-flex h-5 items-center rounded-full border border-dashed border-[#D4A85A] px-2 text-[11px] font-semibold text-[#7A5A1E] dark:text-[#E8C98A]">
+                                A receber
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                        <span className={`shrink-0 pt-0.5 text-[14px] font-semibold tabular-nums ${o.status === 'cancelado' ? 'text-muted-foreground' : 'text-foreground'}`}>
+                          {formatBRL(Number(o.valor_total) || 0)}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          {picking && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-dashed border-border px-4 py-3 sm:px-5" role="toolbar" aria-label="Ações em lote">
+              <p className="mr-auto text-[13px] font-medium">
+                {picked.size === 0 ? 'Toque nas ordens para selecionar' : `${picked.size} ${picked.size === 1 ? 'selecionada' : 'selecionadas'}`}
               </p>
+              <select value="" disabled={!picked.size || bulkBusy} aria-label="Mudar status das selecionadas"
+                onChange={(e) => { if (e.target.value) bulkStatus(e.target.value as OrderStatus) }}
+                className="h-9 rounded-lg border border-border bg-background px-2.5 text-[13px] font-medium disabled:opacity-50">
+                <option value="">Mudar status…</option>
+                <option value="pendente">Pendente</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="concluido">Concluída</option>
+                <option value="cancelado">Cancelada</option>
+              </select>
+              <button type="button" onClick={() => setConfirmBulkDelete(true)} disabled={!picked.size || bulkBusy}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-300 px-3 text-[13px] font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40">
+                <Trash2 className="h-4 w-4" aria-hidden="true" /> Excluir
+              </button>
+              <button type="button" onClick={stopPicking} aria-label="Sair da seleção"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
-            <Button size="sm" className="shrink-0 bg-red-600 hover:bg-red-700 text-white h-8 text-xs">
-              Fazer Upgrade
-            </Button>
-          </div>
-        )}
-
-        {/* Barra de Ações */}
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por cliente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              {orderLimit.isFree && (
-                <span className={`hidden sm:block text-xs font-medium ${orderLimit.atLimit ? 'text-red-500' : orderLimit.nearLimit ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                  {orderLimit.usage}/{orderLimit.limit} ordens
-                </span>
-              )}
-              <Button
-                onClick={() => setDialogOpen(true)}
-                size="sm"
-                className="shrink-0"
-                disabled={orderLimit.atLimit}
-                title={orderLimit.atLimit ? `Limite do plano Free atingido (${orderLimit.limit} ordens). Faça upgrade para continuar.` : undefined}
-              >
-                <Plus className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Nova Ordem</span>
-              </Button>
-            </div>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-auto shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os períodos</SelectItem>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="week">Últimos 7 dias</SelectItem>
-                <SelectItem value="month">Último mês</SelectItem>
-                <SelectItem value="overdue">Atrasadas</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-auto shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Contador */}
-        <div className="text-sm text-muted-foreground">
-          {isLoading ? (
-            <span>Carregando...</span>
-          ) : (
-            <span>
-              {filteredOrders.length} {filteredOrders.length === 1 ? 'ordem' : 'ordens'}
-              {searchQuery && ` encontrada(s)`}
-            </span>
           )}
-        </div>
+        </section>
 
-        {/* Tabela */}
-        {isLoading ? (
-          <Loader text="Carregando ordens..." />
-        ) : (
-          <ServiceOrdersTable orders={paginatedOrders} onView={handleView} />
-        )}
-
-        {!isLoading && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            itemLabel="ordens"
-          />
-        )}
+        {/* ── ficha ── */}
+        <section aria-label="Ficha da ordem" className={`min-h-0 flex-1 overflow-y-auto ${mobileDetail ? 'block' : 'hidden lg:block'}`}>
+          {selected ? (
+            <OrderDetail
+              order={selected}
+              onConclude={setPaying}
+              onDeleted={() => { setSelectedId(null); setMobileDetail(false) }}
+              onBack={() => setMobileDetail(false)}
+            />
+          ) : !isLoading && orders.length > 0 ? (
+            <p className="p-10 text-sm text-muted-foreground">Escolha uma ordem na lista.</p>
+          ) : null}
+        </section>
       </div>
 
-      {/* Dialog de Criar Ordem */}
-      <ServiceOrderDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      <ServiceOrderDialog open={newOpen} onOpenChange={setNewOpen} />
+      <OrderPaymentDialog order={paying} onClose={() => setPaying(null)} />
 
-      {/* Dialog de Visualizar Ordem */}
-      <Dialog open={viewDialogOpen && !showPreview} onOpenChange={(v) => { if (!showPreview) setViewDialogOpen(v) }}>
-        <DialogContent className="sm:max-w-200 max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle>Detalhes da Ordem</DialogTitle>
-                <DialogDescription>
-                  Ordem #{currentSelectedOrder?.numero.toString().padStart(6, '0')}
-                </DialogDescription>
-              </div>
-              {currentSelectedOrder && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPreview(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Eye className="h-4 w-4" />
-                  Preview/Imprimir
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-
-          {currentSelectedOrder && (
-            <div className="space-y-6">
-              {/* Informações Básicas */}
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Cliente</p>
-                  <p className="font-medium text-foreground">{currentSelectedOrder.client?.nome}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <p className="font-medium text-foreground capitalize">{currentSelectedOrder.status.replace('_', ' ')}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Valor Total</p>
-                    <p className="font-medium text-green-600 dark:text-green-400">
-                      R$ {Number(currentSelectedOrder.valor_total).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Situação do Pagamento */}
-                {(() => {
-                  const valorPago = Number(currentSelectedOrder.valor_pago) || 0
-                  const saldo = (Number(currentSelectedOrder.valor_total) || 0) - valorPago
-                  const isPago = currentSelectedOrder.status_pagamento === 'pago'
-                  const isParcial = currentSelectedOrder.status_pagamento === 'parcial'
-                  return (
-                    <div className={`rounded-lg border p-4 space-y-3 ${
-                      isPago
-                        ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20'
-                        : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 font-medium text-sm">
-                          {isPago ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          ) : (
-                            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                          )}
-                          <span className={isPago ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}>
-                            {isPago ? 'Pagamento completo' : isParcial ? 'Pagamento parcial' : 'Aguardando pagamento'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Total</p>
-                          <p className="font-semibold">R$ {(Number(currentSelectedOrder.valor_total) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Pago</p>
-                          <p className="font-semibold text-green-600 dark:text-green-400">
-                            R$ {valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Saldo</p>
-                          <p className={`font-semibold ${saldo > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>
-                            R$ {saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </div>
-                      {!isPago && currentSelectedOrder.status === 'concluido' && saldo > 0 && (
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <Banknote className="h-3 w-3" />
-                            Conta a receber em <strong>Financeiro → Contas a Receber</strong>
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7 px-2 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                            disabled={updateOrder.isPending}
-                            onClick={async () => {
-                              await updateOrder.mutateAsync({ id: currentSelectedOrder.id, input: { status: 'concluido' } })
-                            }}
-                          >
-                            {updateOrder.isPending
-                              ? <RefreshCw className="h-3 w-3 animate-spin" />
-                              : <><RefreshCw className="h-3 w-3 mr-1" />Gerar conta</>
-                            }
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
-
-                {currentSelectedOrder.observacoes && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Observações</p>
-                    <p className="text-sm text-foreground">{currentSelectedOrder.observacoes}</p>
-                  </div>
-                )}
-
-                {currentSelectedOrder.items && currentSelectedOrder.items.length > 0 && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Itens</p>
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                          <tr>
-                            <th className="px-3 py-2 text-left text-muted-foreground">Serviço</th>
-                            <th className="px-3 py-2 text-center text-muted-foreground">Qtd</th>
-                            <th className="px-3 py-2 text-right text-muted-foreground">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {currentSelectedOrder.items.map((item) => (
-                            <tr key={item.id}>
-                              <td className="px-3 py-2 text-foreground">
-                                <div>{item.service_nome}</div>
-                                {item.observacoes && (
-                                  <div className="text-xs text-muted-foreground mt-0.5">↳ {item.observacoes}</div>
-                                )}
-                              </td>
-                              <td className="px-3 py-2 text-center text-foreground">{item.quantidade}</td>
-                              <td className="px-3 py-2 text-right text-foreground">
-                                R$ {Number(item.valor_total).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Timeline e Notas */}
-              <OrderTimeline orderId={currentSelectedOrder.id} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de Preview */}
-      <OrderPreviewDialog
-        open={showPreview}
-        onOpenChange={(v) => { setShowPreview(v); if (!v) setViewDialogOpen(true) }}
-        order={currentSelectedOrder}
-        organizationName="Meu Atelier"
-        showConfirmButton={false}
-      />
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão em lote</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {picked.size} {picked.size === 1 ? 'ordem de serviço' : 'ordens de serviço'}? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); bulkDelete() }} disabled={bulkBusy}
+              className="bg-red-600 text-white hover:bg-red-700">
+              {bulkBusy ? 'Excluindo...' : `Excluir ${picked.size} ${picked.size === 1 ? 'ordem' : 'ordens'}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
