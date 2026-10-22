@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Upload, CheckCircle2, AlertCircle, Loader2, UserPlus,
 } from 'lucide-react'
-import { useCreateStockEntry, useProducts, type StockEntryItem } from '@/hooks/use-inventory'
+import { useCreateStockEntry, useProducts, type Product, type StockEntryItem } from '@/hooks/use-inventory'
 import { useActiveSuppliers, useCreateSupplier } from '@/hooks/use-suppliers'
 import { parseNFe, type NFeParsed } from '@/lib/utils/nfe-parser'
 import { SupplierDialog } from '@/components/forms/supplier-dialog'
@@ -53,6 +53,8 @@ const UNIDADES = ['un', 'kg', 'g', 'm', 'cm', 'L', 'ml', 'par', 'rolo', 'pacote'
 interface StockEntryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** abre já com este produto na primeira linha (ficha do produto) */
+  defaultProduct?: Product | null
 }
 
 type XmlImportStatus =
@@ -66,7 +68,7 @@ type SupplierLookupStatus =
   | { state: 'found'; id: string; nome: string }
   | { state: 'not_found'; cnpj: string; nome: string }
 
-export function StockEntryDialog({ open, onOpenChange }: StockEntryDialogProps) {
+export function StockEntryDialog({ open, onOpenChange, defaultProduct }: StockEntryDialogProps) {
   const createEntry = useCreateStockEntry()
   const createSupplier = useCreateSupplier()
   const { data: products = [] } = useProducts()
@@ -99,12 +101,14 @@ export function StockEntryDialog({ open, onOpenChange }: StockEntryDialogProps) 
   useEffect(() => {
     if (open) {
       reset({ tipo: 'manual' })
-      setItems([{ produto_nome: '', quantidade: 1, unidade: 'un' }])
+      setItems([defaultProduct
+        ? { product_id: defaultProduct.id, produto_nome: defaultProduct.nome, quantidade: 1, unidade: defaultProduct.unidade || 'un', preco_unitario: defaultProduct.preco_custo != null ? Number(defaultProduct.preco_custo) : undefined, preco_total: defaultProduct.preco_custo != null ? Number(defaultProduct.preco_custo) : undefined }
+        : { produto_nome: '', quantidade: 1, unidade: 'un' }])
       setXmlStatus({ state: 'idle' })
       setSupplierStatus({ state: 'idle' })
       setNewSupplierData(null)
     }
-  }, [open, reset])
+  }, [open, reset, defaultProduct])
 
   // Quando o tipo muda para manual, limpa dados de NF
   useEffect(() => {

@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from 'react'
 import {
-  Download, AlertTriangle, Package, PackageOpen,
-  TrendingUp, BarChart3,
+  Download, AlertTriangle, FileSpreadsheet, Package, PackageOpen,
+  TrendingUp,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Header } from '@/components/layouts/header'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { FIN_CSS } from '@/components/financeiro/finance-ui'
+import { STOCK_CSS, StockTabs } from '@/components/inventory/stock-ui'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { UpgradePrompt } from '@/components/upgrade-prompt'
 import { useProducts, useStockEntries } from '@/hooks/use-inventory'
@@ -25,7 +27,7 @@ const filename = (base: string, ext: string) =>
 // ─── Cabeçalho PDF padrão ─────────────────────────────────────────────────────
 function pdfHeader(doc: jsPDF, title: string, subtitle?: string) {
   const w = doc.internal.pageSize.width
-  doc.setFillColor(30, 30, 46)
+  doc.setFillColor(44, 24, 16)
   doc.rect(0, 0, w, 28, 'F')
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
@@ -149,7 +151,7 @@ export default function RelatoriosEstoquePage() {
           p.quantidade_minima > 0 && p.quantidade_atual <= p.quantidade_minima ? 'BAIXO' : 'OK',
         ]),
         styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [30, 30, 46] },
+        headStyles: { fillColor: [44, 24, 16] },
         didParseCell(data) {
           if (data.column.index === 7 && data.cell.raw === 'BAIXO') {
             data.cell.styles.textColor = [220, 38, 38]
@@ -157,7 +159,7 @@ export default function RelatoriosEstoquePage() {
           }
         },
         foot: [['', 'TOTAL', '', '', '', '', fmt(totalEstoque), '']],
-        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+        footStyles: { fillColor: [247, 240, 230], textColor: [44, 24, 16], fontStyle: 'bold' },
       })
     }
 
@@ -174,9 +176,9 @@ export default function RelatoriosEstoquePage() {
           e.valor_total != null ? fmt(e.valor_total) : '—',
         ]),
         styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [30, 30, 46] },
+        headStyles: { fillColor: [44, 24, 16] },
         foot: [['', '', '', 'TOTAL', entries.length, fmt(entries.reduce((s, e) => s + (e.valor_total ?? 0), 0))]],
-        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+        footStyles: { fillColor: [247, 240, 230], textColor: [44, 24, 16], fontStyle: 'bold' },
       })
     }
 
@@ -191,9 +193,9 @@ export default function RelatoriosEstoquePage() {
           totalEstoque > 0 ? `${((v.valor / totalEstoque) * 100).toFixed(1)}%` : '0%',
         ]),
         styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [30, 30, 46] },
+        headStyles: { fillColor: [44, 24, 16] },
         foot: [['TOTAL', activeProducts.length, fmt(totalEstoque), '100%']],
-        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+        footStyles: { fillColor: [247, 240, 230], textColor: [44, 24, 16], fontStyle: 'bold' },
       })
     }
 
@@ -266,74 +268,47 @@ export default function RelatoriosEstoquePage() {
   const activeReport = REPORTS.find(r => r.id === selected)!
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-indigo-500" />
-            Relatórios de Estoque
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie e exporte relatórios do seu controle de estoque
-          </p>
-        </div>
-        {/* Export segmented group */}
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center rounded-md border border-input bg-background shadow-sm">
-            <Button variant="ghost" size="sm" onClick={exportExcel} className="rounded-r-none border-r border-input px-4 h-9 gap-2 hover:bg-muted font-normal">
-              <Download className="h-4 w-4" />
-              Excel
-            </Button>
-            <Button variant="ghost" size="sm" onClick={exportPDF} className="rounded-l-none px-4 h-9 gap-2 hover:bg-muted font-normal">
-              <Download className="h-4 w-4" />
-              PDF
-            </Button>
-          </div>
-        </div>
-      </div>
-
+    <div>
+      <style>{MASTER_DETAIL_CSS + FIN_CSS + STOCK_CSS}</style>
+      <Header
+        title="Estoque"
+        description="Relatórios para conferir e exportar"
+        action={
+          <>
+            <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel}><FileSpreadsheet className="h-4 w-4" aria-hidden="true" />Excel</button>
+            <button type="button" className="cli-primary" onClick={exportPDF}><Download className="h-4 w-4" aria-hidden="true" />PDF</button>
+          </>
+        }
+      />
+      <StockTabs />
+      <div className="space-y-5 p-3 sm:p-6">
       {/* Seleção de tipo de relatório */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Tipo de relatório">
         {REPORTS.map(report => (
           <button
             key={report.id}
+            type="button"
+            aria-pressed={selected === report.id}
             onClick={() => setSelected(report.id)}
-            className={`relative text-left bg-card rounded-2xl overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-              selected === report.id
-                ? 'border-primary shadow-lg ring-2 ring-primary/20'
-                : 'border-border/40 shadow-sm'
-            }`}
+            className={`rel-card fin-card relative px-4 py-3.5 text-left transition-colors hover:border-[#D4A85A] ${selected === report.id ? 'is-on' : ''}`}
           >
-            <div className={`absolute inset-0 ${report.bar} opacity-[0.07] dark:opacity-[0.12] pointer-events-none`} />
-            <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${report.bar} opacity-20 blur-2xl pointer-events-none`} />
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground pr-2">{report.title}</p>
-                <div className={`p-2 rounded-xl shadow-sm shrink-0 ${report.bar}`}>
-                  <report.icon className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <div className="h-px bg-border/50 mb-2" />
-              <p className="text-xs text-muted-foreground leading-relaxed">{report.description}</p>
+            <div className="mb-2 flex items-center gap-2.5">
+              <report.icon className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
+              <p className="text-sm font-semibold text-foreground">{report.title}</p>
             </div>
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">{report.description}</p>
           </button>
         ))}
       </div>
 
       {/* Sumário do relatório selecionado */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${activeReport.bar}`}>
-              <activeReport.icon className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">{activeReport.title}</h2>
-              <p className="text-xs text-muted-foreground">{activeReport.description}</p>
-            </div>
+      <div className="fin-card p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="fin-cap">Prévia</p>
+            <h2 className="font-serif-display text-[28px] leading-tight text-foreground">{activeReport.title}</h2>
           </div>
-          <Badge variant="secondary">{previewData.length} {previewData.length === 1 ? 'registro' : 'registros'}</Badge>
+          <span className="text-[13px] text-muted-foreground">{previewData.length} {previewData.length === 1 ? 'registro' : 'registros'}</span>
         </div>
 
         {/* Preview da tabela */}
@@ -380,6 +355,7 @@ export default function RelatoriosEstoquePage() {
           )}
         </div>
       </div>
+      </div>
     </div>
   )
 }
@@ -390,7 +366,7 @@ function Chip({ label, value, warn }: { label: string; value: string; warn?: boo
   return (
     <div className="bg-muted/40 rounded-lg px-3 py-2 text-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`font-semibold ${warn ? 'text-red-500' : 'text-foreground'}`}>{value}</p>
+      <p className={`font-semibold ${warn ? 'fin-late' : 'text-foreground'}`}>{value}</p>
     </div>
   )
 }
@@ -404,7 +380,7 @@ function ProductTable({ products, total }: { products: any[]; total: number }) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="bg-muted/30 text-xs text-muted-foreground uppercase tracking-wide">
+        <tr className="border-b border-dashed border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em]">
           <th className="text-left px-4 py-3">Produto</th>
           <th className="text-left px-4 py-3 hidden sm:table-cell">Categoria</th>
           <th className="text-right px-4 py-3">Estoque Atual</th>
@@ -423,7 +399,7 @@ function ProductTable({ products, total }: { products: any[]; total: number }) {
             <tr key={p.id} className={`border-t border-border ${i % 2 ? 'bg-muted/10' : ''}`}>
               <td className="px-4 py-2.5 font-medium text-foreground">{p.nome}</td>
               <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.categoria || '—'}</td>
-              <td className={`px-4 py-2.5 text-right font-semibold ${isLow ? 'text-red-500' : 'text-foreground'}`}>
+              <td className={`px-4 py-2.5 text-right font-semibold ${isLow ? 'fin-late' : 'text-foreground'}`}>
                 {isLow && <AlertTriangle className="h-3 w-3 inline mr-1" />}
                 {Number(p.quantidade_atual).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
               </td>
@@ -439,9 +415,9 @@ function ProductTable({ products, total }: { products: any[]; total: number }) {
               </td>
               <td className="px-4 py-2.5 text-center">
                 {isLow ? (
-                  <Badge variant="destructive" className="text-xs">Baixo</Badge>
+                  <span className="rounded-full bg-red-600/12 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Baixo</span>
                 ) : (
-                  <Badge variant="secondary" className="text-xs text-green-600 dark:text-green-400">OK</Badge>
+                  <span className="fin-pos rounded-full bg-emerald-600/10 px-2 py-0.5 text-xs font-semibold">OK</span>
                 )}
               </td>
             </tr>
@@ -464,7 +440,7 @@ function ProductTable({ products, total }: { products: any[]; total: number }) {
 function EntriesTable({ entries }: { entries: any[] }) {
   const tipoBadge: Record<string, string> = {
     manual: 'bg-muted text-muted-foreground',
-    NFe: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    NFe: 'bg-[#C8714A]/15 text-[#8A4B2C] dark:text-[#E39B78]',
     NFCe: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   }
   if (!entries.length) return (
@@ -475,7 +451,7 @@ function EntriesTable({ entries }: { entries: any[] }) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="bg-muted/30 text-xs text-muted-foreground uppercase tracking-wide">
+        <tr className="border-b border-dashed border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em]">
           <th className="text-left px-4 py-3">Data</th>
           <th className="text-left px-4 py-3">Tipo</th>
           <th className="text-left px-4 py-3 hidden sm:table-cell">Nº Nota</th>
@@ -525,7 +501,7 @@ function ValuationTable({ rows, total }: { rows: any[]; total: number }) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="bg-muted/30 text-xs text-muted-foreground uppercase tracking-wide">
+        <tr className="border-b border-dashed border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em]">
           <th className="text-left px-4 py-3">Categoria</th>
           <th className="text-center px-4 py-3">Qtd. Produtos</th>
           <th className="text-right px-4 py-3">Valor em Estoque</th>
@@ -547,7 +523,7 @@ function ValuationTable({ rows, total }: { rows: any[]; total: number }) {
               <td className="px-4 py-2.5 hidden sm:table-cell">
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-2 bg-indigo-500 rounded-full"
+                    className="h-2 rounded-full bg-[#C8714A]"
                     style={{ width: `${Math.min(pct, 100)}%` }}
                   />
                 </div>

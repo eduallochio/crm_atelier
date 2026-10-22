@@ -1,292 +1,254 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Plus, Search, Truck, Building2, Phone, Mail, Pencil, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft, Building2, Ellipsis, Landmark, Mail, MapPin, MessageCircle, Pencil, Phone, Plus, Power, Search, SearchX, Truck, User } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SupplierDialog } from '@/components/forms/supplier-dialog'
-import { useSuppliers, useDeleteSupplier, type Supplier } from '@/hooks/use-suppliers'
+import { useDeleteSupplier, useSuppliers, type Supplier } from '@/hooks/use-suppliers'
+import { useStockEntries } from '@/hooks/use-inventory'
+import { usePayables } from '@/hooks/use-financial'
+import { STOCK_CSS, StockTabs } from '@/components/inventory/stock-ui'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { initialsOf } from '@/components/dashboard/client-utils'
+import { FIN_CSS, brl, isOpenBill, shortDate } from '@/components/financeiro/finance-ui'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
+type Chip = '' | 'pj' | 'pf' | 'inactive'
+const placeOf = (s: Supplier) => [s.cidade, s.estado].filter(Boolean).join('/')
+
+/** Fornecedores à esquerda, ficha do fornecedor à direita: contato, pagamento, compras e contas */
 export default function FornecedoresPage() {
   const { data: suppliers = [], isLoading } = useSuppliers()
-  const deleteSupplier = useDeleteSupplier()
-
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'ativos' | 'inativos'>('ativos')
+  const [editing, setEditing] = useState<Supplier | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mobileDetail, setMobileDetail] = useState(false)
+  const [query, setQuery] = useState('')
+  const [chip, setChip] = useState<Chip>('')
 
-  const filtered = useMemo(() => {
-    return suppliers.filter(s => {
-      const q = search.toLowerCase()
-      const matchSearch = !search ||
-        s.nome.toLowerCase().includes(q) ||
-        (s.cpf_cnpj || '').toLowerCase().includes(q) ||
-        (s.email || '').toLowerCase().includes(q) ||
-        (s.telefone || '').toLowerCase().includes(q)
-      const matchStatus =
-        statusFilter === 'all' ? true :
-        statusFilter === 'ativos' ? s.ativo :
-        !s.ativo
-      return matchSearch && matchStatus
-    })
-  }, [suppliers, search, statusFilter])
+  const counts = useMemo(() => ({
+    pj: suppliers.filter((s) => s.ativo && (s.tipo_pessoa === 'juridica' || (s.cpf_cnpj ?? '').replace(/\D/g, '').length > 11)).length,
+    pf: suppliers.filter((s) => s.ativo && s.tipo_pessoa === 'fisica').length,
+    inactive: suppliers.filter((s) => !s.ativo).length,
+  }), [suppliers])
 
-  const ativos = suppliers.filter(s => s.ativo)
-  const comCnpj = ativos.filter(s => s.cpf_cnpj)
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return suppliers
+      .filter((s) => {
+        if (q && !`${s.nome} ${s.nome_fantasia ?? ''} ${s.cpf_cnpj ?? ''} ${s.email ?? ''} ${s.telefone ?? ''}`.toLowerCase().includes(q)) return false
+        if (chip === 'inactive') return !s.ativo
+        if (!s.ativo) return false
+        if (chip === 'pj') return s.tipo_pessoa === 'juridica' || (s.cpf_cnpj ?? '').replace(/\D/g, '').length > 11
+        if (chip === 'pf') return s.tipo_pessoa === 'fisica'
+        return true
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+  }, [suppliers, query, chip])
 
-  const handleEdit = (supplier: Supplier) => {
-    setSelectedSupplier(supplier)
-    setDialogOpen(true)
-  }
-
-  const handleNew = () => {
-    setSelectedSupplier(null)
-    setDialogOpen(true)
-  }
-
-  const handleDelete = async (supplier: Supplier) => {
-    if (!confirm(`Desativar o fornecedor "${supplier.nome}"?`)) return
-    await deleteSupplier.mutateAsync(supplier.id)
-  }
+  const selected = list.find((s) => s.id === selectedId) ?? list[0] ?? null
+  const handleNew = () => { setEditing(null); setDialogOpen(true) }
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
+      <style>{MASTER_DETAIL_CSS + FIN_CSS + STOCK_CSS}</style>
       <Header
-        title="Fornecedores"
-        description="Gerencie os fornecedores do seu ateliê"
+        title="Estoque"
+        description="Fornecedores do ateliê"
+        action={<button type="button" className="cli-primary" onClick={handleNew}><Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo fornecedor</span><span className="sm:hidden">Novo</span></button>}
       />
+      <StockTabs />
 
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-          {/* Total Ativos */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute inset-0 bg-blue-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-blue-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-4 sm:p-5 pt-5 sm:pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Ativos</p>
-                <div className="p-2 rounded-xl bg-blue-500 shadow-sm shrink-0">
-                  <Truck className="h-3.5 w-3.5 text-white" />
-                </div>
+      <div className="flex min-h-0 flex-1">
+        <section aria-label="Lista de fornecedores" className={`flex min-h-0 w-full flex-col border-border/70 bg-card lg:w-[400px] lg:shrink-0 lg:border-r xl:w-[430px] ${mobileDetail ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="border-b border-dashed border-border px-4 pt-4 pb-3 sm:px-5">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome, CNPJ, telefone ou e-mail" aria-label="Buscar fornecedores"
+                className="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-[15px] outline-none focus:border-[#C8714A] focus:ring-3 focus:ring-[#C8714A]/15" />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtros">
+              {([['pj', 'Empresas'], ['pf', 'Pessoas físicas'], ['inactive', 'Inativos']] as const).map(([k, l]) => (
+                <button key={k} type="button" className="cli-chip" aria-pressed={chip === k} onClick={() => setChip(chip === k ? '' : k)}>{l}{counts[k] ? <span className="tabular-nums opacity-70">{counts[k]}</span> : null}</button>
+              ))}
+            </div>
+            <p className="mt-3 text-[13px] text-muted-foreground" aria-live="polite">{isLoading ? 'Carregando...' : `${list.length} ${list.length === 1 ? 'fornecedor' : 'fornecedores'}`}</p>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            {isLoading ? (
+              <ul className="space-y-1 px-1">{Array.from({ length: 6 }, (_, i) => <li key={i} className="h-14 animate-pulse rounded-lg bg-muted/60" />)}</ul>
+            ) : suppliers.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <Truck className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nenhum fornecedor ainda</p>
+                Cadastre o armarinho, a loja de tecidos e quem mais fornece para o ateliê. Ao importar uma nota, o fornecedor é encontrado pelo CNPJ.
+                <div className="mt-4"><button type="button" onClick={handleNew} className="cli-primary"><Plus className="h-4 w-4" aria-hidden="true" />Novo fornecedor</button></div>
               </div>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{ativos.length}</p>
-              <div className="h-px bg-border/50 mt-3 mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">fornecedores ativos</p>
-            </div>
-          </div>
-
-          {/* Com CNPJ */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute inset-0 bg-emerald-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-emerald-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-4 sm:p-5 pt-5 sm:pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Com CNPJ</p>
-                <div className="p-2 rounded-xl bg-emerald-500 shadow-sm shrink-0">
-                  <Building2 className="h-3.5 w-3.5 text-white" />
-                </div>
+            ) : list.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+                <SearchX className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+                <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nada encontrado</p>
+                <div className="mt-4"><button type="button" onClick={() => { setQuery(''); setChip('') }} className="cli-ghost">Limpar busca e filtros</button></div>
               </div>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{comCnpj.length}</p>
-              <div className="h-px bg-border/50 mt-3 mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">pessoa jurídica</p>
-            </div>
-          </div>
-
-          {/* Total Cadastrado */}
-          <div className="relative bg-card rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 col-span-2 sm:col-span-1">
-            <div className="absolute inset-0 bg-violet-500 opacity-[0.07] dark:opacity-[0.12] pointer-events-none" />
-            <div className="absolute -bottom-6 -right-6 w-20 h-20 rounded-full bg-violet-500 opacity-20 blur-2xl pointer-events-none" />
-            <div className="p-4 sm:p-5 pt-5 sm:pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Cadastrado</p>
-                <div className="p-2 rounded-xl bg-violet-500 shadow-sm shrink-0">
-                  <Truck className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">{suppliers.length}</p>
-              <div className="h-px bg-border/50 mt-3 mb-2" />
-              <p className="text-[10.5px] text-muted-foreground">incluindo inativos</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Barra de ações */}
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, CNPJ, telefone ou e-mail..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={handleNew} size="sm" className="shrink-0">
-              <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Novo Fornecedor</span>
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-              <SelectTrigger className="w-auto">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ativos">Somente Ativos</SelectItem>
-                <SelectItem value="inativos">Somente Inativos</SelectItem>
-                <SelectItem value="all">Todos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Contador */}
-        <div className="text-sm text-muted-foreground">
-          {isLoading ? (
-            <span>Carregando...</span>
-          ) : (
-            <span>
-              {filtered.length} {filtered.length === 1 ? 'fornecedor' : 'fornecedores'}
-              {search && ' encontrado(s)'}
-            </span>
-          )}
-        </div>
-
-        {/* Tabela */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-              <Truck className="h-12 w-12 text-muted-foreground/40" />
-              <p className="text-muted-foreground font-medium">
-                {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
-              </p>
-              {!search && (
-                <Button variant="outline" size="sm" onClick={handleNew}>
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  Cadastrar primeiro fornecedor
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fornecedor</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">CNPJ</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Contato</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">E-mail</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((supplier, i) => (
-                    <tr
-                      key={supplier.id}
-                      className={`border-b border-border last:border-0 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/10'}`}
-                    >
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{supplier.nome}</p>
-                          {supplier.telefone && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 sm:hidden">
-                              <Phone className="h-3 w-3" />
-                              {supplier.telefone}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {supplier.cpf_cnpj || <span className="text-muted-foreground/40">—</span>}
+            ) : (
+              <ul>
+                {list.map((s) => {
+                  const on = selected?.id === s.id
+                  return (
+                    <li key={s.id}>
+                      <button type="button" onClick={() => { setSelectedId(s.id); setMobileDetail(true) }} aria-current={on ? 'true' : undefined} className={`cli-row ${on ? 'is-on' : ''}`}>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C8714A]/15 text-[13px] font-semibold text-[#8A4B2C] dark:text-[#E39B78]" aria-hidden="true">{initialsOf(s.nome_fantasia || s.nome)}</span>
+                        <span className="min-w-0 flex-1">
+                          <b className={`block truncate text-[14.5px] font-semibold ${s.ativo ? 'text-foreground' : 'text-muted-foreground'}`}>{s.nome_fantasia || s.nome}</b>
+                          <span className="block truncate text-[12.5px] text-muted-foreground">{s.telefone || s.email || placeOf(s) || s.cpf_cnpj || 'Sem contato'}</span>
                         </span>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        <div className="space-y-0.5">
-                          {supplier.telefone && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {supplier.telefone}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        {supplier.email ? (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {supplier.email}
-                          </p>
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {supplier.ativo ? (
-                          <Badge variant="default" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Ativo
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Inativo
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(supplier)}
-                            className="h-8 w-8 p-0"
-                            title="Editar"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          {supplier.ativo && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(supplier)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              title="Desativar"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section aria-label="Ficha do fornecedor" className={`min-h-0 flex-1 overflow-y-auto ${mobileDetail ? 'block' : 'hidden lg:block'}`}>
+          {selected ? (
+            <SupplierDetail key={selected.id} s={selected} onEdit={() => { setEditing(selected); setDialogOpen(true) }} onBack={() => setMobileDetail(false)} onOff={() => { setSelectedId(null); setMobileDetail(false) }} />
+          ) : !isLoading && suppliers.length > 0 ? <p className="p-10 text-sm text-muted-foreground">Escolha um fornecedor na lista.</p> : null}
+        </section>
+      </div>
+
+      <SupplierDialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null) }} supplier={editing} />
+    </div>
+  )
+}
+
+function SupplierDetail({ s, onEdit, onBack, onOff }: { s: Supplier; onEdit: () => void; onBack: () => void; onOff: () => void }) {
+  const { data: entries = [] } = useStockEntries()
+  const { data: payables = [] } = usePayables()
+  const deleteSupplier = useDeleteSupplier()
+  const [confirmOff, setConfirmOff] = useState(false)
+  const compras = entries.filter((e) => e.supplier_id === s.id).sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const contas = payables.filter((p) => p.supplier_id === s.id && isOpenBill(p))
+  const totalCompras = compras.reduce((t, e) => t + (Number(e.valor_total) || 0), 0)
+  const tel = s.telefone?.replace(/\D/g, '')
+  const pj = s.tipo_pessoa === 'juridica' || (s.cpf_cnpj ?? '').replace(/\D/g, '').length > 11
+  const endereco = [[s.logradouro, s.numero].filter(Boolean).join(', '), s.complemento, s.bairro, placeOf(s), s.cep].filter(Boolean).join(' · ')
+  const banco = [s.banco, s.agencia && `ag. ${s.agencia}`, s.conta && `conta ${s.conta}`].filter(Boolean).join(' · ')
+
+  const box = 'rounded-xl border border-border/70 bg-card px-4 py-3.5'
+  const boxTitle = 'mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'
+
+  return (
+    <div className="cli-det px-4 py-5 sm:px-7 sm:py-7">
+      <button type="button" onClick={onBack} className="mb-4 -ml-1 inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Fornecedores
+      </button>
+      <div className="flex items-center gap-4">
+        <span className="flex h-15 w-15 shrink-0 items-center justify-center rounded-full bg-[#C8714A]/15 text-lg font-semibold text-[#8A4B2C] dark:text-[#E39B78]" aria-hidden="true">{initialsOf(s.nome_fantasia || s.nome)}</span>
+        <div className="min-w-0">
+          <h2 className="truncate font-serif-display text-[30px] leading-[1.05] sm:text-[34px]">{s.nome_fantasia || s.nome}</h2>
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            {pj ? <Building2 className="h-3.5 w-3.5" aria-hidden="true" /> : <User className="h-3.5 w-3.5" aria-hidden="true" />}
+            {s.nome_fantasia ? s.nome : pj ? 'Pessoa jurídica' : 'Pessoa física'}{s.cpf_cnpj ? ` · ${s.cpf_cnpj}` : ''}
+            {!s.ativo && <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">Inativo</span>}
+          </p>
         </div>
       </div>
 
-      <SupplierDialog
-        open={dialogOpen}
-        onOpenChange={open => {
-          setDialogOpen(open)
-          if (!open) setSelectedSupplier(null)
-        }}
-        supplier={selectedSupplier}
-      />
+      <div className="mt-5 mb-6 flex flex-wrap gap-2">
+        {tel && (
+          <a href={`https://wa.me/${tel.startsWith('55') ? tel : `55${tel}`}`} target="_blank" rel="noopener noreferrer" className="cli-primary" style={{ minHeight: 44 }}>
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp
+          </a>
+        )}
+        <button type="button" className="cli-ghost" onClick={onEdit}><Pencil className="h-4 w-4" aria-hidden="true" />Editar</button>
+        {s.ativo && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="cli-ghost" style={{ paddingLeft: 12, paddingRight: 12 }} aria-label="Mais ações"><Ellipsis className="h-4 w-4" aria-hidden="true" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={() => setConfirmOff(true)} className="cursor-pointer text-red-600 focus:text-red-600"><Power className="mr-2 h-4 w-4" aria-hidden="true" /> Desativar fornecedor</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      <div className="mb-5 grid grid-cols-3 gap-2.5 sm:gap-3">
+        {[
+          { l: 'Compras', v: String(compras.length) },
+          { l: 'Total comprado', v: brl(totalCompras), small: true },
+          { l: 'Contas em aberto', v: contas.length ? brl(contas.reduce((t, p) => t + (Number(p.valor) || 0), 0)) : '—', small: true, accent: contas.length > 0 },
+        ].map((x) => (
+          <div key={x.l} className={box}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{x.l}</p>
+            <p className={`fin-num mt-1.5 ${x.small ? 'pt-1 text-[19px] sm:text-[26px]' : 'text-[30px]'} ${x.accent ? 'text-[#C8714A]' : ''}`}>{x.v}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-5 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+        <div className={box}>
+          <h3 className={boxTitle}>Contato</h3>
+          <div className="space-y-1.5 text-sm">
+            {s.telefone && <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{s.telefone}</p>}
+            {s.email && <p className="flex items-center gap-2 break-all"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />{s.email}</p>}
+            {!s.telefone && !s.email && <p className="text-muted-foreground">Sem contato cadastrado</p>}
+          </div>
+        </div>
+        <div className={box}>
+          <h3 className={boxTitle}>Endereço</h3>
+          <p className="flex items-start gap-2 text-sm">{endereco ? <><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />{endereco}</> : <span className="text-muted-foreground">Não informado</span>}</p>
+        </div>
+        <div className={box}>
+          <h3 className={boxTitle}>Pagamento</h3>
+          <div className="space-y-1 text-sm">
+            {s.pix && <p className="break-all"><b className="font-semibold">PIX</b> {s.pix}</p>}
+            {banco && <p className="flex items-center gap-2"><Landmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{banco}</p>}
+            {!s.pix && !banco && <p className="text-muted-foreground">Sem dados bancários</p>}
+          </div>
+        </div>
+        <div className={box}>
+          <h3 className={boxTitle}>Observações</h3>
+          <p className="whitespace-pre-line text-sm">{s.observacoes || <span className="text-muted-foreground">Nenhuma</span>}</p>
+        </div>
+      </div>
+
+      <div className={box}>
+        <h3 className={`${boxTitle} flex items-center justify-between`}>Últimas compras {compras.length > 0 && <Link href="/estoque/entradas" className="normal-case tracking-normal text-[13px] font-semibold text-[#8A4B2C] hover:underline dark:text-[#E39B78]">Ver entradas</Link>}</h3>
+        {compras.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma entrada de estoque ligada a este fornecedor.</p> : (
+          <ul className="divide-y divide-dashed divide-border">
+            {compras.slice(0, 6).map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <span className="min-w-0 truncate">{shortDate(e.created_at)} · {e.numero_nota ? `Nota ${e.numero_nota}` : 'Entrada manual'} · {e.itens?.length ?? 0} {(e.itens?.length ?? 0) === 1 ? 'item' : 'itens'}</span>
+                <b className="shrink-0 font-semibold tabular-nums">{e.valor_total != null ? brl(Number(e.valor_total)) : '—'}</b>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <AlertDialog open={confirmOff} onOpenChange={setConfirmOff}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar o fornecedor &ldquo;{s.nome}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>Ele deixa de aparecer nas listas, mas as compras e contas continuam guardadas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); deleteSupplier.mutateAsync(s.id).then(() => { setConfirmOff(false); onOff() }).catch(() => {}) }}
+              disabled={deleteSupplier.isPending} className="bg-red-600 text-white hover:bg-red-700">
+              {deleteSupplier.isPending ? 'Desativando...' : 'Desativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
