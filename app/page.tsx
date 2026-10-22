@@ -18,6 +18,7 @@ import SewingMachine, { type SewingMachineHandle } from '@/components/landing/at
 import SeamThread from '@/components/landing/atelier/seam-thread'
 import IntroCut from '@/components/landing/atelier/intro-cut'
 import EmbroideredTitle from '@/components/landing/atelier/embroidered-title'
+import DemoVideo from '@/components/landing/atelier/demo-video'
 import { MotionProvider, useMotionPref } from '@/components/landing/atelier/motion'
 import { dmSans } from '@/components/landing/atelier/fonts'
 import { useTrack, usePageView } from '@/hooks/use-track'
@@ -140,6 +141,43 @@ const AFTER = [
 
 const SITE_URL = 'https://meuateliersistema.com.br'
 
+const brl = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const lcFirst = (t: string) => (/^[A-ZÀ-Ú][a-zà-ú]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t)
+const listPt = (items: string[]) => items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`
+/** meses grátis do plano anual em relação ao mensal (ex.: 49,90 × 12 vs 498 → 2) */
+const monthsFree = (p: PublicPlan) => (p.price > 0 && p.price_annual ? Math.round(12 - p.price_annual / p.price) : 0)
+
+type Faq = { question: string; answer: string }
+
+/** Perguntas frequentes padrão (usadas enquanto o painel não tiver as suas). Preços e limites vêm dos planos. */
+function defaultFaq(plans: PublicPlan[]): Faq[] {
+  const free = plans.find((p) => p.price === 0)
+  const pro = plans.find((p) => p.is_featured && p.price > 0) ?? plans.find((p) => p.price > 0)
+  const users = (p?: PublicPlan) => p?.features.find((f) => f.included && /usu[aá]rio/i.test(f.text))?.text
+  const out: Faq[] = [
+    { question: 'Preciso de cartão de crédito para começar?', answer: 'Não. Você cria a conta no plano Free sem cartão e já começa a usar.' },
+  ]
+  if (free) {
+    const inc = free.features.filter((f) => f.included).map((f) => lcFirst(f.text))
+    if (inc.length) out.push({ question: 'O que vem no plano gratuito?', answer: `O plano ${free.name} é gratuito para sempre e inclui ${listPt(inc)}.` })
+  }
+  if (pro) {
+    const mf = monthsFree(pro)
+    const annual = pro.price_annual ? `, ou R$ ${brl(pro.price_annual)} no plano anual${mf > 0 ? ` (${mf} meses grátis)` : ''}` : ''
+    out.push({ question: `Quanto custa o plano ${pro.name} e como posso pagar?`, answer: `R$ ${brl(pro.price)} por mês${annual}. O pagamento é por Pix ou cartão de crédito.` })
+  }
+  out.push(
+    { question: 'Funciona no celular?', answer: 'Sim. O sistema funciona no navegador do celular, do tablet e do computador, e você pode adicioná-lo à tela inicial do celular para abrir como um app.' },
+    { question: 'Meus dados e os das minhas clientes ficam seguros?', answer: 'Sim. Cada ateliê tem seus dados completamente separados dos demais, e o sistema segue a LGPD.' },
+    { question: 'Consigo enviar a ordem de serviço para a cliente?', answer: 'Sim. Com um clique você envia o resumo da OS pelo WhatsApp, e também pode imprimir o comprovante em impressoras térmicas de 58mm ou 80mm.' },
+  )
+  const fu = users(free), pu = users(pro)
+  if (free && pro && fu && pu) {
+    out.push({ question: 'Mais de uma pessoa pode usar o sistema?', answer: `Sim. No plano ${free.name} são ${lcFirst(fu)} e no ${pro.name}, ${lcFirst(pu)}.` })
+  }
+  return out
+}
+
 const HERO_LINES = [
   { text: 'Seu ateliê,', color: '#F7F0E6' },
   { text: 'organizado', color: '#C8714A', italic: true },
@@ -239,10 +277,21 @@ function Landing() {
   }, [cms.testimonials_json])
 
   const faq = useMemo(() => {
-    let f: { question: string; answer: string }[] = []
+    let f: Faq[] = []
     try { f = cms.faq_json ? JSON.parse(cms.faq_json) : [] } catch { /* */ }
-    return f
-  }, [cms.faq_json])
+    return f.length > 0 ? f : defaultFaq(plans)
+  }, [cms.faq_json, plans])
+
+  const faqLd = useMemo(() => JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
+  }).replace(/</g, '\\u003c'), [faq])
+
+  // planos: mensal ou anual (só aparece se algum plano pago tiver preço anual)
+  const [billing, setBilling] = useState<'mensal' | 'anual'>('mensal')
+  const annualPlan = plans.find((p) => p.price > 0 && p.price_annual)
+  const annualSave = annualPlan ? monthsFree(annualPlan) : 0
 
   // dados estruturados para o Google (software + preços dos planos)
   const jsonLd = useMemo(() => JSON.stringify({
@@ -266,6 +315,8 @@ function Landing() {
       ...(p.price > 0 && { priceSpecification: { '@type': 'UnitPriceSpecification', price: p.price.toFixed(2), priceCurrency: 'BRL', unitText: 'MONTH' } }),
     })),
   }).replace(/</g, '\\u003c'), [plans])
+
+  const onDemoPlay = useCallback(() => track('demo_video_play'), [track])
 
   const getMachineSvg = useCallback(() => machine.current?.svg() ?? null, [])
   const onStitch = useCallback((off: number) => { goldStitch.current?.setAttribute('stroke-dashoffset', off.toFixed(2)) }, [])
@@ -390,6 +441,7 @@ function Landing() {
   return (
     <div className={`${dmSans.variable} m-fonts`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLd }} />
       {announcement && (
         <div style={{
           background: '#2C1810',
@@ -514,6 +566,48 @@ function Landing() {
           .m-bubble { left: -60px; width: 40px; height: 40px; font-size: 17px; }
         }
 
+        /* ── na prática (vídeo) ── */
+        .demo-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: clamp(32px, 6vw, 88px); align-items: center; }
+        .demo-phone-wrap { display: flex; justify-content: center; }
+        .m-phone.m-phone-video { position: relative; right: auto; bottom: auto; width: 100%; max-width: 290px; aspect-ratio: auto; }
+        .m-phone-video .m-screen { padding-bottom: 22px; }
+        .m-phone-video video { display: block; width: 100%; height: auto; background: #FAFAFA; }
+        .demo-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .demo-step { width: 100%; display: flex; gap: 18px; align-items: flex-start; text-align: left; background: none; border: 0; border-radius: 12px; padding: 16px 18px; cursor: pointer; color: var(--ink); font: inherit; transition: background-color .3s; }
+        .demo-step:hover { background: rgba(200,113,74,.06); }
+        .demo-step:focus-visible { outline: 2px solid var(--terra); outline-offset: 2px; }
+        .demo-step.is-on { background: var(--card); box-shadow: 0 1px 0 rgba(212,168,90,.35), 0 10px 30px rgba(44,24,16,.06); }
+        .demo-num { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid rgba(200,113,74,.45); color: var(--terra); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; transition: background-color .3s, color .3s; }
+        .demo-step.is-on .demo-num { background: var(--terra); color: var(--card); border-color: var(--terra); }
+        .demo-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+        .demo-title { font-size: 17px; font-weight: 500; }
+        .demo-desc { font-size: 14px; line-height: 1.6; color: var(--mid); }
+        .demo-thread { display: block; height: 2px; margin-top: 10px; background: repeating-linear-gradient(90deg, rgba(200,113,74,.18) 0 7px, transparent 7px 11px); }
+        .demo-thread > span { display: block; height: 100%; transform-origin: left; background: repeating-linear-gradient(90deg, var(--terra) 0 7px, transparent 7px 11px); transition: transform .25s linear; }
+
+        /* ── perguntas frequentes ── */
+        .m-faq { border-top: 1px dashed rgba(180,130,60,.45); }
+        .m-faq details { border-bottom: 1px dashed rgba(180,130,60,.45); }
+        .m-faq summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 4px; cursor: pointer; font-size: 17px; font-weight: 500; color: var(--ink); }
+        .m-faq summary::-webkit-details-marker { display: none; }
+        .m-faq summary:focus-visible { outline: 2px solid var(--terra); outline-offset: 2px; border-radius: 4px; }
+        .m-faq-ic { flex: none; position: relative; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(200,113,74,.45); }
+        .m-faq-ic::before, .m-faq-ic::after { content: ''; position: absolute; left: 50%; top: 50%; width: 11px; height: 1.6px; background: var(--terra); transform: translate(-50%, -50%); transition: transform .3s cubic-bezier(.4,0,.2,1); }
+        .m-faq-ic::after { transform: translate(-50%, -50%) rotate(90deg); }
+        .m-faq details[open] .m-faq-ic::after { transform: translate(-50%, -50%) rotate(0deg); }
+        .m-faq details p { margin: -6px 0 0; padding: 0 52px 24px 4px; font-size: 15px; line-height: 1.75; color: var(--mid); }
+
+        /* ── mensal / anual ── */
+        .bill-toggle { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 380px); margin: 0 auto 40px; padding: 4px; border: 1px solid rgba(212,168,90,.3); border-radius: 999px; }
+        .bill-pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px; background: var(--terra); transition: transform .4s cubic-bezier(.4,0,.2,1); }
+        .bill-toggle button { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; background: none; border: 0; border-radius: 999px; color: rgba(247,240,230,.72); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: color .3s; }
+        .bill-toggle button[aria-checked="true"] { color: var(--card); }
+        .bill-toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+        .bill-save { white-space: nowrap; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; background: rgba(212,168,90,.18); color: var(--gold); }
+        .bill-toggle button[aria-checked="true"] .bill-save { background: rgba(255,248,240,.2); color: var(--card); }
+        .bill-anim { animation: bill-in .45s cubic-bezier(.2,.7,.2,1) backwards; }
+        @keyframes bill-in { from { opacity: 0; transform: translateY(8px); } }
+
         /* ── whatsapp button ── */
         .wa-btn {
           position: fixed; bottom: 28px; right: 28px; z-index: 9999;
@@ -567,11 +661,19 @@ function Landing() {
           .m-quote-text { font-size: 19px !important; }
           .m-plan-price { font-size: 46px !important; }
           .m-compare-grid { gap: 14px; }
+          .m-faq summary { font-size: 16px; padding: 18px 2px; }
+          .m-faq details p { padding: 0 8px 20px 2px; font-size: 14px; }
+          .demo-step { padding: 14px 12px; gap: 14px; }
+        }
+        @media (max-width: 760px) {
+          .demo-grid { grid-template-columns: 1fr; }
+          .m-phone.m-phone-video { max-width: 260px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
           html { scroll-behavior: auto; }
-          .btn-primary, .btn-ghost, [data-seam-reveal] { transition: none; }
+          .btn-primary, .btn-ghost, [data-seam-reveal], .bill-pill, .demo-thread > span { transition: none; }
+          .bill-anim { animation: none; }
         }
       `}</style>
 
@@ -730,6 +832,22 @@ function Landing() {
           </div>
         </section>
 
+        {/* ── VEJA FUNCIONANDO ── */}
+        <section id="na-pratica" className="linen" style={{ padding: '0 0 clamp(80px,10vw,128px)' }}>
+          <div className="m-wrap" style={{ maxWidth: 1080 }}>
+            <div style={{ textAlign: 'center' }}><span className="tag" style={{ color: '#8A4B2C', borderColor: 'rgba(200,113,74,.5)' }}>Na prática</span></div>
+            <SewnTitle
+              className="m-h2"
+              style={{ margin: '20px 0 14px', color: 'var(--ink)' }}
+              lines={['Uma ordem de serviço', <em key="e" style={{ color: 'var(--terra)' }}>criada no celular.</em>]}
+            />
+            <p style={{ margin: '0 auto 52px', maxWidth: 520, textAlign: 'center', fontSize: 15, lineHeight: 1.7, color: 'var(--mid)' }}>
+              Tela real do sistema, gravada no celular. Depois é só gerar a OS e, se quiser, mandar o resumo para a cliente pelo WhatsApp.
+            </p>
+            <DemoVideo animated={animated} onPlay={onDemoPlay} />
+          </div>
+        </section>
+
         {/* ── FUNCIONALIDADES ── */}
         <section id="funcionalidades" className="dark-linen m-section">
           <div className="m-wrap">
@@ -842,27 +960,6 @@ function Landing() {
           </section>
         )}
 
-        {/* ── FAQ (CMS) ── */}
-        {faq.length > 0 && (
-          <section className="dark-linen m-section">
-            <div className="m-wrap" style={{ maxWidth: 820 }}>
-              <SewnTitle
-                className="m-h2"
-                style={{ margin: '0 0 56px', fontSize: 'clamp(28px,4vw,52px)' }}
-                lines={[<>Perguntas <em style={{ color: 'var(--gold)' }}>frequentes</em></>]}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(212,168,90,0.1)' }}>
-                {faq.map((f, i) => (
-                  <div key={i} style={{ background: 'var(--ink)', padding: '28px 32px' }}>
-                    <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--cream)', margin: '0 0 10px' }}>{f.question}</p>
-                    <p style={{ fontSize: 14, lineHeight: 1.75, color: 'rgba(247,240,230,0.68)', margin: 0 }}>{f.answer}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* ── PLANOS ── */}
         <section id="planos" className="dark-linen m-section">
           <div className="m-wrap" style={{ maxWidth: plans.length > 2 ? 1200 : 960 }}>
@@ -872,13 +969,32 @@ function Landing() {
               style={{ margin: '20px 0 12px' }}
               lines={['Comece grátis.', <em key="e" style={{ color: 'var(--gold)' }}>Cresça no seu ritmo.</em>]}
             />
-            <p style={{ margin: '0 0 52px', textAlign: 'center', color: 'rgba(247,240,230,.68)', fontSize: 15 }}>Sem cartão de crédito para começar.</p>
+            <p style={{ margin: `0 0 ${annualPlan ? 28 : 52}px`, textAlign: 'center', color: 'rgba(247,240,230,.68)', fontSize: 15 }}>Sem cartão de crédito para começar.</p>
+            {annualPlan && (
+              <div className="bill-toggle" role="radiogroup" aria-label="Período de cobrança">
+                <span className="bill-pill" aria-hidden="true" style={{ transform: billing === 'anual' ? 'translateX(100%)' : 'none' }} />
+                {(['mensal', 'anual'] as const).map((b) => (
+                  <button key={b} type="button" role="radio" aria-checked={billing === b} onClick={() => { setBilling(b); track('billing_toggle', { cycle: b }) }}>
+                    {b === 'mensal' ? 'Mensal' : 'Anual'}
+                    {b === 'anual' && annualSave > 0 && <span className="bill-save">{annualSave} meses grátis</span>}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="m-plans">
               {plans.map((plan) => {
                 const featured = plan.is_featured
                 const mid = featured ? 'var(--mid)' : 'rgba(247,240,230,.6)'
-                const whole = plan.price === 0 ? '0' : String(Math.floor(plan.price))
-                const cents = plan.price === 0 ? null : Math.round((plan.price - Math.floor(plan.price)) * 100).toString().padStart(2, '0')
+                const yearly = billing === 'anual' && plan.price > 0 && !!plan.price_annual
+                const amount = yearly ? plan.price_annual! : plan.price
+                const whole = amount === 0 ? '0' : String(Math.floor(amount))
+                const centsN = Math.round((amount - Math.floor(amount)) * 100)
+                const cents = amount === 0 || (yearly && centsN === 0) ? null : centsN.toString().padStart(2, '0')
+                const per = yearly ? '/ano' : '/mês'
+                const mf = monthsFree(plan)
+                const note = yearly
+                  ? `equivale a R$ ${brl(plan.price_annual! / 12)}/mês${mf > 0 ? ` · ${mf} meses grátis` : ''}`
+                  : plan.annual_note || plan.description || '\u00a0'
                 return (
                   <article
                     key={plan.id}
@@ -892,11 +1008,11 @@ function Landing() {
                       <span style={{ position: 'absolute', top: 0, right: 24, background: 'var(--terra)', color: 'var(--card)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '0 0 8px 8px' }}>{plan.badge}</span>
                     )}
                     <p className="display" style={{ margin: 0, fontSize: 28 }}>{plan.name}</p>
-                    <p style={{ margin: '10px 0 0' }}>
+                    <p key={`${plan.id}-${billing}`} className="bill-anim" style={{ margin: '10px 0 0' }}>
                       <span className="display m-plan-price" style={{ fontSize: 56, lineHeight: 1 }}>R$ {whole}</span>
-                      <span style={{ fontSize: 14, color: mid }}>{cents ? `,${cents} /mês` : ' /mês'}</span>
+                      <span style={{ fontSize: 14, color: mid }}>{cents ? `,${cents} ${per}` : ` ${per}`}</span>
                     </p>
-                    <p style={{ margin: '4px 0 22px', fontSize: 13, color: mid, minHeight: 20 }}>{plan.annual_note || plan.description || ' '}</p>
+                    <p style={{ margin: '4px 0 22px', fontSize: 13, color: mid, minHeight: 20 }}>{note}</p>
                     <Link
                       href={plan.cta_url}
                       className={featured ? 'btn-primary' : 'btn-ghost'}
@@ -917,6 +1033,28 @@ function Landing() {
                   </article>
                 )
               })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── PERGUNTAS FREQUENTES ── */}
+        <section id="perguntas" className="linen m-section">
+          <div className="m-wrap" style={{ maxWidth: 860 }}>
+            <SewnTitle
+              className="m-h2"
+              style={{ margin: '0 0 48px', fontSize: 'clamp(32px,4.4vw,56px)', color: 'var(--ink)' }}
+              lines={[<>Perguntas <em key="e" style={{ color: 'var(--terra)' }}>frequentes</em></>]}
+            />
+            <div className="m-faq">
+              {faq.map((f, i) => (
+                <details key={f.question} open={i === 0} onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) track('faq_open', { question: f.question }) }}>
+                  <summary>
+                    <span>{f.question}</span>
+                    <span className="m-faq-ic" aria-hidden="true" />
+                  </summary>
+                  <p>{f.answer}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>
