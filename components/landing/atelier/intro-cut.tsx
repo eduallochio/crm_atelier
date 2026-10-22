@@ -116,7 +116,7 @@ export default function IntroCut({ animated, ready, onOpen, onDone }: Props) {
           <button
             type="button"
             onClick={skip}
-            style={{ position: 'absolute', top: 22, right: 22, minHeight: 44, padding: '0 18px', borderRadius: 2, border: '1px solid rgba(247,240,230,.3)', background: 'transparent', color: 'var(--cream)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, fontSize: 12, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}
+            style={{ position: 'absolute', top: 22, right: 22, minHeight: 44, padding: '0 18px', borderRadius: 2, border: '1px solid rgba(247,240,230,.3)', background: 'transparent', color: 'var(--cream)', fontFamily: 'var(--f-sans)', fontWeight: 500, fontSize: 12, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Pular
           </button>

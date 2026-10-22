@@ -154,7 +154,7 @@ const SewingMachine = forwardRef<SewingMachineHandle, Props>(function SewingMach
         <path d="M540 140V320" stroke="rgba(255,255,255,.07)" strokeWidth="4" strokeLinecap="round" />
         <path d="M238 140H448" stroke="url(#mqGold)" strokeWidth="3" />
         <path d="M238 146H448" stroke="url(#mqGold)" strokeWidth="1" />
-        <text x="268" y="178" fontFamily="Cormorant Garamond, Georgia, serif" fontStyle="italic" fontSize="26" fill="url(#mqGold)">meu atelier</text>
+        <text x="268" y="178" style={{ fontFamily: 'var(--f-serif)' }} fontStyle="italic" fontSize="26" fill="url(#mqGold)">meu atelier</text>
         <circle cx="514" cy="252" r="17" fill="url(#mqChrome)" stroke="#2C1810" strokeWidth="1.5" />
         <path d="M514 240V252" stroke="#2C1810" strokeWidth="2.5" strokeLinecap="round" />
         <path d="M496 226A26 26 0 0 1 532 226" stroke="rgba(212,168,90,.6)" strokeWidth="1.2" fill="none" strokeDasharray="2 4" />

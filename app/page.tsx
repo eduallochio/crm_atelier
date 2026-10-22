@@ -19,6 +19,7 @@ import SeamThread from '@/components/landing/atelier/seam-thread'
 import IntroCut from '@/components/landing/atelier/intro-cut'
 import EmbroideredTitle from '@/components/landing/atelier/embroidered-title'
 import { MotionProvider, useMotionPref } from '@/components/landing/atelier/motion'
+import { dmSans } from '@/components/landing/atelier/fonts'
 import { useTrack, usePageView } from '@/hooks/use-track'
 import type { PublicPlan } from '@/app/api/plans/route'
 
@@ -137,6 +138,8 @@ const AFTER = [
   ['Decisões baseadas em dados', 'Dashboard com metas, gráficos e relatórios completos'],
 ]
 
+const SITE_URL = 'https://meuateliersistema.com.br'
+
 const HERO_LINES = [
   { text: 'Seu ateliê,', color: '#F7F0E6' },
   { text: 'organizado', color: '#C8714A', italic: true },
@@ -240,6 +243,29 @@ function Landing() {
     try { f = cms.faq_json ? JSON.parse(cms.faq_json) : [] } catch { /* */ }
     return f
   }, [cms.faq_json])
+
+  // dados estruturados para o Google (software + preços dos planos)
+  const jsonLd = useMemo(() => JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Meu Atelier Sistema',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'pt-BR',
+    url: SITE_URL,
+    image: `${SITE_URL}/og-image.png`,
+    description: 'Gerencie clientes, ordens de serviço e finanças em um único lugar. Feito especialmente para costureiras e proprietárias de ateliê.',
+    publisher: { '@type': 'Organization', name: 'Meu Atelier', url: SITE_URL, logo: `${SITE_URL}/logo-512.png` },
+    offers: plans.map((p) => ({
+      '@type': 'Offer',
+      name: `Plano ${p.name}`,
+      price: p.price.toFixed(2),
+      priceCurrency: 'BRL',
+      category: p.price === 0 ? 'free' : 'subscription',
+      url: `${SITE_URL}${p.cta_url}`,
+      ...(p.price > 0 && { priceSpecification: { '@type': 'UnitPriceSpecification', price: p.price.toFixed(2), priceCurrency: 'BRL', unitText: 'MONTH' } }),
+    })),
+  }).replace(/</g, '\\u003c'), [plans])
 
   const getMachineSvg = useCallback(() => machine.current?.svg() ?? null, [])
   const onStitch = useCallback((off: number) => { goldStitch.current?.setAttribute('stroke-dashoffset', off.toFixed(2)) }, [])
@@ -362,7 +388,8 @@ function Landing() {
   }, [introDone, animated, steps])
 
   return (
-    <>
+    <div className={`${dmSans.variable} m-fonts`}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       {announcement && (
         <div style={{
           background: '#2C1810',
@@ -380,8 +407,6 @@ function Landing() {
         </div>
       )}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
-
         *, *::before, *::after { box-sizing: border-box; }
 
         :root {
@@ -395,8 +420,9 @@ function Landing() {
         }
 
         html { scroll-behavior: smooth; }
-        body { font-family: 'DM Sans', sans-serif; margin: 0; overflow-x: hidden; }
-        .display { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 300; letter-spacing: -0.01em; }
+        body { margin: 0; overflow-x: hidden; }
+        .m-fonts { --f-sans: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif; --f-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-family: var(--f-sans); }
+        .display { font-family: var(--f-serif); font-weight: 300; letter-spacing: -0.01em; }
 
         .linen {
           background-color: var(--cream);
@@ -418,7 +444,7 @@ function Landing() {
         .btn-primary, .btn-ghost {
           display: inline-flex; align-items: center; justify-content: center; gap: 10px;
           min-height: 48px; padding: 0 30px; border-radius: 2px;
-          font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+          font-family: var(--f-sans); font-weight: 500; font-size: 13px;
           letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; white-space: nowrap; cursor: pointer;
           transition: background-color .35s cubic-bezier(.4,0,.2,1), transform .35s cubic-bezier(.4,0,.2,1), border-color .35s;
         }
@@ -455,7 +481,7 @@ function Landing() {
 
         .m-phone { position: absolute; right: -24px; bottom: -10px; width: clamp(150px, 22%, 230px); aspect-ratio: 9 / 19.5; border-radius: 46px; padding: 10px; background: #0E0906; box-shadow: inset 0 0 0 1.5px #5A4636, inset 0 0 0 3px #0E0906, 0 40px 80px rgba(0,0,0,.55); }
         .m-screen { position: relative; width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: #FAFAFA; display: flex; flex-direction: column; }
-        .m-status { position: relative; flex: none; height: 30px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 2px 18px 0 22px; font: 600 11px -apple-system, 'SF Pro Text', 'DM Sans', sans-serif; color: #111; }
+        .m-status { position: relative; flex: none; height: 30px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 2px 18px 0 22px; font: 600 11px -apple-system, 'SF Pro Text', var(--f-sans); color: #111; }
         .m-island { position: absolute; top: 7px; left: 50%; width: 31%; height: 18px; transform: translateX(-50%); border-radius: 10px; background: #0E0906; }
         .m-screen img { flex: none; width: 100%; height: auto; display: block; }
         .m-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 24%; background: linear-gradient(rgba(250,250,250,0), #FAFAFA 70%); pointer-events: none; }
@@ -985,6 +1011,6 @@ function Landing() {
           </svg>
         </a>
       )}
-    </>
+    </div>
   )
 }
