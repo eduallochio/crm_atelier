@@ -223,6 +223,17 @@ const AUTH_CSS = `
   .lp-register { margin: 26px 0 0; text-align: center; font-size: 14px; color: var(--mid); }
   .lp-register a { color: var(--terra-dark); font-weight: 600; text-decoration: none; }
   .lp-register a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .lp-ok { display: flex; gap: 14px; align-items: flex-start; padding: 18px 18px; border-radius: 4px; border: 1px dashed rgba(47,125,79,.45); background: rgba(47,125,79,.06); }
+  .lp-ok svg { flex: none; color: #2F7D4F; margin-top: 2px; }
+  .lp-ok b { display: block; font: 400 24px/1.15 var(--f-serif, 'Cormorant Garamond', serif); color: var(--ink); margin-bottom: 4px; }
+  .lp-ok p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--mid); }
+  .lp-steps { list-style: none; margin: 0 0 28px; padding: 0; counter-reset: st; }
+  .lp-steps li { position: relative; padding: 0 0 16px 40px; font-size: 14.5px; color: var(--ink); counter-increment: st; }
+  .lp-steps li::before { content: counter(st); position: absolute; left: 0; top: -2px; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--terra); color: var(--terra-dark); font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .lp-steps li:not(:last-child)::after { content: ''; position: absolute; left: 12px; top: 26px; bottom: 2px; width: 2px; background: repeating-linear-gradient(180deg, var(--terra) 0 4px, transparent 4px 7px); opacity: .55; }
+  .lp-row { display: flex; gap: 10px; align-items: flex-end; }
+  .lp-row .lp-field { flex: 1; margin-bottom: 0; }
+  .lp-row .lp-btn { width: auto; padding: 0 20px; min-height: 48px; }
 
   @media (max-width: 900px) {
     .lp-panel { display: none; }

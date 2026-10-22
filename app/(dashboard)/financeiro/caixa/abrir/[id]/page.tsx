@@ -1,11 +1,9 @@
 'use client'
 
-import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
 import { Loader } from '@/components/ui/loader'
-import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
 import { OpenCashierForm } from '@/components/financeiro/open-cashier-form'
+import { CashierFrame } from '@/components/financeiro/finance-ui'
 import { useCashier, useOpenCashier } from '@/hooks/use-cashier'
 
 type OpenCashierData = {
@@ -15,71 +13,30 @@ type OpenCashierData = {
 
 export default function AbrirCaixaPage() {
   const router = useRouter()
-  const params = useParams()
-  const caixaId = params.id as string
-  
+  const caixaId = useParams().id as string
   const { data: caixa, isLoading } = useCashier(caixaId)
   const openCashier = useOpenCashier()
 
   const handleSubmit = async (data: OpenCashierData) => {
     try {
-      const sessao = await openCashier.mutateAsync({
-        ...data,
-        caixa_id: caixaId,
-        status: 'aberto' as const,
-      })
+      const sessao = await openCashier.mutateAsync({ ...data, caixa_id: caixaId, status: 'aberto' as const })
       router.push(`/financeiro/caixa/sessao/${sessao.id}`)
-    } catch (error) {
-      console.error('Erro ao abrir caixa:', error)
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <Loader className="min-h-screen" text="Carregando..." />
-    )
-  }
-
-  if (!caixa) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Caixa não encontrado</p>
-          <Button onClick={() => router.push('/financeiro/caixa')}>
-            Voltar
-          </Button>
-        </div>
-      </div>
-    )
+    } catch { /* o hook já mostra o erro */ }
   }
 
   return (
-    <div>
-      <Header 
-        title={`Abrir ${caixa.nome}`}
-        description="Iniciar nova sessão de caixa"
-        action={
-          <Button variant="outline" onClick={() => router.push('/financeiro/caixa')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        }
-      />
-
-      <div className="p-6">
-        <div className="max-w-2xl">
-          <OpenCashierForm 
-            caixa={{
-              id: caixa.id || '',
-              nome: caixa.nome,
-              descricao: caixa.descricao,
-              ativo: caixa.ativo,
-            }}
-            onSubmit={handleSubmit} 
-            isLoading={openCashier.isPending} 
-          />
-        </div>
-      </div>
-    </div>
+    <CashierFrame eyebrow="Abrir caixa" title={caixa ? `Abrir ${caixa.nome}` : 'Abrir caixa'} desc="Conte o dinheiro que já está na gaveta: é o saldo inicial do dia.">
+      {isLoading ? (
+        <Loader text="Carregando..." />
+      ) : caixa ? (
+        <OpenCashierForm
+          caixa={{ id: caixa.id || '', nome: caixa.nome, descricao: caixa.descricao, ativo: caixa.ativo }}
+          onSubmit={handleSubmit}
+          isLoading={openCashier.isPending}
+        />
+      ) : (
+        <p className="text-muted-foreground">Caixa não encontrado.</p>
+      )}
+    </CashierFrame>
   )
 }

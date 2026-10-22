@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useReceivables, usePayables } from '@/hooks/use-financial'
 import { useCashierSessions } from '@/hooks/use-cashier'
+import { Header } from '@/components/layouts/header'
 
 // ───────────── datas e valores ─────────────
 
@@ -177,3 +178,24 @@ export const FIN_CSS = `
 .mv-tag.abertura { background: var(--muted); color: var(--muted-foreground); }
 @media (prefers-reduced-motion: reduce) { .fin-new { animation: none; } }
 `
+
+/** moldura das páginas de um caixa (cadastrar, abrir, editar): abas do financeiro, volta para os caixas e título */
+export function CashierFrame({ eyebrow, title, desc, children }: { eyebrow: string; title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <style>{FIN_CSS}</style>
+      <Header title="Financeiro" description="Caixas e sessões" />
+      <FinanceTabs />
+      <div className="mx-auto max-w-2xl p-3 sm:p-6">
+        <Link href="/financeiro/caixa" className="mb-3 -ml-1 inline-flex min-h-10 items-center gap-2 rounded-md px-1 text-sm text-muted-foreground hover:text-foreground">
+          <span aria-hidden="true">←</span> Todos os caixas
+        </Link>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{eyebrow}</p>
+        <h2 className="mt-1 text-[34px] leading-[1.05] text-foreground" style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif", fontWeight: 400 }}>{title}</h2>
+        <p className="mt-1.5 mb-5 text-sm text-muted-foreground">{desc}</p>
+        <div className="cx-form">{children}</div>
+      </div>
+      <style>{`.cx-form .rounded-xl.border.bg-card { box-shadow: none; border-color: color-mix(in oklab, var(--border) 70%, transparent); }`}</style>
+    </div>
+  )
+}

@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -103,237 +102,116 @@ export function CloseCashierDialog({
     await onConfirm(data as CloseCashierInput)
   }
 
+  const CONF: { key: keyof CloseCashierInput['conferencia']; label: string }[] = [
+    { key: 'dinheiro', label: 'Dinheiro' },
+    { key: 'pix', label: 'PIX' },
+    { key: 'credito', label: 'Crédito' },
+    { key: 'debito', label: 'Débito' },
+    { key: 'outros', label: 'Outros' },
+  ]
+  const money = (onChange: (v: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.valueAsNumber || 0)
+  const ok = Math.abs(diferenca) <= 0.01
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-150 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] overflow-y-auto rounded-xl sm:max-w-150">
         <DialogHeader>
-          <DialogTitle>Fechar Caixa</DialogTitle>
-          <DialogDescription>
-            Confira os valores e feche a sessão
-          </DialogDescription>
+          <DialogTitle className="font-serif-display text-[28px] font-normal leading-tight" style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}>
+            Fechar o caixa
+          </DialogTitle>
+          <DialogDescription>Conte o que há em cada forma de pagamento. A diferença aparece na hora, antes de fechar.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Resumo */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Saldo Inicial:</span>
-                <span className="text-sm font-medium">{formatCurrency(sessao.saldo_inicial)}</span>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+            {/* o que o sistema esperava */}
+            <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/70 bg-muted/40 px-4 py-3.5">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">O sistema esperava</p>
+                <p className="mt-1 text-[30px] leading-none tabular-nums text-foreground" style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}>{formatCurrency(saldoEsperado)}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Saldo Esperado:</span>
-                <span className="text-sm font-medium">{formatCurrency(saldoEsperado)}</span>
+              <div className="text-right text-[13px] text-muted-foreground">
+                <p>Saldo inicial</p>
+                <p className="font-semibold tabular-nums text-foreground">{formatCurrency(sessao.saldo_inicial)}</p>
               </div>
             </div>
 
-            {/* Conferência por Forma de Pagamento */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">Conferência por Forma de Pagamento</h4>
-              
-              <FormField
-                control={form.control}
-                name="conferencia.dinheiro"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dinheiro</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
-                        {...field}
-                        value={field.value as number}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="conferencia.pix"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PIX</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
-                        {...field}
-                        value={field.value as number}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="conferencia.credito"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Crédito</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
-                        {...field}
-                        value={field.value as number}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="conferencia.debito"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Débito</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
-                        {...field}
-                        value={field.value as number}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="conferencia.outros"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Outros</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
-                        {...field}
-                        value={field.value as number}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-900">Total Conferido:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(totalConferencia)}</span>
+            {/* conferência por forma de pagamento */}
+            <fieldset>
+              <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Conferência por forma de pagamento</legend>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {CONF.map((c) => (
+                  <FormField key={c.key} control={form.control} name={`conferencia.${c.key}` as const}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[12.5px] font-medium text-muted-foreground">{c.label}</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" inputMode="decimal" placeholder="0,00" {...field} value={field.value as number}
+                            onChange={money(field.onChange)} className="tabular-nums" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                ))}
+                <div className="flex flex-col justify-end rounded-lg border border-dashed border-border px-3 py-2">
+                  <span className="text-[12px] text-muted-foreground">Total conferido</span>
+                  <b className="font-semibold tabular-nums">{formatCurrency(totalConferencia)}</b>
                 </div>
               </div>
-            </div>
+            </fieldset>
 
-            {/* Saldo Real */}
-            <FormField
-              control={form.control}
-              name="saldo_real"
+            {/* valor contado */}
+            <FormField control={form.control} name="saldo_real"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Saldo Real (Total no Caixa)</FormLabel>
+                  <FormLabel>Valor contado (total no caixa)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01"
-                      placeholder="0,00"
-                      {...field}
-                      value={field.value as number}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                    />
+                    <Input type="number" step="0.01" inputMode="decimal" placeholder="0,00" {...field} value={field.value as number}
+                      onChange={money(field.onChange)} className="h-12 text-lg tabular-nums" aria-describedby="close-diff" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+              )} />
 
-            {/* Diferença */}
-            {Math.abs(diferenca) > 0.01 && (
-              <div className={`rounded-lg p-4 ${diferenca > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className={`h-5 w-5 ${diferenca > 0 ? 'text-green-600' : 'text-red-600'}`} />
-                  <span className="font-medium text-gray-900">
-                    {diferenca > 0 ? 'Sobra de Caixa' : 'Falta no Caixa'}
-                  </span>
-                </div>
-                <p className={`text-2xl font-bold ${diferenca > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(Math.abs(diferenca))}
-                </p>
-              </div>
-            )}
+            <div id="close-diff" aria-live="polite"
+              className={`flex items-start gap-2.5 rounded-lg px-4 py-3 text-sm ${ok ? 'bg-emerald-600/10 text-emerald-800 dark:text-emerald-300' : diferenca < 0 ? 'bg-red-600/10 text-red-700 dark:text-red-400' : 'bg-[#D4A85A]/15 text-[#7A5A1E] dark:text-[#E8C98A]'}`}>
+              {!ok && <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+              <span>
+                {ok ? 'Bateu certinho com o esperado.'
+                  : diferenca < 0 ? <>Faltam <b className="tabular-nums">{formatCurrency(Math.abs(diferenca))}</b> no caixa. Confira antes de fechar ou anote o motivo.</>
+                  : <>Sobram <b className="tabular-nums">{formatCurrency(diferenca)}</b> no caixa. Pode ter sido um troco não lançado.</>}
+              </span>
+            </div>
 
-            {/* Observações */}
-            <FormField
-              control={form.control}
-              name="observacoes_fechamento"
+            <FormField control={form.control} name="observacoes_fechamento"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Observações sobre o fechamento (opcional)"
-                      {...field}
-                    />
-                  </FormControl>
+                  <FormControl><Textarea placeholder="Ex.: troco separado para amanhã (opcional)" rows={2} {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+              )} />
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Fechando...' : 'Fechar Caixa'}
-              </Button>
-            </div>
+            {showDifference ? (
+              <div className="rounded-xl border border-dashed border-[#D4A85A] bg-[#D4A85A]/10 px-4 py-3.5">
+                <p className="text-sm">
+                  Fechar mesmo com <b className={diferenca > 0 ? 'text-[#7A5A1E] dark:text-[#E8C98A]' : 'text-red-700 dark:text-red-400'}>{diferenca > 0 ? 'sobra' : 'falta'} de {formatCurrency(Math.abs(diferenca))}</b>?
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button type="button" className="cli-ghost" onClick={() => setShowDifference(false)}>Revisar</button>
+                  <button type="button" className="cli-primary" style={{ minHeight: 44 }} onClick={handleConfirmWithDifference} disabled={isLoading}>
+                    {isLoading ? 'Fechando...' : 'Fechar assim mesmo'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" className="cli-ghost" onClick={onClose}>Cancelar</button>
+                <button type="submit" className="cli-primary" style={{ minHeight: 44 }} disabled={isLoading}>{isLoading ? 'Fechando...' : 'Fechar caixa'}</button>
+              </div>
+            )}
           </form>
         </Form>
-
-        {/* Modal de Confirmação de Diferença */}
-        {showDifference && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="h-6 w-6 text-yellow-600" />
-                <h3 className="text-lg font-semibold">Confirmar Fechamento com Diferença</h3>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Há uma diferença de <strong className={diferenca > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {formatCurrency(Math.abs(diferenca))}
-                </strong> no caixa. Deseja continuar mesmo assim?
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowDifference(false)}>
-                  Revisar
-                </Button>
-                <Button onClick={handleConfirmWithDifference} disabled={isLoading}>
-                  {isLoading ? 'Fechando...' : 'Confirmar Fechamento'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   )
