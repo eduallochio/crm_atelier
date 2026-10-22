@@ -44,7 +44,7 @@ interface LandingContent {
   announcement?: string
 }
 
-/* ─── Planos padrão (fallback se API falhar) ─────────────────────────────── */
+/* ─── Planos padrão (fallback se API falhar) — espelha a tabela plans ────── */
 const DEFAULT_PLANS: PublicPlan[] = [
   {
     id: 'free',
@@ -56,19 +56,16 @@ const DEFAULT_PLANS: PublicPlan[] = [
     annual_note: null,
     badge: null,
     is_featured: false,
-    cta_text: 'Criar conta grátis',
+    cta_text: 'Começar grátis',
     cta_url: '/cadastro',
     sort_order: 1,
     features: [
       { text: 'Até 50 clientes', included: true },
-      { text: 'Até 20 serviços cadastrados', included: true },
-      { text: 'Até 100 ordens de serviço', included: true },
       { text: 'Até 2 usuários', included: true },
-      { text: 'Dashboard e relatórios básicos', included: true },
+      { text: '100 ordens/mês', included: true },
+      { text: '500 MB armazenamento', included: true },
+      { text: 'Dashboard básico', included: true },
       { text: 'Controle de caixa', included: true },
-      { text: 'Contas a pagar/receber', included: true },
-      { text: 'Exportação Excel/PDF', included: false },
-      { text: 'Suporte prioritário', included: false },
     ],
   },
   {
@@ -76,23 +73,23 @@ const DEFAULT_PLANS: PublicPlan[] = [
     slug: 'pro',
     name: 'Pro',
     description: 'Para crescer',
-    price: 59.9,
-    price_annual: 599,
-    annual_note: 'ou R$ 599/ano — 2 meses grátis',
+    price: 49.9,
+    price_annual: 498,
+    annual_note: 'ou R$ 498/ano — 2 meses grátis',
     badge: 'Popular',
     is_featured: true,
     cta_text: 'Iniciar teste grátis',
     cta_url: '/cadastro',
     sort_order: 2,
     features: [
-      { text: 'Clientes ilimitados', included: true },
-      { text: 'Serviços ilimitados', included: true },
-      { text: 'Ordens de serviço ilimitadas', included: true },
-      { text: 'Até 3 usuários', included: true },
-      { text: 'Exportação Excel e PDF', included: true },
-      { text: 'Controle de estoque', included: true },
-      { text: 'Dashboard e relatórios completos', included: true },
-      { text: 'Suporte prioritário', included: true },
+      { text: 'Clientes Ilimitados', included: true },
+      { text: 'Ordens de Serviços Ilimitado', included: true },
+      { text: 'Até 5 usuários', included: true },
+      { text: 'Tudo do plano Free +', included: true },
+      { text: 'Relatórios avançados', included: true },
+      { text: 'Exportação Excel/PDF', included: true },
+      { text: 'Lembretes automáticos', included: true },
+      { text: 'Contas a pagar/receber', included: true },
     ],
   },
 ]
