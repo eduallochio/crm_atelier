@@ -17,6 +17,7 @@ import NavBar from '@/components/landing/nav-bar'
 import SewingMachine, { type SewingMachineHandle } from '@/components/landing/atelier/sewing-machine'
 import SeamThread from '@/components/landing/atelier/seam-thread'
 import IntroCut from '@/components/landing/atelier/intro-cut'
+import EmbroideredTitle from '@/components/landing/atelier/embroidered-title'
 import { MotionProvider, useMotionPref } from '@/components/landing/atelier/motion'
 import { useTrack, usePageView } from '@/hooks/use-track'
 import type { PublicPlan } from '@/app/api/plans/route'
@@ -139,6 +140,12 @@ const AFTER = [
   ['Decisões baseadas em dados', 'Dashboard com metas, gráficos e relatórios completos'],
 ]
 
+const HERO_LINES = [
+  { text: 'Seu ateliê,', color: '#F7F0E6' },
+  { text: 'organizado', color: '#C8714A', italic: true },
+  { text: 'como merece.', color: '#F7F0E6' },
+]
+
 const NEEDLE_PATH = 'M2 6C2 4.6 3.4 4 5 4H36L43 6L36 8H5C3.4 8 2 7.4 2 6Z'
 
 /** Título com linhas que sobem quando a costura passa por elas */
@@ -167,6 +174,7 @@ function Landing() {
   const [plans, setPlans] = useState<PublicPlan[]>(DEFAULT_PLANS)
   const [cms, setCms] = useState<LandingContent>({})
   const [introDone, setIntroDone] = useState(false)
+  const [embPlay, setEmbPlay] = useState(false)
   const motion = useMotionPref()
   const animated = motion.enabled
   const track = useTrack()
@@ -247,7 +255,6 @@ function Landing() {
     const q = gsap.utils.selector(hero)
     const tl = gsap.timeline()
     tl.from(q('.hero-tag'), { autoAlpha: 0, y: 10, duration: 0.5, ease: 'power1.out' }, 0.1)
-      .from(q('.hero-line'), { yPercent: 110, duration: 0.8, stagger: 0.1, ease: 'power3.out' }, 0.15)
       .from(q('.hero-fade'), { autoAlpha: 0, y: 16, duration: 0.5, stagger: 0.08, ease: 'power1.out' }, 0.55)
       .from(q('.hero-machine'), { autoAlpha: 0, y: 40, duration: 0.9, ease: 'power3.out' }, 0.3)
       .from(q('.hero-stat'), { autoAlpha: 0, y: 12, duration: 0.5, stagger: 0.08, ease: 'power1.out' }, 0.8)
@@ -259,9 +266,10 @@ function Landing() {
     })
   }, [])
 
-  const onIntroOpen = useCallback(() => { heroIn(); machine.current?.sew(3.2, 4.2) }, [heroIn])
+  const onIntroOpen = useCallback(() => { heroIn(); setEmbPlay(true); machine.current?.sew(3.2, 4.2) }, [heroIn])
   const onIntroDone = useCallback(() => {
     if (!heroPlayed.current) machine.current?.sew(3.2, 3)
+    setEmbPlay(true)
     setIntroDone(true)
   }, [])
 
@@ -594,11 +602,7 @@ function Landing() {
           <div className="m-wrap hero-top">
             <div className="hero-copy">
               <span className="tag hero-tag">Sistema de Gestão para Ateliês</span>
-              <h1 className="display">
-                <span className="m-mask"><span className="hero-line">Seu ateliê,</span></span>
-                <span className="m-mask"><span className="hero-line" style={{ color: 'var(--terra)', fontStyle: 'italic' }}>organizado</span></span>
-                <span className="m-mask"><span className="hero-line">como merece.</span></span>
-              </h1>
+              <EmbroideredTitle className="display" lines={HERO_LINES} play={embPlay} animated={animated} />
               <p className="hero-fade" style={{ margin: '26px 0 0', fontSize: 17, lineHeight: 1.75, color: 'rgba(247,240,230,.78)', maxWidth: 520, whiteSpace: 'pre-line' }}>
                 {c.heroSubtitle}
               </p>
