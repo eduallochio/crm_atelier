@@ -9,6 +9,7 @@ import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import { useOrganizationSettings, useFinancialSettings, useOrderSettings } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { whatsappNumber } from '@/lib/utils/whatsapp'
 
 interface OrderPreviewDialogProps {
   open: boolean
@@ -105,8 +106,7 @@ export function OrderPreviewDialog({
 
     try {
       // Formatar telefone (remover caracteres especiais)
-      const phone = orderWithPaymentName.client.telefone.replace(/\D/g, '')
-      const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`
+      const phoneWithCountry = whatsappNumber(orderWithPaymentName.client.telefone)
 
       // Gerar mensagem formatada igual ao cupom
       const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData)

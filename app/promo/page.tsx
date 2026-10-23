@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { dmSans } from '@/components/landing/atelier/fonts'
 import { usePageView, useTrack } from '@/hooks/use-track'
 
 const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20promo%C3%A7%C3%A3o%20de%2050%25%20do%20Meu%20Atelier%20Sistema%20e%20gostaria%20de%20saber%20mais!'
@@ -11,18 +13,21 @@ const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20pro
 function usePromoDeadline() {
   const [deadline, setDeadline] = useState<Date | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [expired, setExpired] = useState(false)
 
   useEffect(() => {
     fetch('/api/landing')
       .then((r) => r.json())
       .then((data) => {
-        if (data?.promo_banner_deadline) setDeadline(new Date(data.promo_banner_deadline))
+        if (!data?.promo_banner_deadline) return
+        const d = new Date(data.promo_banner_deadline)
+        setDeadline(d)
+        setExpired(Date.now() > d.getTime())
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
   }, [])
 
-  const expired = loaded && deadline !== null && Date.now() > deadline.getTime()
   return { deadline, loaded, expired }
 }
 
@@ -48,13 +53,13 @@ const features = [
     icon: 'M2 7h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2',
   },
   {
-    title: 'Dashboard e Relatórios',
-    desc: 'Gráficos de faturamento, serviços mais vendidos e métricas de crescimento do ateliê.',
+    title: 'Dashboard do dia',
+    desc: 'Entregas atrasadas, de hoje e da semana num quadro só, com o faturamento do mês e a sua meta.',
     icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
   },
   {
     title: 'Catálogo de Serviços',
-    desc: 'Tabela de preços com categorias e tempo estimado. Gere orçamentos em segundos.',
+    desc: 'Tabela de preços com categorias e tempo estimado. Monte a ordem de serviço em segundos.',
     icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
   },
 ]
@@ -143,16 +148,36 @@ function StickyCta() {
 }
 
 function VideoDemo() {
+  const ref = useRef<HTMLVideoElement>(null)
+
+  // toca sozinho e sem som; com "reduzir movimento" fica parado e mostra os controles
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.controls = true; return }
+    v.play().catch(() => { v.controls = true })
+  }, [])
+
   return (
     <section className="video-section">
       <h2>Veja o sistema funcionando</h2>
       <p>Do cadastro do cliente até o envio da ordem de serviço</p>
       <div className="video-wrap">
-        <img
-          src="/meuatelier.gif"
-          alt="Meu Atelier Sistema em uso"
+        <video
+          ref={ref}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/screenshots/landing-os-video-poster.webp"
+          aria-label="Gravação da tela do Meu Atelier no celular: criando uma ordem de serviço com cliente, status, data de entrega, forma de pagamento, serviços e desconto"
+          width={480}
+          height={892}
           style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
-        />
+        >
+          <source src="/screenshots/landing-os-video.webm" type="video/webm" />
+          <source src="/screenshots/landing-os-video.mp4" type="video/mp4" />
+        </video>
       </div>
     </section>
   )
@@ -235,17 +260,16 @@ function LeadCapture() {
 }
 
 function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false)
   return (
-    <div className={`faq-item ${open ? 'open' : ''}`}>
-      <button className="faq-q" onClick={() => setOpen(!open)} aria-expanded={open}>
+    <details className="faq-item">
+      <summary className="faq-q">
         <span>{q}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+        <svg className="faq-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
-      </button>
-      {open && <p className="faq-a">{a}</p>}
-    </div>
+      </summary>
+      <p className="faq-a">{a}</p>
+    </details>
   )
 }
 
@@ -262,11 +286,11 @@ function CopyCoupon() {
   }
 
   return (
-    <div className="promo-coupon" onClick={copy} role="button" aria-label="Copiar cupom PROMO50">
+    <button type="button" className="promo-coupon" onClick={copy} aria-label="Copiar cupom PROMO50">
       <span className="promo-coupon-label">Cupom</span>
       <span className="promo-coupon-code">PROMO50</span>
-      <span className="promo-coupon-copy">{copied ? 'Copiado!' : 'Clique para copiar'}</span>
-    </div>
+      <span className="promo-coupon-copy" aria-live="polite">{copied ? 'Copiado!' : 'Clique para copiar'}</span>
+    </button>
   )
 }
 
@@ -275,22 +299,24 @@ function PromoExpired() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-      padding: '24px', fontFamily: 'DM Sans, sans-serif',
-      background: '#F7F3F1', color: '#1A0F0F',
+      padding: '24px', fontFamily: "var(--font-dm-sans), 'DM Sans', system-ui, sans-serif",
+      background: '#F7F0E6', color: '#2C1810',
     }}>
-      <Link href="/" style={{ fontFamily: 'Playfair Display, serif', fontStyle: 'italic', fontSize: 18, color: '#1A0F0F', textDecoration: 'none', marginBottom: 32 }}>
+      {/* oferta encerrada: tira a página do índice do Google */}
+      <meta name="robots" content="noindex, follow" />
+      <Link href="/" style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif", fontStyle: 'italic', fontSize: 18, color: '#2C1810', textDecoration: 'none', marginBottom: 32 }}>
         Meu Atelier Sistema
       </Link>
-      <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 32, marginBottom: 12, maxWidth: 480 }}>
+      <h1 style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif", fontSize: 32, marginBottom: 12, maxWidth: 480 }}>
         Essa oferta já encerrou
       </h1>
-      <p style={{ color: '#7A6A68', fontSize: 16, maxWidth: 440, marginBottom: 28 }}>
+      <p style={{ color: '#6F5848', fontSize: 16, maxWidth: 440, marginBottom: 28 }}>
         Mas você ainda pode conhecer o Meu Atelier Sistema e começar a organizar seu ateliê hoje mesmo.
       </p>
       <Link
         href="/cadastro"
         style={{
-          background: '#C8253A', color: '#fff', padding: '14px 32px',
+          background: '#2C1810', color: '#F7F0E6', padding: '14px 32px',
           borderRadius: 8, fontWeight: 600, textDecoration: 'none', fontSize: 16,
         }}
       >
@@ -334,60 +360,61 @@ export default function PromoPage() {
   }
 
   return (
-    <>
+    <div className={dmSans.variable}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --bg: #F7F3F1; --bg2: #EDE8E5; --surface: #FFFFFF;
-          --accent: #C8253A; --accent2: #9E1B2C;
-          --text: #1A0F0F; --muted: #7A6A68; --border: rgba(26,15,15,0.10);
-          --green: #1A8A3C;
+          --bg: #F7F0E6; --bg2: #EFE4D3; --surface: #FFF8F0;
+          --accent: #8A4B2C; --accent2: #6E3A21; --on-accent: #FFF8F0; --terra: #C8714A; --gold: #D4A85A;
+          --text: #2C1810; --muted: #6F5848; --border: rgba(44,24,16,0.12);
+          --green: #2F7A45;
         }
         @media (prefers-color-scheme: dark) {
           :root:not([data-theme="light"]) {
-            --bg: #0D0A0A; --bg2: #161110; --surface: #1F1818;
-            --text: #F5F0EE; --muted: #8A7F7E; --border: rgba(245,240,238,0.08);
-            --green: #2DB356;
+            --bg: #1A110C; --bg2: #22170F; --surface: #2A1C14;
+            --accent: #E39B78; --accent2: #F0B597; --on-accent: #2C1810;
+            --text: #F7F0E6; --muted: #B8A595; --border: rgba(247,240,230,0.10);
+            --green: #6CC48A;
           }
         }
         :root[data-theme="dark"] {
-          --bg: #0D0A0A; --bg2: #161110; --surface: #1F1818;
-          --text: #F5F0EE; --muted: #8A7F7E; --border: rgba(245,240,238,0.08);
-          --green: #2DB356;
+          --bg: #1A110C; --bg2: #22170F; --surface: #2A1C14;
+          --accent: #E39B78; --accent2: #F0B597; --on-accent: #2C1810;
+          --text: #F7F0E6; --muted: #B8A595; --border: rgba(247,240,230,0.10);
+          --green: #6CC48A;
         }
-        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+        body { font-variant-numeric: lining-nums; font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
 
         /* NAV */
         .promo-nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
-        .promo-nav-brand { font-family: 'Playfair Display', serif; font-size: 17px; font-style: italic; color: var(--text); text-decoration: none; }
-        .promo-badge { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; background: var(--accent); color: #fff; padding: 4px 10px; border-radius: 20px; }
+        .promo-nav-brand { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 17px; font-style: italic; color: var(--text); text-decoration: none; }
+        .promo-badge { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; background: var(--accent); color: var(--on-accent); padding: 4px 10px; border-radius: 20px; }
 
         /* HERO */
         .promo-hero { text-align: center; padding: 72px 24px 56px; max-width: 720px; margin: 0 auto; }
-        .promo-eyebrow { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 28px; padding: 6px 16px; border: 1px solid rgba(200,37,58,0.3); border-radius: 20px; }
+        .promo-eyebrow { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 28px; padding: 6px 16px; border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent); border-radius: 20px; }
         .promo-disc-wrap { display: flex; align-items: center; justify-content: center; line-height: 1; margin-bottom: 16px; }
-        .promo-disc-num { font-family: 'Playfair Display', serif; font-size: clamp(100px, 20vw, 160px); font-weight: 900; color: var(--accent); letter-spacing: -0.04em; line-height: 0.9; }
-        .promo-disc-pct { font-family: 'Playfair Display', serif; font-size: clamp(44px, 9vw, 72px); font-weight: 700; color: var(--accent); align-self: flex-start; padding-top: clamp(18px, 3.5vw, 32px); }
-        .promo-h1 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 400; font-style: italic; color: var(--text); text-wrap: balance; margin-bottom: 12px; }
+        .promo-disc-num { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(100px, 20vw, 160px); font-weight: 600; color: var(--accent); letter-spacing: -0.04em; line-height: 0.9; }
+        .promo-disc-pct { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(44px, 9vw, 72px); font-weight: 600; color: var(--accent); align-self: flex-start; padding-top: clamp(18px, 3.5vw, 32px); }
+        .promo-h1 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 400; font-style: italic; color: var(--text); text-wrap: balance; margin-bottom: 12px; }
         .promo-detail { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
         .promo-price-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 12px; flex-wrap: wrap; }
         .promo-old { font-size: 20px; color: var(--muted); text-decoration: line-through; }
-        .promo-new { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: var(--accent); }
+        .promo-new { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 42px; font-weight: 600; color: var(--accent); }
         .promo-period { font-size: 14px; color: var(--muted); }
         .promo-annual-hint { font-size: 13px; color: var(--green); font-weight: 600; margin-bottom: 28px; }
-        .promo-btn { display: inline-block; padding: 18px 48px; background: var(--accent); color: #fff; border-radius: 4px; font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background 0.2s; }
+        .promo-btn { display: inline-block; padding: 18px 48px; background: var(--accent); color: var(--on-accent); border-radius: 2px; font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background 0.2s; }
         .promo-btn:hover { background: var(--accent2); }
         .promo-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
 
         /* COUNTDOWN */
-        .urgency-bar { background: var(--accent); color: #fff; text-align: center; padding: 14px 24px; }
+        .urgency-bar { background: var(--accent); color: var(--on-accent); text-align: center; padding: 14px 24px; }
         .urgency-bar p { font-size: 13px; font-weight: 500; margin-bottom: 10px; letter-spacing: 0.04em; }
         .countdown { display: inline-flex; gap: 8px; justify-content: center; }
         .cd-cell { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.18); border-radius: 4px; padding: 6px 12px; min-width: 52px; }
-        .cd-num { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+        .cd-num { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
         .cd-label { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; opacity: 0.85; }
 
         /* DIVIDER */
@@ -400,12 +427,12 @@ export default function PromoPage() {
         .promo-card { background: var(--surface); padding: 32px 28px; transition: background 0.15s; }
         .promo-card:hover { background: var(--bg2); }
         .promo-icon { width: 36px; height: 36px; margin-bottom: 18px; color: var(--accent); }
-        .promo-feat-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .promo-feat-title { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .promo-feat-desc { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
 
         /* MOCKUP */
         .mockup-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
-        .mockup-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 34px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
+        .mockup-section h2 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(22px, 4vw, 34px); font-weight: 600; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
         .mockup-section > p { font-size: 14px; color: var(--muted); margin-bottom: 48px; }
         /* browser chrome */
         .mockup-chrome { max-width: 900px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); }
@@ -413,7 +440,7 @@ export default function PromoPage() {
         .mockup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         .mockup-url { flex: 1; background: var(--bg); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-align: center; margin: 0 12px; font-family: monospace; }
         .mockup-screenshot { display: block; width: 100%; height: auto; }
-        .mockup-screenshot-mobile { display: none; max-width: 360px; margin: 0 auto; border-radius: 20px; box-shadow: 0 24px 80px rgba(0,0,0,0.15); }
+        .mockup-screenshot-mobile { display: none; max-width: 360px; margin: 0 auto; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 24px 80px rgba(0,0,0,0.15); }
         @media (max-width: 720px) {
           .mockup-chrome-desktop { display: none; }
           .mockup-screenshot-mobile { display: block; }
@@ -427,13 +454,13 @@ export default function PromoPage() {
         .mk-logo-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
         .mk-nav-section { font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 8px 16px 4px; opacity: 0.6; }
         .mk-nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 11.5px; color: var(--muted); cursor: default; }
-        .mk-nav-item.active { background: rgba(200,37,58,0.10); color: var(--accent); border-right: 2px solid var(--accent); font-weight: 600; }
+        .mk-nav-item.active { background: color-mix(in oklab, var(--accent) 10%, transparent); color: var(--accent); border-right: 2px solid var(--accent); font-weight: 600; }
         .mk-nav-icon { width: 13px; height: 13px; flex-shrink: 0; }
         /* main content */
         .mk-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
         .mk-topbar { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
         .mk-page-title { font-size: 14px; font-weight: 700; color: var(--text); }
-        .mk-btn { background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 5px 12px; border-radius: 6px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
+        .mk-btn { background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 600; padding: 5px 12px; border-radius: 6px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
         .mk-content { padding: 14px 18px; overflow: hidden; flex: 1; background: var(--bg); }
         /* stat cards — gradiente+glow igual ao sistema real */
         .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -449,7 +476,7 @@ export default function PromoPage() {
         .mk-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
         .mk-table tr:last-child td { border-bottom: none; }
         .mk-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; gap: 3px; }
-        .mk-badge-pend { background: rgba(200,37,58,0.12); color: var(--accent); }
+        .mk-badge-pend { background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent); }
         .mk-badge-prog { background: rgba(234,179,8,0.15); color: #9a7200; }
         .mk-badge-done { background: rgba(34,197,94,0.12); color: var(--green); }
         @media (prefers-color-scheme: dark) {
@@ -461,16 +488,16 @@ export default function PromoPage() {
         .testimonial-section { max-width: 800px; margin: 0 auto; padding: 72px 24px; text-align: center; }
         .testimonial-section .promo-section-label { margin-bottom: 40px; }
         .testimonial-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: left; position: relative; }
-        .testimonial-quote { font-family: 'Playfair Display', serif; font-size: clamp(18px, 2.5vw, 22px); font-style: italic; color: var(--text); line-height: 1.6; margin-bottom: 28px; text-wrap: balance; }
-        .testimonial-quote::before { content: '"'; font-size: 80px; color: var(--accent); opacity: 0.2; position: absolute; top: 8px; left: 28px; font-style: normal; line-height: 1; pointer-events: none; }
+        .testimonial-quote { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(18px, 2.5vw, 22px); font-style: italic; color: var(--text); line-height: 1.6; margin-bottom: 28px; text-wrap: balance; }
+        .testimonial-quote::before { content: '\\201C'; font-family: var(--font-cormorant), Georgia, serif; font-size: 96px; color: var(--accent); opacity: 0.18; position: absolute; top: 14px; right: 28px; font-style: normal; line-height: 1; pointer-events: none; }
         .testimonial-author { display: flex; align-items: center; gap: 14px; }
         .testimonial-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }
-        .testimonial-avatar-fallback { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, #7A1524 100%); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .testimonial-avatar-fallback { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); display: flex; align-items: center; justify-content: center; font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; color: #fff; flex-shrink: 0; }
         .testimonial-name { font-weight: 600; font-size: 15px; color: var(--text); }
         .testimonial-insta { font-size: 13px; color: var(--accent); margin-top: 1px; text-decoration: none; }
         .testimonial-insta:hover { text-decoration: underline; }
         .testimonial-loc { font-size: 12px; color: var(--muted); margin-top: 2px; }
-        .testimonial-stars { display: flex; gap: 3px; margin-bottom: 4px; }
+        .testimonial-stars { display: flex; gap: 3px; margin-bottom: 14px; }
 
         /* GUARANTEE */
         .guarantee-bar { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg2); padding: 36px 24px; text-align: center; }
@@ -481,14 +508,14 @@ export default function PromoPage() {
 
         /* PRICING */
         .pricing-section { max-width: 800px; margin: 0 auto; padding: 72px 24px; text-align: center; }
-        .pricing-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(22px, 4vw, 32px); font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .pricing-section h2 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(22px, 4vw, 32px); font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .pricing-section > p { font-size: 14px; color: var(--muted); margin-bottom: 40px; }
         .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .pricing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 32px 28px; text-align: left; position: relative; }
         .pricing-card.highlighted { border-color: var(--accent); border-width: 2px; }
-        .pricing-tag { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
+        .pricing-tag { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
         .pricing-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
-        .pricing-price { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 900; color: var(--text); line-height: 1; }
+        .pricing-price { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 36px; font-weight: 600; color: var(--text); line-height: 1; }
         .pricing-price span { font-size: 15px; font-weight: 400; color: var(--muted); }
         .pricing-old { font-size: 14px; color: var(--muted); text-decoration: line-through; margin-top: 4px; }
         .pricing-saving { font-size: 13px; color: var(--green); font-weight: 600; margin-top: 4px; }
@@ -496,20 +523,25 @@ export default function PromoPage() {
         .pricing-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
         /* FAQ */
-        .faq-section { max-width: 680px; margin: 0 auto; padding: 0 24px 72px; }
+        .faq-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 72px; }
         .faq-item { border-bottom: 1px solid var(--border); }
         .faq-q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; background: none; border: none; cursor: pointer; text-align: left; font-size: 15px; font-weight: 500; color: var(--text); font-family: inherit; }
         .faq-q:hover { color: var(--accent); }
+        .faq-q { list-style: none; color: var(--text); }
+        .faq-q::-webkit-details-marker { display: none; }
+        .faq-chev { flex-shrink: 0; transition: transform .2s; }
+        .faq-item[open] .faq-chev { transform: rotate(180deg); }
+        .faq-q:focus-visible, .promo-coupon:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
         .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; padding-bottom: 18px; }
 
         /* CTA */
         .promo-cta { text-align: center; padding: 0 24px 96px; max-width: 600px; margin: 0 auto; }
-        .promo-cta-title { font-family: 'Playfair Display', serif; font-size: clamp(26px, 5vw, 38px); font-weight: 700; color: var(--text); text-wrap: balance; margin-bottom: 14px; }
+        .promo-cta-title { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(26px, 5vw, 38px); font-weight: 600; color: var(--text); text-wrap: balance; margin-bottom: 14px; }
         .promo-cta-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; line-height: 1.7; }
-        .promo-coupon { display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: rgba(200,37,58,0.05); }
+        .promo-coupon { font: inherit; color: inherit; display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: color-mix(in oklab, var(--accent) 5%, transparent); }
         .promo-coupon-label { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
         .promo-coupon-code { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
-        .promo-wa-btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: #25D366; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.2s; margin-top: 14px; }
+        .promo-wa-btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: #25D366; color: #fff; border-radius: 2px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.2s; margin-top: 14px; }
         .promo-wa-btn:hover { background: #1EB757; }
         .promo-note { margin-top: 12px; font-size: 12px; color: var(--muted); }
 
@@ -537,13 +569,13 @@ export default function PromoPage() {
         }
         /* VIDEO */
         .video-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 24px; text-align: center; }
-        .video-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
+        .video-section h2 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 600; color: var(--text); margin-bottom: 8px; text-wrap: balance; }
         .video-section > p { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
-        .video-wrap { max-width: 380px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); aspect-ratio: 9/16; position: relative; background: var(--surface); }
+        .video-wrap { max-width: 380px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.15); border: 1px solid var(--border); aspect-ratio: 480/892; position: relative; background: var(--surface); }
 
         /* COMPARISON TABLE */
         .compare-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 0; }
-        .compare-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 8px; text-align: center; }
+        .compare-section h2 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 600; color: var(--text); margin-bottom: 8px; text-align: center; }
         .compare-section > p { font-size: 14px; color: var(--muted); margin-bottom: 36px; text-align: center; }
         .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 13.5px; }
         .compare-table th { padding: 12px 16px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--bg2); border-bottom: 1px solid var(--border); text-align: center; }
@@ -557,13 +589,14 @@ export default function PromoPage() {
         .compare-th-pro { color: var(--accent) !important; }
 
         /* LEAD CAPTURE */
+        .lead-wrap-end { padding-bottom: 96px !important; margin-top: -48px !important; }
         .lead-wrap { max-width: 560px; margin: 0 auto; padding: 48px 24px 0; text-align: center; }
         .lead-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px 32px; }
         .lead-label { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
         .lead-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
         .lead-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg); color: var(--text); font-family: inherit; outline: none; }
         .lead-input:focus { border-color: var(--accent); }
-        .lead-btn { padding: 12px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; white-space: nowrap; }
+        .lead-btn { padding: 12px 20px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 2px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; white-space: nowrap; }
         .lead-btn:hover { background: var(--accent2); }
         .lead-btn-full { width: 100%; }
         .lead-sent { background: rgba(26,138,60,0.08); border: 1px solid rgba(26,138,60,0.2); border-radius: 10px; padding: 20px 28px; font-size: 14px; color: var(--green); font-weight: 500; }
@@ -574,17 +607,17 @@ export default function PromoPage() {
         @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         /* COPY COUPON */
-        .promo-coupon { display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: rgba(200,37,58,0.05); cursor: pointer; transition: background 0.15s; }
-        .promo-coupon:hover { background: rgba(200,37,58,0.10); }
+        .promo-coupon { font: inherit; color: inherit; display: inline-flex; align-items: center; gap: 12px; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 14px 24px; margin-bottom: 28px; background: color-mix(in oklab, var(--accent) 5%, transparent); cursor: pointer; transition: background 0.15s; }
+        .promo-coupon:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); }
         .promo-coupon-copy { font-size: 11px; color: var(--accent); opacity: 0.7; }
 
         /* HOW IT WORKS */
         .how-section { max-width: 680px; margin: 0 auto; padding: 72px 24px 0; text-align: center; }
-        .how-section h2 { font-family: 'Playfair Display', serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .how-section h2 { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 3.5vw, 28px); font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .how-section > p { font-size: 14px; color: var(--muted); margin-bottom: 40px; }
         .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         .how-step { display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .how-num { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; flex-shrink: 0; }
+        .how-num { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; flex-shrink: 0; }
         .how-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 6px; }
         .how-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
         .how-connector { display: none; }
@@ -600,7 +633,7 @@ export default function PromoPage() {
         .sticky-cta-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 480px; margin: 0 auto; }
         .sticky-cta-text { font-size: 13px; color: var(--muted); line-height: 1.3; }
         .sticky-cta-text strong { color: var(--text); font-size: 15px; display: block; }
-        .sticky-cta-btn { flex-shrink: 0; padding: 11px 20px; background: var(--accent); color: #fff; border-radius: 4px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+        .sticky-cta-btn { flex-shrink: 0; padding: 11px 20px; background: var(--accent); color: var(--on-accent); border-radius: 2px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
         @media (max-width: 720px) {
           .sticky-cta { display: block; }
           .wa-float { bottom: 88px; }
@@ -699,16 +732,22 @@ export default function PromoPage() {
             <div className="mockup-url">meuateliersistema.com.br/ordens-servico</div>
           </div>
           {/* screenshot real do sistema — desktop */}
-          <img
-            src="/screenshots/ordens-servico.png"
-            alt="Tela de Ordens de Serviço do Meu Atelier Sistema"
+          <Image
+            src="/screenshots/sistema-ordens-desktop.webp"
+            alt="Tela de Ordens de Serviço do Meu Atelier: lista com filtros por status e prazo, e a ordem aberta ao lado com andamento, valores e cliente"
+            width={1600}
+            height={872}
+            sizes="(max-width: 960px) 100vw, 900px"
             className="mockup-screenshot"
           />
         </div>
         {/* screenshot real do sistema — mobile, sem moldura de navegador */}
-        <img
-          src="/screenshots/ordens-servico-mobile.png"
-          alt="Tela de Ordens de Serviço do Meu Atelier Sistema no celular"
+        <Image
+          src="/screenshots/sistema-ordens-mobile.webp"
+          alt="A mesma tela de Ordens de Serviço no celular, com as ordens e os prazos de entrega"
+          width={780}
+          height={1446}
+          sizes="360px"
           className="mockup-screenshot mockup-screenshot-mobile"
         />
       </section>
@@ -722,7 +761,7 @@ export default function PromoPage() {
         <div className="testimonial-card">
           <div className="testimonial-stars">
             {[...Array(5)].map((_, i) => (
-              <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#C8253A" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#D4A85A" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             ))}
           </div>
           <p className="testimonial-quote">
@@ -855,10 +894,6 @@ export default function PromoPage() {
         {faqs.map((f) => <FaqItem key={f.q} q={f.q} a={f.a} />)}
       </section>
 
-      {/* LEAD CAPTURE */}
-      <div className="lead-wrap">
-        <LeadCapture />
-      </div>
 
       {/* CTA FINAL */}
       <section className="promo-cta">
@@ -882,6 +917,11 @@ export default function PromoPage() {
         </p>
       </section>
 
+      {/* LEAD CAPTURE */}
+      <div className="lead-wrap lead-wrap-end">
+        <LeadCapture />
+      </div>
+
       {/* STICKY CTA MOBILE */}
       <StickyCta />
 
@@ -902,6 +942,6 @@ export default function PromoPage() {
           <a href="https://instagram.com/eduallochio" target="_blank" rel="noopener noreferrer">@eduallochio</a>
         </div>
       </footer>
-    </>
+    </div>
   )
 }

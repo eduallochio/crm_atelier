@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Bell, Building2, CreditCard, DollarSign, FileText, Settings, Users } from 'lucide-react'
+import { Header } from '@/components/layouts/header'
 import { OrganizationSettingsForm } from '@/components/settings/organization-settings-form'
 import { FinancialSettingsForm } from '@/components/settings/financial-settings-form'
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form'
@@ -10,128 +11,86 @@ import { OrderSettingsForm } from '@/components/settings/order-settings-form'
 import { SystemSettingsForm } from '@/components/settings/system-settings-form'
 import { UsersManagementForm } from '@/components/settings/users-management-form'
 import { SubscriptionSettingsForm } from '@/components/settings/subscription-settings-form'
-import { Building2, DollarSign, Bell, FileText, Settings, Users, CreditCard } from 'lucide-react'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 
+const SECTIONS = [
+  { key: 'empresa', label: 'Empresa', icon: Building2, title: 'Empresa', desc: 'Os dados do ateliê que aparecem nas ordens, comprovantes e relatórios.', Form: OrganizationSettingsForm },
+  { key: 'usuarios', label: 'Usuários', icon: Users, title: 'Usuários', desc: 'Quem tem acesso ao sistema e o cargo de cada pessoa da equipe.', Form: UsersManagementForm },
+  { key: 'financeiro', label: 'Financeiro', icon: DollarSign, title: 'Financeiro', desc: 'Formas de pagamento, chave PIX e taxas.', Form: FinancialSettingsForm },
+  { key: 'ordens', label: 'Ordens de serviço', icon: FileText, title: 'Ordens de serviço', desc: 'Numeração, status inicial, campos obrigatórios, prazos e impressora.', Form: OrderSettingsForm },
+  { key: 'notificacoes', label: 'Notificações', icon: Bell, title: 'Notificações', desc: 'Lembretes e avisos para você e para as clientes.', Form: NotificationSettingsForm },
+  { key: 'sistema', label: 'Sistema', icon: Settings, title: 'Preferências do sistema', desc: 'Formatos de data e moeda, caixa e módulos ligados.', Form: SystemSettingsForm },
+  { key: 'assinatura', label: 'Assinatura', icon: CreditCard, title: 'Assinatura e pagamento', desc: 'Seu plano, o uso dos recursos e o upgrade quando precisar.', Form: SubscriptionSettingsForm },
+] as const
+
+/** Seções à esquerda (no celular, em abas roláveis), o formulário da seção à direita; a seção fica na URL (?tab=) */
 export default function ConfiguracoesPage() {
-  const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') ?? 'empresa')
+  const router = useRouter()
+  const params = useSearchParams()
+  const current = SECTIONS.find((s) => s.key === params.get('tab')) ?? SECTIONS[0]
+  const go = (key: string) => router.replace(`/configuracoes?tab=${key}`, { scroll: false })
+  const navRef = useRef<HTMLElement>(null)
 
+  // no celular as seções rolam de lado: mantém a aberta à vista
   useEffect(() => {
-    const tab = searchParams.get('tab')
-    if (tab) setActiveTab(tab)
-  }, [searchParams])
+    navRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [current.key])
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie as configurações do seu sistema de forma organizada e eficiente
-        </p>
+    <div>
+      <style>{MASTER_DETAIL_CSS + CFG_CSS}</style>
+      <Header title="Configurações" description="Ajuste o sistema ao jeito do seu ateliê" />
+
+      <div className="lg:flex lg:items-start">
+        {/* ── seções ── */}
+        <nav ref={navRef} aria-label="Seções das configurações"
+          className="cfg-nav sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-card px-3 py-2 sm:px-6 lg:top-4 lg:m-6 lg:mr-0 lg:w-[270px] lg:shrink-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:rounded-xl lg:border lg:p-2">
+          {SECTIONS.map((s) => {
+            const on = s.key === current.key
+            return (
+              <button key={s.key} type="button" onClick={() => go(s.key)} aria-current={on ? 'page' : undefined} className={`cfg-item ${on ? 'is-on' : ''}`}>
+                <s.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" strokeWidth={1.75} />
+                <span className="min-w-0">
+                  <span className="block whitespace-nowrap text-[14px] font-medium">{s.label}</span>
+                  <span className="hidden truncate text-[12px] text-muted-foreground lg:block">{s.desc}</span>
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* ── seção aberta ── */}
+        <section key={current.key} aria-labelledby="cfg-title" className="cfg-panel cli-det min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-7">
+          <div className="mx-auto max-w-4xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Configurações</p>
+            <h2 id="cfg-title" className="font-serif-display mt-1 text-[34px] leading-[1.05] text-foreground sm:text-[38px]">{current.title}</h2>
+            <p className="mt-1.5 mb-6 text-sm text-muted-foreground">{current.desc}</p>
+            <current.Form />
+          </div>
+        </section>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-8">
-          <TabsTrigger value="empresa" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Empresa</span>
-          </TabsTrigger>
-          <TabsTrigger value="usuarios" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Usuários</span>
-          </TabsTrigger>
-          <TabsTrigger value="financeiro" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Financeiro</span>
-          </TabsTrigger>
-          <TabsTrigger value="ordens" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Ordens</span>
-          </TabsTrigger>
-          <TabsTrigger value="notificacoes" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notificações</span>
-          </TabsTrigger>
-          <TabsTrigger value="sistema" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Sistema</span>
-          </TabsTrigger>
-          <TabsTrigger value="assinatura" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Assinatura</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="empresa">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Informações da Empresa</h2>
-            <p className="text-muted-foreground mb-6">
-              Configure os dados da sua empresa que aparecerão em documentos e relatórios
-            </p>
-          </div>
-          <OrganizationSettingsForm />
-        </TabsContent>
-
-        <TabsContent value="usuarios">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Usuários</h2>
-            <p className="text-muted-foreground mb-6">
-              Gerencie quem tem acesso ao sistema e defina os cargos de cada membro da equipe
-            </p>
-          </div>
-          <UsersManagementForm />
-        </TabsContent>
-
-        <TabsContent value="financeiro">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Configurações Financeiras</h2>
-            <p className="text-muted-foreground mb-6">
-              Gerencie formas de pagamento, taxas e configurações de caixa
-            </p>
-          </div>
-          <FinancialSettingsForm />
-        </TabsContent>
-
-        <TabsContent value="ordens">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Ordens de Serviço</h2>
-            <p className="text-muted-foreground mb-6">
-              Configure numeração, status e campos obrigatórios das ordens de serviço
-            </p>
-          </div>
-          <OrderSettingsForm />
-        </TabsContent>
-
-        <TabsContent value="notificacoes">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Notificações</h2>
-            <p className="text-muted-foreground mb-6">
-              Configure lembretes e alertas para manter você informado sobre eventos importantes
-            </p>
-          </div>
-          <NotificationSettingsForm />
-        </TabsContent>
-
-        <TabsContent value="sistema">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Preferências do Sistema</h2>
-            <p className="text-muted-foreground mb-6">
-              Personalize a aparência, idioma e formatos do sistema
-            </p>
-          </div>
-          <SystemSettingsForm />
-        </TabsContent>
-
-        <TabsContent value="assinatura">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Assinatura e Pagamento</h2>
-            <p className="text-muted-foreground mb-6">
-              Gerencie seu plano, acompanhe o uso dos recursos e realize o upgrade quando precisar
-            </p>
-          </div>
-          <SubscriptionSettingsForm />
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }
+
+/* Estilo da navegação e um acabamento leve nos formulários (sem mexer neles):
+   cartões sem sombra, títulos em Cormorant, subtítulos como legendas e divisões pespontadas */
+const CFG_CSS = `
+.cfg-nav { scrollbar-width: none; }
+.cfg-nav::-webkit-scrollbar { display: none; }
+.cfg-item { position: relative; display: flex; flex: none; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 10px; text-align: left; color: var(--muted-foreground); transition: background-color .12s, color .12s; }
+.cfg-item:hover { color: var(--foreground); background: color-mix(in oklab, var(--muted) 70%, transparent); }
+.cfg-item.is-on { color: var(--foreground); background: rgba(200,113,74,.1); }
+.cfg-item.is-on svg { color: #C8714A; }
+.cfg-item.is-on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 2px; background: repeating-linear-gradient(90deg, #C8714A 0 6px, transparent 6px 9px); }
+.cfg-item:focus-visible { outline: 2px solid #C8714A; outline-offset: 2px; }
+@media (min-width: 1024px) {
+  .cfg-item { align-items: flex-start; padding: 10px 12px; }
+  .cfg-item svg { margin-top: 1px; }
+  .cfg-item.is-on::after { left: 0; right: auto; top: 10px; bottom: 10px; width: 3px; height: auto; border-radius: 2px; background: repeating-linear-gradient(180deg, #C8714A 0 5px, transparent 5px 8px); }
+}
+.cfg-panel .rounded-xl.border.bg-card { box-shadow: none; border-color: color-mix(in oklab, var(--border) 70%, transparent); }
+.cfg-panel h2.text-lg { font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.1; letter-spacing: -.01em; }
+.cfg-panel h3.text-md, .cfg-panel h3.text-base, .cfg-panel h3.text-sm, .cfg-panel h3.text-lg { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+.cfg-panel .border-t { border-top-style: dashed; }
+`

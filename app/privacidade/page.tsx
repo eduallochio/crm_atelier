@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { ArrowLeft, Shield, Lock, Eye, Download, Trash2, FileText } from 'lucide-react'
+import { pageMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = pageMetadata({
+  path: '/privacidade',
   title: 'Política de Privacidade - Meu Atelier Sistema',
   description: 'Política de Privacidade e Proteção de Dados do Meu Atelier Sistema conforme LGPD',
-}
+})
 
 const terra  = '#c8714a'
 const dourado = '#d4a85a'

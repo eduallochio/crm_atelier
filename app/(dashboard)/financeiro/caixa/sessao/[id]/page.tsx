@@ -1,374 +1,194 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, FileText, X, Landmark, AlertCircle } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Landmark, Lock } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
+import { Loader } from '@/components/ui/loader'
 import { useCashierSession, useCashierMovements, useCloseCashier } from '@/hooks/use-cashier'
 import { AddMovementDialog } from '@/components/financeiro/add-movement-dialog'
 import { CloseCashierDialog } from '@/components/financeiro/close-cashier-dialog'
-import { MovementsTable } from '@/components/financeiro/movements-table'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { MOVE_ICON, MOVE_LABEL, isInflow, sessionTotals, useUnlaunchedOrders, type MoveKind } from '@/components/financeiro/cash-drawer'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { FIN_CSS, FinanceTabs, brl, dateTimeOf, shortDate, timeOf } from '@/components/financeiro/finance-ui'
 
+/** Uma sessão de caixa: lançamentos rápidos, linha do tempo dos movimentos, OS pagas fora do caixa e fechamento */
 export default function SessaoCaixaPage() {
   const router = useRouter()
-  const params = useParams()
-  const sessaoId = params.id as string
-  
-  const [showAddMovement, setShowAddMovement] = useState(false)
-  const [showCloseCashier, setShowCloseCashier] = useState(false)
-  const [selectedType, setSelectedType] = useState<'entrada' | 'saida' | 'sangria' | 'reforco'>('entrada')
-
-  const { data: sessao, isLoading: loadingSessao } = useCashierSession(sessaoId)
-  const { data: movimentos, isLoading: loadingMovimentos } = useCashierMovements(sessaoId)
+  const sessaoId = useParams().id as string
+  const { data: sessao, isLoading } = useCashierSession(sessaoId)
+  const { data: movimentos = [], isLoading: loadingMoves } = useCashierMovements(sessaoId)
   const closeCashier = useCloseCashier()
-  const queryClient = useQueryClient()
-  const [registeringId, setRegisteringId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'movimentos' | 'nao-lancadas'>('movimentos')
+  const aberta = sessao?.status === 'aberto'
+  const unl = useUnlaunchedOrders(!!aberta)
+  const [adding, setAdding] = useState<MoveKind | null>(null)
+  const [closing, setClosing] = useState(false)
 
-  const { data: naoLancadas = [], isLoading: loadingNaoLancadas } = useQuery({
-    queryKey: ['orders-unlaunched'],
-    queryFn: () => fetch('/api/orders/unlaunched').then(r => r.json()),
-    enabled: !loadingSessao,
-  })
-
-  const handleRegisterInCashier = async (orderId: string) => {
-    setRegisteringId(orderId)
-    try {
-      const res = await fetch(`/api/orders/${orderId}/register-cashier`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || 'Erro ao lançar no caixa')
-        return
-      }
-      toast.success('OS lançada no caixa com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['orders-unlaunched'] })
-      queryClient.invalidateQueries({ queryKey: ['cashier-movements', sessaoId] })
-    } catch {
-      toast.error('Erro ao lançar no caixa')
-    } finally {
-      setRegisteringId(null)
-    }
-  }
-
-  const formatCurrency = (value: number | string | null | undefined) => {
-    return (Number(value) || 0).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    })
-  }
-
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('pt-BR')
-  }
-
-  const handleAddMovement = (type: 'entrada' | 'saida' | 'sangria' | 'reforco') => {
-    setSelectedType(type)
-    setShowAddMovement(true)
-  }
-
-  const handleCloseCashier = async (data: {
-    saldo_real: number
-    conferencia: { dinheiro: number; pix: number; credito: number; debito: number; outros: number }
-    observacoes_fechamento?: string
-  }) => {
-    try {
-      await closeCashier.mutateAsync({
-        sessaoId,
-        ...data,
-      })
-      setShowCloseCashier(false)
-      router.push('/financeiro/caixa')
-    } catch (error) {
-      console.error('Erro ao fechar caixa:', error)
-    }
-  }
-
-  if (loadingSessao) {
-    return (
-      <Loader className="min-h-screen" text="Carregando..." />
-    )
-  }
-
+  if (isLoading) return <Loader className="min-h-[60vh]" text="Carregando..." />
   if (!sessao) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Sessão não encontrada</p>
-          <Button onClick={() => router.push('/financeiro/caixa')}>
-            Voltar
-          </Button>
-        </div>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
+        <style>{MASTER_DETAIL_CSS}</style>
+        Sessão não encontrada
+        <Link href="/financeiro/caixa" className="cli-ghost"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar aos caixas</Link>
       </div>
     )
   }
 
-  const entradas = movimentos?.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + Number(m.valor), 0) || 0
-  const saidas = movimentos?.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + Number(m.valor), 0) || 0
-  const sangrias = movimentos?.filter(m => m.tipo === 'sangria').reduce((sum, m) => sum + Number(m.valor), 0) || 0
-  const reforcos = movimentos?.filter(m => m.tipo === 'reforco').reduce((sum, m) => sum + Number(m.valor), 0) || 0
-
-  const saldoAtual = Number(sessao.saldo_inicial) + entradas - saidas - sangrias + reforcos
-
-  const isClosed = sessao.status === 'fechado'
+  const t = sessionTotals(sessao.saldo_inicial, movimentos)
+  const nome = sessao.org_cashiers?.nome || 'Caixa'
+  const dif = Number(sessao.diferenca) || 0
+  const timeline = [
+    ...movimentos,
+    { id: 'abertura', tipo: 'abertura', valor: t.inicial, descricao: 'Abertura do caixa', created_at: sessao.data_abertura } as const,
+  ]
 
   return (
-    <>
-      <div>
-        <Header 
-          title={sessao.org_cashiers?.nome || 'Caixa'}
-          description={isClosed ? `Sessão fechada em ${sessao.data_fechamento ? formatDateTime(sessao.data_fechamento) : 'Data desconhecida'}` : `Sessão aberta em ${sessao.data_abertura ? formatDateTime(sessao.data_abertura) : 'Data desconhecida'}`}
-          action={
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.push('/financeiro/caixa')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              {!isClosed && (
-                <>
-                  <Button variant="outline" onClick={() => router.push(`/financeiro/caixa/sessao/${sessaoId}/relatorio`)}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Relatório
-                  </Button>
-                  <Button variant="destructive" onClick={() => setShowCloseCashier(true)}>
-                    <X className="h-4 w-4 mr-2" />
-                    Fechar Caixa
-                  </Button>
-                </>
+    <div>
+      <style>{MASTER_DETAIL_CSS + FIN_CSS}</style>
+      <Header title="Financeiro" description="Caixas e sessões" />
+      <FinanceTabs />
+
+      <div className="p-3 sm:p-6">
+        <Link href="/financeiro/caixa" className="mb-3 -ml-1 inline-flex min-h-10 items-center gap-2 rounded-md px-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Todos os caixas
+        </Link>
+
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_360px] lg:gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-serif-display text-[34px] leading-none text-foreground sm:text-[38px]">{nome}</h2>
+              {aberta
+                ? <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-emerald-600/12 px-3 text-[12.5px] font-semibold text-emerald-800 dark:text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true" />Aberto {dateTimeOf(sessao.data_abertura)}</span>
+                : <span className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-[12.5px] font-semibold text-muted-foreground">Fechado {dateTimeOf(sessao.data_fechamento)}</span>}
+            </div>
+            <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+              {aberta ? 'Tudo que entra e sai da gaveta fica registrado aqui.' : `Sessão de ${shortDate(sessao.data_abertura)}.`}
+            </p>
+
+            {aberta && (
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(Object.keys(MOVE_LABEL) as MoveKind[]).map((k) => {
+                  const Icon = MOVE_ICON[k]
+                  return (
+                    <button key={k} type="button" onClick={() => setAdding(k)}
+                      className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-card text-[13.5px] font-medium transition-colors hover:border-[#D4A85A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C8714A]">
+                      <Icon className="h-5 w-5 text-[#C8714A]" aria-hidden="true" />{MOVE_LABEL[k]}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            <section aria-labelledby="mv-h" className="fin-card mt-4 px-4 py-4 sm:px-5">
+              <div className="flex items-center justify-between">
+                <h3 id="mv-h" className="fin-cap">{aberta ? 'Movimentos de hoje' : 'Movimentos'}</h3>
+                <span className="text-[12.5px] text-muted-foreground">{movimentos.length} {movimentos.length === 1 ? 'movimento' : 'movimentos'}</span>
+              </div>
+              {loadingMoves ? (
+                <div className="space-y-2 pt-3">{[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse rounded bg-muted" />)}</div>
+              ) : (
+                <ol className="cx-tl mt-1">
+                  {timeline.map((m) => {
+                    const inflow = m.tipo === 'abertura' || isInflow(m.tipo)
+                    return (
+                      <li key={m.id} className={`${inflow ? '' : 'out'} ${m.tipo === 'abertura' ? 'ab' : ''}`}>
+                        <span className="text-[12.5px] tabular-nums text-muted-foreground">{timeOf(m.created_at)}</span>
+                        <span className="min-w-0">
+                          <b className="text-sm font-semibold">{m.descricao || (m.tipo === 'abertura' ? 'Abertura' : MOVE_LABEL[m.tipo])}</b>
+                          <span className={`mv-tag ${m.tipo}`}>{m.tipo === 'abertura' ? 'Abertura' : MOVE_LABEL[m.tipo]}</span>
+                        </span>
+                        <span className={`text-sm font-semibold tabular-nums ${m.tipo === 'entrada' || m.tipo === 'reforco' ? 'fin-pos' : ''}`}>
+                          {m.tipo === 'abertura' ? '' : inflow ? '+ ' : '− '}{brl(Number(m.valor))}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ol>
               )}
-            </div>
-          }
-        />
-
-        <div className="p-6 space-y-6">
-          {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <ArrowUpCircle className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Saldo Inicial</p>
-                  <p className="text-xl font-bold text-gray-900">
-                    {formatCurrency(sessao.saldo_inicial)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Entradas</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {formatCurrency(entradas)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-red-50 rounded-lg">
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Saídas</p>
-                  <p className="text-xl font-bold text-red-600">
-                    {formatCurrency(saidas)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-orange-50 rounded-lg">
-                  <ArrowDownCircle className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Sangrias</p>
-                  <p className="text-xl font-bold text-orange-600">
-                    {formatCurrency(sangrias)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <ArrowUpCircle className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Saldo Atual</p>
-                  <p className="text-xl font-bold text-purple-600">
-                    {formatCurrency(saldoAtual)}
-                  </p>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
 
-          {/* Botões de Ação Rápida */}
-          {!isClosed && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button 
-                className="h-20" 
-                variant="outline"
-                onClick={() => handleAddMovement('entrada')}
-              >
-                <div className="text-center">
-                  <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-600" />
-                  <p className="font-medium">Entrada</p>
-                </div>
-              </Button>
-
-              <Button 
-                className="h-20" 
-                variant="outline"
-                onClick={() => handleAddMovement('saida')}
-              >
-                <div className="text-center">
-                  <TrendingDown className="h-6 w-6 mx-auto mb-2 text-red-600" />
-                  <p className="font-medium">Saída</p>
-                </div>
-              </Button>
-
-              <Button 
-                className="h-20" 
-                variant="outline"
-                onClick={() => handleAddMovement('sangria')}
-              >
-                <div className="text-center">
-                  <ArrowDownCircle className="h-6 w-6 mx-auto mb-2 text-orange-600" />
-                  <p className="font-medium">Sangria</p>
-                </div>
-              </Button>
-
-              <Button 
-                className="h-20" 
-                variant="outline"
-                onClick={() => handleAddMovement('reforco')}
-              >
-                <div className="text-center">
-                  <ArrowUpCircle className="h-6 w-6 mx-auto mb-2 text-purple-600" />
-                  <p className="font-medium">Reforço</p>
-                </div>
-              </Button>
-            </div>
-          )}
-
-          {/* Abas: Movimentos | OS não lançadas */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="flex border-b border-border">
-              <button
-                onClick={() => setActiveTab('movimentos')}
-                className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'movimentos' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Movimentos
-              </button>
-              <button
-                onClick={() => setActiveTab('nao-lancadas')}
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'nao-lancadas' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                OS não lançadas
-                {naoLancadas.length > 0 && (
-                  <span className="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                    {naoLancadas.length}
-                  </span>
+          <aside className="space-y-3">
+            <div className="fin-card px-5 py-4">
+              <p className="fin-cap">{aberta ? 'Na gaveta agora' : 'O sistema esperava'}</p>
+              <p className="fin-num mt-2 text-[44px]">{brl(aberta ? t.gaveta : Number(sessao.saldo_esperado ?? t.gaveta))}</p>
+              <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-[13.5px]">
+                <dt className="text-muted-foreground">Saldo inicial</dt><dd className="text-right font-semibold tabular-nums">{brl(t.inicial)}</dd>
+                <dt className="text-muted-foreground">Entradas</dt><dd className="fin-pos text-right font-semibold tabular-nums">{brl(t.entradas)}</dd>
+                <dt className="text-muted-foreground">Saídas</dt><dd className="text-right font-semibold tabular-nums">{brl(t.saidas)}</dd>
+                <dt className="text-muted-foreground">Sangrias</dt><dd className="text-right font-semibold tabular-nums">{brl(t.sangrias)}</dd>
+                <dt className="text-muted-foreground">Reforços</dt><dd className="text-right font-semibold tabular-nums">{brl(t.reforcos)}</dd>
+                {!aberta && (
+                  <>
+                    <dt className="border-t border-dashed border-border pt-2 text-muted-foreground">Contado no fechamento</dt>
+                    <dd className="border-t border-dashed border-border pt-2 text-right font-semibold tabular-nums">{brl(Number(sessao.saldo_real) || 0)}</dd>
+                  </>
                 )}
-              </button>
+              </dl>
+              {!aberta && (
+                <p className={`mt-3 rounded-lg px-3 py-2.5 text-[13.5px] font-medium ${Math.abs(dif) < 0.01 ? 'bg-emerald-600/10 fin-pos' : dif < 0 ? 'bg-red-600/10 fin-late' : 'bg-[#D4A85A]/15 text-[#7A5A1E] dark:text-[#E8C98A]'}`}>
+                  {Math.abs(dif) < 0.01 ? 'Bateu certinho com o esperado.' : dif < 0 ? `Faltaram ${brl(-dif)} na gaveta.` : `Sobraram ${brl(dif)} na gaveta.`}
+                </p>
+              )}
+              {!aberta && sessao.observacoes_fechamento && <p className="mt-3 whitespace-pre-line text-[13px] text-muted-foreground">{sessao.observacoes_fechamento}</p>}
             </div>
 
-            {activeTab === 'movimentos' && (
-              <MovementsTable
-                movements={movimentos || []}
-                isLoading={loadingMovimentos}
-              />
-            )}
-
-            {activeTab === 'nao-lancadas' && (
-              <div>
-                {loadingNaoLancadas ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">Carregando...</div>
-                ) : naoLancadas.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    Todas as OS pagas já foram lançadas no caixa.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950/30 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
-                        Estas OS foram pagas mas o valor ainda não entrou no caixa. Clique em "Lançar" para registrar.
-                      </p>
-                    </div>
-                    {naoLancadas.map((os: { id: string; numero: number | null; valorTotal: string | null; formaPagamento: string | null; dataConclusao: string | null; clienteNome: string | null }) => (
-                      <div key={os.id} className="flex items-center justify-between px-4 py-3 hover:bg-accent/50">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            #{String(os.numero ?? 0).padStart(6, '0')} — {os.clienteNome || 'Cliente não informado'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {os.formaPagamento || 'Forma de pagamento não informada'}
-                            {os.dataConclusao && ` · ${new Date(os.dataConclusao).toLocaleDateString('pt-BR')}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            {(Number(os.valorTotal) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/50"
-                            onClick={() => handleRegisterInCashier(os.id)}
-                            disabled={registeringId === os.id}
-                          >
-                            <Landmark className="h-3.5 w-3.5 mr-1.5" />
-                            {registeringId === os.id ? 'Lançando...' : 'Lançar'}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {aberta && unl.list.length > 0 && (
+              <div className="rounded-xl border border-dashed border-[#D4A85A] bg-[#D4A85A]/8 px-5 py-4">
+                <p className="fin-cap text-[#7A5A1E] dark:text-[#E8C98A]">Pagas e ainda fora do caixa</p>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">Ordens pagas em PIX ou dinheiro que ainda não entraram em nenhum caixa.</p>
+                <ul className="mt-2">
+                  {unl.list.map((o) => (
+                    <li key={o.id} className="flex items-center justify-between gap-2 border-t border-dashed border-[#D4A85A]/40 py-2 text-[13px] first:border-t-0">
+                      <span className="min-w-0">
+                        <b className="block truncate font-semibold">#{String(o.numero ?? 0).padStart(6, '0')} · {o.clienteNome || 'Cliente não informado'}</b>
+                        <small className="text-muted-foreground capitalize">{o.formaPagamento || 'Forma não informada'}{o.dataConclusao ? ` · ${shortDate(o.dataConclusao, false)}` : ''}</small>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <b className="tabular-nums">{brl(Number(o.valorTotal) || 0)}</b>
+                        <button type="button" className="cli-ghost" style={{ minHeight: 34, padding: '0 10px', fontSize: 12.5 }}
+                          onClick={() => unl.launch(o.id)} disabled={!!unl.busy} aria-label={`Lançar a OS ${o.numero} no caixa`}>
+                          <Landmark className="h-3.5 w-3.5" aria-hidden="true" />{unl.busy === o.id ? '...' : 'Lançar'}
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {unl.list.length > 1 && (
+                  <button type="button" className="cli-ghost mt-2 w-full justify-center" style={{ minHeight: 38 }} onClick={unl.launchAll} disabled={!!unl.busy}>
+                    {unl.busy === 'all' ? 'Lançando...' : `Lançar ${unl.list.length === 2 ? 'as duas' : `todas as ${unl.list.length}`} no caixa`}
+                  </button>
                 )}
               </div>
             )}
-          </div>
+
+            {aberta && (
+              <button type="button" className="cli-primary w-full justify-center" style={{ minHeight: 46 }} onClick={() => setClosing(true)}>
+                <Lock className="h-4 w-4" aria-hidden="true" /> Fechar caixa
+              </button>
+            )}
+          </aside>
         </div>
       </div>
 
-      {showAddMovement && (
-        <AddMovementDialog
-          sessaoId={sessaoId}
-          type={selectedType}
-          onClose={() => setShowAddMovement(false)}
-        />
-      )}
-
-      {showCloseCashier && sessao && sessao.id && (
+      {adding && <AddMovementDialog sessaoId={sessaoId} type={adding} onClose={() => setAdding(null)} />}
+      {closing && sessao.id && (
         <CloseCashierDialog
-          sessao={{
-            id: sessao.id,
-            caixa_id: sessao.caixa_id,
-            saldo_inicial: sessao.saldo_inicial,
-            status: sessao.status,
-          }}
-          saldoEsperado={saldoAtual}
-          onClose={() => setShowCloseCashier(false)}
-          onConfirm={handleCloseCashier}
+          sessao={{ id: sessao.id, caixa_id: sessao.caixa_id, saldo_inicial: Number(sessao.saldo_inicial) || 0, status: sessao.status }}
+          saldoEsperado={t.gaveta}
+          onClose={() => setClosing(false)}
           isLoading={closeCashier.isPending}
+          onConfirm={async (data) => {
+            try {
+              await closeCashier.mutateAsync({ sessaoId, ...data })
+              setClosing(false)
+              router.push('/financeiro/caixa')
+            } catch { /* o hook já mostra o erro */ }
+          }}
         />
       )}
-    </>
+    </div>
   )
 }

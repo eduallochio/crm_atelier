@@ -130,7 +130,7 @@ export default function StaggeredMenu({ open, onClose, navItems }: StaggeredMenu
           flex-shrink: 0;
         }
         .sm-logo {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: var(--f-serif);
           font-size: 20px; font-weight: 600; letter-spacing: 0.05em;
           color: #f7f0e6;
         }
@@ -174,7 +174,7 @@ export default function StaggeredMenu({ open, onClose, navItems }: StaggeredMenu
 
         /* texto do item — grande, display font */
         .sm-nav-text {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: var(--f-serif);
           font-size: 28px; font-weight: 400; letter-spacing: -0.01em;
           color: rgba(247,240,230,0.85);
           line-height: 1;
@@ -194,7 +194,7 @@ export default function StaggeredMenu({ open, onClose, navItems }: StaggeredMenu
 
         /* número do item — estilo editorial */
         .sm-item-num {
-          font-family: 'DM Sans', sans-serif;
+          font-family: var(--f-sans);
           font-size: 9px; font-weight: 500; letter-spacing: 0.12em;
           color: rgba(212,168,90,0.4);
           margin-right: 12px;
@@ -214,7 +214,7 @@ export default function StaggeredMenu({ open, onClose, navItems }: StaggeredMenu
           width: 100%; padding: 14px 24px;
           background: #c8714a; color: #fff;
           border: none; border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: var(--f-sans);
           font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
           text-decoration: none; cursor: pointer;
           margin-bottom: 24px;
@@ -224,7 +224,7 @@ export default function StaggeredMenu({ open, onClose, navItems }: StaggeredMenu
 
         /* social — oculto por padrão */
         .sm-social-label {
-          font-family: 'DM Sans', sans-serif;
+          font-family: var(--f-sans);
           font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
           color: rgba(212,168,90,0.4);
           margin-bottom: 12px;

@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { ArrowLeft, Shield, Eye, Download, Edit, Trash2, FileText, Mail, CheckCircle } from 'lucide-react'
+import { pageMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = pageMetadata({
+  path: '/lgpd',
   title: 'Seus Direitos LGPD - Meu Atelier Sistema',
   description: 'Exercite seus direitos conforme a Lei Geral de Proteção de Dados (LGPD) — Lei 13.709/2018',
-}
+})
 
 const terra   = '#c8714a'
 const dourado = '#d4a85a'

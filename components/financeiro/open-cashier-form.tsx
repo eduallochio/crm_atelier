@@ -48,11 +48,11 @@ export function OpenCashierForm({ caixa, onSubmit, isLoading }: OpenCashierFormP
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white rounded-lg border p-6 space-y-4">
+        <div className="rounded-xl border border-border/70 bg-card p-6 space-y-4">
           <div className="pb-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">{caixa.nome}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{caixa.nome}</h3>
             {caixa.descricao && (
-              <p className="text-sm text-gray-500 mt-1">{caixa.descricao}</p>
+              <p className="text-sm text-muted-foreground mt-1">{caixa.descricao}</p>
             )}
           </div>
 

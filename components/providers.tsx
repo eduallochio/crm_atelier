@@ -3,12 +3,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useSystemPreferences } from '@/hooks/use-settings'
 import { ErrorBoundary, useGlobalErrorReporter } from '@/components/error-boundary'
 import { NewVersionToast } from '@/components/new-version-toast'
 
+// páginas abertas sem login: lá não há preferências para buscar (a API responderia 401)
+const PUBLIC_PATHS = ['/promo', '/login', '/cadastro', '/esqueci-senha', '/redefinir-senha', '/confirmar-email', '/termos', '/privacidade', '/lgpd', '/manutencao', '/auth']
+const isPublicPath = (p: string) => p === '/' || PUBLIC_PATHS.some((x) => p === x || p.startsWith(`${x}/`))
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { data: preferences } = useSystemPreferences()
+  const pathname = usePathname() ?? '/'
+  const { data: preferences } = useSystemPreferences({ enabled: !isPublicPath(pathname) })
 
   useEffect(() => {
     if (preferences?.theme) {

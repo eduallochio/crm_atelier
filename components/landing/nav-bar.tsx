@@ -27,15 +27,13 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
     return () => clearTimeout(t)
   }, [])
 
-  useEffect(() => {
-    if (hoveredIndex === null) {
-      setPillStyle(s => ({ ...s, opacity: 0 }))
-      return
-    }
-    const el = itemRefs.current[hoveredIndex]
-    if (!el) return
-    const parent = el.parentElement
-    if (!parent) return
+  // a pílula é calculada no próprio evento de hover (sem setState dentro de effect)
+  const hover = (i: number | null) => {
+    setHoveredIndex(i)
+    if (i === null) { setPillStyle(s => ({ ...s, opacity: 0 })); return }
+    const el = itemRefs.current[i]
+    const parent = el?.parentElement
+    if (!el || !parent) return
     const parentRect = parent.getBoundingClientRect()
     const elRect = el.getBoundingClientRect()
     setPillStyle({
@@ -43,7 +41,7 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
       width: elRect.width + 20,
       opacity: 1,
     })
-  }, [hoveredIndex])
+  }
 
   return (
     <>
@@ -82,7 +80,7 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
         <div style={{
           fontSize: 22, fontWeight: 600,
           color: '#f7f0e6', letterSpacing: '0.05em',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'var(--f-sans)',
         }}>
           Meu <span style={{ color: '#c8714a' }}>Atelier</span>
         </div>
@@ -105,15 +103,15 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
               key={item.href}
               href={item.href}
               ref={el => { itemRefs.current[i] = el }}
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseEnter={() => hover(i)}
+              onMouseLeave={() => hover(null)}
               style={{
                 position: 'relative',
                 color: hoveredIndex === i ? '#f7f0e6' : 'rgba(247,240,230,0.55)',
                 fontSize: 12, letterSpacing: '0.08em',
                 textTransform: 'uppercase', textDecoration: 'none',
                 padding: '6px 16px', transition: 'color 0.2s',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'var(--f-sans)',
               }}
             >
               {item.label}
@@ -125,7 +123,7 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
           <Link href="/login" style={{
             color: 'rgba(247,240,230,0.65)', fontSize: 12, letterSpacing: '0.08em',
             textTransform: 'uppercase', textDecoration: 'none', padding: '6px 10px',
-            transition: 'color 0.2s', fontFamily: "'DM Sans', sans-serif",
+            transition: 'color 0.2s', fontFamily: 'var(--f-sans)',
           }}
             onMouseEnter={e => (e.currentTarget.style.color = '#f7f0e6')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(247,240,230,0.65)')}
@@ -137,7 +135,7 @@ export default function NavBar({ scrolled, onMenuOpen, bannerOffset = 0 }: NavBa
             marginLeft: 12, padding: '9px 22px', fontSize: 11,
             letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none',
             color: '#f7f0e6', background: 'linear-gradient(135deg, #c8714a, #a85a38)',
-            borderRadius: 2, fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+            borderRadius: 2, fontFamily: 'var(--f-sans)', fontWeight: 600,
             transition: 'opacity 0.2s, transform 0.2s', display: 'inline-block',
           }}
             onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' }}

@@ -219,6 +219,18 @@ export async function PUT(
               paymentMethodId = pm?.id ?? null
             }
 
+            // Se a OS já tinha virado conta a receber (concluída sem pagamento), dá baixa nela agora:
+            // sem isso a conta continuava em aberto e, ao ser recebida depois, o valor entrava duas vezes
+            const openReceivables = await tx
+              .update(orgReceivables)
+              .set({ status: 'recebido', dataRecebimento: dataTransacao, ...(paymentMethodId ? { paymentMethodId } : {}), updatedAt: new Date() })
+              .where(and(
+                eq(orgReceivables.serviceOrderId, id),
+                eq(orgReceivables.organizationId, user.organizationId),
+                eq(orgReceivables.status, 'pendente'),
+              ))
+              .returning({ id: orgReceivables.id })
+
             // Insert financial transaction
             await tx.insert(orgTransactions).values({
               organizationId:  user.organizationId,
@@ -227,6 +239,7 @@ export async function PUT(
               valor:           String(saldoRestante),
               dataTransacao,
               paymentMethodId,
+              receivableId:    openReceivables[0]?.id ?? null,
               observacoes:     'Pagamento recebido na conclusão da OS',
             })
 

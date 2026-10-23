@@ -14,7 +14,7 @@ import { SessionGuard } from '@/components/layouts/session-guard'
 // mismatches intermitentes observados em mobile)
 const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), {
   ssr: false,
-  loading: () => <div className="hidden lg:block fixed top-0 left-0 z-40 h-screen w-64" />,
+  loading: () => <div className="hidden lg:block fixed top-0 left-0 z-40 h-screen w-64 bg-[#2C1810]" />,
 })
 
 const REMINDER_KEY = 'cashier_reminder_date'

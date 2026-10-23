@@ -16,8 +16,8 @@ import {
 interface Client {
   id: string
   nome: string
-  email?: string
-  telefone?: string
+  email?: string | null
+  telefone?: string | null
 }
 
 interface Order {
@@ -68,7 +68,7 @@ export function GlobalSearch({ clients = [], orders = [], services = [] }: Globa
         id: client.id,
         type: 'client' as const,
         title: client.nome,
-        subtitle: client.email || client.telefone,
+        subtitle: client.email || client.telefone || undefined,
         url: `/clientes?id=${client.id}`,
       })),
     

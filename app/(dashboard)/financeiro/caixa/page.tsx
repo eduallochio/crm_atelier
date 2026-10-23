@@ -1,277 +1,104 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { Plus, DollarSign, Clock, CheckCircle, AlertCircle, Calendar, ArrowLeft } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import Link from 'next/link'
+import { ArrowRight, Pencil, Plus, Wallet } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
-import { Button } from '@/components/ui/button'
 import { useCashiers, useCashierSessions } from '@/hooks/use-cashier'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { FIN_CSS, FinanceTabs, brl, dateTimeOf } from '@/components/financeiro/finance-ui'
 
+/** Caixas cadastrados (abrir, ver a sessão, editar) e o histórico das últimas sessões fechadas */
 export default function CaixaPage() {
-  const router = useRouter()
-  const { data: caixas, isLoading: loadingCaixas } = useCashiers()
-  const { data: sessoes } = useCashierSessions()
-
-  const sessoesAbertas = sessoes?.filter((s) => s.status === 'aberto') || []
-  const sessoesFechadas = sessoes?.filter((s) => s.status === 'fechado').slice(0, 5) || []
-
-  const formatCurrency = (value: number | string | null | undefined) => {
-    return (Number(value) || 0).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    })
-  }
-
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('pt-BR')
-  }
+  const { data: caixas = [], isLoading } = useCashiers()
+  const { data: sessoes = [] } = useCashierSessions()
+  const abertas = sessoes.filter((s) => s.status === 'aberto')
+  const fechadas = sessoes.filter((s) => s.status === 'fechado').slice(0, 8)
 
   return (
     <div>
-      <Header 
-        title="Caixa"
-        description="Gestão de caixas e movimentações"
+      <style>{MASTER_DETAIL_CSS + FIN_CSS}</style>
+      <Header
+        title="Financeiro"
+        description="Caixas e sessões"
+        action={
+          <Link href="/financeiro/caixa/cadastro" className="cli-primary">
+            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo caixa</span><span className="sm:hidden">Novo</span>
+          </Link>
+        }
       />
+      <FinanceTabs />
 
-      <div className="p-6 space-y-6">
-        {/* Barra de Ações */}
-        <div className="flex items-center justify-between bg-card rounded-lg border border-border p-4">
-          <Button variant="outline" onClick={() => router.push('/financeiro')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <Button onClick={() => router.push('/financeiro/caixa/cadastro')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Caixa
-          </Button>
-        </div>
-
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Caixas Cadastrados</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {caixas?.length || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-50 dark:bg-green-950/50 rounded-lg">
-                <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Caixas Abertos</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {sessoesAbertas.length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Sessões Fechadas Hoje</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {sessoesFechadas.length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-50 dark:bg-orange-950/50 rounded-lg">
-                <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Sessões</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {sessoes?.length || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Caixas Abertos */}
-        {sessoesAbertas.length > 0 && (
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-4 border-b border-border">
-              <h3 className="text-lg font-semibold text-foreground">Caixas Abertos</h3>
-              <p className="text-sm text-muted-foreground">Sessões em andamento</p>
-            </div>
-            <div className="divide-y divide-border">
-              {sessoesAbertas.map((sessao) => (
-                <div key={sessao.id} className="p-4 hover:bg-accent/50 cursor-pointer" onClick={() => router.push(`/financeiro/caixa/sessao/${sessao.id}`)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-foreground">
-                          {sessao.org_cashiers?.nome || 'Caixa'}
-                        </h4>
-                        <span className="px-2 py-1 bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400 text-xs font-medium rounded-full">
-                          Aberto
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Aberto em {sessao.data_abertura ? formatDateTime(sessao.data_abertura) : 'Data desconhecida'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Saldo Inicial</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {formatCurrency(sessao.saldo_inicial)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lista de Caixas */}
-        <div className="bg-card rounded-lg border border-border">
-          <div className="p-4 border-b border-border">
-            <h3 className="text-lg font-semibold text-foreground">Meus Caixas</h3>
-            <p className="text-sm text-muted-foreground">Gerenciar caixas cadastrados</p>
-          </div>
-          
-          {loadingCaixas ? (
-            <Loader text="Carregando caixas..." />
-          ) : caixas && caixas.length > 0 ? (
-            <div className="divide-y divide-border">
-              {caixas.map((caixa) => {
-                const sessaoAberta = sessoesAbertas.find((s) => s.caixa_id === caixa.id)
-                
-                return (
-                  <div key={caixa.id} className="p-4 hover:bg-accent/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-foreground">{caixa.nome}</h4>
-                          {caixa.ativo ? (
-                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-400 text-xs font-medium rounded-full">
-                              Ativo
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded-full">
-                              Inativo
-                            </span>
-                          )}
-                          {sessaoAberta && (
-                            <span className="px-2 py-1 bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400 text-xs font-medium rounded-full">
-                              Em uso
-                            </span>
-                          )}
-                        </div>
-                        {caixa.descricao && (
-                          <p className="text-sm text-muted-foreground mt-1">{caixa.descricao}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {sessaoAberta ? (
-                          <Button
-                            size="sm"
-                            onClick={() => router.push(`/financeiro/caixa/sessao/${sessaoAberta.id}`)}
-                          >
-                            Ver Sessão
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => router.push(`/financeiro/caixa/abrir/${caixa.id}`)}
-                          >
-                            Abrir Caixa
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => router.push(`/financeiro/caixa/${caixa.id}/editar`)}
-                        >
-                          Editar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+      <div className="space-y-6 p-3 sm:p-6">
+        <section aria-labelledby="cx-meus">
+          <h2 id="cx-meus" className="fin-cap mb-3">Meus caixas</h2>
+          {isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{[0, 1].map((i) => <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />)}</div>
+          ) : caixas.length === 0 ? (
+            <div className="fin-card px-6 py-12 text-center text-sm text-muted-foreground">
+              <Wallet className="mx-auto h-7 w-7 text-[#C8A27A]" aria-hidden="true" />
+              <p className="mt-3 mb-1 font-serif-display text-2xl text-foreground">Nenhum caixa cadastrado</p>
+              Cadastre um caixa (a gaveta do ateliê, ou uma conta PIX) para registrar o que entra e sai no dia a dia.
+              <div className="mt-4"><Link href="/financeiro/caixa/cadastro" className="cli-primary"><Plus className="h-4 w-4" aria-hidden="true" />Cadastrar o primeiro caixa</Link></div>
             </div>
           ) : (
-            <div className="p-8 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">Nenhum caixa cadastrado</p>
-              <Button onClick={() => router.push('/financeiro/caixa/cadastro')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Primeiro Caixa
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Últimas Sessões Fechadas */}
-        {sessoesFechadas.length > 0 && (
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-4 border-b border-border">
-              <h3 className="text-lg font-semibold text-foreground">Últimas Sessões Fechadas</h3>
-              <p className="text-sm text-muted-foreground">Histórico recente</p>
-            </div>
-            <div className="divide-y divide-border">
-              {sessoesFechadas.map((sessao) => (
-                <div 
-                  key={sessao.id} 
-                  className="p-4 hover:bg-accent/50 cursor-pointer"
-                  onClick={() => router.push(`/financeiro/caixa/sessao/${sessao.id}`)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-foreground">
-                          {sessao.org_cashiers?.nome || 'Caixa'}
-                        </h4>
-                        {sessao.diferenca && sessao.diferenca !== 0 ? (
-                          <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-400 text-xs font-medium rounded-full">
-                            Com diferença
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-400 text-xs font-medium rounded-full">
-                            Fechado OK
-                          </span>
-                        )}
+            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {caixas.map((c) => {
+                const aberta = abertas.find((s) => s.caixa_id === c.id)
+                return (
+                  <li key={c.id} className={aberta ? 'drawer px-5 py-4' : 'fin-card px-5 py-4'}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[15px] font-semibold">{c.nome}</h3>
+                        <p className={`mt-0.5 truncate text-[13px] ${aberta ? 'dr-soft' : 'text-muted-foreground'}`}>{c.descricao || (c.chave_pix ? 'Recebimentos por PIX' : 'Sem descrição')}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Fechado em {sessao.data_fechamento ? formatDateTime(sessao.data_fechamento) : 'Data desconhecida'}
-                      </p>
+                      {aberta ? <span className="dr-pill shrink-0">Aberto</span>
+                        : c.ativo === false ? <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground">Inativo</span>
+                        : <span className="shrink-0 rounded-full border border-dashed border-border px-2.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground">Fechado</span>}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Saldo Final</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {formatCurrency(sessao.saldo_real || 0)}
-                      </p>
-                      {sessao.diferenca && sessao.diferenca !== 0 && (
-                        <p className={`text-sm font-medium ${sessao.diferenca > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {sessao.diferenca > 0 ? '+' : ''}{formatCurrency(sessao.diferenca)}
-                        </p>
+                    <p className={`mt-3 text-[13px] ${aberta ? 'dr-soft' : 'text-muted-foreground'}`}>
+                      {aberta ? <>Aberto {dateTimeOf(aberta.data_abertura)} · inicial {brl(Number(aberta.saldo_inicial))}</> : 'Pronto para abrir quando o dia começar'}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {aberta ? (
+                        <Link href={`/financeiro/caixa/sessao/${aberta.id}`} className="dr-ghost">Ver o caixa <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
+                      ) : c.ativo !== false && (
+                        <Link href={`/financeiro/caixa/abrir/${c.id}`} className="cli-primary" style={{ minHeight: 40 }}>Abrir caixa</Link>
                       )}
+                      <Link href={`/financeiro/caixa/${c.id}/editar`} className={aberta ? 'dr-ghost' : 'cli-ghost'} style={{ minHeight: 40 }}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
+                      </Link>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+
+        {fechadas.length > 0 && (
+          <section aria-labelledby="cx-hist" className="fin-card px-4 py-4 sm:px-5">
+            <h2 id="cx-hist" className="fin-cap mb-1">Últimas sessões fechadas</h2>
+            <ul>
+              {fechadas.map((s) => {
+                const dif = Number(s.diferenca) || 0
+                return (
+                  <li key={s.id} className="border-t border-dashed border-border first:border-t-0">
+                    <Link href={`/financeiro/caixa/sessao/${s.id}`}
+                      className="-mx-2 grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-2 py-3 transition-colors hover:bg-muted/50 sm:grid-cols-[1fr_auto_auto]">
+                      <span className="min-w-0">
+                        <b className="block truncate text-sm font-semibold">{s.org_cashiers?.nome || 'Caixa'}</b>
+                        <small className="block text-[12.5px] text-muted-foreground">Fechado {dateTimeOf(s.data_fechamento)}</small>
+                      </span>
+                      <span className="text-right text-sm font-semibold tabular-nums">{brl(Number(s.saldo_real) || 0)}</span>
+                      <span className={`col-span-2 text-[12.5px] font-semibold sm:col-span-1 sm:w-36 sm:text-right ${Math.abs(dif) < 0.01 ? 'fin-pos' : dif < 0 ? 'fin-late' : 'text-[#7A5A1E] dark:text-[#E8C98A]'}`}>
+                        {Math.abs(dif) < 0.01 ? 'Bateu certinho' : dif < 0 ? `Faltaram ${brl(-dif)}` : `Sobraram ${brl(dif)}`}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
         )}
       </div>
     </div>

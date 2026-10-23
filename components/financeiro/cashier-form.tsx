@@ -42,7 +42,7 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white rounded-lg border p-6 space-y-4">
+        <div className="rounded-xl border border-border/70 bg-card p-6 space-y-4">
           <FormField
             control={form.control}
             name="nome"
@@ -101,7 +101,7 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
                     </button>
                   )}
                   {globalPixKey && field.value === globalPixKey && (
-                    <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">
+                    <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300 dark:text-emerald-300">
                       Mesma das configurações
                     </Badge>
                   )}

@@ -51,9 +51,11 @@ interface MaterialRow {
 interface ServiceOrderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** cliente já escolhida ao abrir (ex.: "Nova ordem" na ficha da cliente) */
+  defaultClientId?: string
 }
 
-export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogProps) {
+export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: ServiceOrderDialogProps) {
   const [items, setItems] = useState<ServiceOrderItemInput[]>([])
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
@@ -166,7 +168,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
         : undefined
 
       reset({
-        client_id: '',
+        client_id: defaultClientId ?? '',
         status: 'pendente' as const,
         data_prevista: undefined,
         forma_pagamento: undefined,
@@ -189,7 +191,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
       setMaterialQtd(1)
       setProductSearchValue('')
     }
-  }, [open, reset, notifSettings])
+  }, [open, reset, notifSettings, defaultClientId])
 
   const updateItemObservacoes = (index: number, obs: string) => {
     const updated = items.map((item, i) =>
@@ -421,9 +423,9 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
     <Dialog open={open && !showPreview} onOpenChange={(v) => { if (!showPreview) onOpenChange(v) }}>
       <DialogContent className="sm:max-w-175 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+          <DialogTitle className="font-[family-name:var(--font-cormorant)] text-[30px] font-semibold leading-tight">Nova ordem de serviço</DialogTitle>
           <DialogDescription>
-            Preencha os dados da ordem de serviço
+            Escolha a cliente, os serviços e o prazo. A OS só ganha número depois de gerada.
           </DialogDescription>
         </DialogHeader>
 
@@ -431,7 +433,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           {/* Cliente */}
           <div className="space-y-2">
             <Label htmlFor="client_id">
-              Cliente {requireClient && <span className="text-red-500">*</span>}
+              Cliente {requireClient && <span className="text-destructive">*</span>}
             </Label>
             <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
               <PopoverTrigger asChild>
@@ -497,7 +499,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
               </PopoverContent>
             </Popover>
             {errors.client_id && (
-              <p className="text-sm text-red-500">{errors.client_id.message}</p>
+              <p className="text-sm text-destructive">{errors.client_id.message}</p>
             )}
           </div>
 
@@ -519,16 +521,16 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_prevista">Data Prevista {requireDeliveryDate && <span className="text-red-500">*</span>}</Label>
+              <Label htmlFor="data_prevista">Data Prevista {requireDeliveryDate && <span className="text-destructive">*</span>}</Label>
               <Input
                 id="data_prevista"
                 type="date"
                 {...register('data_prevista')}
                 disabled={isLoading}
-                className={errors.data_prevista ? 'border-red-500' : ''}
+                className={errors.data_prevista ? 'border-destructive' : ''}
               />
               {errors.data_prevista && (
-                <p className="text-sm text-red-500">{errors.data_prevista.message}</p>
+                <p className="text-sm text-destructive">{errors.data_prevista.message}</p>
               )}
             </div>
           </div>
@@ -536,7 +538,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           {/* Forma de Pagamento */}
           <div className="space-y-2">
             <Label htmlFor="forma_pagamento">
-              Forma de Pagamento {requirePaymentMethod && <span className="text-red-500">*</span>}
+              Forma de Pagamento {requirePaymentMethod && <span className="text-destructive">*</span>}
             </Label>
             <select
               id="forma_pagamento"
@@ -552,7 +554,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
               ))}
             </select>
             {errors.forma_pagamento && (
-              <p className="text-sm text-red-500">{errors.forma_pagamento.message}</p>
+              <p className="text-sm text-destructive">{errors.forma_pagamento.message}</p>
             )}
             {paymentMethods.length === 0 && (
               <p className="text-xs text-muted-foreground">
@@ -562,8 +564,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
           </div>
 
           {/* Adicionar Serviços */}
-          <div className="space-y-3 border-t pt-4">
-            <h3 className="font-medium text-sm">Serviços</h3>
+          <div className="space-y-3 border-t border-dashed pt-4">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Serviços</h3>
             
             <div className="flex gap-2">
               <Popover open={openServiceCombo} onOpenChange={setOpenServiceCombo}>
@@ -711,7 +713,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                                         onClick={() => removeItem(idx)}
                                         className="h-5 w-5 shrink-0"
                                       >
-                                        <Trash2 className="h-3 w-3 text-red-400" />
+                                        <Trash2 className="h-3 w-3 text-destructive/80" />
                                       </Button>
                                     </div>
                                   ))}
@@ -745,7 +747,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                                   className="h-8 w-8"
                                   title="Adicionar mais uma peça"
                                 >
-                                  <Plus className="h-4 w-4 text-green-600" />
+                                  <Plus className="h-4 w-4 text-[#C8714A]" />
                                 </Button>
                               </td>
                             </tr>
@@ -774,8 +776,8 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     </tr>
                     {valorDesconto > 0 && (
                       <tr>
-                        <td colSpan={3} className="px-3 py-2 text-right text-red-600">Desconto:</td>
-                        <td className="px-3 py-2 text-right text-red-600">
+                        <td colSpan={3} className="px-3 py-2 text-right text-destructive">Desconto:</td>
+                        <td className="px-3 py-2 text-right text-destructive">
                           - R$ {valorDesconto.toFixed(2)}
                         </td>
                         <td className="w-10"></td>
@@ -783,7 +785,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     )}
                     <tr className="font-bold border-t">
                       <td colSpan={3} className="px-3 py-3 text-right text-lg">Total:</td>
-                      <td className="px-3 py-3 text-right text-lg text-green-600">
+                      <td className="px-3 py-3 text-right text-lg text-[#8A4B2C] dark:text-[#E39B78]">
                         R$ {totalComDesconto.toFixed(2)}
                       </td>
                       <td className="w-10"></td>
@@ -791,15 +793,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                     {valorEntrada > 0 && (
                       <>
                         <tr className="border-t">
-                          <td colSpan={3} className="px-3 py-2 text-right text-blue-600">Entrada:</td>
-                          <td className="px-3 py-2 text-right text-blue-600">
+                          <td colSpan={3} className="px-3 py-2 text-right text-muted-foreground">Entrada:</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">
                             R$ {valorEntrada.toFixed(2)}
                           </td>
                           <td className="w-10"></td>
                         </tr>
                         <tr className="font-semibold">
-                          <td colSpan={3} className="px-3 py-2 text-right text-orange-600">Saldo Restante:</td>
-                          <td className="px-3 py-2 text-right text-orange-600">
+                          <td colSpan={3} className="px-3 py-2 text-right text-[#8A4B2C] dark:text-[#E39B78]">Saldo Restante:</td>
+                          <td className="px-3 py-2 text-right text-[#8A4B2C] dark:text-[#E39B78]">
                             R$ {saldoRestante.toFixed(2)}
                           </td>
                           <td className="w-10"></td>
@@ -812,15 +814,15 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
             )}
 
             {items.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhum serviço adicionado
               </p>
             )}
           </div>
 
           {/* Descontos e Pagamento */}
-          <div className="space-y-3 border-t pt-4">
-            <h3 className="font-medium text-sm">Pagamento</h3>
+          <div className="space-y-3 border-t border-dashed pt-4">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pagamento</h3>
             
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -863,7 +865,7 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
                 {...register('valor_entrada', { valueAsNumber: true })}
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Valor pago no momento da abertura da ordem
               </p>
             </div>
@@ -895,10 +897,10 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
           {/* Materiais utilizados (visível apenas com controle de estoque ativo) */}
           {controlaEstoque && (
-            <div className="space-y-3 border-t pt-4">
+            <div className="space-y-3 border-t border-dashed pt-4">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium text-sm">Materiais Utilizados</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Materiais Utilizados</h3>
                 <span className="text-xs text-muted-foreground">(debitados do estoque ao concluir)</span>
               </div>
 
@@ -1020,35 +1022,35 @@ export function ServiceOrderDialog({ open, onOpenChange }: ServiceOrderDialogPro
 
           {/* Opções de envio */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-border bg-muted/40">
               <input
                 type="checkbox"
                 id="gerar_pdf"
                 checked={gerarPDF}
                 onChange={(e) => setGerarPDF(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded accent-[#C8714A]"
               />
-              <label htmlFor="gerar_pdf" className="text-sm font-medium text-gray-700 cursor-pointer">
+              <label htmlFor="gerar_pdf" className="text-sm font-medium text-foreground cursor-pointer">
                 Gerar PDF automaticamente após criar a ordem
               </label>
             </div>
 
-            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-border bg-muted/40">
               <input
                 type="checkbox"
                 id="enviar_whatsapp"
                 checked={enviarWhatsApp}
                 onChange={(e) => setEnviarWhatsApp(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                className="h-4 w-4 rounded accent-[#C8714A]"
               />
-              <MessageCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-              <label htmlFor="enviar_whatsapp" className="text-sm font-medium text-gray-700 cursor-pointer">
+              <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <label htmlFor="enviar_whatsapp" className="text-sm font-medium text-foreground cursor-pointer">
                 Enviar resumo da OS pelo WhatsApp
                 {watch('client_id') && (() => {
                   const c = clients.find(cl => cl.id === watch('client_id'))
                   return c?.telefone
-                    ? <span className="text-green-600 ml-1">({c.telefone})</span>
-                    : <span className="text-orange-500 ml-1">(cliente sem telefone)</span>
+                    ? <span className="text-muted-foreground ml-1">({c.telefone})</span>
+                    : <span className="text-[#8A4B2C] dark:text-[#E39B78] ml-1">(cliente sem telefone)</span>
                 })()}
               </label>
             </div>

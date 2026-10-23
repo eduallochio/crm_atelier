@@ -207,8 +207,8 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Serviço' : 'Novo Serviço'}
+          <DialogTitle className="font-[family-name:var(--font-cormorant)] text-[30px] font-semibold leading-tight">
+            {isEditing ? 'Editar serviço' : 'Novo serviço'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
@@ -220,7 +220,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="nome">
-              Nome do Serviço <span className="text-red-500">*</span>
+              Nome do Serviço <span className="text-destructive">*</span>
             </Label>
             <Input
               id="nome"
@@ -229,7 +229,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
               disabled={isLoading}
             />
             {errors.nome && (
-              <p className="text-sm text-red-500">{errors.nome.message}</p>
+              <p className="text-sm text-destructive">{errors.nome.message}</p>
             )}
           </div>
 
@@ -247,7 +247,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="preco">
-                Preço (R$) <span className="text-red-500">*</span>
+                Preço (R$) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="preco"
@@ -262,7 +262,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                 }}
               />
               {errors.preco && (
-                <p className="text-sm text-red-500">{errors.preco.message}</p>
+                <p className="text-sm text-destructive">{errors.preco.message}</p>
               )}
             </div>
 
@@ -296,7 +296,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium text-sm">Materiais e Custo</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Materiais e custo</h3>
             </div>
 
             {controlaEstoque ? (
@@ -426,7 +426,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                 {precoNum > 0 && (
                   <div className="flex items-center justify-between text-sm bg-muted/40 rounded-md px-3 py-2">
                     <span className="text-muted-foreground">Margem de lucro:</span>
-                    <span className={cn('font-medium', margem < 0 ? 'text-destructive' : 'text-green-600')}>
+                    <span className={cn('font-medium', margem < 0 ? 'text-destructive' : 'text-emerald-700 dark:text-emerald-400')}>
                       R$ {margem.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
@@ -441,7 +441,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
 
           {/* Observações Técnicas */}
           <div className="space-y-4 pt-4 border-t">
-            <h3 className="font-medium text-sm text-gray-700">Detalhes Técnicos</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Detalhes técnicos</h3>
 
             <div className="space-y-2">
               <Label htmlFor="observacoes_tecnicas">Observações Técnicas</Label>
@@ -497,7 +497,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
               <Label htmlFor="ativo" className="text-base font-medium">
                 Serviço Ativo
               </Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Serviços inativos não aparecem para novos pedidos
               </p>
             </div>

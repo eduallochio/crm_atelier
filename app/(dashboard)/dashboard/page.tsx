@@ -1,382 +1,267 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Users, FileText, DollarSign, Plus, UserPlus, CreditCard } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { Cake, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
-import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
-import { AnimatedStatCard } from '@/components/dashboard/animated-stat-card'
-import { RecentActivity } from '@/components/dashboard/recent-activity'
-import { UrgentOrders } from '@/components/dashboard/urgent-orders'
-import { BusinessInsights } from '@/components/dashboard/business-insights'
 import { GlobalSearch } from '@/components/dashboard/global-search'
-import { PeriodFilterSelect, PeriodFilter, filterDataByPeriod } from '@/components/dashboard/period-filter'
-import { MonthlyGoal } from '@/components/dashboard/monthly-goal'
-import { useQuery } from '@tanstack/react-query'
-import { useTransactions } from '@/hooks/use-financial'
+import { DeliveryBoard, DELIVERY_CSS } from '@/components/dashboard/delivery-board'
+import { RevenueGoal, REVENUE_CSS } from '@/components/dashboard/revenue-goal'
+import { ReadyOrders, READY_CSS } from '@/components/dashboard/ready-orders'
+import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
+import { formatBRL } from '@/components/dashboard/client-utils'
+import { isOpen, daysToDeadline, isToReceive } from '@/components/dashboard/order-utils'
+import { FIN_CSS, timeOf, todayISO } from '@/components/financeiro/finance-ui'
+import { sessionTotals } from '@/components/financeiro/cash-drawer'
+import { useServiceOrders } from '@/hooks/use-service-orders'
+import { useClients } from '@/hooks/use-clients'
+import { useCashierMovements, useCashierSessions, useCloseCashier } from '@/hooks/use-cashier'
+import { OpenCashierDialog } from '@/components/financeiro/open-cashier-dialog'
+import { CloseCashierDialog } from '@/components/financeiro/close-cashier-dialog'
+import { useProducts } from '@/hooks/use-inventory'
+import { isLow } from '@/components/inventory/stock-ui'
+import type { Activity } from '@/components/dashboard/recent-activity'
+import type { Client } from '@/lib/validations/client'
 
-function useGreeting(name: string) {
-  const [greeting, setGreeting] = useState('')
-  const [dateStr, setDateStr] = useState('')
+const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
-  useEffect(() => {
-    const h = new Date().getHours()
-    setGreeting(
-      h < 12 ? `Bom dia, ${name}!` :
-      h < 18 ? `Boa tarde, ${name}!` :
-               `Boa noite, ${name}!`
-    )
-    setDateStr(new Date().toLocaleDateString('pt-BR', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-    }))
-  }, [name])
-
-  return { greeting, dateStr }
+/** dias até o próximo aniversário (0 = hoje), ou null */
+function daysToBirthday(c: Client, now = new Date()) {
+  const m = c.data_nascimento ? /^\d{4}-(\d{2})-(\d{2})/.exec(c.data_nascimento) : null
+  if (!m) return null
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let b = new Date(now.getFullYear(), Number(m[1]) - 1, Number(m[2]))
+  if (b < t) b = new Date(now.getFullYear() + 1, Number(m[1]) - 1, Number(m[2]))
+  return Math.round((b.getTime() - t.getTime()) / 86_400_000)
 }
 
+/** Bancada do dia: entregas por prazo em cima, as prontas para entregar, faturamento e meta, caixa, lembretes e o que já aconteceu hoje */
 export default function DashboardPage() {
-  const [clientDialogOpen, setClientDialogOpen] = useState(false)
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false)
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d')
+  const [clientOpen, setClientOpen] = useState(false)
+  const [orderOpen, setOrderOpen] = useState(false)
 
-  // Dados do usuário logado (sidebar já usa /api/me, reutilizamos)
-  const { data: me } = useQuery({
-    queryKey: ['me'],
-    queryFn: async () => {
-      const res = await fetch('/api/me')
-      if (!res.ok) return null
-      return res.json()
-    },
-  })
-
-  // Stats do dashboard: métricas, receita mensal, atividades, ordens urgentes
-  const { data: stats } = useQuery({
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null } })
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      const res = await fetch('/api/dashboard/stats')
-      if (!res.ok) return null
-      return res.json()
-    },
+    queryFn: async () => { const r = await fetch('/api/dashboard/stats'); return r.ok ? r.json() : null },
     staleTime: 2 * 60 * 1000,
     refetchInterval: 2 * 60 * 1000,
   })
+  const { data: orders = [], isLoading: ordersLoading } = useServiceOrders()
+  const { data: clients = [] } = useClients()
+  const { data: services = [] } = useQuery({ queryKey: ['services'], queryFn: async () => { const r = await fetch('/api/services'); return r.ok ? r.json() : [] } })
 
-  // Ordens para gráficos (usa API já migrada)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: orders = [] } = useQuery<any[]>({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      const res = await fetch('/api/orders')
-      if (!res.ok) return []
-      return res.json()
-    },
-    staleTime: 3 * 60 * 1000,
-  })
+  const now = new Date()
+  const hour = now.getHours()
+  const first = (me?.name as string | undefined)?.split(' ')[0]
+  const greeting = `${hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'}${first ? `, ${first}` : ''}.`
+  const dateStr = `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]}`
 
-  // Serviços para gráficos (usa API já migrada)
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: async () => {
-      const res = await fetch('/api/services')
-      if (!res.ok) return []
-      return res.json()
-    },
-  })
-
-  // Clientes para busca global (usa API já migrada)
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const res = await fetch('/api/clients')
-      if (!res.ok) return []
-      return res.json()
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const metrics = stats?.metrics ?? {}
-  const monthlyRevenue = stats?.monthly_revenue ?? 0
-  const recentActivities = stats?.recent_activities ?? []
-  const urgentOrders = stats?.urgent_orders ?? []
-  const plan = stats?.plan ?? null
-  const financialHealth = stats?.financial_health
-  const topClients = stats?.top_clients ?? []
-  const inactiveClientsCount = stats?.inactive_clients_count ?? 0
-
-  const { data: transactions } = useTransactions()
-
-  const filteredOrders = filterDataByPeriod(orders, periodFilter)
-  const { greeting, dateStr } = useGreeting(me?.name?.split(' ')[0] || 'Usuário')
-
-  const paymentMethodStats = useMemo(() => {
-    if (!transactions) return []
-    const entradas = transactions.filter(t => t.tipo === 'entrada')
-    const total = entradas.reduce((sum, t) => sum + t.valor, 0)
-    const map = new Map<string, { nome: string; total: number; count: number }>()
-    for (const t of entradas) {
-      const key = t.payment_method_nome ?? 'Não identificado'
-      const cur = map.get(key) ?? { nome: key, total: 0, count: 0 }
-      cur.total += t.valor
-      cur.count += 1
-      map.set(key, cur)
-    }
-    return Array.from(map.values())
-      .sort((a, b) => b.total - a.total)
-      .map(item => ({ ...item, percentual: total > 0 ? (item.total / total) * 100 : 0 }))
-  }, [transactions])
-
-  const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-
-  const statCards = [
-    {
-      name: 'Clientes Cadastrados',
-      value: metrics?.clients_count || 0,
-      icon: Users,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30',
-      iconBg: 'bg-blue-500 dark:bg-blue-600',
-      href: '/clientes',
-    },
-    {
-      name: 'Ordens de Serviço',
-      value: metrics?.orders_count || 0,
-      icon: FileText,
-      color: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30',
-      iconBg: 'bg-green-500 dark:bg-green-600',
-      href: '/ordens-servico',
-    },
-    {
-      name: 'Receita do Mês',
-      value: monthlyRevenue,
-      icon: DollarSign,
-      color: 'text-yellow-600 dark:text-yellow-400',
-      bgColor: 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/30',
-      iconBg: 'bg-yellow-500 dark:bg-yellow-600',
-      isMonetary: true,
-      href: '/financeiro/receber',
-    },
-  ]
+  const open = orders.filter(isOpen)
+  const todayCount = open.filter((o) => daysToDeadline(o) === 0).length
+  const lateCount = open.filter((o) => (daysToDeadline(o) ?? 0) < 0).length
+  const recOverdue = Number(stats?.financial_health?.receivables_overdue) || 0
 
   return (
     <div>
-      {/* ── Greeting Banner ── */}
-      <div className="bg-card border-b border-border/60">
+      <style>{MASTER_DETAIL_CSS + FIN_CSS + DELIVERY_CSS + READY_CSS + REVENUE_CSS + HOME_CSS}</style>
 
-        {/* Mobile layout */}
-        <div className="sm:hidden pb-4 space-y-3">
-          {/* Linha de saudação — recuada para não colidir com hamburguer (esq) e ícones (dir) */}
-          <div className="px-4 pt-3.5 pl-14 pr-36">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground leading-none mb-0.5">
-              {dateStr}
+      {/* ── abertura ── */}
+      <header className="border-b border-border/60 bg-card">
+        <div className="flex flex-col gap-4 py-4 pl-16 pr-4 sm:px-6 sm:py-5 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+          <div className="min-w-0 pr-28 sm:pr-0 lg:mr-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{dateStr}</p>
+            <h1 className="font-serif-display mt-1 text-[34px] leading-none text-foreground sm:text-[44px]">{greeting}</h1>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-foreground/80">
+              {ordersLoading ? 'Carregando o seu dia...' : todayCount + lateCount === 0 && recOverdue === 0 ? (
+                <>Dia tranquilo: <b className="font-semibold text-foreground">nenhuma entrega hoje</b> e nada em atraso.</>
+              ) : (
+                <>Hoje tem <b className="font-semibold text-foreground">{todayCount} {todayCount === 1 ? 'entrega' : 'entregas'}</b>
+                  {lateCount > 0 && <>, <b className="fin-late font-semibold">{lateCount} {lateCount === 1 ? 'ordem atrasada' : 'ordens atrasadas'}</b></>}
+                  {recOverdue > 0 && <> e <b className="fin-late font-semibold">{formatBRL(recOverdue)}</b> a receber em atraso</>}.</>
+              )}
             </p>
-            <h1 className="text-lg font-bold text-foreground leading-tight">
-              {greeting || 'Bem-vindo!'}
-            </h1>
-            <p className="text-xs text-muted-foreground">Visão geral do seu ateliê</p>
           </div>
-
-          {/* Busca e botões abaixo, padding normal */}
-          <div className="px-4 space-y-3">
-            <GlobalSearch clients={clients} orders={orders} services={services} />
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={() => setClientDialogOpen(true)}
-                className="h-12 text-sm font-semibold gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                Novo Cliente
-              </Button>
-              <Button
-                onClick={() => setOrderDialogOpen(true)}
-                variant="outline"
-                className="h-12 text-sm font-semibold gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nova Ordem
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 sm:mr-52 lg:mr-56 lg:flex-nowrap">
+            <div className="w-full sm:w-60"><GlobalSearch clients={clients} orders={orders} services={services} /></div>
+            <button type="button" className="cli-ghost flex-1 justify-center sm:flex-none" onClick={() => setClientOpen(true)}><UserPlus className="h-4 w-4" aria-hidden="true" />Novo cliente</button>
+            <button type="button" className="cli-primary flex-1 justify-center sm:flex-none" style={{ minHeight: 44 }} onClick={() => setOrderOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" />Nova ordem</button>
           </div>
         </div>
+      </header>
 
-        {/* Desktop layout */}
-        <div className="hidden sm:block px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between gap-4 sm:mr-52 lg:mr-56">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
-                {dateStr}
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
-                {greeting || 'Bem-vindo!'}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">Visão geral do seu ateliê</p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="w-52 lg:w-64">
-                <GlobalSearch clients={clients} orders={orders} services={services} />
-              </div>
-              <div className="h-8 w-px bg-border/60 shrink-0" />
-              <Button onClick={() => setClientDialogOpen(true)} size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
-                <UserPlus className="h-4 w-4" />
-                Novo Cliente
-              </Button>
-              <Button onClick={() => setOrderDialogOpen(true)} variant="outline" size="sm" className="gap-2 h-9 px-4 font-medium shrink-0">
-                <Plus className="h-4 w-4" />
-                Nova Ordem
-              </Button>
-            </div>
-          </div>
+      <div className="space-y-4 p-3 sm:p-6 lg:p-8">
+        <DeliveryBoard orders={orders} isLoading={ordersLoading} />
+
+        <ReadyOrders orders={orders} isLoading={ordersLoading} />
+
+        <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
+
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_1.4fr]">
+          <CashCard />
+          <Reminders clients={clients} orders={orders} inactive={Number(stats?.inactive_clients_count) || 0}
+            plan={stats?.plan} clientsCount={Number(stats?.metrics?.clients_count) || 0} />
         </div>
 
+        <DayLine activities={(stats?.recent_activities ?? []) as Activity[]} isLoading={statsLoading} />
       </div>
 
-      <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-        {/* Stats Cards + Meta */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {statCards.map((stat) => (
-            <AnimatedStatCard
-              key={stat.name}
-              name={stat.name}
-              value={stat.value}
-              icon={stat.icon}
-              color={stat.color}
-              bgColor={stat.bgColor}
-              iconBg={stat.iconBg}
-              isMonetary={stat.isMonetary}
-              href={stat.href}
-            />
-          ))}
-          <MonthlyGoal
-            currentRevenue={monthlyRevenue}
-            isLoading={!stats}
-          />
-        </div>
-
-        {/* Plano Info */}
-        {plan === 'free' && (
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                <span className="text-sm">✨</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-300">Plano Gratuito</p>
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  {metrics?.clients_count || 0} de 50 clientes utilizados
-                </p>
-              </div>
-            </div>
-            <div className="h-1.5 flex-1 max-w-[120px] rounded-full bg-amber-200 dark:bg-amber-800 overflow-hidden">
-              <div
-                className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all"
-                style={{ width: `${Math.min(((metrics?.clients_count || 0) / 50) * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Layout com 2 colunas para Activity e Urgent Orders */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-          <RecentActivity
-            activities={recentActivities}
-            isLoading={!stats}
-          />
-          <UrgentOrders
-            orders={urgentOrders}
-            isLoading={!stats}
-          />
-        </div>
-
-        {/* Inteligência de negócios */}
-        <div>
-          <div className="mb-4">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Inteligência de Negócios
-            </p>
-            <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
-              Saúde do ateliê
-            </h3>
-          </div>
-          <BusinessInsights
-            orders={orders}
-            financialHealth={financialHealth}
-            topClients={topClients}
-            inactiveClientsCount={inactiveClientsCount}
-            currentMonthRevenue={monthlyRevenue}
-            isLoading={!stats}
-          />
-        </div>
-
-        {/* Gráficos */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Análise de Dados
-              </p>
-              <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
-                Visão de desempenho
-              </h3>
-            </div>
-            <PeriodFilterSelect value={periodFilter} onChange={setPeriodFilter} />
-          </div>
-          <DashboardCharts ordersData={filteredOrders} servicesData={services} />
-        </div>
-
-        {/* Entradas por Forma de Pagamento */}
-        {paymentMethodStats.length > 0 && (
-          <div>
-            <div className="mb-4">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Financeiro
-              </p>
-              <h3 className="text-lg font-bold text-foreground leading-tight mt-0.5">
-                Entradas por forma de pagamento
-              </h3>
-            </div>
-            <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-xl bg-violet-500 shadow-sm">
-                  <CreditCard className="h-3.5 w-3.5 text-white" />
-                </div>
-                <p className="text-sm font-semibold text-foreground">Total de entradas por método</p>
-              </div>
-              <div className="space-y-3">
-                {paymentMethodStats.map((pm) => (
-                  <div key={pm.nome}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-foreground font-medium">{pm.nome}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">{pm.count} {pm.count === 1 ? 'transação' : 'transações'}</span>
-                        <span className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(pm.total)}</span>
-                        <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 w-9 text-right">{pm.percentual.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-violet-500 transition-all duration-500"
-                        style={{ width: `${pm.percentual}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Diálogos */}
-      <ClientDialog
-        open={clientDialogOpen}
-        onOpenChange={setClientDialogOpen}
-      />
-      <ServiceOrderDialog
-        open={orderDialogOpen}
-        onOpenChange={setOrderDialogOpen}
-      />
+      <ClientDialog open={clientOpen} onOpenChange={setClientOpen} />
+      <ServiceOrderDialog open={orderOpen} onOpenChange={setOrderOpen} />
     </div>
   )
 }
+
+/** o caixa aberto, em linho escuro; sem caixa aberto, um convite para abrir. Abre e fecha aqui mesmo, sem sair do Dashboard */
+function CashCard() {
+  const { data: sessions = [], isLoading } = useCashierSessions({ status: 'aberto' })
+  const s = sessions[0]
+  const { data: moves = [] } = useCashierMovements(s?.id)
+  const t = sessionTotals(s?.saldo_inicial, moves)
+  const closeCashier = useCloseCashier()
+  const [opening, setOpening] = useState(false)
+  const [closing, setClosing] = useState(false)
+  if (isLoading) return <div className="drawer min-h-[180px] animate-pulse" />
+  if (!s) {
+    return (
+      <section aria-label="Caixa" className="drawer flex flex-col justify-between px-5 py-5">
+        <div>
+          <p className="fin-cap">Caixa</p>
+          <p className="fin-num mt-2 text-[30px] text-[#FFF8F0]">Nenhum caixa aberto</p>
+          <p className="dr-soft mt-1 text-[13px]">Abra o caixa para registrar o dinheiro que entra e sai hoje.</p>
+        </div>
+        <button type="button" className="dr-ghost mt-4 self-start" onClick={() => setOpening(true)}>
+          <LockOpen className="h-3.5 w-3.5" aria-hidden="true" /> Abrir o caixa
+        </button>
+        <OpenCashierDialog open={opening} onClose={() => setOpening(false)} />
+      </section>
+    )
+  }
+  return (
+    <section aria-label="Caixa" className="drawer flex flex-col justify-between px-5 py-5">
+      <div>
+        <p className="fin-cap">{s.org_cashiers?.nome || 'Caixa'} · aberto {timeOf(s.data_abertura)}</p>
+        <p className="fin-num mt-2 text-[40px] text-[#FFF8F0]">{formatBRL(t.gaveta)}</p>
+        <p className="dr-soft text-[12.5px]">na gaveta agora</p>
+        <dl className="mt-3 grid grid-cols-3 gap-2 text-[11.5px]">
+          <div><dt className="dr-soft">Entradas</dt><dd className="dr-in text-[13px] font-semibold tabular-nums">{formatBRL(t.entradas + t.reforcos)}</dd></div>
+          <div><dt className="dr-soft">Saídas</dt><dd className="dr-out text-[13px] font-semibold tabular-nums">{formatBRL(t.saidas)}</dd></div>
+          <div><dt className="dr-soft">Sangrias</dt><dd className="dr-out text-[13px] font-semibold tabular-nums">{formatBRL(t.sangrias)}</dd></div>
+        </dl>
+      </div>
+      <div className="dr-line mt-4 flex items-center justify-between gap-3 border-t border-dashed pt-3 text-[12.5px]">
+        <Link href={`/financeiro/caixa/sessao/${s.id}`} className="dr-link">
+          Ver {moves.length} {moves.length === 1 ? 'movimento' : 'movimentos'}
+        </Link>
+        <button type="button" className="dr-ghost" style={{ minHeight: 36 }} onClick={() => setClosing(true)}>
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Fechar caixa
+        </button>
+      </div>
+      {closing && s.id && (
+        <CloseCashierDialog
+          sessao={{ id: s.id, caixa_id: s.caixa_id, saldo_inicial: Number(s.saldo_inicial) || 0, status: s.status }}
+          saldoEsperado={t.gaveta}
+          onClose={() => setClosing(false)}
+          isLoading={closeCashier.isPending}
+          onConfirm={async (data) => {
+            try {
+              await closeCashier.mutateAsync({ sessaoId: s.id!, ...data })
+              setClosing(false)
+            } catch { /* o hook já mostra o erro */ }
+          }}
+        />
+      )}
+    </section>
+  )
+}
+
+/** lembretes que pedem uma ação: aniversários, ordens a receber, clientes sumidas, material acabando */
+function Reminders({ clients, orders, inactive, plan, clientsCount }: {
+  clients: Client[]; orders: ReturnType<typeof useServiceOrders>['data'] & object; inactive: number; plan?: string; clientsCount: number
+}) {
+  const { data: products = [] } = useProducts()
+  const bdays = useMemo(() => clients
+    .map((c) => ({ c, d: daysToBirthday(c) }))
+    .filter((x): x is { c: Client; d: number } => x.d !== null && x.d <= 7)
+    .sort((a, b) => a.d - b.d), [clients])
+  const toReceive = orders.filter(isToReceive)
+  const toReceiveSum = toReceive.reduce((s, o) => s + Math.max(0, (Number(o.valor_total) || 0) - (Number(o.valor_pago) || 0)), 0)
+  const low = products.filter(isLow)
+
+  const items: { key: string; icon: typeof Cake; title: string; sub: string; href: string; cta: string }[] = []
+  if (bdays.length) {
+    const b = bdays[0]
+    items.push({
+      key: 'bday', icon: Cake,
+      title: bdays.length === 1 ? b.c.nome : `${b.c.nome} e mais ${bdays.length - 1}`,
+      sub: b.d === 0 ? 'faz aniversário hoje' : b.d === 1 ? 'faz aniversário amanhã' : `aniversário em ${b.d} dias`,
+      href: '/clientes', cta: 'Parabenizar',
+    })
+  }
+  if (toReceive.length) items.push({ key: 'rec', icon: Wallet, title: `${toReceive.length} ${toReceive.length === 1 ? 'ordem concluída' : 'ordens concluídas'} a receber`, sub: `${formatBRL(toReceiveSum)} em aberto`, href: '/ordens-servico', cta: 'Cobrar' })
+  if (inactive > 0) items.push({ key: 'gone', icon: UserX, title: `${inactive} ${inactive === 1 ? 'cliente sumida' : 'clientes sumidas'}`, sub: 'sem ordem há mais de 90 dias', href: '/clientes', cta: 'Ver' })
+  if (low.length) items.push({ key: 'low', icon: Package, title: `${low.length} ${low.length === 1 ? 'material acabando' : 'materiais acabando'}`, sub: low.slice(0, 3).map((p) => p.nome).join(', '), href: '/estoque', cta: 'Repor' })
+
+  return (
+    <section aria-labelledby="rem-h" className="fin-card px-5 py-4">
+      <h2 id="rem-h" className="fin-cap">Lembretes</h2>
+      {items.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">Nenhum lembrete por agora.</p>
+      ) : (
+        <ul className="mt-1">
+          {items.map((it) => (
+            <li key={it.key} className="grid grid-cols-[32px_1fr_auto] items-center gap-3 border-t border-dashed border-border py-2.5 first:border-t-0">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#C8714A]/12 text-[#8A4B2C] dark:text-[#E39B78]"><it.icon className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="min-w-0"><b className="block truncate text-sm font-semibold">{it.title}</b><small className="block truncate text-[12.5px] text-muted-foreground">{it.sub}</small></span>
+              <Link href={it.href} className="whitespace-nowrap text-[13px] font-semibold text-[#8A4B2C] hover:underline dark:text-[#E39B78]">{it.cta}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {plan === 'free' && (
+        <div className="mt-3 border-t border-dashed border-border pt-3">
+          <p className="mb-1.5 flex justify-between text-xs text-muted-foreground">Plano Free <b className="text-[#8A4B2C] dark:text-[#E39B78]">{clientsCount} de 50 clientes</b></p>
+          <div className="cli-thread" aria-hidden="true"><span style={{ transform: `scaleX(${Math.min(1, clientsCount / 50)})` }} /></div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** linha do tempo pespontada do dia (ou das últimas atividades, se hoje ainda está quieto) */
+function DayLine({ activities, isLoading }: { activities: Activity[]; isLoading: boolean }) {
+  const today = todayISO()
+  const todays = activities.filter((a) => todayISO(new Date(a.timestamp)) === today)
+  const list = (todays.length ? todays : activities).slice(0, 5).reverse()
+  const outKinds = new Set(['payable', 'cashier_close', 'order_cancelled'])
+  return (
+    <section aria-labelledby="day-h" className="fin-card px-5 py-4">
+      <h2 id="day-h" className="fin-cap mb-3">{todays.length ? 'O dia até agora' : 'Últimas atividades'}</h2>
+      {isLoading ? <div className="h-16 animate-pulse rounded bg-muted" /> : list.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nada registrado ainda.</p>
+      ) : (
+        <ol className="day-line">
+          {list.map((a) => (
+            <li key={a.id} className={outKinds.has(a.type) ? 'out' : a.type === 'order_completed' ? 'done' : ''}>
+              <span className="text-[12px] tabular-nums text-muted-foreground">{todays.length ? timeOf(a.timestamp) : new Date(a.timestamp).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}</span>
+              <b className="mt-0.5 block text-[13px] font-semibold">{a.title}</b>
+              {a.description && <small className="block truncate text-[12px] text-muted-foreground">{a.description}</small>}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
+
+const HOME_CSS = `
+.day-line { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 1fr); overflow-x: auto; scrollbar-width: thin; }
+.day-line li { position: relative; min-width: 0; padding: 16px 14px 4px 0; }
+.day-line li::before { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 2px; background: repeating-linear-gradient(90deg, var(--border) 0 5px, transparent 5px 8px); }
+.day-line li::after { content: ''; position: absolute; left: 0; top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 2px solid #C8714A; }
+.day-line li.out::after { background: var(--foreground); border-color: var(--foreground); }
+.day-line li.done::after { background: #C8714A; }
+`
