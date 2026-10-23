@@ -1,111 +1,157 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Header } from '@/components/layouts/header'
 import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 import {
-  Printer,
-  LayoutDashboard,
-  Users,
-  Scissors,
-  FileText,
-  DollarSign,
-  Package,
-  Settings,
-  ImageIcon,
-  Wallet,
-  TrendingDown,
-  TrendingUp,
-  PackageOpen,
-  BarChart3,
-  Truck,
-  Bell,
-  Shield,
-  UserPlus,
-  ArrowLeftRight,
-  CreditCard,
-  QrCode,
+  Printer, LayoutDashboard, Users, Scissors, FileText, DollarSign, Package, Settings,
+  Wallet, ReceiptText, ArrowLeftRight, Truck, Bell, BookOpen, HelpCircle, Smartphone, X, ZoomIn,
 } from 'lucide-react'
 
 const TOC: [string, string][] = [
-  ['1', 'Visão geral'],
+  ['1', 'Primeiros passos'],
   ['2', 'Dashboard'],
   ['3', 'Clientes'],
   ['4', 'Serviços'],
   ['5', 'Ordens de serviço'],
   ['6', 'Financeiro'],
-  ['6.1', 'Fluxo de caixa'],
-  ['6.2', 'Caixas e chave PIX'],
-  ['7', 'Estoque e fornecedores'],
-  ['8', 'Alertas e notificações'],
+  ['6.1', 'Caixa'],
+  ['6.2', 'Contas a receber e a pagar'],
+  ['6.3', 'Fluxo de caixa'],
+  ['7', 'Estoque'],
+  ['7.1', 'Fornecedores'],
+  ['8', 'Alertas'],
   ['9', 'Configurações'],
   ['10', 'Dicas e perguntas'],
 ]
 const anchor = (n: string) => `s-${n.replace('.', '-')}`
 
-function ScreenshotPlaceholder({ label }: { label: string }) {
+/* posição dos números sobre cada print (% da largura e da altura), medida na própria tela */
+type Pin = [number, number]
+const PINS: Record<string, Pin[]> = {
+  dashboard: [[23.8, 29.2], [25.5, 37], [24.1, 64.9], [74.5, 69.1], [23.8, 89.8], [55.8, 83.3], [67.4, 19.4]],
+  alertas: [[86.5, 3.8], [69.8, 15.3], [69.8, 25.3], [1.2, 36.8]],
+  clientes: [[21.3, 15.6], [21.3, 22], [25.3, 40.4], [55.5, 27.1], [68.7, 27.1], [56.8, 74.5]],
+  servicos: [[25.4, 15.3], [82.3, 18], [21.6, 60.4], [74.5, 37.5], [56.9, 83.5]],
+  ordens: [[40.9, 22], [46, 32.9], [26.8, 40.4], [57, 30.5], [57, 39.2], [68.5, 39.2], [86, 47.9]],
+  financeiro: [[21.6, 13.8], [23.1, 27.3], [37.4, 49.8], [77.5, 21.9], [56, 59.7], [85.9, 59.7]],
+  caixa: [[21.6, 20.8], [23.1, 39.3], [48.9, 39.4], [23.2, 50.2]],
+  caixaFechar: [[29.5, 23.2], [28.2, 33.8], [28.2, 56.4], [29.5, 69.1]],
+  receber: [[21.3, 27.9], [21.3, 38.8], [21.6, 50.2], [57, 44.5]],
+  fluxo: [[27.3, 31.1], [71.3, 22.9], [71.3, 44.5], [71.3, 67.2], [63.2, 5.4]],
+  estoque: [[21.3, 27.9], [21.6, 55], [57, 41], [74.4, 41]],
+  entradas: [[66.1, 5.4], [29.3, 27.9], [21.6, 39.2], [58.4, 54.4]],
+  fornecedores: [[21.3, 27.9], [55.5, 33], [56.8, 82.6]],
+  configuracoes: [[22.3, 26.3], [47.1, 33.3], [88.1, 33.3]],
+}
+
+type ShotProps = {
+  src: string
+  alt: string
+  w?: number
+  h?: number
+  pins?: Pin[]
+  legend?: React.ReactNode[]
+  caption?: string
+  onZoom: (s: { src: string; alt: string; w: number; h: number; pins: Pin[] }) => void
+}
+
+/** Print real da tela, com os números das partes explicadas logo abaixo; clique para ampliar */
+function Shot({ src, alt, w = 1600, h = 1000, pins = [], legend = [], caption, onZoom }: ShotProps) {
   return (
-    <div className="aj-shot my-5 flex h-52 flex-col items-center justify-center gap-2 print:h-56">
-      <ImageIcon className="h-7 w-7 text-[#C8714A]/50 print:hidden" aria-hidden="true" />
-      <p className="px-4 text-center text-[13px] text-muted-foreground">{label}</p>
-    </div>
+    <figure className="my-6">
+      <button type="button" className="aj-shot-btn group" onClick={() => onZoom({ src, alt, w, h, pins })} aria-label={`Ampliar imagem: ${alt}`}>
+        <span className="relative block">
+          <Image src={src} alt={alt} width={w} height={h} sizes="(max-width: 1024px) 100vw, 820px" className="block h-auto w-full" />
+          {pins.map(([x, y], i) => (
+            <span key={i} className={`aj-pin ${x < 3 ? 'is-edge' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true">{i + 1}</span>
+          ))}
+          <span className="aj-zoom no-print" aria-hidden="true"><ZoomIn className="h-4 w-4" /> Ampliar</span>
+        </span>
+      </button>
+      {legend.length > 0 && (
+        <ol className="aj-legend mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+          {legend.map((l, i) => (
+            <li key={i} className="flex gap-3 text-[14px] leading-snug text-foreground/85">
+              <span className="aj-pin-s" aria-hidden="true">{i + 1}</span>
+              <span><span className="sr-only">{i + 1}. </span>{l}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {caption && <figcaption className="mt-2 text-[13px] text-muted-foreground">{caption}</figcaption>}
+    </figure>
   )
 }
 
-/** Exibe a imagem real se disponível; caso contrário, mostra o placeholder */
-function Screenshot({ src, alt, label }: { src: string; alt: string; label: string }) {
-  const [failed, setFailed] = useState(false)
-  if (failed) return <ScreenshotPlaceholder label={label} />
+function SectionHeader({ icon: Icon, n, title }: { icon: React.ElementType; n: string; title: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      // a imagem pode falhar antes da hidratação, quando o onError ainda não existe
-      ref={(img) => { if (img?.complete && img.naturalWidth === 0) setFailed(true) }}
-      src={src}
-      alt={alt}
-      className="my-5 w-full rounded-lg border border-border/70 shadow-sm print:border-gray-300 print:shadow-none"
-      onError={() => setFailed(true)}
-    />
-  )
-}
-
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
-  const [n, ...rest] = title.split(' ')
-  return (
-    <div id={anchor(n.replace(/\.$/, ''))} className="aj-sec mb-5 flex scroll-mt-24 items-center gap-3 pb-3">
+    <div id={anchor(n)} className="aj-sec mb-5 flex scroll-mt-24 items-center gap-3 pb-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C8714A]/12 text-[#8A4B2C] dark:text-[#E39B78]">
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
       <h2 className="font-serif-display text-[28px] leading-tight text-foreground">
-        <span className="mr-2 text-[#C8714A]">{n.replace(/\.$/, '')}</span>{rest.join(' ')}
+        <span className="mr-2 text-[#C8714A]">{n}</span>{title}
       </h2>
     </div>
   )
 }
 
-function Step({ n, text }: { n: number; text: string }) {
+function H3({ children }: { children: React.ReactNode }) {
+  return <h3 className="aj-h3 mt-7">{children}</h3>
+}
+
+function P({ children }: { children: React.ReactNode }) {
+  return <p className="mb-3 text-[15px] leading-relaxed text-foreground/85">{children}</p>
+}
+
+function Steps({ items }: { items: React.ReactNode[] }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="aj-step mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold tabular-nums">
-        {n}
-      </span>
-      <p className="text-[14.5px] leading-relaxed text-foreground/85">{text}</p>
-    </div>
+    <ol className="mb-4 space-y-2.5">
+      {items.map((t, i) => (
+        <li key={i} className="flex items-start gap-3">
+          <span className="aj-step mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold tabular-nums">{i + 1}</span>
+          <p className="text-[15px] leading-relaxed text-foreground/85">{t}</p>
+        </li>
+      ))}
+    </ol>
   )
 }
 
-function FeatureList({ items }: { items: string[] }) {
+function List({ items }: { items: React.ReactNode[] }) {
   return (
-    <ul className="aj-list mb-5 space-y-1.5">
-      {items.map((item, i) => (
-        <li key={i} className="text-[14.5px] leading-relaxed text-foreground/85">{item}</li>
-      ))}
+    <ul className="aj-list mb-4 space-y-1.5">
+      {items.map((t, i) => <li key={i} className="text-[15px] leading-relaxed text-foreground/85">{t}</li>)}
     </ul>
   )
 }
 
+function Note({ title = 'Dica', warn, children }: { title?: string; warn?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`aj-note ${warn ? 'aj-warn' : ''} my-4 p-4 text-[14px] leading-relaxed`}>
+      <strong className="font-semibold">{title}:</strong> {children}
+    </div>
+  )
+}
+
+const FAQ: [string, string][] = [
+  ['Como reabrir o tour do sistema?', 'Clique em “Ver tour do sistema”, no rodapé do menu lateral.'],
+  ['O que acontece se eu excluir uma cliente?', 'O cadastro dela é apagado. As ordens continuam no sistema, mas ficam sem o nome dela (aparece “Cliente não informado”). Por isso, exclua só cadastros duplicados ou feitos por engano.'],
+  ['Posso ter mais de um usuário?', 'Sim. Em Configurações → Usuários, clique em “Novo usuário” e informe nome, e-mail, senha e cargo. No plano Free o limite é 2 usuários; no Pro, 3.'],
+  ['Como defino a meta do mês?', 'No Dashboard, na faixa de faturamento, clique em “Definir meta” (ou “Mudar a meta”), digite o valor e salve.'],
+  ['Concluí uma ordem paga e o valor não entrou no caixa. Por quê?', 'O valor só entra no caixa se houver um caixa aberto. Quando isso acontece, o Financeiro mostra o aviso “ordens pagas ainda não entraram no caixa”, com o botão Lançar.'],
+  ['Como funciona a numeração das ordens?', 'Cada ordem nova ganha o próximo número (#000001, #000002…). O prefixo e o número inicial ficam em Configurações → Ordens de serviço.'],
+  ['O estoque baixa sozinho quando concluo uma ordem?', 'Sim, se o controle de estoque estiver ligado (Configurações → Sistema) e a ordem tiver materiais. A baixa acontece uma vez só, mesmo se a ordem for reaberta.'],
+  ['Como imprimo ou envio a ordem para a cliente?', 'Abra a ordem: “Imprimir” gera o comprovante em PDF e “Enviar OS” abre o WhatsApp com o resumo pronto.'],
+  ['Consigo exportar meus dados?', 'Sim. Contas a receber, contas a pagar e o fluxo de caixa exportam para Excel e PDF (ícones no topo da tela), e o estoque tem relatórios em PDF e Excel.'],
+  ['Posso usar no celular?', 'Pode. Todas as telas funcionam no celular: a lista aparece primeiro e, ao tocar num item, a ficha abre em seguida, com “Voltar” para a lista.'],
+]
+
 export default function AjudaPage() {
   const [active, setActive] = useState('1')
+  const [zoom, setZoom] = useState<{ src: string; alt: string; w: number; h: number; pins: Pin[] } | null>(null)
+  const onZoom = useCallback((s: NonNullable<typeof zoom>) => setZoom(s), [])
 
   useEffect(() => {
     const els = TOC.map(([n]) => document.getElementById(anchor(n))).filter(Boolean) as HTMLElement[]
@@ -120,6 +166,13 @@ export default function AjudaPage() {
     return () => io.disconnect()
   }, [])
 
+  useEffect(() => {
+    if (!zoom) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoom(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [zoom])
+
   const go = (n: string) => {
     document.getElementById(anchor(n))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setActive(n)
@@ -131,23 +184,23 @@ export default function AjudaPage() {
         @media print {
           body * { visibility: hidden; }
           #manual-content, #manual-content * { visibility: visible; }
-          #manual-content { position: absolute; left: 0; top: 0; width: 100%; color: #2C1810; }
+          #manual-content { position: absolute; left: 0; top: 0; width: 100%; color: #2C1810; border: 0; }
           .no-print { display: none !important; }
           .page-break { page-break-before: always; }
-          @page { margin: 20mm 15mm; size: A4; }
+          figure { break-inside: avoid; }
+          @page { margin: 16mm 14mm; size: A4; }
         }
       `}</style>
 
       <div className="flex min-h-full flex-col">
         <div className="no-print">
-          <Header title="Ajuda" description="Manual do Meu Atelier, módulo por módulo" />
+          <Header title="Manual do sistema" description="Como funciona cada parte do Meu Atelier, com as telas reais" />
         </div>
 
         <div className="mx-auto flex w-full max-w-6xl flex-1 gap-8 px-4 py-6 sm:px-6 lg:py-8">
-          {/* Índice fixo ao lado */}
           <aside className="no-print hidden w-60 shrink-0 lg:block">
             <nav aria-label="Seções do manual" className="sticky top-6">
-              <p className="fin-cap mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Neste manual</p>
+              <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Neste manual</p>
               <ol className="aj-toc">
                 {TOC.map(([n, t]) => (
                   <li key={n}>
@@ -164,23 +217,23 @@ export default function AjudaPage() {
             </nav>
           </aside>
 
-          {/* Conteúdo do manual */}
-          <div id="manual-content" className="aj-paper min-w-0 flex-1 space-y-14 px-5 py-8 sm:px-10">
+          <div id="manual-content" className="aj-paper min-w-0 flex-1 space-y-16 px-5 py-8 sm:px-10">
 
             {/* Capa */}
             <div className="aj-cover pb-10 text-center">
               <span className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#C8714A]/12 text-[#8A4B2C] dark:text-[#E39B78]">
-                <Scissors className="h-7 w-7" aria-hidden="true" />
+                <BookOpen className="h-7 w-7" aria-hidden="true" />
               </span>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual de utilização · versão 3.1</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Manual de utilização</p>
               <h1 className="font-serif-display mt-2 text-[44px] leading-none text-foreground sm:text-[56px]">Meu <em className="text-[#C8714A]">Atelier</em></h1>
-              <p className="mx-auto mt-3 max-w-md text-[14.5px] leading-relaxed text-muted-foreground">Tudo o que o sistema faz, explicado passo a passo, do cadastro da cliente ao fechamento do caixa.</p>
+              <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+                Cada tela do sistema, com o print real e os números indicando o que faz cada parte. Clique em qualquer imagem para ampliar.
+              </p>
               <div className="no-print mt-5 flex justify-center lg:hidden">
                 <button type="button" onClick={() => window.print()} className="cli-ghost">
                   <Printer className="h-4 w-4" aria-hidden="true" />Imprimir / PDF
                 </button>
               </div>
-              <Screenshot src="/manual/login.png" alt="Tela de login" label="[Captura de tela da tela inicial / login do sistema]" />
             </div>
 
             {/* Índice (celular e impressão) */}
@@ -197,609 +250,322 @@ export default function AjudaPage() {
               </ol>
             </nav>
 
-            {/* 1. Visão Geral */}
+            {/* 1. Primeiros passos */}
             <section>
-              <SectionHeader icon={Shield} title="1. Visão Geral do Sistema" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O <strong>Meu Atelier</strong> é um sistema de gestão completo desenvolvido especialmente para ateliês de costura, bordado e artesanato. Com ele você centraliza o cadastro de clientes, serviços, ordens de serviço, controle financeiro e de estoque em um único lugar.
-              </p>
-              <FeatureList items={[
-                'Acesso via navegador web — sem necessidade de instalação',
-                'Dados seguros e isolados por organização',
-                'Interface responsiva para uso em computador e tablet',
-                'Tour guiado integrado para novos usuários',
+              <SectionHeader icon={Smartphone} n="1" title="Primeiros passos" />
+              <P>
+                O <strong>Meu Atelier</strong> funciona no navegador, no computador ou no celular, sem instalar nada. Tudo o que você cadastra fica guardado com segurança e só a sua equipe enxerga.
+              </P>
+              <List items={[
+                <>O <strong>menu lateral</strong> leva a cada parte do sistema: Dashboard, Clientes, Serviços, Ordens de Serviço, Financeiro, Estoque, Configurações e este manual.</>,
+                <>No alto da tela ficam o <strong>sino de alertas</strong>, a troca de tema (claro ou escuro) e o seu perfil.</>,
+                <>Quase todas as telas seguem o mesmo jeito: a <strong>lista à esquerda</strong>, com busca e filtros, e a <strong>ficha do item escolhido à direita</strong>.</>,
+                <>No celular, a lista aparece primeiro; tocando num item, a ficha abre na tela inteira, com o botão “Voltar”.</>,
               ]} />
-              <div className="grid gap-3 sm:grid-cols-2 mb-4">
-                <div className="aj-note p-3">
-                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Plano Free</p>
-                  <p className="text-[13.5px] text-emerald-700 dark:text-emerald-400">50 clientes · 20 serviços · 100 ordens · 2 usuários</p>
+              <div className="my-6 grid grid-cols-2 gap-4 sm:gap-6">
+                <Shot src="/manual/celular-dashboard.webp" alt="Dashboard no celular" w={780} h={1560} onZoom={onZoom} caption="O Dashboard no celular" />
+                <Shot src="/manual/celular-ordem.webp" alt="Ficha da ordem de serviço no celular" w={780} h={1560} onZoom={onZoom} caption="Uma ordem aberta no celular" />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="aj-card p-4">
+                  <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8A4B2C] dark:text-[#E39B78]">Plano Free</p>
+                  <p className="mt-1 text-[14px] text-foreground/85">50 clientes · 20 serviços · 100 ordens · 2 usuários</p>
                 </div>
-                <div className="aj-note p-3">
-                  <p className="text-xs font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Plano Pro</p>
-                  <p className="text-[13.5px] text-[#8A4B2C] dark:text-[#E39B78]">Clientes ilimitados · Serviços ilimitados · Ordens ilimitadas · 3 usuários</p>
+                <div className="aj-card p-4">
+                  <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8A4B2C] dark:text-[#E39B78]">Plano Pro</p>
+                  <p className="mt-1 text-[14px] text-foreground/85">Clientes, serviços e ordens ilimitados · 3 usuários · Financeiro e Estoque</p>
                 </div>
               </div>
-              <Screenshot src="/manual/dashboard.png" alt="Menu lateral do sistema" label="[Captura de tela do menu lateral (sidebar) com todos os módulos visíveis]" />
             </section>
 
             {/* 2. Dashboard */}
             <section className="page-break">
-              <SectionHeader icon={LayoutDashboard} title="2. Dashboard — a bancada do dia" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O Dashboard é a primeira tela depois do login. Ele responde a uma pergunta: <strong>o que precisa sair do ateliê hoje?</strong> Em cima ficam as entregas da semana, logo abaixo o faturamento do mês com a meta, e por último o caixa, os lembretes e o que já aconteceu no dia.
-              </p>
-
-              <h3 className="aj-h3">Entregas da semana</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                As ordens em aberto aparecem em quatro colunas, pelo prazo de entrega:
-              </p>
-              <FeatureList items={[
-                'Atrasadas — o prazo já passou e a ordem ainda não foi concluída',
-                'Hoje — entregas marcadas para hoje',
-                'Amanhã — entregas de amanhã',
-                'Próximos dias — o que vence entre 2 e 7 dias',
+              <SectionHeader icon={LayoutDashboard} n="2" title="Dashboard" />
+              <P>
+                É a primeira tela depois do login e responde a uma pergunta: <strong>o que precisa sair do ateliê hoje?</strong> No topo, uma frase resume o dia (entregas de hoje, ordens atrasadas e quanto há para receber).
+              </P>
+              <Shot src="/manual/dashboard.webp" alt="Dashboard com as entregas da semana, o faturamento do mês, o caixa e os lembretes" h={1300} pins={PINS.dashboard} onZoom={onZoom} legend={[
+                <><strong>Entregas da semana</strong>: as ordens em aberto em quatro colunas: Atrasadas, Hoje, Amanhã e Próximos dias (até 7 dias).</>,
+                <><strong>Cartão da ordem</strong>: clique para ver as ações rápidas: <em>Avisar</em> (WhatsApp para a cliente) e <em>Concluir</em>.</>,
+                <><strong>Faturamento do mês</strong>: soma das ordens concluídas, comparada com o mês passado.</>,
+                <><strong>Meta</strong>: a linha costurada mostra quanto falta e quanto precisa entrar por dia. Clique em “Mudar a meta” para ajustar.</>,
+                <><strong>Caixa</strong>: quanto há na gaveta agora, com entradas, saídas e sangrias do dia.</>,
+                <><strong>Lembretes</strong>: aniversários, ordens concluídas a receber, clientes sumidas há mais de 90 dias e materiais acabando.</>,
+                <><strong>Nova ordem</strong> e <strong>Novo cliente</strong>: atalhos para os cadastros mais usados, ao lado da busca.</>,
               ]} />
-              <div className="space-y-2 mb-4">
-                <Step n={1} text="Clique numa ordem para abrir as ações rápidas." />
-                <Step n={2} text="'Avisar' abre o WhatsApp com a mensagem pronta para a cliente (aparece quando ela tem telefone cadastrado)." />
-                <Step n={3} text="'Concluir' finaliza a ordem. Se ainda houver saldo a pagar, o sistema pergunta se a cliente já pagou e em qual forma." />
-              </div>
-
-              <h3 className="aj-h3 mt-4">Faturamento e meta do mês</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                A faixa de faturamento soma as ordens concluídas no mês e compara com o mês passado. A meta aparece como uma linha costurada: a agulha marca onde você está, e o texto diz quanto falta e quanto precisa entrar por dia até o fim do mês.
-              </p>
-              <div className="space-y-2 mb-4">
-                <Step n={1} text="Clique em 'Definir meta' (ou 'Mudar a meta', se já existir uma)." />
-                <Step n={2} text="Digite o valor (ex: 6.000,00) e clique em 'Salvar'." />
-                <Step n={3} text="O progresso se atualiza sozinho conforme as ordens são concluídas." />
-              </div>
-              <div className="aj-note p-3.5 text-[13.5px] mb-4">
-                <strong>Dica:</strong> Para tirar a meta, salve com o valor 0.
-              </div>
-
-              <h3 className="aj-h3 mt-4">Caixa, lembretes e o dia até agora</h3>
-              <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Caixa</p>
-                  <p className="text-[12.5px] text-muted-foreground">Quanto há na gaveta agora, com entradas, saídas e sangrias. Sem caixa aberto, mostra o atalho para abrir.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Lembretes</p>
-                  <p className="text-[12.5px] text-muted-foreground">Aniversários de clientes, ordens concluídas a receber, clientes sumidas há mais de 90 dias e materiais acabando.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">O dia até agora</p>
-                  <p className="text-[12.5px] text-muted-foreground">A linha do tempo do que foi feito hoje: ordens criadas, concluídas, pagamentos e cadastros.</p>
-                </div>
-              </div>
-              <Screenshot src="/manual/dashboard.png" alt="Dashboard" label="[Captura de tela do Dashboard com as entregas da semana, a faixa de faturamento e os lembretes]" />
+              <Note>Ao concluir uma ordem que ainda tem saldo, o sistema pergunta se a cliente já pagou, igual à tela de Ordens (veja a seção 5).</Note>
             </section>
 
             {/* 3. Clientes */}
             <section className="page-break">
-              <SectionHeader icon={Users} title="3. Clientes" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                Gerencie todo o cadastro de clientes do ateliê. O histórico de ordens e o valor total gasto por cada cliente ficam disponíveis automaticamente.
-              </p>
-              <FeatureList items={[
-                'Cadastro com nome, telefone, e-mail, endereço e data de aniversário',
-                'Busca e filtragem por nome ou telefone',
-                'Visualização do histórico completo de ordens do cliente',
-                'Valor total gasto pelo cliente (soma de todas as ordens concluídas)',
-                'Exportação da lista em Excel ou PDF',
-                'Soft delete — clientes removidos ficam na lixeira (preserva histórico)',
+              <SectionHeader icon={Users} n="3" title="Clientes" />
+              <P>O cadastro das clientes, com o contato, o endereço, o aniversário e todo o histórico de ordens de cada uma.</P>
+              <Shot src="/manual/clientes.webp" alt="Tela de Clientes com a lista e a ficha da cliente" pins={PINS.clientes} onZoom={onZoom} legend={[
+                <><strong>Busca</strong> por nome, e-mail ou telefone.</>,
+                <><strong>Filtros</strong>: aniversariantes do mês, novos no mês, sem telefone e sem e-mail.</>,
+                <><strong>Lista</strong>: o bolo marca quem faz aniversário este mês. Clique para abrir a ficha.</>,
+                <><strong>Nova ordem</strong> já com a cliente escolhida.</>,
+                <><strong>WhatsApp</strong> abre a conversa com a cliente; ao lado ficam Editar e, no “⋯”, Excluir.</>,
+                <><strong>Histórico de ordens</strong>: cada ordem da cliente, com status e valor. Acima, os totais: ordens, em aberto e total gasto.</>,
               ]} />
-              <Screenshot src="/manual/clientes.png" alt="Lista de clientes" label="[Captura de tela da lista de clientes com tabela e botão 'Novo Cliente']" />
-              <h3 className="aj-h3 mt-4">Como cadastrar um cliente</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Clique em 'Novo Cliente' no canto superior direito da tela." />
-                <Step n={2} text="Preencha o nome (obrigatório) e os demais campos — telefone, e-mail, endereço e aniversário." />
-                <Step n={3} text="Clique em 'Cadastrar'. O cliente aparecerá imediatamente na lista." />
-              </div>
-              <Screenshot src="/manual/clientes-form.png" alt="Formulário de cadastro de cliente" label="[Captura de tela do formulário de cadastro de cliente]" />
+              <H3>Como cadastrar uma cliente</H3>
+              <Steps items={[
+                'Clique em “Novo cliente”, no alto da tela.',
+                'Preencha o nome (obrigatório) e, se quiser, telefone, e-mail, endereço, aniversário e observações.',
+                'Salve. A cliente aparece na lista na hora e já pode ser usada nas ordens.',
+              ]} />
+              <Note>O endereço tem o link “Mapa”, que abre o local no Google Maps.</Note>
             </section>
 
             {/* 4. Serviços */}
             <section className="page-break">
-              <SectionHeader icon={Scissors} title="4. Serviços" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                Monte o catálogo de serviços oferecidos pelo ateliê. Os serviços cadastrados aqui aparecem automaticamente na criação de ordens de serviço.
-              </p>
-              <FeatureList items={[
-                'Nome, descrição, categoria e preço de venda',
-                'Tempo estimado, tempo mínimo e máximo de execução',
-                'Nível de dificuldade (Fácil / Médio / Difícil)',
-                'Observações técnicas para referência interna',
-                'Vinculação de materiais do catálogo de estoque (requer Controle de Estoque ativo)',
-                'Cálculo automático do custo dos materiais e margem de lucro',
-                'Ativar/desativar serviço sem excluir do histórico',
+              <SectionHeader icon={Scissors} n="4" title="Serviços" />
+              <P>O catálogo do que o ateliê faz, com preço, tempo, dificuldade e os materiais que cada serviço gasta. Os serviços daqui aparecem na hora de montar uma ordem.</P>
+              <Shot src="/manual/servicos.webp" alt="Tela de Serviços com o catálogo e a ficha do serviço" pins={PINS.servicos} onZoom={onZoom} legend={[
+                <><strong>Aviso de serviços sem preço</strong>: o sistema já vem com serviços comuns de ateliê; informe o valor de cada um para usá-los.</>,
+                <><strong>Filtros</strong>: ativos, inativos e sem preço, além de categoria e ordem (A–Z, preço, mais vendidos).</>,
+                <><strong>Lista</strong> com preço, tempo e quantas vezes o serviço foi vendido.</>,
+                <><strong>Ações</strong>: Editar, Duplicar (para criar um parecido) e Histórico de preços.</>,
+                <><strong>Materiais</strong>: o que o serviço consome do estoque, com o custo e a margem de lucro calculados.</>,
               ]} />
-              <Screenshot src="/manual/servicos.png" alt="Catálogo de serviços" label="[Captura de tela do catálogo de serviços com cards/tabela]" />
-              <h3 className="aj-h3 mt-4">Vinculando materiais a um serviço</h3>
-              <p className="text-[13.5px] text-muted-foreground mb-2">
-                Esta função requer o <strong>Controle de Estoque</strong> ativo em Configurações → Sistema.
-              </p>
-              <div className="space-y-2">
-                <Step n={1} text="Abra o formulário de novo serviço ou edição." />
-                <Step n={2} text="Na seção 'Materiais e Custo', clique em 'Selecionar produto...' e busque o material." />
-                <Step n={3} text="Informe a quantidade necessária e clique no botão '+' para adicionar." />
-                <Step n={4} text="O custo total e a margem de lucro são calculados automaticamente." />
-                <Step n={5} text="Ao criar uma OS com esse serviço, os materiais são pré-populados automaticamente." />
-              </div>
-              <Screenshot src="/manual/servicos-form.png" alt="Formulário de serviço com materiais" label="[Captura de tela do formulário de serviço com seção de materiais vinculados]" />
+              <H3>Ligando materiais a um serviço</H3>
+              <Steps items={[
+                'Com o controle de estoque ligado (Configurações → Sistema), abra o serviço e clique em “Editar”.',
+                'Em “Materiais e custo”, escolha o produto, informe a quantidade e adicione.',
+                'O custo e a margem são calculados na hora. Ao criar uma ordem com esse serviço, os materiais já vêm preenchidos.',
+              ]} />
             </section>
 
-            {/* 5. Ordens de Serviço */}
+            {/* 5. Ordens de serviço */}
             <section className="page-break">
-              <SectionHeader icon={FileText} title="5. Ordens de Serviço" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O módulo central do sistema. Registre, acompanhe e gerencie todos os trabalhos do ateliê. Uma ordem de serviço (OS) vincula cliente, serviços, prazo, pagamento e histórico de andamento.
-              </p>
-              <FeatureList items={[
-                'Vinculação de cliente e um ou mais serviços por OS',
-                'Controle de status: Pendente → Em Andamento → Concluído / Cancelado',
-                'Data de abertura e prazo de entrega com alertas de atraso',
-                'Desconto em valor fixo (R$) ou percentual (%)',
-                'Registro de forma de pagamento e valor pago',
-                'Campo de observações (com possibilidade de mensagem padrão automática)',
-                'Histórico de alterações de status da OS',
-                'Impressão de comprovante térmico em PDF',
-                'Envio por WhatsApp com resumo da OS',
-                'Baixa automática de estoque ao concluir (requer Controle de Estoque ativo)',
+              <SectionHeader icon={FileText} n="5" title="Ordens de serviço" />
+              <P>O coração do sistema. Cada ordem junta a cliente, os serviços, o prazo, o pagamento e o andamento do trabalho.</P>
+              <Shot src="/manual/ordens.webp" alt="Tela de Ordens de Serviço com a lista e a ficha da ordem" pins={PINS.ordens} onZoom={onZoom} legend={[
+                <><strong>Filtros</strong>: pendentes, em andamento, atrasadas, a receber, concluídas e canceladas, cada uma com a contagem.</>,
+                <><strong>Período, ordem e Selecionar</strong>: “Selecionar” permite mudar o status ou excluir várias ordens de uma vez.</>,
+                <><strong>Lista</strong> com cliente, serviços, status e prazo (“Entrega hoje”, “Atrasada 2 dias”…).</>,
+                <><strong>Andamento</strong>: Pendente → Em andamento → Concluída.</>,
+                <><strong>Botão principal</strong>: muda conforme a etapa: Iniciar, Concluir, Registrar pagamento ou Avisar que está pronta.</>,
+                <><strong>Enviar OS</strong> (WhatsApp com o resumo), <strong>Imprimir</strong> (comprovante em PDF) e, no “⋯”, cancelar, reabrir ou excluir.</>,
+                <><strong>Total, pago e saldo</strong>. Mais abaixo: cliente, prazo, serviços, observações, notas internas e histórico.</>,
               ]} />
-              <Screenshot src="/manual/ordens.png" alt="Lista de ordens de serviço" label="[Captura de tela da lista de ordens de serviço com filtros de status]" />
 
-              <h3 className="aj-h3 mt-5">Como criar uma Ordem de Serviço</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Clique em 'Nova OS' na tela de Ordens de Serviço." />
-                <Step n={2} text="Selecione o cliente. Se não existir, cadastre-o antes na seção Clientes." />
-                <Step n={3} text="Adicione um ou mais serviços clicando em 'Selecionar serviço...' e informando a quantidade." />
-                <Step n={4} text="Preencha a data de entrega prevista e a forma de pagamento." />
-                <Step n={5} text="Se houver desconto, informe o valor ou percentual no campo correspondente." />
-                <Step n={6} text="Clique em 'Criar Ordem'. O comprovante em PDF será gerado automaticamente." />
-              </div>
-              <Screenshot src="/manual/ordens-form.png" alt="Formulário de nova OS" label="[Captura de tela do formulário de nova OS com campos preenchidos]" />
-
-              <h3 className="aj-h3 mt-5">Materiais utilizados na OS</h3>
-              <p className="text-[13.5px] text-muted-foreground mb-2">
-                Visível apenas quando o Controle de Estoque está ativo em Configurações → Sistema.
-              </p>
-              <FeatureList items={[
-                'Se o serviço tiver materiais vinculados, eles são pré-populados automaticamente na OS',
-                'É possível adicionar ou remover materiais manualmente antes de salvar',
-                'Ao marcar a OS como Concluída, os materiais são baixados do estoque automaticamente',
-                'A baixa é registrada em Estoque → Relatórios com referência à OS',
+              <H3>Como criar uma ordem</H3>
+              <Steps items={[
+                'Clique em “Nova ordem” (aqui, no Dashboard ou na ficha da cliente).',
+                'Escolha a cliente. Se ela ainda não existir, cadastre antes em Clientes.',
+                'Defina o status e a data prevista de entrega.',
+                'Adicione os serviços com a quantidade. Se houver desconto ou entrada (sinal), informe em “Pagamento”.',
+                'Marque, se quiser, “Gerar PDF” e “Enviar pelo WhatsApp”, e clique em “Gerar OS”. A prévia aparece antes de salvar.',
               ]} />
-              <Screenshot src="/manual/ordens-materiais.png" alt="OS com materiais" label="[Captura de tela da OS com seção de materiais expandida]" />
+              <Shot src="/manual/ordens-nova.webp" alt="Janela de nova ordem de serviço" onZoom={onZoom} caption="A janela de nova ordem. O número (#000036…) só é criado depois que a ordem é gerada." />
+
+              <H3>Concluindo e recebendo</H3>
+              <P>Ao concluir uma ordem que ainda tem saldo, o sistema pergunta se a cliente já pagou:</P>
+              <Shot src="/manual/ordens-pagamento.webp" alt="Janela de conclusão perguntando se a ordem foi paga" onZoom={onZoom} />
+              <List items={[
+                <><strong>Sim — lançar no caixa</strong>: escolha a forma de pagamento e a data. A ordem fica paga e o valor entra no caixa aberto.</>,
+                <><strong>Não — gerar conta a receber</strong>: a ordem é concluída e o saldo vira uma conta a receber, para cobrar depois.</>,
+              ]} />
+              <Note warn title="Atenção">Sem caixa aberto, a ordem fica paga mas o valor não entra no caixa. O Financeiro avisa e deixa lançar depois.</Note>
             </section>
 
             {/* 6. Financeiro */}
             <section className="page-break">
-              <SectionHeader icon={DollarSign} title="6. Financeiro" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                Controle financeiro completo com três subseções: Caixa, Contas a Pagar e Contas a Receber.
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Wallet className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Caixa</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Abertura e fechamento diário, movimentações de entrada e saída, conferência de caixa.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingDown className="h-4 w-4 text-red-700 dark:text-red-400 dark:text-red-400" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Contas a Pagar</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Registre despesas, vincule a fornecedores, marque como pago e controle vencimentos.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-4 w-4 text-emerald-700 dark:text-emerald-400 dark:text-emerald-400" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Contas a Receber</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Gerado automaticamente ao concluir uma OS. Acompanhe pagamentos e inadimplências.</p>
-                </div>
-              </div>
-              <Screenshot src="/manual/financeiro.png" alt="Módulo Financeiro" label="[Captura de tela do módulo Financeiro — visão geral do Caixa]" />
-
-              <h3 className="aj-h3 mt-4">Fluxo do Caixa</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Acesse Financeiro → Caixa. Se não há sessão aberta, clique em 'Abrir Caixa' informando o saldo inicial." />
-                <Step n={2} text="Durante o dia, registre entradas (recebimentos) e saídas (pagamentos) clicando nos botões correspondentes." />
-                <Step n={3} text="Para fechar o caixa, clique em 'Fechar Sessão' e informe o saldo contado em espécie." />
-                <Step n={4} text="O sistema gera uma conferência automática com qualquer diferença encontrada." />
-              </div>
-              <Screenshot src="/manual/financeiro-caixa.png" alt="Caixa com sessão aberta" label="[Captura de tela do Caixa com sessão aberta e movimentações]" />
-
-              <h3 className="aj-h3 mt-4">Contas a Receber — fluxo de conclusão da OS</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                Ao concluir uma OS com saldo em aberto, o sistema exibe um dialog perguntando se o cliente já pagou:
-              </p>
-              <div className="space-y-2 mb-3">
-                <Step n={1} text="Selecione a forma de pagamento (Pix, Dinheiro, Cartão etc.) no seletor exibido." />
-                <Step n={2} text="'Sim — Lançar no caixa': marca a OS como paga e registra a entrada diretamente no caixa aberto." />
-                <Step n={3} text="'Não — Gerar conta a receber': cria uma conta a receber com vencimento em 7 dias para cobrar depois." />
-              </div>
-              <div className="aj-note p-3.5 text-[13.5px] mb-3">
-                <strong>Dica:</strong> Se não há caixa aberto ao escolher “Lançar no caixa”, a OS é marcada como paga mas o valor não é registrado no caixa — abra o caixa antes de concluir OS pagas na hora.
-              </div>
-
-              <h3 className="aj-h3 mt-4">Abas de Contas a Pagar e a Receber</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                As duas telas separam as contas em abas, cada uma com o total ao lado:
-              </p>
-              <FeatureList items={[
-                'Atrasadas — venceram e ainda não foram pagas ou recebidas',
-                'Vencem em 7 dias — o que chega na próxima semana',
-                'Em aberto — todas as contas pendentes',
-                'Pagas / Recebidas e Canceladas — o histórico',
-                'Clique numa conta para ver os detalhes e usar o botão Pagar ou Receber',
+              <SectionHeader icon={DollarSign} n="6" title="Financeiro" />
+              <P>O dinheiro do ateliê em cinco abas: <strong>Visão geral</strong>, <strong>A receber</strong>, <strong>A pagar</strong>, <strong>Fluxo de caixa</strong> e <strong>Caixa</strong>. Os números ao lado das abas mostram o que está atrasado.</P>
+              <Shot src="/manual/financeiro.webp" alt="Visão geral do Financeiro com o caixa e as contas da semana" pins={PINS.financeiro} onZoom={onZoom} legend={[
+                <><strong>Abas</strong> do Financeiro.</>,
+                <><strong>Caixa de hoje</strong>: o valor na gaveta agora, com o inicial, as entradas, as saídas e as sangrias.</>,
+                <><strong>Movimentos rápidos</strong>: Entrada, Saída, Sangria (tirar dinheiro) e Reforço (pôr dinheiro).</>,
+                <><strong>Período</strong> dos totais: 7 dias, 30 dias, este mês, mês passado ou tudo.</>,
+                <><strong>Contas desta semana</strong>: o que vence nos próximos dias, das atrasadas às de hoje.</>,
+                <><strong>Receber / Pagar</strong>: dá baixa na conta direto daqui.</>,
               ]} />
-              <div className="aj-note aj-warn p-3.5 text-[13.5px] mb-3">
-                <strong>Atenção:</strong> Quando há contas vencidas, um badge vermelho aparece automaticamente no menu lateral ao lado de “Contas a Pagar” ou “Contas a Receber”. O sino de alertas no topo da tela também exibe a contagem total de itens urgentes.
-              </div>
-              <Screenshot src="/manual/financeiro-receber.png" alt="Contas a Receber" label="[Captura de tela das Contas a Receber com cards de resumo e tabela]" />
+              <Note>Se alguma ordem paga não entrou no caixa, aparece um aviso no fim do caixa com o botão <strong>Lançar</strong>.</Note>
             </section>
 
-            {/* 6.1 Fluxo de Caixa */}
+            {/* 6.1 Caixa */}
             <section className="page-break">
-              <SectionHeader icon={ArrowLeftRight} title="6.1 Fluxo de Caixa" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O <strong>Fluxo de Caixa</strong> é um painel analítico que consolida todas as movimentações financeiras do período selecionado — entradas (recebimentos) e saídas (despesas) — permitindo visualizar a saúde financeira do ateliê de forma rápida.
-              </p>
-              <p className="text-[13.5px] text-muted-foreground mb-3">
-                Acesse em: <strong>Financeiro → Fluxo de Caixa</strong> no menu lateral.
-              </p>
-
-              <h3 className="aj-h3">Cards de Resumo</h3>
-              <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Total de Entradas</p>
-                  <p className="text-[12.5px] text-muted-foreground">Soma de todos os recebimentos (OS pagas + lançamentos no caixa) no período.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-red-700 dark:text-red-400 mb-1">Total de Saídas</p>
-                  <p className="text-[12.5px] text-muted-foreground">Soma de todas as despesas registradas (contas a pagar pagas) no período.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Saldo do Período</p>
-                  <p className="text-[12.5px] text-muted-foreground">Diferença entre entradas e saídas. Positivo = superávit; negativo = déficit.</p>
-                </div>
-              </div>
-
-              <h3 className="aj-h3">Entradas por Forma de Pagamento</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                Dentro do Fluxo de Caixa há um painel detalhando as entradas agrupadas por forma de pagamento:
-              </p>
-              <FeatureList items={[
-                'Total recebido por cada método (PIX, Dinheiro, Cartão etc.)',
-                'Quantidade de transações por método',
-                'Percentual de participação de cada método no total',
-                'Barra de progresso visual para comparação rápida',
+              <SectionHeader icon={Wallet} n="6.1" title="Caixa" />
+              <P>Um <strong>caixa</strong> é cada lugar onde o dinheiro entra: a gaveta do balcão, uma conta PIX, uma segunda loja. Cada um abre e fecha separado, e cada abertura vira uma <strong>sessão</strong>.</P>
+              <Shot src="/manual/caixa.webp" alt="Tela de caixas com os caixas cadastrados e as últimas sessões" pins={PINS.caixa} onZoom={onZoom} legend={[
+                <><strong>Meus caixas</strong>: o caixa aberto aparece escuro, com o horário e o valor inicial.</>,
+                <><strong>Ver o caixa</strong>: abre a sessão do dia com todos os movimentos.</>,
+                <><strong>Abrir caixa</strong>: informe o valor inicial (o troco) e comece o dia.</>,
+                <><strong>Últimas sessões fechadas</strong>, com o que sobrou ou faltou na conferência.</>,
               ]} />
-              <div className="aj-note p-3.5 text-[13.5px] mb-4">
-                <strong>Exemplo de uso:</strong> Se você recebeu R$ 2.000 em PIX e R$ 500 em dinheiro, o painel mostrará PIX como 80% e Dinheiro como 20% das entradas do período.
-              </div>
-
-              <h3 className="aj-h3">Atalhos Rápidos</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-3">
-                O Fluxo de Caixa também exibe atalhos para as principais ações financeiras: abrir caixa, registrar despesa, acessar contas a receber e gerenciar formas de pagamento.
-              </p>
-              <Screenshot src="/manual/financeiro-fluxo.png" alt="Fluxo de Caixa" label="[Captura de tela do Fluxo de Caixa com cards de resumo e painel de formas de pagamento]" />
+              <H3>Fechando o caixa</H3>
+              <P>No fim do dia, abra o caixa e clique em <strong>Fechar caixa</strong>. Conte o dinheiro e confira cada forma de pagamento:</P>
+              <Shot src="/manual/caixa-fechar.webp" alt="Janela de fechamento do caixa com a conferência" pins={PINS.caixaFechar} onZoom={onZoom} legend={[
+                <><strong>O sistema esperava</strong>: o valor calculado pelos movimentos do dia.</>,
+                <><strong>Conferência</strong>: quanto entrou em dinheiro, PIX, crédito, débito e outros.</>,
+                <><strong>Valor contado</strong>: o que realmente há no caixa.</>,
+                <><strong>Diferença</strong> na hora: “bateu”, “faltam” ou “sobram”. Se não bater, dá para revisar ou fechar assim mesmo, com uma observação.</>,
+              ]} />
+              <H3>Cadastrando um caixa</H3>
+              <Steps items={[
+                'Em Financeiro → Caixa, clique em “Novo caixa”.',
+                'Dê um nome (ex.: “Gaveta do balcão”, “Conta PIX”) e, se quiser, uma descrição e a chave PIX.',
+                'Salve. O caixa fica pronto para abrir quando o dia começar.',
+              ]} />
+              <Note>A chave PIX do caixa é informativa: ajuda a saber para qual conta o dinheiro foi. Se o ateliê tem uma chave só, cadastre em Configurações → Financeiro e use o atalho “Usar chave das configurações”.</Note>
             </section>
 
-            {/* 6.2 Caixas e Chave PIX */}
+            {/* 6.2 Contas */}
             <section className="page-break">
-              <SectionHeader icon={QrCode} title="6.2 Caixas e Chave PIX" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O sistema permite cadastrar múltiplos <strong>caixas</strong> (PDVs, pontos de recebimento, contas bancárias) e vincular uma <strong>Chave PIX</strong> a cada um deles. Isso facilita identificar para qual caixa cada pagamento PIX foi destinado.
-              </p>
+              <SectionHeader icon={ReceiptText} n="6.2" title="Contas a receber e a pagar" />
+              <P>As duas telas funcionam igual. <strong>A receber</strong> junta o que as clientes devem (muitas contas nascem sozinhas ao concluir uma ordem sem pagamento). <strong>A pagar</strong> junta as despesas do ateliê, inclusive as que se repetem todo mês.</P>
+              <Shot src="/manual/receber.webp" alt="Tela de contas a receber com a lista e o detalhe da conta" pins={PINS.receber} onZoom={onZoom} legend={[
+                <><strong>Filtros</strong>: atrasadas, vencem em 7 dias, em aberto, recebidas (ou pagas) e canceladas.</>,
+                <><strong>Data, forma de pagamento e ordem</strong> da lista. Acima dela, o total em aberto e em atraso.</>,
+                <><strong>Lista</strong> com o vencimento de cada conta (“Atrasada 4 dias”, “Vence hoje”).</>,
+                <><strong>Marcar como recebida</strong> (ou paga): informe a forma e a data. Ao lado: Editar e mais ações.</>,
+              ]} />
+              <Steps items={[
+                'Para lançar uma conta nova, clique em “Nova conta”, no alto.',
+                'Informe a descrição, o valor, o vencimento e, se quiser, a forma de pagamento e a categoria.',
+                'Os ícones ao lado de “Nova conta” exportam a lista em Excel ou PDF.',
+              ]} />
+            </section>
 
-              <h3 className="aj-h3">O que é um Caixa?</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-3">
-                Um <strong>caixa</strong> representa um ponto físico ou conta de recebimento — por exemplo: “Caixa Principal”, “Conta Nubank”, “Caixa Loja 2”. Cada caixa tem sessões de abertura e fechamento independentes.
-              </p>
-
-              <h3 className="aj-h3">Cadastrando um Caixa com Chave PIX</h3>
-              <div className="space-y-2 mb-4">
-                <Step n={1} text="Acesse Financeiro → Caixa e clique em 'Novo Caixa'." />
-                <Step n={2} text="Preencha o nome do caixa (ex: 'Conta Nubank', 'Caixa Loja')." />
-                <Step n={3} text="No campo 'Chave PIX', informe a chave correspondente: celular, e-mail, CPF/CNPJ ou chave aleatória." />
-                <Step n={4} text="Se já houver uma chave PIX cadastrada em Configurações → Financeiro, aparece o link 'Usar chave das configurações' — clique para preenchê-la automaticamente." />
-                <Step n={5} text="Salve. O caixa estará disponível para abertura de sessão." />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 mb-4">
-                <div className="aj-note p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <QrCode className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78]">Chave das Configurações</p>
-                  </div>
-                  <p className="text-[12.5px] text-foreground/85">Se você tem uma única chave PIX para o ateliê, cadastre-a em Configurações → Financeiro e use o atalho para importar em qualquer caixa.</p>
-                </div>
-                <div className="aj-note p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CreditCard className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78]">Chave Específica por Caixa</p>
-                  </div>
-                  <p className="text-[12.5px] text-foreground/85">Se cada conta bancária tem sua própria chave PIX (ex: Nubank e Itaú), cadastre a chave correspondente em cada caixa separadamente.</p>
-                </div>
-              </div>
-
-              <div className="aj-note aj-warn p-3.5 text-[13.5px] mb-4">
-                <strong>Importante:</strong> A Chave PIX no caixa é informativa — ajuda a organizar para qual conta o dinheiro foi. O vínculo automático entre pagamentos PIX recebidos e o caixa correspondente é registrado ao concluir uma OS com forma de pagamento PIX.
-              </div>
-
-              <h3 className="aj-h3">Editando um Caixa existente</h3>
-              <div className="space-y-2 mb-4">
-                <Step n={1} text="Acesse Financeiro → Caixa e localize o caixa na lista." />
-                <Step n={2} text="Clique no botão 'Editar' (ícone de lápis) ao lado do caixa." />
-                <Step n={3} text="Altere o nome, descrição, chave PIX ou status (ativo/inativo) conforme necessário." />
-                <Step n={4} text="Clique em 'Atualizar Caixa' para salvar." />
-              </div>
-              <div className="aj-note p-3.5 text-[13.5px] mb-4">
-                <strong>Dica:</strong> Caixas inativos não podem ter novas sessões abertas. Use essa opção para desativar um caixa temporariamente sem perder o histórico de movimentações.
-              </div>
-              <Screenshot src="/manual/financeiro-caixa-cadastro.png" alt="Cadastro de caixa com chave PIX" label="[Captura de tela do formulário de cadastro de caixa com o campo Chave PIX preenchido]" />
+            {/* 6.3 Fluxo */}
+            <section className="page-break">
+              <SectionHeader icon={ArrowLeftRight} n="6.3" title="Fluxo de caixa" />
+              <P>Todos os lançamentos, entradas e saídas, de todos os caixas e contas, num lugar só, com os totais do período escolhido.</P>
+              <Shot src="/manual/fluxo.webp" alt="Tela de fluxo de caixa com os lançamentos e os totais" pins={PINS.fluxo} onZoom={onZoom} legend={[
+                <><strong>Tudo, Entradas ou Saídas</strong>, com período e ordem. A lista agrupa os lançamentos por dia.</>,
+                <><strong>Saldo do filtro</strong>: entradas menos saídas do que está na tela.</>,
+                <><strong>Entradas por forma de pagamento</strong>: quanto veio de PIX, dinheiro, cartão…</>,
+                <><strong>Últimos 6 meses</strong>: entradas e saídas mês a mês.</>,
+                <><strong>Exportar</strong> em PDF ou Excel e, ao lado, <strong>Lançamento</strong> para registrar uma entrada ou saída avulsa.</>,
+              ]} />
             </section>
 
             {/* 7. Estoque */}
             <section className="page-break">
-              <SectionHeader icon={Package} title="7. Estoque e Fornecedores" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                Módulo de controle de materiais e insumos do ateliê. Para ativar a integração com Ordens de Serviço, vá em <strong>Configurações → Sistema → Controle de Estoque</strong>.
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-2 mb-4">
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Produtos</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Catálogo de materiais com quantidade atual, mínima, preço de custo e código de barras.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <PackageOpen className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Entradas</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Registre compras e reposições. O saldo dos produtos é atualizado automaticamente.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Relatórios</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Histórico completo de movimentações: entradas e saídas (manuais ou por OS concluída).</p>
-                </div>
-                <div className="aj-card p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Truck className="h-4 w-4 text-[#C8714A]" aria-hidden="true" />
-                    <span className="text-[14.5px] font-semibold text-foreground">Fornecedores</span>
-                  </div>
-                  <p className="text-[12.5px] text-muted-foreground">Cadastro de fornecedores vinculado às contas a pagar para rastreamento de compras.</p>
-                </div>
-              </div>
-              <Screenshot src="/manual/estoque.png" alt="Lista de produtos em estoque" label="[Captura de tela do módulo Estoque — lista de produtos com quantidade atual]" />
-
-              <h3 className="aj-h3 mt-4">Como registrar uma entrada de estoque</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Acesse Estoque → Entradas e clique em 'Nova Entrada'." />
-                <Step n={2} text="Selecione o fornecedor (opcional) e a data de compra." />
-                <Step n={3} text="Adicione os produtos comprados com quantidade e valor unitário." />
-                <Step n={4} text="Confirme. O saldo de cada produto será incrementado automaticamente." />
-              </div>
-              <Screenshot src="/manual/estoque-entradas.png" alt="Entradas de estoque" label="[Captura de tela do formulário de nova entrada de estoque]" />
-
-              <h3 className="aj-h3 mt-4">Baixa automática por OS</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed">
-                Quando o Controle de Estoque está ativo e uma OS é concluída, o sistema verifica os materiais registrados naquela OS e realiza a baixa automática de cada produto. A saída fica registrada em Relatórios com a referência da OS.
-              </p>
-              <Screenshot src="/manual/estoque-relatorios.png" alt="Relatórios de estoque" label="[Captura de tela dos Relatórios de Estoque com saída vinculada a uma OS]" />
+              <SectionHeader icon={Package} n="7" title="Estoque" />
+              <P>Os materiais do ateliê (tecidos, linhas, aviamentos) com a quantidade de cada um. Cinco abas: <strong>Produtos</strong>, <strong>Entradas</strong>, <strong>Saídas</strong>, <strong>Relatórios</strong> e <strong>Fornecedores</strong>.</P>
+              <Shot src="/manual/estoque.webp" alt="Tela de estoque com os produtos e a ficha do produto" pins={PINS.estoque} onZoom={onZoom} legend={[
+                <><strong>Filtros</strong>: estoque baixo, zerados, ativos e inativos.</>,
+                <><strong>Régua de cada produto</strong>: a linha costurada mostra a quantidade até o mínimo. Abaixo dele, o produto fica em alerta.</>,
+                <><strong>Registrar entrada</strong>: soma ao estoque (compra ou reposição).</>,
+                <><strong>Saída</strong>: tira do estoque (uso, perda, amostra).</>,
+              ]} />
+              <H3>Entradas de estoque</H3>
+              <Shot src="/manual/estoque-entradas.webp" alt="Tela de entradas de estoque com a nota fiscal" pins={PINS.entradas} onZoom={onZoom} legend={[
+                <><strong>Nova entrada</strong>: manual ou com os dados da nota fiscal.</>,
+                <><strong>Filtros</strong>: este mês, com nota fiscal e manuais.</>,
+                <><strong>Lista</strong> das compras com fornecedor, nota e valor.</>,
+                <><strong>Itens</strong> da entrada; o saldo de cada produto sobe na hora.</>,
+              ]} />
+              <H3>Baixa automática pelas ordens</H3>
+              <P>Com o controle de estoque ligado, ao concluir uma ordem que tem materiais, o sistema dá baixa em cada produto. A saída aparece na aba Saídas, com o número da ordem.</P>
+              <Note>Em <strong>Relatórios</strong> há a posição do estoque, os itens em estoque baixo, o valor total parado em estoque e o histórico de entradas, todos com exportação em PDF e Excel.</Note>
             </section>
 
-            {/* 8. Alertas e Notificações */}
+            {/* 7.1 Fornecedores */}
             <section className="page-break">
-              <SectionHeader icon={Bell} title="8. Alertas e Notificações" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                O sistema monitora automaticamente situações que requerem atenção e as exibe de forma visual no menu lateral e no sino de notificações, sem que você precise verificar cada módulo manualmente.
-              </p>
-
-              <h3 className="aj-h3">Sino de Notificações</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-3">
-                O ícone de sino (<Bell className="inline h-3.5 w-3.5" />) no canto superior direito da tela exibe um contador vermelho quando há alertas pendentes. Clique no sino para ver um resumo rápido e acessar diretamente o módulo com problema.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                <div className="aj-note aj-warn p-3">
-                  <p className="text-[13.5px] font-semibold text-red-700 dark:text-red-400 mb-1">Ordens Atrasadas</p>
-                  <p className="text-[12.5px] text-muted-foreground">OS com prazo de entrega vencido que ainda não foram concluídas.</p>
-                </div>
-                <div className="aj-note aj-warn p-3">
-                  <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Contas a Pagar Vencidas</p>
-                  <p className="text-[12.5px] text-muted-foreground">Despesas com data de vencimento passada e status ainda pendente.</p>
-                </div>
-                <div className="aj-note aj-warn p-3">
-                  <p className="text-[13.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Contas a Receber Vencidas</p>
-                  <p className="text-[12.5px] text-muted-foreground">Recebimentos com vencimento passado que ainda não foram confirmados.</p>
-                </div>
-              </div>
-
-              <h3 className="aj-h3">Badges no Menu Lateral</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-3">
-                Cada módulo do menu exibe um badge colorido indicando pendências:
-              </p>
-              <FeatureList items={[
-                'Badge vermelho — alertas urgentes (ordens atrasadas, contas vencidas)',
-                'Badge azul/índigo — informações úteis (ex: aniversários de clientes no mês)',
-                'Os subitens do menu Financeiro (Contas a Pagar, Contas a Receber) também exibem o badge individualmente',
+              <SectionHeader icon={Truck} n="7.1" title="Fornecedores" />
+              <P>Onde o ateliê compra. Cada fornecedor guarda o contato, o endereço, o PIX e todas as compras ligadas a ele.</P>
+              <Shot src="/manual/fornecedores.webp" alt="Tela de fornecedores com a ficha do fornecedor" pins={PINS.fornecedores} onZoom={onZoom} legend={[
+                <><strong>Filtros</strong>: empresas, pessoas físicas e inativos. A busca aceita nome, CNPJ, telefone ou e-mail.</>,
+                <><strong>WhatsApp</strong> com o fornecedor, Editar e mais ações.</>,
+                <><strong>Últimas compras</strong>: as entradas de estoque desse fornecedor, com o link “Ver entradas”.</>,
               ]} />
+            </section>
 
-              <h3 className="aj-h3 mt-4">Aniversários de Clientes</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed">
-                Um badge azul aparece no menu <strong>Clientes</strong> com a contagem de clientes que fazem aniversário no mês atual. Use essa informação para oferecer promoções ou entrar em contato para fidelizar.
-              </p>
-              <Screenshot src="/manual/alertas.png" alt="Alertas no menu lateral" label="[Captura de tela do menu lateral com badges vermelhos e o sino de notificações com contador]" />
+            {/* 8. Alertas */}
+            <section className="page-break">
+              <SectionHeader icon={Bell} n="8" title="Alertas" />
+              <P>O sistema avisa sozinho o que precisa de atenção, sem você entrar em cada tela.</P>
+              <Shot src="/manual/alertas.webp" alt="Sino de alertas aberto e os números no menu lateral" pins={PINS.alertas} onZoom={onZoom} legend={[
+                <><strong>Sino</strong>: o número vermelho é o total de pendências.</>,
+                <><strong>Ordens atrasadas</strong>: prazo vencido e ainda não concluídas.</>,
+                <><strong>Contas vencidas</strong>, a receber e a pagar. Clique para ir direto à tela.</>,
+                <><strong>Menu lateral</strong>: cada módulo mostra o seu número de pendências; em Clientes, o número é de aniversariantes.</>,
+              ]} />
             </section>
 
             {/* 9. Configurações */}
             <section className="page-break">
-              <SectionHeader icon={Settings} title="9. Configurações do Sistema" />
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-4">
-                Central de personalização do sistema. As configurações são organizadas em abas.
-              </p>
-
-              <div className="space-y-3 mb-4">
+              <SectionHeader icon={Settings} n="9" title="Configurações" />
+              <P>Os ajustes do sistema, separados em seções. A seção escolhida fica no endereço da página, então dá para salvar o link.</P>
+              <Shot src="/manual/configuracoes.webp" alt="Configurações na seção Empresa" pins={PINS.configuracoes} onZoom={onZoom} legend={[
+                <><strong>Seções</strong> à esquerda (no celular, em abas).</>,
+                <><strong>Formulário</strong> da seção escolhida.</>,
+                <><strong>Editar</strong>: libera os campos para alteração.</>,
+              ]} />
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {[
-                  { icon: Shield, label: 'Organização', desc: 'Nome do ateliê, CNPJ, endereço, telefone, e-mail e site.' },
-                  { icon: UserPlus, label: 'Usuários', desc: 'Gerencie quem tem acesso ao sistema. Crie usuários com cargo de Administrador ou Membro, altere cargos e remova acessos.' },
-                  { icon: Scissors, label: 'Personalização', desc: 'Logo do ateliê, cor primária e secundária para o tema visual.' },
-                  { icon: DollarSign, label: 'Financeiro', desc: 'Formas de pagamento aceitas, taxa de juros/multa por atraso, controle de caixa.' },
-                  { icon: Bell, label: 'Notificações', desc: 'Alertas de aniversários, OS atrasadas, estoque baixo, e-mail para notificações, mensagem padrão nas OS.' },
-                  { icon: FileText, label: 'Ordens de Serviço', desc: 'Numeração automática, prefixo, campos obrigatórios, prazo padrão de entrega.' },
-                  { icon: Settings, label: 'Sistema', desc: 'Formato de data, fuso horário, tema (claro/escuro/auto) e toggle de Controle de Estoque.' },
-                ].map(({ icon: Icon, label, desc }) => (
-                  <div key={label} className="aj-card flex items-start gap-3 p-3">
-                    <div className="rounded-full bg-[#C8714A]/12 p-1.5">
-                      <Icon className="h-4 w-4 text-[#8A4B2C] dark:text-[#E39B78]" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <p className="text-[14.5px] font-semibold text-foreground">{label}</p>
-                      <p className="text-[13.5px] text-muted-foreground">{desc}</p>
-                    </div>
+                  ['Empresa', 'Nome, CNPJ (com busca automática), logo, endereço e contatos que saem nas ordens e comprovantes.'],
+                  ['Usuários', 'Quem acessa o sistema e o cargo de cada pessoa: Administrador ou Membro.'],
+                  ['Financeiro', 'Formas de pagamento aceitas, chave PIX e taxas.'],
+                  ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão e impressora.'],
+                  ['Notificações', 'Lembretes para você e a mensagem padrão das ordens.'],
+                  ['Sistema', 'Formato de data e moeda, caixa e os módulos ligados, como o controle de estoque.'],
+                  ['Assinatura', 'O seu plano, o uso dos recursos e o upgrade.'],
+                ].map(([t, d]) => (
+                  <div key={t} className="aj-card p-3.5">
+                    <p className="text-[14.5px] font-semibold text-foreground">{t}</p>
+                    <p className="mt-0.5 text-[13.5px] leading-snug text-muted-foreground">{d}</p>
                   </div>
                 ))}
               </div>
-              <Screenshot src="/manual/configuracoes.png" alt="Configurações do sistema" label="[Captura de tela da página de Configurações com as abas visíveis]" />
-
-              <h3 className="aj-h3 mt-4">Gerenciando Usuários da Equipe</h3>
-              <p className="text-[14.5px] text-foreground/85 leading-relaxed mb-2">
-                O proprietário da organização pode criar acessos adicionais para membros da equipe.
-              </p>
-              <div className="space-y-2 mb-3">
-                <Step n={1} text="Acesse Configurações → aba 'Usuários'." />
-                <Step n={2} text="Clique em 'Novo Usuário' e preencha nome, e-mail, senha inicial e cargo (Admin ou Membro)." />
-                <Step n={3} text="Clique em 'Criar Usuário'. A pessoa pode fazer login imediatamente com o e-mail e senha informados." />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                <div className="aj-card p-3">
-                  <p className="text-[12.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Proprietário</p>
-                  <p className="text-[12px] text-muted-foreground">Acesso total. Único que pode gerenciar usuários e configurações avançadas.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[12.5px] font-semibold text-[#8A4B2C] dark:text-[#E39B78] mb-1">Administrador</p>
-                  <p className="text-[12px] text-muted-foreground">Acesso total a todos os módulos, exceto gerenciamento de usuários.</p>
-                </div>
-                <div className="aj-card p-3">
-                  <p className="text-[12.5px] font-semibold text-foreground mb-1">Membro</p>
-                  <p className="text-[12px] text-muted-foreground">Acesso operacional para cadastros e OS. Sem acesso a configurações financeiras.</p>
-                </div>
-              </div>
-              <div className="aj-note aj-warn p-3.5 text-[13.5px] mb-4">
-                <strong>Plano Free:</strong> Permite até 2 usuários. Faça upgrade para o plano Pro para adicionar até 3 membros à equipe.
-              </div>
-              <Screenshot src="/manual/configuracoes-usuarios.png" alt="Aba Usuários nas Configurações" label="[Captura de tela da aba Usuários nas Configurações com lista de membros e formulário]" />
-
-              <h3 className="aj-h3 mt-4">Ativando o Controle de Estoque</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Acesse Configurações → aba 'Sistema'." />
-                <Step n={2} text="Na seção 'Módulos', ative o toggle 'Controle de Estoque'." />
-                <Step n={3} text="Clique em 'Salvar Alterações'." />
-                <Step n={4} text="A partir de agora, a seção de materiais aparecerá nas Ordens de Serviço e no cadastro de serviços." />
-              </div>
-
-              <h3 className="aj-h3 mt-4">Configurando mensagem padrão nas OS</h3>
-              <div className="space-y-2">
-                <Step n={1} text="Acesse Configurações → aba 'Notificações'." />
-                <Step n={2} text="Role até 'Aviso Padrão nas Ordens de Serviço' e ative o toggle." />
-                <Step n={3} text="Digite a mensagem que deve aparecer automaticamente no campo de observações de toda nova OS." />
-                <Step n={4} text="Clique em 'Salvar Alterações'. A mensagem será aplicada às próximas OS criadas." />
-              </div>
-              <Screenshot src="/manual/configuracoes-notificacoes.png" alt="Configurações de notificações" label="[Captura de tela das Configurações — aba Notificações com campo de mensagem padrão]" />
+              <H3>Ligando o controle de estoque</H3>
+              <Steps items={[
+                'Abra Configurações → Sistema.',
+                'Ligue “Controle de estoque” e salve.',
+                'A partir daí, os materiais aparecem nos serviços e nas ordens, e a baixa passa a ser automática.',
+              ]} />
+              <Note title="Plano Free">Permite até 2 usuários. No plano Pro são 3.</Note>
             </section>
 
-            {/* 10. Dicas e FAQ */}
+            {/* 10. Dicas */}
             <section className="page-break">
-              <SectionHeader icon={FileText} title="10. Dicas e Perguntas Frequentes" />
-
-              <div className="space-y-4">
-                {[
-                  {
-                    q: 'Como reativar o tour do sistema?',
-                    a: 'Clique em "Ver tour do sistema" no rodapé do menu lateral esquerdo.',
-                  },
-                  {
-                    q: 'O que acontece se eu excluir um cliente?',
-                    a: 'O cliente é desativado (soft delete) e não aparece mais na lista principal, mas todo o histórico de ordens de serviço é preservado e pode ser consultado.',
-                  },
-                  {
-                    q: 'Posso ter mais de um usuário no sistema?',
-                    a: 'Sim. Acesse Configurações → aba "Usuários" e clique em "Novo Usuário". Informe nome, e-mail, senha e cargo (Admin ou Membro). O novo usuário pode fazer login imediatamente. No plano Free o limite é 2 usuários; no Pro até 3.',
-                  },
-                  {
-                    q: 'Como definir uma meta mensal de receita?',
-                    a: 'No Dashboard, na faixa de faturamento, clique em "Definir meta", digite o valor e clique em "Salvar". O progresso é atualizado automaticamente conforme as OS são concluídas.',
-                  },
-                  {
-                    q: 'O sino de notificações não aparece alertas. O que verificar?',
-                    a: 'O sino mostra alertas apenas quando há ordens com prazo vencido (status pendente/em andamento) ou contas a pagar/receber com vencimento passado. Se não há pendências, o sino aparece sem contador — isso é esperado.',
-                  },
-                  {
-                    q: 'Como funciona a numeração automática das OS?',
-                    a: 'Configure o prefixo em Configurações → Ordens de Serviço. A numeração é incrementada automaticamente a cada nova OS criada, sem possibilidade de alterar o número inicial.',
-                  },
-                  {
-                    q: 'O estoque baixa sozinho ao concluir uma OS?',
-                    a: 'Sim, desde que o Controle de Estoque esteja ativo (Configurações → Sistema) e que a OS tenha materiais registrados. A baixa é realizada uma única vez — se a OS for reaberta e concluída novamente, não há baixa duplicada.',
-                  },
-                  {
-                    q: 'Como vincular uma chave PIX a um caixa?',
-                    a: 'Acesse Financeiro → Caixa, crie um novo caixa ou edite um existente. No campo "Chave PIX", informe a chave (celular, e-mail, CPF/CNPJ ou chave aleatória). Se já houver uma chave cadastrada em Configurações → Financeiro, clique em "Usar chave das configurações" para preenchê-la automaticamente.',
-                  },
-                  {
-                    q: 'O que é o Fluxo de Caixa e como acessar?',
-                    a: 'O Fluxo de Caixa é um painel analítico que mostra todas as entradas e saídas do período, além do saldo. Acesse pelo menu Financeiro → Fluxo de Caixa. Lá você também visualiza as entradas agrupadas por forma de pagamento (PIX, Dinheiro, Cartão etc.).',
-                  },
-                  {
-                    q: 'Como imprimir uma ordem de serviço?',
-                    a: 'Na lista de ordens, clique no ícone de olho (visualizar) ao lado da OS desejada. Na tela de preview, clique em "Baixar PDF" para salvar ou imprimir.',
-                  },
-                  {
-                    q: 'Posso usar o sistema no celular?',
-                    a: 'Sim, o sistema é responsivo e funciona em smartphones. Para melhor experiência, recomendamos o uso em tablet ou computador.',
-                  },
-                  {
-                    q: 'Como exportar meus dados?',
-                    a: 'Em Clientes, Serviços e Ordens de Serviço há botões de exportação para Excel (.xlsx) e PDF na parte superior da lista.',
-                  },
-                ].map(({ q, a }) => (
-                  <div key={q} className="border-l-2 border-dashed border-[#C8714A]/60 pl-4">
-                    <p className="text-[14.5px] font-semibold text-foreground mb-1">{q}</p>
-                    <p className="text-[13.5px] text-muted-foreground leading-relaxed">{a}</p>
-                  </div>
+              <SectionHeader icon={HelpCircle} n="10" title="Dicas e perguntas" />
+              <div className="space-y-2">
+                {FAQ.map(([q, a]) => (
+                  <details key={q} className="aj-faq group" open>
+                    <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-3 text-[15px] font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                      {q}
+                      <span className="mt-1 text-[#C8714A] transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+                    </summary>
+                    <p className="pb-4 text-[14.5px] leading-relaxed text-foreground/80">{a}</p>
+                  </details>
                 ))}
               </div>
-
-              <div className="mt-8 aj-note p-5 text-center">
-                <p className="text-sm font-semibold text-foreground mb-1">Precisa de mais ajuda?</p>
-                <p className="text-[13.5px] text-muted-foreground">
-                  Clique em <strong>“Ver tour do sistema”</strong> no rodapé do menu para rever o guia interativo a qualquer momento.
+              <div className="aj-note mt-8 p-5 text-center">
+                <p className="font-serif-display text-2xl text-foreground">Ainda com dúvida?</p>
+                <p className="mt-1 text-[14px] text-muted-foreground">
+                  Clique em “Ver tour do sistema”, no rodapé do menu, para rever o passo a passo guiado a qualquer momento.
                 </p>
               </div>
             </section>
 
-            {/* Rodapé */}
-            <footer className="text-center text-[12.5px] text-muted-foreground py-6 border-t border-dashed border-border">
-              <p>Meu Atelier — Manual do Sistema v3.1</p>
-              <p className="mt-1">Para substituir os espaços de captura de tela, tire screenshots de cada seção e edite este documento.</p>
+            <footer className="border-t border-dashed border-border py-6 text-center text-[12.5px] text-muted-foreground">
+              Meu Atelier · Manual do sistema · as telas usam dados de exemplo
             </footer>
-
           </div>
         </div>
       </div>
+
+      {/* imagem ampliada */}
+      {zoom && (
+        <div role="dialog" aria-modal="true" aria-label={zoom.alt} className="no-print fixed inset-0 z-[60] flex items-center justify-center bg-[#1A110C]/85 p-3 sm:p-8" onClick={() => setZoom(null)}>
+          <button type="button" onClick={() => setZoom(null)} className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#FFF8F0] text-[#2C1810] shadow-lg" aria-label="Fechar imagem" autoFocus>
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <div className="relative max-h-full w-auto max-w-[1400px] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <span className="relative block">
+              <Image src={zoom.src} alt={zoom.alt} width={zoom.w} height={zoom.h} sizes="100vw" className="block h-auto max-h-[88vh] w-auto rounded-lg" />
+              {zoom.pins.map(([x, y], i) => (
+                <span key={i} className={`aj-pin ${x < 3 ? 'is-edge' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true">{i + 1}</span>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -808,18 +574,26 @@ const AJ_CSS = `
 .aj-paper { background: var(--card); border: 1px solid color-mix(in oklab, var(--border) 70%, transparent); border-radius: 12px; }
 .aj-cover { border-bottom: 2px dashed color-mix(in oklab, #C8714A 35%, transparent); }
 .aj-sec { border-bottom: 1.5px dashed color-mix(in oklab, #C8714A 40%, transparent); }
-.aj-h3 { font-family: var(--font-cormorant), Georgia, serif; font-weight: 600; font-size: 21px; line-height: 1.2; color: var(--foreground); margin-bottom: .5rem; }
+.aj-h3 { font-family: var(--font-cormorant), Georgia, serif; font-weight: 600; font-size: 22px; line-height: 1.2; color: var(--foreground); margin-bottom: .6rem; }
 .aj-step { background: color-mix(in oklab, #C8714A 14%, transparent); color: #8A4B2C; border: 1px dashed color-mix(in oklab, #C8714A 55%, transparent); }
 .dark .aj-step { color: #E39B78; }
 .aj-list li { position: relative; padding-left: 22px; }
 .aj-list li::before { content: ''; position: absolute; left: 2px; top: .72em; width: 12px; border-top: 2px dashed #C8714A; }
 .aj-note { background: color-mix(in oklab, #D4A85A 10%, var(--card)); border: 1px dashed color-mix(in oklab, #D4A85A 60%, transparent); border-radius: 8px; color: var(--foreground); }
 .aj-warn { background: color-mix(in oklab, #C8714A 9%, var(--card)); border-color: color-mix(in oklab, #C8714A 55%, transparent); }
-.aj-shot { border: 2px dashed color-mix(in oklab, #C8714A 30%, transparent); border-radius: 10px; background: repeating-linear-gradient(135deg, color-mix(in oklab, #C8714A 5%, transparent) 0 10px, transparent 10px 20px); }
 .aj-card { background: var(--background); border: 1px solid color-mix(in oklab, var(--border) 80%, transparent); border-radius: 8px; }
+.aj-faq { border-bottom: 1px dashed color-mix(in oklab, var(--border) 90%, transparent); }
 .aj-toc { border-left: 1.5px dashed color-mix(in oklab, #C8714A 35%, transparent); }
-.aj-toc-a { display: flex; align-items: baseline; padding: 7px 12px; margin-left: -1.5px; border-left: 2px solid transparent; font-size: 14px; color: var(--muted-foreground); transition: color .15s, border-color .15s, background .15s; }
+.aj-toc-a { display: flex; align-items: baseline; padding: 6px 12px; margin-left: -1.5px; border-left: 2px solid transparent; font-size: 14px; color: var(--muted-foreground); transition: color .15s, border-color .15s, background .15s; }
 .aj-toc-a:hover { color: var(--foreground); }
 .aj-toc-a.is-on { color: var(--foreground); font-weight: 600; border-left-color: #C8714A; background: color-mix(in oklab, #C8714A 7%, transparent); }
-@media (prefers-reduced-motion: reduce) { .aj-toc-a { transition: none; } }
+.aj-shot-btn { display: block; width: 100%; padding: 0; border: 1px solid color-mix(in oklab, var(--border) 90%, transparent); border-radius: 10px; overflow: hidden; background: var(--background); cursor: zoom-in; box-shadow: 0 10px 30px -18px rgba(44,24,16,.45); text-align: left; }
+.aj-shot-btn:focus-visible { outline: 2px solid #C8714A; outline-offset: 3px; }
+.aj-zoom { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(44,24,16,.82); color: #FFF8F0; font-size: 12.5px; font-weight: 600; opacity: 0; transition: opacity .15s; }
+.aj-shot-btn:hover .aj-zoom, .aj-shot-btn:focus-visible .aj-zoom { opacity: 1; }
+.aj-pin { position: absolute; transform: translate(-100%, -50%); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #C8714A; color: #FFF8F0; font: 700 13px/1 system-ui, sans-serif; border: 2px solid #FFF8F0; box-shadow: 0 2px 8px rgba(44,24,16,.45); pointer-events: none; font-variant-numeric: tabular-nums; }
+.aj-pin.is-edge { transform: translate(10%, -50%); }
+@media (max-width: 640px) { .aj-pin { width: 20px; height: 20px; font-size: 11px; border-width: 1.5px; } }
+.aj-pin-s { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; background: #C8714A; color: #FFF8F0; font: 700 12px/1 system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .aj-toc-a, .aj-zoom { transition: none; } }
 `
