@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meu-atelier-v1'
+const CACHE_NAME = 'meu-atelier-v2'
 
 // Recursos estáticos para cache offline
 const STATIC_ASSETS = [
@@ -30,8 +30,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Não cachear API routes, autenticação ou recursos externos
+  // Não cachear API routes, autenticação, recursos externos nem pedidos parciais
+  // (vídeos pedem pedaços com Range e recebem 206, que o Cache não aceita)
   if (
+    request.method !== 'GET' ||
+    request.headers.has('range') ||
+    request.destination === 'video' ||
+    request.destination === 'audio' ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
     url.origin !== self.location.origin
@@ -44,7 +49,7 @@ self.addEventListener('fetch', (event) => {
     fetch(request)
       .then((response) => {
         // Cacheia respostas bem-sucedidas de páginas
-        if (response.ok && request.method === 'GET') {
+        if (response.status === 200 && response.type === 'basic') {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }

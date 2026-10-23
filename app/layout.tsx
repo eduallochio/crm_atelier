@@ -82,9 +82,6 @@ export const metadata: Metadata = {
     apple: { url: '/logo-192.png', sizes: '180x180', type: 'image/png' },
     shortcut: '/favicon.svg',
   },
-  verification: {
-    google: 'seu-codigo-google-search-console',
-  },
 };
 
 export default function RootLayout({

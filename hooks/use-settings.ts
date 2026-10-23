@@ -188,9 +188,10 @@ export function useUpdateOrderSettings() {
   })
 }
 
-export function useSystemPreferences() {
+export function useSystemPreferences({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['system-preferences'],
+    enabled,
     queryFn: async () => {
       const res = await fetch('/api/settings/system')
       if (res.status === 401 || res.status === 403) return null

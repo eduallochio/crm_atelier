@@ -760,7 +760,7 @@ function Landing() {
             <div className="shots-stage" style={{ position: 'relative', paddingBottom: 60, maxWidth: 980, margin: '0 auto' }}>
               <div className="m-frame shot-desk" style={{ transformOrigin: '50% 100%' }}>
                 <div className="m-frame-bar" aria-hidden="true"><i /><i /><i /></div>
-                <Image src="/screenshots/sistema-ordens-desktop.webp" alt="Tela real de Ordens de Serviço: lista com filtros por status e prazo, e a ordem aberta ao lado com andamento, valores e cliente" width={1600} height={872} sizes="(max-width: 1040px) 100vw, 980px" />
+                <Image src="/screenshots/sistema-ordens-desktop.webp" alt="Tela real de Ordens de Serviço: lista com filtros por status e prazo, e a ordem aberta ao lado com andamento, valores e cliente" width={1600} height={872} sizes="(max-width: 1040px) 100vw, 980px" loading="eager" />
               </div>
               <div className="m-phone shot-mob">
                 <span className="m-btn-side" style={{ left: -3, top: '18%', height: '7%' }} />
