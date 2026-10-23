@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { todayISO } from '@/components/financeiro/finance-ui'
 
 interface TransactionDialogProps {
   open: boolean
@@ -44,7 +45,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
       tipo: 'entrada',
       descricao: '',
       valor: '',
-      data_transacao: new Date().toISOString().split('T')[0],
+      data_transacao: todayISO(),
       observacoes: '',
     },
   })
@@ -57,7 +58,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
         tipo: 'entrada',
         descricao: '',
         valor: '',
-        data_transacao: new Date().toISOString().split('T')[0],
+        data_transacao: todayISO(),
         observacoes: '',
       })
     } catch (error) {

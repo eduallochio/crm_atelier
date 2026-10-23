@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { generateWhatsAppText } from '@/lib/utils/thermal-printer'
+import { whatsappNumber } from '@/lib/utils/whatsapp'
 
 export type OrderStatus = ServiceOrder['status']
 
@@ -62,8 +63,7 @@ function phoneOf(o: ServiceOrder) {
     toast.error('Cliente não possui telefone cadastrado')
     return null
   }
-  const tel = o.client.telefone.replace(/\D/g, '')
-  return tel.startsWith('55') ? tel : `55${tel}`
+  return whatsappNumber(o.client.telefone)
 }
 
 /** manda a OS completa por WhatsApp */

@@ -210,6 +210,9 @@ export function useUpdateReceivable() {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Conta a receber atualizada com sucesso!')
     },
     onError: (error: Error) => {
@@ -230,6 +233,9 @@ export function useDeleteReceivable() {
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Conta a receber excluída com sucesso!')
     },
     onError: () => {

@@ -9,14 +9,13 @@ import type { ServiceOrder } from '@/lib/validations/service-order'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatBRL } from './client-utils'
 import { numeroOS, saldoOf } from './order-utils'
+import { todayISO } from '@/components/financeiro/finance-ui'
 
 interface Props {
   /** ordem a concluir/receber; null fecha o diálogo */
   order: ServiceOrder | null
   onClose: () => void
 }
-
-const todayISO = () => new Date().toISOString().split('T')[0]
 
 /**
  * Concluir uma ordem com saldo em aberto (ou registrar o pagamento de uma já concluída):
@@ -35,7 +34,7 @@ function PaymentForm({ order, onClose }: { order: ServiceOrder; onClose: () => v
   const updateOrder = useUpdateServiceOrder()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
   const [method, setMethod] = useState(order.forma_pagamento || '')
-  const [date, setDate] = useState(todayISO)
+  const [date, setDate] = useState(() => todayISO())
   const saldo = saldoOf(order)
 
   const pay = async () => {

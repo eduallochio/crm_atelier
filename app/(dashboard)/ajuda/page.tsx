@@ -420,7 +420,7 @@ export default function AjudaPage() {
                 <><strong>Filtros</strong>: atrasadas, vencem em 7 dias, em aberto, recebidas (ou pagas) e canceladas.</>,
                 <><strong>Data, forma de pagamento e ordem</strong> da lista. Acima dela, o total em aberto e em atraso.</>,
                 <><strong>Lista</strong> com o vencimento de cada conta (“Atrasada 4 dias”, “Vence hoje”).</>,
-                <><strong>Marcar como recebida</strong> (ou paga): informe a forma e a data. Ao lado: Editar e mais ações.</>,
+                <><strong>Marcar como recebida</strong> (ou paga): dá baixa na hora, com a data de hoje. Para outra data ou forma de pagamento, use Editar.</>,
               ]} />
               <Steps items={[
                 'Para lançar uma conta nova, clique em “Nova conta”, no alto.',

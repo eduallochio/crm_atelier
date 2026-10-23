@@ -75,6 +75,8 @@ export function useUpdateServiceOrder() {
       queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] })
       queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-unlaunched'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Ordem de serviço atualizada com sucesso!')
     },
     onError: (error: Error) => {

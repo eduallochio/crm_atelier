@@ -1,4 +1,5 @@
 import type { Client } from '@/lib/validations/client'
+import { whatsappNumber } from '@/lib/utils/whatsapp'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
@@ -53,8 +54,7 @@ export function placeOf(c: Client) {
 
 export function openWhatsApp(c: Client) {
   if (!c.telefone) return
-  const tel = c.telefone.replace(/\D/g, '')
-  const numero = tel.startsWith('55') ? tel : `55${tel}`
+  const numero = whatsappNumber(c.telefone)
   const mensagem = encodeURIComponent(`Olá ${c.nome}!\n\nComo você está? Estou entrando em contato para...`)
   window.open(`https://wa.me/${numero}?text=${mensagem}`, '_blank')
 }

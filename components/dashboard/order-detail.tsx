@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -48,6 +49,7 @@ interface Props {
 /** Ficha da ordem: andamento, ações, valores, cliente, prazo, itens e histórico */
 export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   const updateOrder = useUpdateServiceOrder()
+  const queryClient = useQueryClient()
   const deleteOrder = useDeleteServiceOrder()
   const { data: org } = useOrganizationSettings()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
@@ -82,6 +84,8 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
       const data = await res.json()
       if (!res.ok) { toast.error(data.error || 'Erro ao lançar no caixa'); return }
       toast.success('OS lançada no caixa com sucesso!')
+      for (const key of ['orders-unlaunched', 'cashier-movements', 'cashier-sessions', 'transactions', 'financial-stats'])
+        queryClient.invalidateQueries({ queryKey: [key] })
     } catch {
       toast.error('Erro ao lançar no caixa')
     } finally {

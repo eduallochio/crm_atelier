@@ -17,6 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { whatsappNumber } from '@/lib/utils/whatsapp'
 
 type Chip = '' | 'pj' | 'pf' | 'inactive'
 const placeOf = (s: Supplier) => [s.cidade, s.estado].filter(Boolean).join('/')
@@ -163,7 +164,7 @@ function SupplierDetail({ s, onEdit, onBack, onOff }: { s: Supplier; onEdit: () 
 
       <div className="mt-5 mb-6 flex flex-wrap gap-2">
         {tel && (
-          <a href={`https://wa.me/${tel.startsWith('55') ? tel : `55${tel}`}`} target="_blank" rel="noopener noreferrer" className="cli-primary" style={{ minHeight: 44 }}>
+          <a href={`https://wa.me/${whatsappNumber(tel)}`} target="_blank" rel="noopener noreferrer" className="cli-primary" style={{ minHeight: 44 }}>
             <MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp
           </a>
         )}
