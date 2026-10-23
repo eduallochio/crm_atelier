@@ -289,7 +289,7 @@ export default function AjudaPage() {
                 <><strong>Cartão da ordem</strong>: clique para ver as ações rápidas: <em>Avisar</em> (WhatsApp para a cliente) e <em>Concluir</em>.</>,
                 <><strong>Faturamento do mês</strong>: soma das ordens concluídas, comparada com o mês passado.</>,
                 <><strong>Meta</strong>: a linha costurada mostra quanto falta e quanto precisa entrar por dia. Clique em “Mudar a meta” para ajustar.</>,
-                <><strong>Caixa</strong>: quanto há na gaveta agora, com entradas, saídas e sangrias do dia.</>,
+                <><strong>Caixa</strong>: quanto há na gaveta agora, com entradas, saídas e sangrias do dia. Dá para <strong>abrir e fechar o caixa aqui mesmo</strong>, sem ir à tela do Financeiro.</>,
                 <><strong>Lembretes</strong>: aniversários, ordens concluídas a receber, clientes sumidas há mais de 90 dias e materiais acabando.</>,
                 <><strong>Nova ordem</strong> e <strong>Novo cliente</strong>: atalhos para os cadastros mais usados, ao lado da busca.</>,
               ]} />

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Cake, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
+import { Cake, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
@@ -16,7 +16,9 @@ import { FIN_CSS, timeOf, todayISO } from '@/components/financeiro/finance-ui'
 import { sessionTotals } from '@/components/financeiro/cash-drawer'
 import { useServiceOrders } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
-import { useCashierMovements, useCashierSessions } from '@/hooks/use-cashier'
+import { useCashierMovements, useCashierSessions, useCloseCashier } from '@/hooks/use-cashier'
+import { OpenCashierDialog } from '@/components/financeiro/open-cashier-dialog'
+import { CloseCashierDialog } from '@/components/financeiro/close-cashier-dialog'
 import { useProducts } from '@/hooks/use-inventory'
 import { isLow } from '@/components/inventory/stock-ui'
 import type { Activity } from '@/components/dashboard/recent-activity'
@@ -110,12 +112,15 @@ export default function DashboardPage() {
   )
 }
 
-/** o caixa aberto, em linho escuro; sem caixa aberto, um convite para abrir */
+/** o caixa aberto, em linho escuro; sem caixa aberto, um convite para abrir. Abre e fecha aqui mesmo, sem sair do Dashboard */
 function CashCard() {
   const { data: sessions = [], isLoading } = useCashierSessions({ status: 'aberto' })
   const s = sessions[0]
   const { data: moves = [] } = useCashierMovements(s?.id)
   const t = sessionTotals(s?.saldo_inicial, moves)
+  const closeCashier = useCloseCashier()
+  const [opening, setOpening] = useState(false)
+  const [closing, setClosing] = useState(false)
   if (isLoading) return <div className="drawer min-h-[180px] animate-pulse" />
   if (!s) {
     return (
@@ -125,7 +130,10 @@ function CashCard() {
           <p className="fin-num mt-2 text-[30px] text-[#FFF8F0]">Nenhum caixa aberto</p>
           <p className="dr-soft mt-1 text-[13px]">Abra o caixa para registrar o dinheiro que entra e sai hoje.</p>
         </div>
-        <Link href="/financeiro/caixa" className="dr-ghost mt-4 self-start">Abrir o caixa</Link>
+        <button type="button" className="dr-ghost mt-4 self-start" onClick={() => setOpening(true)}>
+          <LockOpen className="h-3.5 w-3.5" aria-hidden="true" /> Abrir o caixa
+        </button>
+        <OpenCashierDialog open={opening} onClose={() => setOpening(false)} />
       </section>
     )
   }
@@ -142,9 +150,27 @@ function CashCard() {
         </dl>
       </div>
       <div className="dr-line mt-4 flex items-center justify-between gap-3 border-t border-dashed pt-3 text-[12.5px]">
-        <span className="dr-soft">{moves.length} {moves.length === 1 ? 'movimento' : 'movimentos'} hoje</span>
-        <Link href={`/financeiro/caixa/sessao/${s.id}`} className="dr-link">Abrir o caixa</Link>
+        <Link href={`/financeiro/caixa/sessao/${s.id}`} className="dr-link">
+          Ver {moves.length} {moves.length === 1 ? 'movimento' : 'movimentos'}
+        </Link>
+        <button type="button" className="dr-ghost" style={{ minHeight: 36 }} onClick={() => setClosing(true)}>
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Fechar caixa
+        </button>
       </div>
+      {closing && s.id && (
+        <CloseCashierDialog
+          sessao={{ id: s.id, caixa_id: s.caixa_id, saldo_inicial: Number(s.saldo_inicial) || 0, status: s.status }}
+          saldoEsperado={t.gaveta}
+          onClose={() => setClosing(false)}
+          isLoading={closeCashier.isPending}
+          onConfirm={async (data) => {
+            try {
+              await closeCashier.mutateAsync({ sessaoId: s.id!, ...data })
+              setClosing(false)
+            } catch { /* o hook já mostra o erro */ }
+          }}
+        />
+      )}
     </section>
   )
 }

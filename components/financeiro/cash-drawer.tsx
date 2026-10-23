@@ -9,6 +9,7 @@ import { useCashiers, useCashierMovements, useCashierSessions, useCloseCashier }
 import type { CashierMovement, CashierSessionWithRelations } from '@/lib/validations/cashier'
 import { AddMovementDialog } from './add-movement-dialog'
 import { CloseCashierDialog } from './close-cashier-dialog'
+import { OpenCashierDialog } from './open-cashier-dialog'
 import { brl, timeOf } from './finance-ui'
 
 export type MoveKind = 'entrada' | 'saida' | 'sangria' | 'reforco'
@@ -180,6 +181,7 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
 /** sem caixa aberto: os caixas cadastrados prontos para abrir */
 function ClosedDrawer() {
   const { data: cashiers = [], isLoading } = useCashiers()
+  const [opening, setOpening] = useState<string | null>(null)
   const active = cashiers.filter((c) => c.ativo !== false)
   return (
     <section aria-label="Caixa de hoje" className="drawer px-5 py-6">
@@ -193,13 +195,14 @@ function ClosedDrawer() {
         {active.map((c) => (
           <li key={c.id} className="dr-line flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5">
             <span className="min-w-0"><b className="block truncate text-sm font-semibold">{c.nome}</b>{c.descricao && <small className="dr-soft block truncate text-[12px]">{c.descricao}</small>}</span>
-            <Link href={`/financeiro/caixa/abrir/${c.id}`} className="dr-ghost shrink-0" style={{ minHeight: 34 }}>Abrir <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
+            <button type="button" onClick={() => setOpening(c.id ?? null)} className="dr-ghost shrink-0" style={{ minHeight: 34 }}>Abrir <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></button>
           </li>
         ))}
       </ul>
       {!isLoading && active.length === 0 && (
         <Link href="/financeiro/caixa/cadastro" className="dr-ghost mt-2"><Plus className="h-3.5 w-3.5" aria-hidden="true" /> Cadastrar um caixa</Link>
       )}
+      <OpenCashierDialog open={!!opening} caixaId={opening ?? undefined} onClose={() => setOpening(null)} />
     </section>
   )
 }
