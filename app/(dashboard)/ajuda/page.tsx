@@ -293,6 +293,10 @@ export default function AjudaPage() {
                 <><strong>Lembretes</strong>: aniversários, ordens concluídas a receber, clientes sumidas há mais de 90 dias e materiais acabando.</>,
                 <><strong>Nova ordem</strong> e <strong>Novo cliente</strong>: atalhos para os cadastros mais usados, ao lado da busca.</>,
               ]} />
+              <H3>Prontas para entregar</H3>
+              <P>
+                Logo abaixo das entregas ficam as ordens <strong>concluídas nos últimos 14 dias</strong>. Em cada uma, <strong>Avisar</strong> abre o WhatsApp com a mensagem de que a peça está pronta, e depois o botão passa a mostrar “Avisada hoje” (lembrado neste navegador). Se ainda houver saldo, <strong>Receber</strong> registra o pagamento.
+              </P>
               <Note>Ao concluir uma ordem que ainda tem saldo, o sistema pergunta se a cliente já pagou, igual à tela de Ordens (veja a seção 5).</Note>
             </section>
 

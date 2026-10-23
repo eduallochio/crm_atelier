@@ -9,6 +9,7 @@ import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { DeliveryBoard, DELIVERY_CSS } from '@/components/dashboard/delivery-board'
 import { RevenueGoal, REVENUE_CSS } from '@/components/dashboard/revenue-goal'
+import { ReadyOrders, READY_CSS } from '@/components/dashboard/ready-orders'
 import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 import { formatBRL } from '@/components/dashboard/client-utils'
 import { isOpen, daysToDeadline, isToReceive } from '@/components/dashboard/order-utils'
@@ -37,7 +38,7 @@ function daysToBirthday(c: Client, now = new Date()) {
   return Math.round((b.getTime() - t.getTime()) / 86_400_000)
 }
 
-/** Bancada do dia: entregas por prazo em cima, faturamento e meta, caixa, lembretes e o que já aconteceu hoje */
+/** Bancada do dia: entregas por prazo em cima, as prontas para entregar, faturamento e meta, caixa, lembretes e o que já aconteceu hoje */
 export default function DashboardPage() {
   const [clientOpen, setClientOpen] = useState(false)
   const [orderOpen, setOrderOpen] = useState(false)
@@ -66,7 +67,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <style>{MASTER_DETAIL_CSS + FIN_CSS + DELIVERY_CSS + REVENUE_CSS + HOME_CSS}</style>
+      <style>{MASTER_DETAIL_CSS + FIN_CSS + DELIVERY_CSS + READY_CSS + REVENUE_CSS + HOME_CSS}</style>
 
       {/* ── abertura ── */}
       <header className="border-b border-border/60 bg-card">
@@ -94,6 +95,8 @@ export default function DashboardPage() {
 
       <div className="space-y-4 p-3 sm:p-6 lg:p-8">
         <DeliveryBoard orders={orders} isLoading={ordersLoading} />
+
+        <ReadyOrders orders={orders} isLoading={ordersLoading} />
 
         <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
 
