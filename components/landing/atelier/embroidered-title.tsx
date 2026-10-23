@@ -102,23 +102,29 @@ export default function EmbroideredTitle({ lines, play, animated, className }: P
     const needle = s.querySelector<SVGGElement>('.emb-needle')
     const tl = gsap.timeline()
     gsap.set(s, { opacity: 1 })
+    // ritmo do bordado: devagar o bastante para se ver o ponto sendo feito (~6 s nas três linhas).
+    // a agulha borda uma linha de cada vez: a próxima só começa quando a anterior termina
+    const FILL = 1.8                // preenchimento com a agulha andando
+    const STAGGER = FILL + 0.05     // intervalo entre o começo de uma linha e o da seguinte
+    const OUTLINE = 1.5             // contorno em ponto atrás
+    const LAG = 0.35                // o preenchimento começa um pouco depois do contorno
     boxes.forEach((b, i) => {
-      const at = i * 0.55
+      const at = i * STAGGER
       const outline = q(`.emb-outline-mask-${i}`)
       const wipe = q(`.emb-wipe-${i}`)
-      tl.fromTo(outline, { attr: { 'stroke-dasharray': '0 6000' } }, { attr: { 'stroke-dasharray': '6000 0' }, duration: 1.3, ease: 'power1.inOut' }, at)
+      tl.fromTo(outline, { attr: { 'stroke-dasharray': '0 6000' } }, { attr: { 'stroke-dasharray': '6000 0' }, duration: OUTLINE, ease: 'power1.inOut' }, at)
       const st = { p: 0 }
-      tl.fromTo(wipe, { attr: { width: 0 } }, { attr: { width: b.w + 20 }, duration: 1.2, ease: 'none' }, at + 0.35)
+      tl.fromTo(wipe, { attr: { width: 0 } }, { attr: { width: b.w + 20 }, duration: FILL, ease: 'none' }, at + LAG)
         .to(st, {
-          p: 1, duration: 1.2, ease: 'none',
+          p: 1, duration: FILL, ease: 'none',
           onStart: () => { if (needle) gsap.set(needle, { autoAlpha: 1 }) },
           onUpdate: () => {
             if (!needle) return
             const x = b.x + b.w * st.p
-            const bob = Math.sin(st.p * 70) * b.fs * 0.06
+            const bob = Math.sin(st.p * 90) * b.fs * 0.06
             needle.setAttribute('transform', `translate(${x.toFixed(1)} ${(b.y - b.fs * 0.32 + bob).toFixed(1)}) rotate(68) scale(${(b.fs / 100).toFixed(3)})`)
           },
-        }, at + 0.35)
+        }, at + LAG)
     })
     tl.to(needle ?? {}, { autoAlpha: 0, duration: 0.3 })
     return () => { tl.progress(1) }
