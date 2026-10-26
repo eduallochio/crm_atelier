@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Cake, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
@@ -54,11 +54,16 @@ export default function DashboardPage() {
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useQuery({ queryKey: ['services'], queryFn: async () => { const r = await fetch('/api/services'); return r.ok ? r.json() : [] } })
 
-  const now = new Date()
-  const hour = now.getHours()
+  // Calculado só após montar no cliente — ler a hora durante o render (SSR)
+  // diverge do cliente se cruzar meia-noite ou hora, causando hydration mismatch (#418)
+  const [now, setNow] = useState<Date | null>(null)
+  useEffect(() => { setNow(new Date()) }, [])
+
   const first = (me?.name as string | undefined)?.split(' ')[0]
-  const greeting = `${hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'}${first ? `, ${first}` : ''}.`
-  const dateStr = `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]}`
+  const greeting = now
+    ? `${now.getHours() < 12 ? 'Bom dia' : now.getHours() < 18 ? 'Boa tarde' : 'Boa noite'}${first ? `, ${first}` : ''}.`
+    : `Olá${first ? `, ${first}` : ''}.`
+  const dateStr = now ? `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]}` : ''
 
   const open = orders.filter(isOpen)
   const todayCount = open.filter((o) => daysToDeadline(o) === 0).length
