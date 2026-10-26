@@ -4,6 +4,7 @@ import { organizations, orgFinancialSettings, orgPayables } from '@/lib/db/schem
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { format } from 'date-fns'
+import { getSubscription } from '@/lib/asaas'
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? ''
 
@@ -78,6 +79,21 @@ export async function POST(req: NextRequest) {
           .set({ plan: 'pro', subscriptionStatus: 'active' })
           .where(eq(organizations.id, orgId))
         console.log(`[webhook/asaas] ${event} → org ${orgId} → plano pro ativado`)
+
+        // Sincroniza a data da próxima cobrança — usada no contador de dias até a
+        // renovação no dashboard/sidebar. O dueDate do pagamento confirmado já
+        // passou, então busca o nextDueDate atualizado direto da assinatura
+        if (payment.subscription) {
+          try {
+            const sub = await getSubscription(payment.subscription)
+            await db
+              .update(organizations)
+              .set({ subscriptionNextDueDate: sub.nextDueDate })
+              .where(eq(organizations.id, orgId))
+          } catch (syncErr) {
+            logServerError('[webhook/asaas] sincronizar nextDueDate', syncErr)
+          }
+        }
 
         // Lançar em contas a pagar se a opção estiver ativa
         try {
@@ -191,6 +207,12 @@ export async function POST(req: NextRequest) {
         .limit(1)
 
       if (org) {
+        if (payment.dueDate) {
+          await db
+            .update(organizations)
+            .set({ subscriptionNextDueDate: payment.dueDate })
+            .where(eq(organizations.id, org.id))
+        }
         console.log(`[webhook/asaas] PAYMENT_CREATED → org ${org.id} (${org.name}) · vencimento ${payment.dueDate} · valor R$ ${payment.value}`)
         // TODO: enviar email de aviso de renovação para o usuário
       }

@@ -41,6 +41,9 @@ export const organizations = pgTable('organizations', {
   lifetimeLicense:    boolean('lifetime_license').notNull().default(false),
   asaasCustomerId:    text('asaas_customer_id'),
   asaasSubscriptionId: text('asaas_subscription_id'),
+  // Data da próxima cobrança da assinatura — sincronizada do Asaas via webhook,
+  // usada para o contador de dias até a renovação no dashboard/sidebar
+  subscriptionNextDueDate: date('subscription_next_due_date'),
   instagram:          text('instagram'),
   facebook:           text('facebook'),
   twitter:            text('twitter'),

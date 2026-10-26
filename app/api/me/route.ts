@@ -20,9 +20,15 @@ export async function GET() {
       [overdueReceivablesRow],
       [birthdayRow],
     ] = await Promise.all([
-      // Organization name + logo + plan
+      // Organization name + logo + plan + próxima cobrança
       db
-        .select({ name: organizations.name, logoUrl: organizations.logoUrl, plan: organizations.plan })
+        .select({
+          name: organizations.name,
+          logoUrl: organizations.logoUrl,
+          plan: organizations.plan,
+          subscriptionStatus: organizations.subscriptionStatus,
+          subscriptionNextDueDate: organizations.subscriptionNextDueDate,
+        })
         .from(organizations)
         .where(eq(organizations.id, user.organizationId))
         .limit(1),
@@ -90,6 +96,8 @@ export async function GET() {
       organizationName: org?.name ?? 'Meu Atelier',
       logoUrl: org?.logoUrl ?? null,
       plan: org?.plan ?? 'free',
+      subscriptionStatus: org?.subscriptionStatus ?? null,
+      subscriptionNextDueDate: org?.subscriptionNextDueDate ?? null,
       badges: {
         '/clientes': birthdays,
       },

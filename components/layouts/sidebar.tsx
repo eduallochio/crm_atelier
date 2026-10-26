@@ -45,6 +45,7 @@ import {
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ThemeToggle } from './theme-toggle'
+import { renewalLabel } from '@/lib/utils/subscription'
 
 type MenuItem = {
   name: string
@@ -169,6 +170,7 @@ const SIDEBAR_CSS = `
 .sb-plan.pro{border:1px solid rgba(212,168,90,.55);color:#E8C98A}
 .sb-plan.free{background:rgba(200,113,74,.22);color:#F2B08F;transition:background-color .15s}
 .sb-plan.free:hover{background:rgba(200,113,74,.34)}
+.sb-renewal{display:block;margin-top:3px;font-size:10.5px;color:rgba(247,240,230,.5)}
 .sb-out{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:rgba(247,240,230,.62);cursor:pointer;transition:background-color .15s,color .15s}
 .sb-out:hover{background:rgba(226,97,74,.18);color:#F4A08C}
 .sb-ver{margin:8px 12px 0;font-size:10.5px;color:rgba(247,240,230,.48);font-variant-numeric:tabular-nums;user-select:none}
@@ -220,6 +222,7 @@ export function Sidebar() {
   const alerts: Record<string, number> = meData?.alerts ?? {}
   const plan: string = meData?.plan ?? 'free'
   const isPro = plan === 'pro' || plan === 'enterprise'
+  const nextDueDate: string | null = meData?.subscriptionNextDueDate ?? null
 
   useEffect(() => {
     navigation.forEach(group => {
@@ -399,7 +402,12 @@ export function Sidebar() {
               <span className="sb-uname">{userProfile.name}</span>
               <span className="sb-umail">{userProfile.email}</span>
               {isPro ? (
-                <span className="sb-plan pro"><Check className="h-[11px] w-[11px]" strokeWidth={3} aria-hidden="true" />PRO</span>
+                <>
+                  <span className="sb-plan pro"><Check className="h-[11px] w-[11px]" strokeWidth={3} aria-hidden="true" />PRO</span>
+                  {nextDueDate && (
+                    <span className="sb-renewal">{renewalLabel(nextDueDate)}</span>
+                  )}
+                </>
               ) : (
                 <Link
                   href="/configuracoes?tab=assinatura"

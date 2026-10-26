@@ -234,10 +234,14 @@ export async function POST(req: NextRequest) {
       }),
     })
 
-    // Salvar subscription_id na organização
+    // Salvar subscription_id e data do próximo vencimento na organização — usada
+    // pelo contador de dias até a renovação no dashboard/sidebar
     await db
       .update(organizations)
-      .set({ asaasSubscriptionId: subscription.id })
+      .set({
+        asaasSubscriptionId: subscription.id,
+        subscriptionNextDueDate: subscription.nextDueDate,
+      })
       .where(eq(organizations.id, org.id))
 
     // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses pelo preço de
@@ -246,10 +250,15 @@ export async function POST(req: NextRequest) {
     if (couponRow?.bonusCycles && couponRow.bonusCycles > 0) {
       const addCycle = cycle === 'YEARLY' ? addYears : addMonths
       const bonusNextDueDate = addCycle(new Date(subscription.nextDueDate), couponRow.bonusCycles)
+      const bonusDueDateStr = format(bonusNextDueDate, 'yyyy-MM-dd')
       await updateSubscription(subscription.id, {
         value: basePrice,
-        nextDueDate: format(bonusNextDueDate, 'yyyy-MM-dd'),
+        nextDueDate: bonusDueDateStr,
       })
+      await db
+        .update(organizations)
+        .set({ subscriptionNextDueDate: bonusDueDateStr })
+        .where(eq(organizations.id, org.id))
     }
 
     // Registrar uso do cupom

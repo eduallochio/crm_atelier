@@ -10,6 +10,7 @@ import { GlobalSearch } from '@/components/dashboard/global-search'
 import { DeliveryBoard, DELIVERY_CSS } from '@/components/dashboard/delivery-board'
 import { RevenueGoal, REVENUE_CSS } from '@/components/dashboard/revenue-goal'
 import { ReadyOrders, READY_CSS } from '@/components/dashboard/ready-orders'
+import { SubscriptionCard, SUBSCRIPTION_CSS } from '@/components/dashboard/subscription-card'
 import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 import { formatBRL } from '@/components/dashboard/client-utils'
 import { isOpen, daysToDeadline, isToReceive } from '@/components/dashboard/order-utils'
@@ -69,10 +70,12 @@ export default function DashboardPage() {
   const todayCount = open.filter((o) => daysToDeadline(o) === 0).length
   const lateCount = open.filter((o) => (daysToDeadline(o) ?? 0) < 0).length
   const recOverdue = Number(stats?.financial_health?.receivables_overdue) || 0
+  const isPro = me?.plan === 'pro' || me?.plan === 'enterprise'
+  const subscriptionNextDueDate: string | null = me?.subscriptionNextDueDate ?? null
 
   return (
     <div>
-      <style>{MASTER_DETAIL_CSS + FIN_CSS + DELIVERY_CSS + READY_CSS + REVENUE_CSS + HOME_CSS}</style>
+      <style>{MASTER_DETAIL_CSS + FIN_CSS + DELIVERY_CSS + READY_CSS + REVENUE_CSS + SUBSCRIPTION_CSS + HOME_CSS}</style>
 
       {/* ── abertura ── */}
       <header className="border-b border-border/60 bg-card">
@@ -104,6 +107,10 @@ export default function DashboardPage() {
         <ReadyOrders orders={orders} isLoading={ordersLoading} />
 
         <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
+
+        {isPro && subscriptionNextDueDate && (
+          <SubscriptionCard nextDueDate={subscriptionNextDueDate} />
+        )}
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_1.4fr]">
           <CashCard />
