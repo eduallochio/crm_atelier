@@ -100,14 +100,16 @@ function pct(used: number, max: number) {
 export function SubscriptionSettingsForm() {
   const queryClient  = useQueryClient()
   const searchParams = useSearchParams()
-  // comemoração do plano Pro (cartão, volta do 3DS confirmado ou PIX pago)
-  const [celebrate, setCelebrate] = useState(() => searchParams.get('payment') === 'confirmed')
+  // comemoração depois do PIX pago na própria janela (cartão e 3DS: ProCelebrationWatcher)
+  const [celebrate, setCelebrate] = useState(false)
+  // cartão aprovado: espera o Asaas confirmar para comemorar
+  const [confirmingCard, setConfirmingCard] = useState(false)
 
   // Detecta retorno após autenticação 3DS do banco
   useEffect(() => {
     const payment = searchParams.get('payment')
     if (payment === 'confirmed') {
-      clearProPending()
+      markProPending()
       queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
       queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
@@ -340,15 +342,16 @@ export function SubscriptionSettingsForm() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao processar pagamento')
 
       if (billingType === 'PIX') {
-        markProPending()
         if (data.pix_qr_code) {
           setPixData(data.pix_qr_code)
         } else {
+          markProPending()
           toast.success('Assinatura criada! Escaneie o QR code PIX para concluir o pagamento.')
         }
       } else {
-        clearProPending()
-        setCelebrate(true)
+        // o plano vira Pro quando o Asaas confirmar a cobrança (segundos); a comemoração vem aí
+        markProPending()
+        setConfirmingCard(true)
         queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
         queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
         queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
@@ -604,6 +607,14 @@ export function SubscriptionSettingsForm() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Cartão aprovado: aguardando a confirmação do Asaas (a comemoração aparece sozinha) */}
+      {confirmingCard && !isPro && (
+        <div role="status" className="flex items-center gap-3 rounded-2xl border border-dashed border-[#c8714a]/60 bg-card px-4 py-3.5 text-sm text-foreground">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#c8714a]" aria-hidden="true" />
+          Confirmando o pagamento com o cartão… Em instantes seu plano Pro é ativado.
         </div>
       )}
 

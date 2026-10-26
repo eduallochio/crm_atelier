@@ -1,21 +1,37 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 const SERIF = { fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }
 const PENDING_KEY = 'ma-pro-pendente'
+const PENDING_EVENT = 'ma-pro-pendente'
 
-/** marca que um pagamento foi iniciado e ainda não confirmou (PIX, 3DS pendente) */
-export function markProPending() {
-  try { localStorage.setItem(PENDING_KEY, new Date().toISOString()) } catch { /* storage bloqueado */ }
+/**
+ * Pagamento iniciado e ainda não confirmado pelo Asaas. O plano só vira Pro quando o
+ * Asaas confirma (webhook), então a comemoração espera por isso:
+ * - 'aguardando': quem cuida é o ProCelebrationWatcher (pergunta a cada 5 s e comemora)
+ * - 'pix-na-tela': a janela do PIX está aberta e cuida sozinha (visto costurado + comemoração)
+ */
+type PendingMode = 'aguardando' | 'pix-na-tela'
+const PENDING_MAX_MS = 48 * 60 * 60 * 1000 // PIX abandonado: depois de 2 dias para de esperar
+export function markProPending(mode: PendingMode = 'aguardando') {
+  try { localStorage.setItem(PENDING_KEY, `${mode}|${Date.now()}`) } catch { /* storage bloqueado */ }
+  window.dispatchEvent(new Event(PENDING_EVENT))
 }
 export function clearProPending() {
   try { localStorage.removeItem(PENDING_KEY) } catch { /* storage bloqueado */ }
+  window.dispatchEvent(new Event(PENDING_EVENT))
 }
-function hasProPending() {
-  try { return !!localStorage.getItem(PENDING_KEY) } catch { return false }
+function pendingMode(): PendingMode | null {
+  try {
+    const v = localStorage.getItem(PENDING_KEY)
+    if (!v) return null
+    const [mode, at] = v.split('|')
+    if (!at || Date.now() - Number(at) > PENDING_MAX_MS) { localStorage.removeItem(PENDING_KEY); return null }
+    return mode === 'pix-na-tela' ? 'pix-na-tela' : 'aguardando'
+  } catch { return null }
 }
 
 const UNLOCKED = [
@@ -51,7 +67,7 @@ function CelebrationContent({ onClose }: { onClose: () => void }) {
   const pro = useRef<SVGTextElement>(null)
   const rest = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const r = ring.current, n = needle.current, p = pro.current, box = rest.current
     if (!r || !n || !p || !box) return
@@ -133,18 +149,41 @@ function CelebrationContent({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Se a cliente pagou o PIX e fechou a janela antes da confirmação, a comemoração aparece
- * na próxima vez que ela abrir o sistema (uma vez só). Fica no layout do app.
+ * Comemora quando o plano vira Pro depois de um pagamento iniciado (cartão, volta do 3DS,
+ * ou PIX cuja janela foi fechada antes de cair). Enquanto há pagamento aguardando, pergunta
+ * a cada 5 s; quando vira Pro, mostra a comemoração uma vez só. Fica no layout do app.
  */
 export function ProCelebrationWatcher() {
+  const qc = useQueryClient()
+  const [mode, setMode] = useState<PendingMode | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+
+  // acompanha a marca no navegador (esta aba e outras abas)
+  useEffect(() => {
+    const sync = () => setMode(pendingMode())
+    sync()
+    window.addEventListener(PENDING_EVENT, sync)
+    window.addEventListener('storage', sync)
+    return () => { window.removeEventListener(PENDING_EVENT, sync); window.removeEventListener('storage', sync) }
+  }, [])
+
+  const waiting = mode === 'aguardando'
   const { data } = useQuery<{ plan?: string } | null>({
     queryKey: ['plan-usage'],
-    queryFn: async () => { const r = await fetch('/api/plan-usage'); return r.ok ? r.json() : null },
+    queryFn: async () => { const r = await fetch('/api/plan-usage', { cache: 'no-store' }); return r.ok ? r.json() : null },
     staleTime: 2 * 60 * 1000,
+    refetchInterval: waiting ? 5000 : false,
+    refetchIntervalInBackground: false,
   })
-  const qc = useQueryClient()
-  const [dismissed, setDismissed] = useState(false)
   const isPro = !!data?.plan && data.plan !== 'free'
-  const show = isPro && !dismissed && hasProPending()
-  return <PlanCelebration open={show} onClose={() => { clearProPending(); setDismissed(true); qc.invalidateQueries({ queryKey: ['me'] }) }} />
+  const show = waiting && isPro && !dismissed
+
+  // virou Pro: atualiza o selo da barra lateral e os dados da assinatura
+  useEffect(() => {
+    if (!show) return
+    qc.invalidateQueries({ queryKey: ['me'] })
+    qc.invalidateQueries({ queryKey: ['subscription-info'] })
+  }, [show, qc])
+
+  return <PlanCelebration open={show} onClose={() => { clearProPending(); setDismissed(true) }} />
 }

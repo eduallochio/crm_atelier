@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
+import { markProPending } from './plan-celebration'
 
 const SERIF = { fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }
 const POLL_MS = 5000
@@ -19,6 +20,15 @@ export function PixPayment({ pix, onPaid }: { pix: PixData; onPaid: () => void }
   const [stopped, setStopped] = useState(false)
   const onPaidRef = useRef(onPaid)
   useEffect(() => { onPaidRef.current = onPaid }, [onPaid])
+
+  // enquanto esta janela está aberta, ela mesma cuida da confirmação; se fechar antes
+  // do pagamento cair, a comemoração fica para o ProCelebrationWatcher
+  const paidRef = useRef(false)
+  useEffect(() => { paidRef.current = paid }, [paid])
+  useEffect(() => {
+    markProPending('pix-na-tela')
+    return () => { if (!paidRef.current) markProPending('aguardando') }
+  }, [])
 
   useEffect(() => {
     if (paid) return
