@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       discount_type:  coupon.discountType,
       discount_value: discountValue,
       discount_amount: discountAmount,
+      bonus_cycles:   coupon.bonusCycles ?? 0,
       base_price:     basePrice,
       final_price:    finalPrice,
     })

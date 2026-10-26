@@ -8,10 +8,11 @@ import {
   createCustomer,
   findCustomerByCpfCnpj,
   createSubscription,
+  updateSubscription,
   getSubscriptionPayments,
   getPixQrCode,
 } from '@/lib/asaas'
-import { format, addDays } from 'date-fns'
+import { format, addDays, addMonths, addYears } from 'date-fns'
 
 // POST /api/checkout/asaas
 // Cria (ou reutiliza) cliente no Asaas e gera assinatura
@@ -151,9 +152,14 @@ export async function POST(req: NextRequest) {
       }
 
       couponRow = found
-      discount = {
-        value:  parseFloat(found.discountValue),
-        type:   found.discountType === 'percentage' ? 'PERCENTAGE' : 'FIXED',
+      const discountValue = parseFloat(found.discountValue)
+      // Cupom de ciclos de bônus (ex: PROMO50) tem discount_value = 0 — nesse caso
+      // não há desconto de preço, só o adiamento da próxima cobrança (ver abaixo)
+      if (discountValue > 0) {
+        discount = {
+          value: discountValue,
+          type:  found.discountType === 'percentage' ? 'PERCENTAGE' : 'FIXED',
+        }
       }
     }
 
@@ -233,6 +239,18 @@ export async function POST(req: NextRequest) {
       .update(organizations)
       .set({ asaasSubscriptionId: subscription.id })
       .where(eq(organizations.id, org.id))
+
+    // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses pelo preço de
+    // 1"): adia a PRÓXIMA cobrança, sem alterar o valor — a 1ª cobrança sai no preço
+    // cheio normal, só a data da 2ª cobrança é empurrada pra depois do período bônus
+    if (couponRow?.bonusCycles && couponRow.bonusCycles > 0) {
+      const addCycle = cycle === 'YEARLY' ? addYears : addMonths
+      const bonusNextDueDate = addCycle(new Date(subscription.nextDueDate), couponRow.bonusCycles)
+      await updateSubscription(subscription.id, {
+        value: basePrice,
+        nextDueDate: format(bonusNextDueDate, 'yyyy-MM-dd'),
+      })
+    }
 
     // Registrar uso do cupom
     if (couponRow) {

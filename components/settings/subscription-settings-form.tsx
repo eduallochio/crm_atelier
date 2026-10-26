@@ -60,6 +60,7 @@ type CouponResult = {
   discount_type?:  string
   discount_value?: number
   discount_amount?: number
+  bonus_cycles?:   number
   base_price?:     number
   final_price?:    number
   error?:          string
@@ -241,7 +242,12 @@ export function SubscriptionSettingsForm() {
       const data: CouponResult = await res.json()
       setCouponResult(data)
       if (data.valid) {
-        toast.success(`Cupom aplicado! Desconto de ${fmtPrice(data.discount_amount ?? 0)}`)
+        const bonus = data.bonus_cycles ?? 0
+        toast.success(
+          bonus > 0 && (data.discount_amount ?? 0) === 0
+            ? `Cupom aplicado! +${bonus} ${bonus === 1 ? 'mês extra' : 'meses extras'} de acesso.`
+            : `Cupom aplicado! Desconto de ${fmtPrice(data.discount_amount ?? 0)}`
+        )
       } else {
         toast.error(data.error ?? 'Cupom inválido')
       }
@@ -881,8 +887,18 @@ export function SubscriptionSettingsForm() {
                 <Check className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{couponResult.code}</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-500">{couponResult.description ?? `Desconto de ${fmtPrice(couponResult.discount_amount ?? 0)}`}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Aplicado apenas na 1ª cobrança</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-500">
+                    {couponResult.description ?? (
+                      (couponResult.bonus_cycles ?? 0) > 0 && (couponResult.discount_amount ?? 0) === 0
+                        ? `+${couponResult.bonus_cycles} ${couponResult.bonus_cycles === 1 ? 'mês extra' : 'meses extras'} de acesso`
+                        : `Desconto de ${fmtPrice(couponResult.discount_amount ?? 0)}`
+                    )}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {(couponResult.bonus_cycles ?? 0) > 0
+                      ? 'Próxima cobrança adiada — valor continua o mesmo'
+                      : 'Aplicado apenas na 1ª cobrança'}
+                  </p>
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-emerald-600" onClick={removeCoupon}>
                   <X className="h-3.5 w-3.5" />
@@ -915,10 +931,16 @@ export function SubscriptionSettingsForm() {
               <span>Plano Pro {cycle === 'MONTHLY' ? 'Mensal' : 'Anual'}</span>
               <span>{fmtPrice(basePrice)}</span>
             </div>
-            {couponResult?.valid && (
+            {couponResult?.valid && (couponResult.discount_amount ?? 0) > 0 && (
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                 <span>Desconto ({couponResult.code})</span>
                 <span>− {fmtPrice(couponResult.discount_amount ?? 0)}</span>
+              </div>
+            )}
+            {couponResult?.valid && (couponResult.bonus_cycles ?? 0) > 0 && (couponResult.discount_amount ?? 0) === 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                <span>Bônus ({couponResult.code})</span>
+                <span>+{couponResult.bonus_cycles} {couponResult.bonus_cycles === 1 ? 'mês' : 'meses'}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">

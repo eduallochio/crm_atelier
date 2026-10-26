@@ -611,6 +611,9 @@ export const coupons = pgTable('coupons', {
   description:     text('description'),
   discountType:    text('discount_type').notNull().default('percentage'),
   discountValue:   numeric('discount_value', { precision: 10, scale: 2 }).notNull(),
+  // Ciclos extras de acesso de bônus na 1ª cobrança (ex: "2 meses pelo preço de 1" = 1
+  // ciclo extra) — adia a próxima cobrança sem alterar o valor. null/0 = sem bônus
+  bonusCycles:     integer('bonus_cycles'),
   maxUses:         integer('max_uses'),
   usesCount:       integer('uses_count').notNull().default(0),
   expiresAt:       timestamp('expires_at', { withTimezone: true }),
