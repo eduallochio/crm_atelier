@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle2, Zap, Crown, ArrowUpCircle, ExternalLink,
   Loader2, CreditCard, Calendar, Shield, Tag, X, Check,
-  QrCode, RefreshCw, AlertTriangle, Copy,
+  QrCode, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { PlanCelebration, clearProPending, markProPending } from '@/components/subscription/plan-celebration'
+import { PixPayment } from '@/components/subscription/pix-payment'
 
 type PlanUsage = {
   plan:           string
@@ -98,20 +100,24 @@ function pct(used: number, max: number) {
 export function SubscriptionSettingsForm() {
   const queryClient  = useQueryClient()
   const searchParams = useSearchParams()
+  // comemoração do plano Pro (cartão, volta do 3DS confirmado ou PIX pago)
+  const [celebrate, setCelebrate] = useState(() => searchParams.get('payment') === 'confirmed')
 
   // Detecta retorno após autenticação 3DS do banco
   useEffect(() => {
     const payment = searchParams.get('payment')
     if (payment === 'confirmed') {
-      toast.success('Pagamento confirmado! Seu plano Pro está ativo.')
+      clearProPending()
       queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+      queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
       // Limpa o parâmetro da URL sem recarregar a página
       const url = new URL(window.location.href)
       url.searchParams.delete('payment')
       window.history.replaceState({}, '', url.toString())
     } else if (payment === 'pending') {
-      toast.info('Aguardando confirmação do pagamento. Você será notificado por e-mail.')
+      markProPending()
+      toast.info('Aguardando a confirmação do banco. Assim que confirmar, seu plano vira Pro e avisamos aqui no sistema.')
       const url = new URL(window.location.href)
       url.searchParams.delete('payment')
       window.history.replaceState({}, '', url.toString())
@@ -272,6 +278,7 @@ export function SubscriptionSettingsForm() {
       toast.success('Assinatura cancelada. Seu plano voltou para Free.')
       queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+      queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -333,15 +340,18 @@ export function SubscriptionSettingsForm() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao processar pagamento')
 
       if (billingType === 'PIX') {
+        markProPending()
         if (data.pix_qr_code) {
           setPixData(data.pix_qr_code)
         } else {
           toast.success('Assinatura criada! Escaneie o QR code PIX para concluir o pagamento.')
         }
       } else {
-        toast.success('Assinatura criada com sucesso! Seu plano Pro já está ativo.')
+        clearProPending()
+        setCelebrate(true)
         queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
         queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+        queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
         setShowCheckout(false)
       }
     } catch (err) {
@@ -360,6 +370,7 @@ export function SubscriptionSettingsForm() {
       if (!res.ok) throw new Error(data.error ?? 'Erro ao atualizar ciclo')
       toast.success('Assinatura migrada para Anual com sucesso!')
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+      queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -369,8 +380,20 @@ export function SubscriptionSettingsForm() {
 
   const isOverdue = isPro && subscriptionInfo?.status === 'overdue'
 
+  // PIX confirmado: fecha o checkout e comemora
+  const handlePixPaid = () => {
+    clearProPending()
+    queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
+    queryClient.invalidateQueries({ queryKey: ['subscription-info'] })
+    queryClient.invalidateQueries({ queryKey: ['me'] }) // selo FREE/PRO da barra lateral
+    setShowCheckout(false)
+    setPixData(null)
+    setCelebrate(true)
+  }
+
   return (
     <div className="space-y-8">
+      <PlanCelebration open={celebrate} onClose={() => setCelebrate(false)} />
 
       {/* Banner de inadimplência */}
       {isOverdue && (
@@ -607,52 +630,7 @@ export function SubscriptionSettingsForm() {
 
           {/* QR Code PIX — exibido após criação da assinatura PIX */}
           {pixData ? (
-            <div className="flex flex-col items-center gap-5 py-2">
-              <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-foreground">Escaneie o QR Code para pagar</p>
-                <p className="text-xs text-muted-foreground">Após o pagamento seu plano Pro será ativado automaticamente</p>
-              </div>
-
-              <div className="rounded-2xl border-2 border-[#c8714a]/30 bg-white p-4 shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:image/png;base64,${pixData.encodedImage}`}
-                  alt="QR Code PIX"
-                  className="w-52 h-52 object-contain"
-                />
-              </div>
-
-              <div className="w-full space-y-2">
-                <p className="text-xs text-muted-foreground text-center">Ou copie o código PIX:</p>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={pixData.payload}
-                    className="text-xs font-mono bg-muted/50 truncate"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() => {
-                      navigator.clipboard.writeText(pixData.payload)
-                      toast.success('Código PIX copiado!')
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                {pixData.expirationDate && (
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Válido até: {new Date(pixData.expirationDate).toLocaleString('pt-BR')}
-                  </p>
-                )}
-              </div>
-
-              <p className="text-xs text-center text-muted-foreground max-w-xs">
-                Após confirmar o pagamento, atualize a página ou aguarde o webhook do Asaas ativar seu plano.
-              </p>
-            </div>
+            <PixPayment pix={pixData} onPaid={handlePixPaid} />
           ) : (
           <>
 

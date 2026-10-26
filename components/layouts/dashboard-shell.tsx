@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { AppTour } from '@/components/tour/app-tour'
 import { SessionGuard } from '@/components/layouts/session-guard'
+import { ProCelebrationWatcher } from '@/components/subscription/plan-celebration'
 
 // ssr: false garante que o Sidebar (que usa useQuery) nunca seja
 // renderizado no servidor, evitando o erro "No QueryClient set"
@@ -146,6 +147,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <AppTour />
         <CashierAutomation />
         <RenewalReminder />
+        <ProCelebrationWatcher />
         <main className="flex-1 overflow-y-auto lg:ml-64 bg-muted/30">
           {children}
         </main>
