@@ -25,6 +25,17 @@ interface AnalyticsData {
   churn: { rate: number; cancelled: number; total: number }
 }
 
+interface Invoice {
+  id: string
+  organizationName: string
+  plan: string
+  amount: number
+  status: 'paid' | 'pending' | 'overdue' | 'failed'
+  dueDate: string
+  paidDate: string | null
+  invoiceUrl: string | null
+}
+
 function useBillingData() {
   return useQuery<DashboardData>({
     queryKey: ['admin-billing-dashboard'],
@@ -49,11 +60,24 @@ function useAnalyticsData() {
   })
 }
 
+function useInvoicesData() {
+  return useQuery<Invoice[]>({
+    queryKey: ['admin-invoices'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/invoices')
+      if (!res.ok) throw new Error('Erro ao carregar faturas')
+      return res.json()
+    },
+    staleTime: 60_000,
+  })
+}
+
 export default function AdminBillingPage() {
   const { data: dashboard, isLoading: dashLoading } = useBillingData()
   const { data: analytics, isLoading: analyticsLoading } = useAnalyticsData()
+  const { data: invoices, isLoading: invoicesLoading } = useInvoicesData()
 
-  const isLoading = dashLoading || analyticsLoading
+  const isLoading = dashLoading || analyticsLoading || invoicesLoading
 
   const metrics = [
     {
@@ -158,7 +182,7 @@ export default function AdminBillingPage() {
               </Card>
             </div>
 
-            <InvoicesTable invoices={[]} />
+            <InvoicesTable invoices={invoices ?? []} />
           </>
         )}
       </div>

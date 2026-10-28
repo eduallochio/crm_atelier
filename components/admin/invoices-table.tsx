@@ -12,14 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Search, Filter, MoreVertical, Download, Send, RefreshCcw, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Search, Filter, ExternalLink } from 'lucide-react'
 
 interface Invoice {
   id: string
@@ -28,7 +21,8 @@ interface Invoice {
   amount: number
   status: 'paid' | 'pending' | 'overdue' | 'failed'
   dueDate: string
-  paidDate?: string
+  paidDate?: string | null
+  invoiceUrl?: string | null
 }
 
 interface InvoicesTableProps {
@@ -47,69 +41,19 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
 
-  const hasData = invoices.length > 0
+  const filtered = invoices.filter((invoice) => {
+    if (statusFilter !== 'all' && invoice.status !== statusFilter) return false
+    if (planFilter !== 'all' && invoice.plan !== planFilter) return false
+    if (searchTerm && !invoice.organizationName.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    return true
+  })
 
-  const [processing, setProcessing] = useState<string | null>(null)
-
-  const handleProcessPayment = async (invoiceId: string) => {
-    setProcessing(invoiceId)
-    try {
-      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'process_payment' }),
-      })
-      if (!res.ok) throw new Error('Erro ao processar pagamento')
-      toast.success('Pagamento processado!')
-    } catch {
-      toast.error('Erro ao processar pagamento. Integração Stripe pendente.')
-    } finally {
-      setProcessing(null)
-    }
-  }
-
-  const handleRefund = async (invoiceId: string) => {
-    setProcessing(invoiceId)
-    try {
-      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'refund' }),
-      })
-      if (!res.ok) throw new Error('Erro ao processar reembolso')
-      toast.success('Reembolso solicitado!')
-    } catch {
-      toast.error('Erro ao processar reembolso. Integração Stripe pendente.')
-    } finally {
-      setProcessing(null)
-    }
-  }
-
-  const handleResend = async (invoiceId: string) => {
-    setProcessing(invoiceId)
-    try {
-      const res = await fetch(`/api/admin/organizations/${invoiceId}/plan`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'resend_invoice' }),
-      })
-      if (!res.ok) throw new Error('Erro ao reenviar fatura')
-      toast.success('Fatura reenviada!')
-    } catch {
-      toast.error('Erro ao reenviar fatura. Integração de email pendente.')
-    } finally {
-      setProcessing(null)
-    }
-  }
+  const hasData = filtered.length > 0
 
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold">Faturas</h3>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar
-        </Button>
       </div>
 
       {/* Filtros */}
@@ -165,7 +109,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {invoices.map((invoice) => {
+                {filtered.map((invoice) => {
                   const status = statusConfig[invoice.status]
                   return (
                     <tr key={invoice.id} className="hover:bg-muted/50 transition-colors">
@@ -191,53 +135,16 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                         }
                       </td>
                       <td className="p-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {invoice.status === 'pending' && (
-                              <DropdownMenuItem
-                                onClick={() => handleProcessPayment(invoice.id)}
-                                disabled={processing === invoice.id}
-                              >
-                                {processing === invoice.id
-                                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  : <RefreshCcw className="h-4 w-4 mr-2" />
-                                }
-                                Processar Pagamento
-                              </DropdownMenuItem>
-                            )}
-                            {invoice.status === 'paid' && (
-                              <DropdownMenuItem
-                                onClick={() => handleRefund(invoice.id)}
-                                disabled={processing === invoice.id}
-                              >
-                                {processing === invoice.id
-                                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  : <RefreshCcw className="h-4 w-4 mr-2" />
-                                }
-                                Reembolsar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => handleResend(invoice.id)}
-                              disabled={processing === invoice.id}
-                            >
-                              {processing === invoice.id
-                                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                : <Send className="h-4 w-4 mr-2" />
-                              }
-                              Reenviar Fatura
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Download className="h-4 w-4 mr-2" />
-                              Baixar PDF
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {invoice.invoiceUrl ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Ver no Asaas
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </td>
                     </tr>
                   )
@@ -248,7 +155,9 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
         </div>
       ) : (
         <div className="border-2 border-dashed border-muted rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma fatura encontrada</p>
+          <p className="text-muted-foreground">
+            {invoices.length === 0 ? 'Nenhuma fatura encontrada' : 'Nenhuma fatura corresponde aos filtros'}
+          </p>
         </div>
       )}
     </Card>

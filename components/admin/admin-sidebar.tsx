@@ -19,6 +19,7 @@ import {
   Tag,
   Bug,
   Mail,
+  Receipt,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,7 @@ const menuGroups = [
       { label: 'Usuários', icon: Users, href: '/admin/users' },
       { label: 'Planos', icon: CreditCard, href: '/admin/plans' },
       { label: 'Assinaturas', icon: UserCog, href: '/admin/subscriptions' },
+      { label: 'Faturamento', icon: Receipt, href: '/admin/billing' },
       { label: 'Cupons', icon: Tag, href: '/admin/coupons' },
       { label: 'Leads /promo', icon: Mail, href: '/admin/leads' },
     ],
