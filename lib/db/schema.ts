@@ -44,6 +44,10 @@ export const organizations = pgTable('organizations', {
   // Data da próxima cobrança da assinatura — sincronizada do Asaas via webhook,
   // usada para o contador de dias até a renovação no dashboard/sidebar
   subscriptionNextDueDate: date('subscription_next_due_date'),
+  // Quando o 1º pagamento da assinatura mensal foi confirmado — marca que o
+  // bônus de 60 dias (2 meses pelo preço de 1) já foi aplicado, pra não
+  // reaplicar nas renovações seguintes; também exibido na tela de Assinatura
+  firstPaymentConfirmedAt: timestamp('first_payment_confirmed_at', { withTimezone: true }),
   instagram:          text('instagram'),
   facebook:           text('facebook'),
   twitter:            text('twitter'),

@@ -3,8 +3,8 @@ import { db } from '@/lib/db'
 import { organizations, orgFinancialSettings, orgPayables } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
-import { format } from 'date-fns'
-import { getSubscription } from '@/lib/asaas'
+import { format, addDays } from 'date-fns'
+import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment } from '@/lib/asaas'
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? ''
 
@@ -86,10 +86,59 @@ export async function POST(req: NextRequest) {
         if (payment.subscription) {
           try {
             const sub = await getSubscription(payment.subscription)
-            await db
-              .update(organizations)
-              .set({ subscriptionNextDueDate: sub.nextDueDate })
+
+            // Bônus da 1ª assinatura mensal: 2 meses pelo preço de 1 (60 dias a
+            // partir da aprovação, não do checkout). Só aplica uma vez por
+            // organização — firstPaymentConfirmedAt ainda null é o que marca
+            // "este é o primeiro pagamento confirmado desta assinatura"
+            const [orgRow] = await db
+              .select({ firstPaymentConfirmedAt: organizations.firstPaymentConfirmedAt })
+              .from(organizations)
               .where(eq(organizations.id, orgId))
+              .limit(1)
+
+            const isFirstConfirmedPayment = !orgRow?.firstPaymentConfirmedAt
+            const confirmedAt = payment.confirmedDate ?? payment.paymentDate ?? format(new Date(), 'yyyy-MM-dd')
+
+            if (isFirstConfirmedPayment && sub.cycle === 'MONTHLY') {
+              const bonusDueDateStr = format(addDays(new Date(`${confirmedAt}T12:00:00`), 60), 'yyyy-MM-dd')
+              try {
+                // O Asaas já gera a cobrança seguinte (ex.: vencimento daqui 1 mês)
+                // antes do webhook rodar — como o próximo vencimento real vira
+                // +60 dias, essa cobrança intermediária fica obsoleta e precisa
+                // ser cancelada pra não cobrar o cliente de novo antes da hora
+                const pendentes = await getSubscriptionPayments(payment.subscription)
+                const intermediarias = pendentes.filter(p => p.status === 'PENDING' && p.id !== payment.id)
+                for (const p of intermediarias) {
+                  try {
+                    await deletePayment(p.id)
+                  } catch (delErr) {
+                    logServerError('[webhook/asaas] cancelar cobrança intermediária', delErr)
+                  }
+                }
+
+                const updated = await updateSubscription(payment.subscription, { nextDueDate: bonusDueDateStr })
+                await db
+                  .update(organizations)
+                  .set({ subscriptionNextDueDate: updated.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
+                  .where(eq(organizations.id, orgId))
+                console.log(`[webhook/asaas] bônus 1ª assinatura aplicado → org ${orgId} → próximo vencimento ${updated.nextDueDate}`)
+              } catch (bonusErr) {
+                logServerError('[webhook/asaas] aplicar bônus 60 dias', bonusErr)
+                await db
+                  .update(organizations)
+                  .set({ subscriptionNextDueDate: sub.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
+                  .where(eq(organizations.id, orgId))
+              }
+            } else {
+              await db
+                .update(organizations)
+                .set({
+                  subscriptionNextDueDate: sub.nextDueDate,
+                  ...(isFirstConfirmedPayment ? { firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) } : {}),
+                })
+                .where(eq(organizations.id, orgId))
+            }
           } catch (syncErr) {
             logServerError('[webhook/asaas] sincronizar nextDueDate', syncErr)
           }

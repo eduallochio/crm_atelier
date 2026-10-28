@@ -55,6 +55,7 @@ export interface AsaasPayment {
   status: 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED' | 'RECEIVED_IN_CASH' | 'REFUND_REQUESTED' | 'CHARGEBACK_REQUESTED' | 'CHARGEBACK_DISPUTE' | 'AWAITING_CHARGEBACK_REVERSAL' | 'DUNNING_REQUESTED' | 'DUNNING_RECEIVED' | 'AWAITING_RISK_ANALYSIS'
   dueDate: string
   paymentDate?: string
+  confirmedDate?: string
   invoiceUrl?: string
   bankSlipUrl?: string
   pixQrCodeId?: string
@@ -153,6 +154,10 @@ export async function getPayment(id: string): Promise<AsaasPayment> {
 export async function getSubscriptionPayments(subscriptionId: string): Promise<AsaasPayment[]> {
   const res = await asaasFetch<{ data: AsaasPayment[] }>(`/payments?subscription=${subscriptionId}`)
   return res.data
+}
+
+export async function deletePayment(id: string): Promise<void> {
+  await asaasFetch(`/payments/${id}`, { method: 'DELETE' })
 }
 
 // ─── PIX QR Code ──────────────────────────────────────────────────────────────

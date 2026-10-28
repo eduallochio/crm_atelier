@@ -28,6 +28,8 @@ import { cn } from '@/lib/utils'
 import { PlanCelebration, clearProPending, markProPending } from '@/components/subscription/plan-celebration'
 import { PixPayment } from '@/components/subscription/pix-payment'
 import { renewalLabel } from '@/lib/utils/subscription'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 type PlanUsage = {
   plan:           string
@@ -162,7 +164,7 @@ export function SubscriptionSettingsForm() {
     },
   })
 
-  const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number }>({
+  const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number; first_payment_confirmed_at?: string | null }>({
     queryKey: ['subscription-info'],
     queryFn: async () => {
       const res = await fetch('/api/subscription')
@@ -557,6 +559,11 @@ export function SubscriptionSettingsForm() {
                   ? renewalLabel(subscriptionInfo.next_due_date)
                   : 'Assinatura ativa'}
             </p>
+            {subscriptionInfo?.first_payment_confirmed_at && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Pagamento aprovado em {format(new Date(subscriptionInfo.first_payment_confirmed_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </p>
+            )}
           </div>
         </div>
       )}
