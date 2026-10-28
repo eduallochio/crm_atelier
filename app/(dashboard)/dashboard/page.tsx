@@ -245,9 +245,13 @@ function Reminders({ clients, orders, inactive, plan, clientsCount }: {
 
 /** linha do tempo pespontada do dia (ou das últimas atividades, se hoje ainda está quieto) */
 function DayLine({ activities, isLoading }: { activities: Activity[]; isLoading: boolean }) {
-  const today = todayISO()
-  const todays = activities.filter((a) => todayISO(new Date(a.timestamp)) === today)
-  const list = (todays.length ? todays : activities).slice(0, 5).reverse()
+  // Calculado só após montar no cliente — ler a data durante o render (SSR)
+  // diverge do cliente se cruzar meia-noite, causando hydration mismatch (#418)
+  const [today, setToday] = useState<string | null>(null)
+  useEffect(() => { setToday(todayISO()) }, [])
+
+  const todays = today ? activities.filter((a) => todayISO(new Date(a.timestamp)) === today) : []
+  const list = (today && todays.length ? todays : activities).slice(0, 5).reverse()
   const outKinds = new Set(['payable', 'cashier_close', 'order_cancelled'])
   return (
     <section aria-labelledby="day-h" className="fin-card px-5 py-4">
