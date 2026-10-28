@@ -1,24 +1,60 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Joyride, { type CallBackProps, STATUS, type Step } from 'react-joyride'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 const TOUR_KEY = 'meu-atelier-tour-v2'
 
+function greetingByHour(hour: number) {
+  if (hour < 12) return 'Bom dia'
+  if (hour < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
+
+function WelcomeModal({ open, onStart }: { open: boolean; onStart: () => void }) {
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null },
+    enabled: open,
+  })
+
+  const first = (me?.name as string | undefined)?.split(' ')[0]
+  const orgName = me?.organizationName as string | undefined
+  const greeting = greetingByHour(new Date().getHours())
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            {greeting}{first ? `, ${first}` : ''}! 👋
+          </DialogTitle>
+          <DialogDescription className="pt-2 text-[14px] leading-relaxed">
+            {orgName
+              ? <>Seja muito bem-vindo ao Meu Atelier. O <strong>{orgName}</strong> agora tem um sistema completo para organizar clientes, serviços, ordens e financeiro.</>
+              : <>Seja muito bem-vindo ao Meu Atelier — seu sistema completo para organizar clientes, serviços, ordens e financeiro.</>}
+            {' '}Vamos fazer um tour rápido pelas principais funcionalidades? Leva só 2 minutos.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button onClick={onStart} className="w-full sm:w-auto">Começar tour</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const steps: Step[] = [
-  {
-    target: 'body',
-    content: (
-      <div>
-        <h3 className="font-semibold text-base mb-2">Bem-vindo ao Meu Atelier! 👋</h3>
-        <p className="text-sm text-gray-500 leading-relaxed">
-          Vamos fazer um tour rápido pelas principais funcionalidades. Só vai levar 2 minutos!
-        </p>
-      </div>
-    ),
-    placement: 'center',
-    disableBeacon: true,
-  },
   {
     target: '[data-tour="sidebar"]',
     content: (
@@ -165,21 +201,29 @@ const steps: Step[] = [
 
 export function AppTour() {
   const [run, setRun] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     const completed = localStorage.getItem(TOUR_KEY)
     if (!completed) {
-      const timer = setTimeout(() => setRun(true), 800)
+      const timer = setTimeout(() => setShowWelcome(true), 800)
       return () => clearTimeout(timer)
     }
   }, [])
 
   useEffect(() => {
+    // "Ver tour" no rodapé do menu — pula direto pro Joyride, sem o modal de
+    // boas-vindas (que faz sentido só no primeiro acesso de verdade)
     const handleStart = () => setRun(true)
     window.addEventListener('start-tour', handleStart)
     return () => window.removeEventListener('start-tour', handleStart)
+  }, [])
+
+  const handleStartTour = useCallback(() => {
+    setShowWelcome(false)
+    setRun(true)
   }, [])
 
   const handleCallback = useCallback((data: CallBackProps) => {
@@ -193,73 +237,76 @@ export function AppTour() {
   if (!mounted) return null
 
   return (
-    <Joyride
-      steps={steps}
-      run={run}
-      continuous
-      showProgress
-      showSkipButton
-      disableOverlayClose
-      scrollToFirstStep
-      spotlightClicks={false}
-      callback={handleCallback}
-      locale={{
-        back: 'Voltar',
-        close: 'Fechar',
-        last: 'Concluir',
-        next: 'Próximo',
-        nextLabelWithProgress: 'Próximo ({step} de {steps})',
-        open: 'Abrir',
-        skip: 'Pular tour',
-      }}
-      styles={{
-        options: {
-          primaryColor: '#6366f1',
-          backgroundColor: '#ffffff',
-          textColor: '#111827',
-          arrowColor: '#ffffff',
-          overlayColor: 'rgba(0,0,0,0.5)',
-          zIndex: 10000,
-        },
-        tooltip: {
-          borderRadius: 12,
-          padding: '20px 24px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          maxWidth: 340,
-        },
-        tooltipContent: {
-          padding: 0,
-        },
-        buttonNext: {
-          borderRadius: 8,
-          fontSize: 13,
-          fontWeight: 600,
-          padding: '8px 16px',
-          backgroundColor: '#6366f1',
-        },
-        buttonBack: {
-          borderRadius: 8,
-          fontSize: 13,
-          fontWeight: 500,
-          color: '#6b7280',
-          marginRight: 8,
-          backgroundColor: 'transparent',
-        },
-        buttonSkip: {
-          fontSize: 12,
-          color: '#9ca3af',
-        },
-        buttonClose: {
-          top: 12,
-          right: 12,
-          color: '#9ca3af',
-          width: 16,
-          height: 16,
-        },
-        spotlight: {
-          borderRadius: 10,
-        },
-      }}
-    />
+    <>
+      <WelcomeModal open={showWelcome} onStart={handleStartTour} />
+      <Joyride
+        steps={steps}
+        run={run}
+        continuous
+        showProgress
+        showSkipButton
+        disableOverlayClose
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleCallback}
+        locale={{
+          back: 'Voltar',
+          close: 'Fechar',
+          last: 'Concluir',
+          next: 'Próximo',
+          nextLabelWithProgress: 'Próximo ({step} de {steps})',
+          open: 'Abrir',
+          skip: 'Pular tour',
+        }}
+        styles={{
+          options: {
+            primaryColor: '#6366f1',
+            backgroundColor: '#ffffff',
+            textColor: '#111827',
+            arrowColor: '#ffffff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            zIndex: 10000,
+          },
+          tooltip: {
+            borderRadius: 12,
+            padding: '20px 24px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            maxWidth: 340,
+          },
+          tooltipContent: {
+            padding: 0,
+          },
+          buttonNext: {
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            padding: '8px 16px',
+            backgroundColor: '#6366f1',
+          },
+          buttonBack: {
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#6b7280',
+            marginRight: 8,
+            backgroundColor: 'transparent',
+          },
+          buttonSkip: {
+            fontSize: 12,
+            color: '#9ca3af',
+          },
+          buttonClose: {
+            top: 12,
+            right: 12,
+            color: '#9ca3af',
+            width: 16,
+            height: 16,
+          },
+          spotlight: {
+            borderRadius: 10,
+          },
+        }}
+      />
+    </>
   )
 }
