@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgCashierMovements } from '@/lib/db/schema'
+import { orgCashierMovements, orgPaymentMethods } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -14,8 +14,19 @@ export async function GET(
     const { id } = await params
 
     const rows = await db
-      .select()
+      .select({
+        id:              orgCashierMovements.id,
+        organizationId:  orgCashierMovements.organizationId,
+        sessaoId:        orgCashierMovements.sessaoId,
+        tipo:            orgCashierMovements.tipo,
+        valor:           orgCashierMovements.valor,
+        descricao:       orgCashierMovements.descricao,
+        observacoes:     orgCashierMovements.observacoes,
+        createdAt:       orgCashierMovements.createdAt,
+        paymentMethodName: orgPaymentMethods.nome,
+      })
       .from(orgCashierMovements)
+      .leftJoin(orgPaymentMethods, eq(orgPaymentMethods.id, orgCashierMovements.metodoPagamentoId))
       .where(
         and(
           eq(orgCashierMovements.sessaoId, id),
@@ -25,14 +36,15 @@ export async function GET(
       .orderBy(desc(orgCashierMovements.createdAt))
 
     return NextResponse.json(rows.map(r => ({
-      id:              r.id,
-      organization_id: r.organizationId,
-      sessao_id:       r.sessaoId,
-      tipo:            r.tipo,
-      valor:           r.valor,
-      descricao:       r.descricao,
-      observacoes:     r.observacoes,
-      created_at:      r.createdAt,
+      id:               r.id,
+      organization_id:  r.organizationId,
+      sessao_id:        r.sessaoId,
+      tipo:             r.tipo,
+      valor:            r.valor,
+      descricao:        r.descricao,
+      observacoes:      r.observacoes,
+      created_at:       r.createdAt,
+      forma_pagamento:  r.paymentMethodName,
     })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

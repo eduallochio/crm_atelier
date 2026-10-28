@@ -535,34 +535,6 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             </div>
           </div>
 
-          {/* Forma de Pagamento */}
-          <div className="space-y-2">
-            <Label htmlFor="forma_pagamento">
-              Forma de Pagamento {requirePaymentMethod && <span className="text-destructive">*</span>}
-            </Label>
-            <select
-              id="forma_pagamento"
-              {...register('forma_pagamento')}
-              disabled={isLoading}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">Selecione...</option>
-              {paymentMethods.map((method) => (
-                <option key={method.id} value={method.code}>
-                  {method.name}
-                </option>
-              ))}
-            </select>
-            {errors.forma_pagamento && (
-              <p className="text-sm text-destructive">{errors.forma_pagamento.message}</p>
-            )}
-            {paymentMethods.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                Configure formas de pagamento em Configurações → Financeiro
-              </p>
-            )}
-          </div>
-
           {/* Adicionar Serviços */}
           <div className="space-y-3 border-t border-dashed pt-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Serviços</h3>
@@ -869,6 +841,35 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                 Valor pago no momento da abertura da ordem
               </p>
             </div>
+
+            {valorEntrada > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="forma_pagamento">
+                  Forma de pagamento da entrada {requirePaymentMethod && <span className="text-destructive">*</span>}
+                </Label>
+                <select
+                  id="forma_pagamento"
+                  {...register('forma_pagamento')}
+                  disabled={isLoading}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Selecione...</option>
+                  {paymentMethods.map((method) => (
+                    <option key={method.id} value={method.code}>
+                      {method.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.forma_pagamento && (
+                  <p className="text-sm text-destructive">{errors.forma_pagamento.message}</p>
+                )}
+                {paymentMethods.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Configure formas de pagamento em Configurações → Financeiro
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Observações */}

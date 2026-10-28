@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { CheckSquare, ClipboardList, Plus, Search, SearchX, Square, Trash2, X } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
 import { useDeleteServiceOrder, useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
@@ -19,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 
-type Chip = '' | 'pendente' | 'em_andamento' | 'overdue' | 'receive' | 'concluido' | 'cancelado'
+type Chip = '' | 'pendente' | 'em_andamento' | 'overdue' | 'receive' | 'undecided' | 'concluido' | 'cancelado'
 type Period = 'all' | 'today' | 'week' | 'month'
 type Sort = 'recent' | 'deadline' | 'value'
 
@@ -28,14 +30,16 @@ const CHIPS: { key: Exclude<Chip, ''>; label: string }[] = [
   { key: 'em_andamento', label: 'Em andamento' },
   { key: 'overdue', label: 'Atrasadas' },
   { key: 'receive', label: 'A receber' },
+  { key: 'undecided', label: 'Pagamento pendente' },
   { key: 'concluido', label: 'Concluídas' },
   { key: 'cancelado', label: 'Canceladas' },
 ]
 
-function matchesChip(o: ServiceOrder, chip: Chip) {
+function matchesChip(o: ServiceOrder, chip: Chip, undecidedIds?: Set<string>) {
   if (!chip) return true
   if (chip === 'overdue') return isOverdue(o)
   if (chip === 'receive') return isToReceive(o)
+  if (chip === 'undecided') return undecidedIds?.has(o.id) ?? false
   return o.status === chip
 }
 
@@ -53,6 +57,7 @@ function inPeriod(o: ServiceOrder, period: Period) {
 
 /** Ordens à esquerda e a ficha da ordem escolhida à direita (no celular, uma de cada vez) */
 export default function OrdensServicoPage() {
+  const searchParams = useSearchParams()
   const [newOpen, setNewOpen] = useState(false)
   const [paying, setPaying] = useState<ServiceOrder | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -72,18 +77,38 @@ export default function OrdensServicoPage() {
   const deleteOrder = useDeleteServiceOrder()
   const orderLimit = usePlanLimit('orders')
 
+  // Mesma regra do dashboard: OS concluída, status_pagamento != 'pago' e sem
+  // conta a receber associada — vem pronta do backend pra não duplicar o SQL aqui
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const r = await fetch('/api/dashboard/stats')
+      return r.ok ? r.json() as Promise<{ undecided_orders?: { id: string }[] }> : null
+    },
+    staleTime: 2 * 60 * 1000,
+  })
+  const undecidedIds = useMemo(
+    () => new Set<string>((stats?.undecided_orders ?? []).map((o) => o.id)),
+    [stats],
+  )
+
+  // Vindo do link "Decidir" no dashboard (?pagamento=pendente) — pré-seleciona o filtro
+  useEffect(() => {
+    if (searchParams.get('pagamento') === 'pendente') setChip('undecided')
+  }, [searchParams])
+
   const counts = useMemo(() => {
     const c = {} as Record<Exclude<Chip, ''>, number>
-    for (const { key } of CHIPS) c[key] = orders.filter((o) => matchesChip(o, key)).length
+    for (const { key } of CHIPS) c[key] = orders.filter((o) => matchesChip(o, key, undecidedIds)).length
     return c
-  }, [orders])
+  }, [orders, undecidedIds])
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase().replace(/^#/, '')
     return orders
       .filter((o) => {
         if (q && !`${o.numero} ${String(o.numero).padStart(6, '0')} ${o.client?.nome ?? ''}`.toLowerCase().includes(q)) return false
-        return matchesChip(o, chip) && inPeriod(o, period)
+        return matchesChip(o, chip, undecidedIds) && inPeriod(o, period)
       })
       .sort((a, b) => {
         if (sortBy === 'value') return (Number(b.valor_total) || 0) - (Number(a.valor_total) || 0)
@@ -95,7 +120,7 @@ export default function OrdensServicoPage() {
         }
         return b.numero - a.numero
       })
-  }, [orders, query, chip, period, sortBy])
+  }, [orders, query, chip, period, sortBy, undecidedIds])
 
   // no computador, sempre há uma ordem aberta na ficha (a primeira da lista, se a escolhida
   // não estiver mais nela — filtrada ou excluída)

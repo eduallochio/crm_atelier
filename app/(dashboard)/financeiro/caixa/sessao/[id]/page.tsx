@@ -98,6 +98,9 @@ export default function SessaoCaixaPage() {
                         <span className="min-w-0">
                           <b className="text-sm font-semibold">{m.descricao || (m.tipo === 'abertura' ? 'Abertura' : MOVE_LABEL[m.tipo])}</b>
                           <span className={`mv-tag ${m.tipo}`}>{m.tipo === 'abertura' ? 'Abertura' : MOVE_LABEL[m.tipo]}</span>
+                          {'forma_pagamento' in m && m.forma_pagamento && (
+                            <span className="ml-1.5 text-[11.5px] text-muted-foreground">· {m.forma_pagamento}</span>
+                          )}
                         </span>
                         <span className={`text-sm font-semibold tabular-nums ${m.tipo === 'entrada' || m.tipo === 'reforco' ? 'fin-pos' : ''}`}>
                           {m.tipo === 'abertura' ? '' : inflow ? '+ ' : '− '}{brl(Number(m.valor))}

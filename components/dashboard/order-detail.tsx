@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -244,6 +244,8 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
         )}
       </p>
 
+      <PaymentHistory orderId={order.id} />
+
       {/* cliente e prazo */}
       <div className="mb-5 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
         <div className={box}>
@@ -431,6 +433,54 @@ function OrderActivity({ orderId }: { orderId: string }) {
             </li>
           ))}
         </ol>
+      )}
+    </div>
+  )
+}
+
+/** pagamentos recebidos (entrada + conclusão, cada um com sua forma) e quem abriu/concluiu a OS */
+function PaymentHistory({ orderId }: { orderId: string }) {
+  const { data } = useQuery({
+    queryKey: ['order-payments', orderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders/${orderId}/payments`)
+      if (!res.ok) return null
+      return res.json() as Promise<{
+        payments: { id: string; valor: number; data: string; forma_pagamento: string | null; observacoes: string | null }[]
+        created_by: string | null
+        concluded_by: string | null
+      }>
+    },
+    staleTime: 60_000,
+  })
+
+  if (!data) return null
+  const { payments, created_by, concluded_by } = data
+  if (payments.length === 0 && !created_by && !concluded_by) return null
+
+  return (
+    <div className="mb-5 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        Rastreio da OS
+      </h3>
+      {(created_by || concluded_by) && (
+        <p className="mb-2 text-[13px] text-muted-foreground">
+          {created_by && <>Aberta por <b className="text-foreground">{created_by}</b></>}
+          {created_by && concluded_by && ' · '}
+          {concluded_by && <>Concluída por <b className="text-foreground">{concluded_by}</b></>}
+        </p>
+      )}
+      {payments.length > 0 && (
+        <ul className="space-y-1.5 border-t border-dashed border-border pt-2">
+          {payments.map((p) => (
+            <li key={p.id} className="flex items-center justify-between text-[13px]">
+              <span className="text-muted-foreground">
+                {formatDayMonthYear(p.data)}{p.forma_pagamento && <> · {p.forma_pagamento}</>}
+              </span>
+              <span className="font-semibold tabular-nums">{formatBRL(p.valor)}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

@@ -445,6 +445,36 @@ export async function GET() {
       .orderBy(asc(orgServiceOrders.dataPrevista))
       .limit(5)
 
+    // ── OS concluídas sem decisão de pagamento ("Decidir depois") ────────────
+    // status_pagamento != 'pago' e sem conta a receber pendente associada —
+    // diferencia de quem escolheu "gerar conta a receber" (essa já aparece em
+    // Contas a Receber) das que ficaram sem nenhuma decisão financeira
+    const undecidedOrders = await db
+      .select({
+        id:         orgServiceOrders.id,
+        numero:     orgServiceOrders.numero,
+        valorTotal: orgServiceOrders.valorTotal,
+        valorPago:  orgServiceOrders.valorPago,
+        dataConclusao: orgServiceOrders.dataConclusao,
+        clientNome: orgClients.nome,
+      })
+      .from(orgServiceOrders)
+      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .where(
+        and(
+          eq(orgServiceOrders.organizationId, orgId),
+          eq(orgServiceOrders.status, 'concluido'),
+          drizzleSql`${orgServiceOrders.statusPagamento} != 'pago'`,
+          drizzleSql`NOT EXISTS (
+            SELECT 1 FROM org_receivables r
+            WHERE r.service_order_id = ${orgServiceOrders.id}
+              AND r.organization_id = ${orgId}
+          )`,
+        )
+      )
+      .orderBy(desc(orgServiceOrders.dataConclusao))
+      .limit(20)
+
     return NextResponse.json({
       metrics,
       monthly_revenue: monthlyRevenue,
@@ -461,6 +491,13 @@ export async function GET() {
       financial_health: financialHealth,
       top_clients: topClients,
       inactive_clients_count: inactiveClientsCount,
+      undecided_orders: undecidedOrders.map((o) => ({
+        id: o.id,
+        numero: o.numero,
+        saldo: Number(o.valorTotal ?? 0) - Number(o.valorPago ?? 0),
+        data_conclusao: o.dataConclusao,
+        client_nome: o.clientNome,
+      })),
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

@@ -160,6 +160,10 @@ export const orgServiceOrders = pgTable('org_service_orders', {
   observacoes:        text('observacoes'),
   notasInternas:      text('notas_internas'),
   defaultMessage:     text('default_message'),
+  // Quem abriu a OS e quem a concluiu — útil em equipes com mais de um usuário
+  // pra saber quem atendeu/fechou cada ordem, sem depender de log externo
+  createdByUserId:    uuid('created_by_user_id').references(() => profiles.id, { onDelete: 'set null' }),
+  concludedByUserId:  uuid('concluded_by_user_id').references(() => profiles.id, { onDelete: 'set null' }),
   createdAt:          timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_orders_org').on(t.organizationId),
@@ -354,12 +358,17 @@ export const orgTransactions = pgTable('org_transactions', {
   paymentMethodId: uuid('payment_method_id').references(() => orgPaymentMethods.id, { onDelete: 'no action' }),
   receivableId:    uuid('receivable_id').references(() => orgReceivables.id, { onDelete: 'set null' }),
   payableId:       uuid('payable_id').references(() => orgPayables.id, { onDelete: 'set null' }),
+  // Vincula a transação à OS de origem (entrada na abertura, pagamento na
+  // conclusão) — permite listar todos os pagamentos parciais de uma mesma OS,
+  // cada um com sua própria forma de pagamento (ver paymentMethodId acima)
+  serviceOrderId:  uuid('service_order_id').references(() => orgServiceOrders.id, { onDelete: 'set null' }),
   observacoes:     text('observacoes'),
   createdAt:       timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_transactions_org').on(t.organizationId),
   index('idx_transactions_data').on(t.dataTransacao),
   index('idx_transactions_org_date').on(t.organizationId, t.dataTransacao),
+  index('idx_transactions_order').on(t.serviceOrderId),
 ])
 
 // ─── 18. ORG CASHIERS ─────────────────────────────────────────────────────────

@@ -32,9 +32,10 @@ export function buildServiceOrderSchema(req: OrderRequirements = {}) {
     data_prevista: requireDeliveryDate
       ? z.string().min(1, 'Data prevista é obrigatória')
       : z.string().optional().default(''),
-    forma_pagamento: requirePaymentMethod
-      ? z.string().min(1, 'Selecione a forma de pagamento')
-      : z.string().optional(),
+    // Forma de pagamento da entrada — só é obrigatória quando há valor de
+    // entrada informado (a regra em si é aplicada com .refine() abaixo,
+    // pois depende de outro campo do mesmo objeto)
+    forma_pagamento: z.string().optional(),
     observacoes: z.string().optional(),
     valor_entrada: z.number().min(0, 'Valor de entrada deve ser positivo').default(0),
     desconto_valor: z.number().min(0, 'Desconto deve ser positivo').default(0),
@@ -43,7 +44,10 @@ export function buildServiceOrderSchema(req: OrderRequirements = {}) {
     items: requireService
       ? z.array(serviceOrderItemSchema).min(1, 'Adicione pelo menos um serviço')
       : z.array(serviceOrderItemSchema),
-  })
+  }).refine(
+    (data) => !requirePaymentMethod || data.valor_entrada <= 0 || !!data.forma_pagamento,
+    { message: 'Selecione a forma de pagamento da entrada', path: ['forma_pagamento'] }
+  )
 }
 
 export const serviceOrderSchema = buildServiceOrderSchema()

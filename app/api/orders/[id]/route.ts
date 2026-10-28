@@ -172,12 +172,14 @@ export async function PUT(
       const [updatedOrder] = await tx
         .update(orgServiceOrders)
         .set({
-          status:         finalStatus,
-          dataPrevista:   finalDataPrevista,
-          observacoes:    finalObservacoes,
-          notasInternas:  finalNotasInternas,
-          formaPagamento: finalFormaPagamento,
-          dataConclusao:  dataConclusaoValue,
+          status:            finalStatus,
+          dataPrevista:      finalDataPrevista,
+          observacoes:       finalObservacoes,
+          notasInternas:     finalNotasInternas,
+          formaPagamento:    finalFormaPagamento,
+          dataConclusao:     dataConclusaoValue,
+          ...(isBeingConcluded ? { concludedByUserId: user.id } : {}),
+          ...(isBeingReopened ? { concludedByUserId: null } : {}),
         })
         .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
         .returning()
@@ -186,10 +188,12 @@ export async function PUT(
 
       // Payment flow on conclusion
       if (finalStatus === 'concluido') {
-        const paymentAction = body.payment_action as 'paid' | 'receivable' | undefined
+        const paymentAction = body.payment_action as 'paid' | 'receivable' | 'undecided' | undefined
         const saldoRestante = (Number(order.valorTotal) || 0) - (Number(order.valorPago) || 0)
 
-        if (saldoRestante > 0) {
+        // 'undecided': conclui sem lançar no caixa nem criar conta a receber — o
+        // saldo fica em aberto na própria OS, decidível depois pelo badge "pendente"
+        if (saldoRestante > 0 && paymentAction !== 'undecided') {
           if (paymentAction === 'paid') {
             // Mark OS as paid, save forma_pagamento if provided
             await tx
@@ -240,6 +244,7 @@ export async function PUT(
               dataTransacao,
               paymentMethodId,
               receivableId:    openReceivables[0]?.id ?? null,
+              serviceOrderId:  id,
               observacoes:     'Pagamento recebido na conclusão da OS',
             })
 
@@ -256,13 +261,15 @@ export async function PUT(
 
             if (openSession) {
               await tx.insert(orgCashierMovements).values({
-                organizationId: user.organizationId,
-                sessaoId:       openSession.id,
-                tipo:           'entrada',
-                descricao:      descricaoOS,
-                valor:          String(saldoRestante),
-                referenciaId:   id,
-                referenciaTipo: 'ordem_servico',
+                organizationId:    user.organizationId,
+                sessaoId:          openSession.id,
+                tipo:              'entrada',
+                descricao:         descricaoOS,
+                valor:             String(saldoRestante),
+                referenciaId:      id,
+                referenciaTipo:    'ordem_servico',
+                metodoPagamentoId: paymentMethodId,
+                usuarioId:         user.id,
               })
             } else {
               noCashierSession = true

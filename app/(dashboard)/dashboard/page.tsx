@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Cake, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
+import { Cake, CircleDashed, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
@@ -115,7 +115,8 @@ export default function DashboardPage() {
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_1.4fr]">
           <CashCard />
           <Reminders clients={clients} orders={orders} inactive={Number(stats?.inactive_clients_count) || 0}
-            plan={stats?.plan} clientsCount={Number(stats?.metrics?.clients_count) || 0} />
+            plan={stats?.plan} clientsCount={Number(stats?.metrics?.clients_count) || 0}
+            undecidedOrders={stats?.undecided_orders ?? []} />
         </div>
 
         <DayLine activities={(stats?.recent_activities ?? []) as Activity[]} isLoading={statsLoading} />
@@ -190,9 +191,10 @@ function CashCard() {
   )
 }
 
-/** lembretes que pedem uma ação: aniversários, ordens a receber, clientes sumidas, material acabando */
-function Reminders({ clients, orders, inactive, plan, clientsCount }: {
+/** lembretes que pedem uma ação: aniversários, ordens a receber, clientes sumidas, material acabando, pagamentos não decididos */
+function Reminders({ clients, orders, inactive, plan, clientsCount, undecidedOrders }: {
   clients: Client[]; orders: ReturnType<typeof useServiceOrders>['data'] & object; inactive: number; plan?: string; clientsCount: number
+  undecidedOrders: { id: string; numero: number; saldo: number }[]
 }) {
   const { data: products = [] } = useProducts()
   const bdays = useMemo(() => clients
@@ -202,6 +204,7 @@ function Reminders({ clients, orders, inactive, plan, clientsCount }: {
   const toReceive = orders.filter(isToReceive)
   const toReceiveSum = toReceive.reduce((s, o) => s + Math.max(0, (Number(o.valor_total) || 0) - (Number(o.valor_pago) || 0)), 0)
   const low = products.filter(isLow)
+  const undecidedSum = undecidedOrders.reduce((s, o) => s + o.saldo, 0)
 
   const items: { key: string; icon: typeof Cake; title: string; sub: string; href: string; cta: string }[] = []
   if (bdays.length) {
@@ -214,6 +217,7 @@ function Reminders({ clients, orders, inactive, plan, clientsCount }: {
     })
   }
   if (toReceive.length) items.push({ key: 'rec', icon: Wallet, title: `${toReceive.length} ${toReceive.length === 1 ? 'ordem concluída' : 'ordens concluídas'} a receber`, sub: `${formatBRL(toReceiveSum)} em aberto`, href: '/ordens-servico', cta: 'Cobrar' })
+  if (undecidedOrders.length) items.push({ key: 'undecided', icon: CircleDashed, title: `${undecidedOrders.length} ${undecidedOrders.length === 1 ? 'OS concluída sem decisão' : 'OS concluídas sem decisão'} de pagamento`, sub: `${formatBRL(undecidedSum)} ainda não lançado nem cobrado`, href: '/ordens-servico?pagamento=pendente', cta: 'Decidir' })
   if (inactive > 0) items.push({ key: 'gone', icon: UserX, title: `${inactive} ${inactive === 1 ? 'cliente sumida' : 'clientes sumidas'}`, sub: 'sem ordem há mais de 90 dias', href: '/clientes', cta: 'Ver' })
   if (low.length) items.push({ key: 'low', icon: Package, title: `${low.length} ${low.length === 1 ? 'material acabando' : 'materiais acabando'}`, sub: low.slice(0, 3).map((p) => p.nome).join(', '), href: '/estoque', cta: 'Repor' })
 

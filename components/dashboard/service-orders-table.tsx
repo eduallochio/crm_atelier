@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send, Landmark } from 'lucide-react'
+import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send, Landmark, CircleDashed } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -187,6 +187,19 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
         id: pendingConcluir.id,
         input: { status: 'concluido', payment_action: 'receivable' },
       })
+    } finally {
+      setPendingConcluir(null)
+    }
+  }
+
+  const confirmConcluirUndecided = async () => {
+    if (!pendingConcluir) return
+    try {
+      await updateOrder.mutateAsync({
+        id: pendingConcluir.id,
+        input: { status: 'concluido', payment_action: 'undecided' },
+      })
+      toast.success('OS concluída. O pagamento pode ser registrado depois.')
     } finally {
       setPendingConcluir(null)
     }
@@ -784,6 +797,16 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
             >
               <ReceiptText className="h-4 w-4" />
               Não — Gerar conta a receber
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full gap-2 text-muted-foreground hover:text-foreground h-10"
+              onClick={confirmConcluirUndecided}
+              disabled={updateOrder.isPending}
+              title="Conclui a OS sem lançar no caixa nem gerar conta a receber — decida o pagamento depois pelo aviso de pendência"
+            >
+              <CircleDashed className="h-4 w-4" />
+              Decidir depois
             </Button>
             <Button
               variant="ghost"

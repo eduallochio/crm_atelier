@@ -57,6 +57,8 @@ export const cashierMovementSchema = z.object({
   valor: z.number().positive('Valor deve ser positivo'),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
   metodo_pagamento_id: z.string().uuid().optional().nullable(),
+  // Nome da forma de pagamento (join feito pela API) — evita outra query só pra exibir
+  forma_pagamento: z.string().optional().nullable(),
   referencia_id: z.string().uuid().optional().nullable(),
   referencia_tipo: z.string().optional().nullable(),
   usuario_id: z.string().uuid().optional(),

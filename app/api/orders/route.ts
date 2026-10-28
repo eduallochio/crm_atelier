@@ -8,6 +8,7 @@ import {
   organizations,
   usageMetrics,
   orgTransactions,
+  orgPaymentMethods,
 } from '@/lib/db/schema'
 import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
@@ -190,6 +191,7 @@ export async function POST(request: Request) {
           formaPagamento:     body.forma_pagamento || null,
           observacoes:        body.observacoes || null,
           notasInternas:      body.notas_internas || null,
+          createdByUserId:    user.id,
         })
         .returning()
 
@@ -218,15 +220,32 @@ export async function POST(request: Request) {
         })
         .where(eq(usageMetrics.organizationId, user.organizationId))
 
-      // Register financial entry for entrada, if any
+      // Register financial entry for entrada, if any — vinculada à OS e à
+      // forma de pagamento informada, pra ficar rastreável na ficha da ordem
       if (valor_entrada > 0) {
         const today = new Date().toISOString().split('T')[0]
+
+        let paymentMethodId: string | null = null
+        if (body.forma_pagamento) {
+          const [pm] = await tx
+            .select({ id: orgPaymentMethods.id })
+            .from(orgPaymentMethods)
+            .where(and(
+              eq(orgPaymentMethods.organizationId, user.organizationId),
+              eq(orgPaymentMethods.tipo, body.forma_pagamento)
+            ))
+            .limit(1)
+          paymentMethodId = pm?.id ?? null
+        }
+
         await tx.insert(orgTransactions).values({
           organizationId: user.organizationId,
           tipo:           'entrada',
           descricao:      `Entrada OS #${newOrder.numero}`,
           valor:          String(valor_entrada),
           dataTransacao:  today,
+          paymentMethodId,
+          serviceOrderId: newOrder.id,
           observacoes:    'Entrada recebida na criação da OS',
         })
       }

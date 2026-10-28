@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, ReceiptText } from 'lucide-react'
+import { CheckCircle2, ReceiptText, CircleDashed } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -69,6 +69,15 @@ function PaymentForm({ order, onClose }: { order: ServiceOrder; onClose: () => v
     }
   }
 
+  const undecided = async () => {
+    try {
+      await updateOrder.mutateAsync({ id: order.id, input: { status: 'concluido', payment_action: 'undecided' } })
+      toast.success('OS concluída. O pagamento pode ser registrado depois.')
+    } catch { /* o hook já mostra o erro */ } finally {
+      onClose()
+    }
+  }
+
   const field = 'h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-[#C8714A] focus:ring-3 focus:ring-[#C8714A]/15'
 
   return (
@@ -107,6 +116,10 @@ function PaymentForm({ order, onClose }: { order: ServiceOrder; onClose: () => v
         <button type="button" onClick={receivable} disabled={updateOrder.isPending}
           className="cli-ghost w-full justify-center">
           <ReceiptText className="h-4 w-4" aria-hidden="true" /> Não — gerar conta a receber
+        </button>
+        <button type="button" onClick={undecided} disabled={updateOrder.isPending}
+          className="cli-ghost w-full justify-center text-muted-foreground" title="Conclui a OS sem lançar no caixa nem gerar conta a receber — decida o pagamento depois pelo aviso de pendência">
+          <CircleDashed className="h-4 w-4" aria-hidden="true" /> Decidir depois
         </button>
         <button type="button" onClick={onClose} disabled={updateOrder.isPending}
           className="min-h-10 rounded-md text-sm text-muted-foreground hover:text-foreground">

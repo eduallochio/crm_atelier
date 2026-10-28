@@ -5,6 +5,7 @@ import {
   orgServiceOrders,
   orgCashierSessions,
   orgCashierMovements,
+  orgPaymentMethods,
 } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
@@ -23,6 +24,7 @@ export async function POST(
         id: orgServiceOrders.id,
         numero: orgServiceOrders.numero,
         valorTotal: orgServiceOrders.valorTotal,
+        valorEntrada: orgServiceOrders.valorEntrada,
         statusPagamento: orgServiceOrders.statusPagamento,
         formaPagamento: orgServiceOrders.formaPagamento,
       })
@@ -74,16 +76,36 @@ export async function POST(
 
     const descricao = `OS #${String(order.numero ?? 0).padStart(6, '0')}${order.formaPagamento ? ` — ${order.formaPagamento}` : ''}`
 
+    // Lança só o saldo que ainda não entrou no caixa — a entrada já foi
+    // registrada separadamente na criação da OS, lançar o valorTotal aqui
+    // duplicaria esse valor
+    const valorLancar = Math.max(0, Number(order.valorTotal ?? 0) - Number(order.valorEntrada ?? 0))
+
+    let paymentMethodId: string | null = null
+    if (order.formaPagamento) {
+      const [pm] = await db
+        .select({ id: orgPaymentMethods.id })
+        .from(orgPaymentMethods)
+        .where(and(
+          eq(orgPaymentMethods.organizationId, user.organizationId),
+          eq(orgPaymentMethods.tipo, order.formaPagamento)
+        ))
+        .limit(1)
+      paymentMethodId = pm?.id ?? null
+    }
+
     const [movement] = await db
       .insert(orgCashierMovements)
       .values({
-        organizationId: user.organizationId,
-        sessaoId: openSession.id,
-        tipo: 'entrada',
+        organizationId:    user.organizationId,
+        sessaoId:          openSession.id,
+        tipo:              'entrada',
         descricao,
-        valor: String(order.valorTotal ?? 0),
-        referenciaId: id,
-        referenciaTipo: 'ordem_servico',
+        valor:              String(valorLancar),
+        referenciaId:       id,
+        referenciaTipo:     'ordem_servico',
+        metodoPagamentoId:  paymentMethodId,
+        usuarioId:          user.id,
       })
       .returning()
 
