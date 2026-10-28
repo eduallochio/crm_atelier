@@ -1,5 +1,6 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -36,7 +37,15 @@ interface OverviewTabProps {
     zip_code?: string | null
     website?: string | null
     lifetime_license?: boolean
+    subscription_next_due_date?: string | null
+    has_asaas_subscription?: boolean
   }
+}
+
+const BILLING_TYPE_LABEL: Record<string, string> = {
+  PIX: 'PIX',
+  CREDIT_CARD: 'Cartão de Crédito',
+  BOLETO: 'Boleto',
 }
 
 export function OverviewTab({ organization }: OverviewTabProps) {
@@ -46,9 +55,18 @@ export function OverviewTab({ organization }: OverviewTabProps) {
     ? Math.floor((new Date().getTime() - createdAtMs) / (1000 * 60 * 60 * 24))
     : null
 
-  // Calcular próxima renovação (simulado)
-  const nextRenewal = new Date()
-  nextRenewal.setMonth(nextRenewal.getMonth() + 1)
+  // Billing real do Asaas — método de pagamento não é salvo localmente,
+  // só a data de vencimento (organization.subscription_next_due_date)
+  const { data: billing } = useQuery({
+    queryKey: ['admin-org-billing', organization.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/organizations/${organization.id}/billing`)
+      if (!res.ok) return null
+      return res.json() as Promise<{ billingType: string }>
+    },
+    enabled: !!organization.has_asaas_subscription,
+    staleTime: 60_000,
+  })
 
   return (
     <div className="space-y-6">
@@ -188,13 +206,19 @@ export function OverviewTab({ organization }: OverviewTabProps) {
             <p className="text-base font-medium text-gray-900 dark:text-white">
               {organization.plan === 'free'
                 ? 'Plano Gratuito'
-                : format(nextRenewal, 'dd/MM/yyyy', { locale: ptBR })}
+                : organization.subscription_next_due_date
+                  ? format(new Date(organization.subscription_next_due_date), 'dd/MM/yyyy', { locale: ptBR })
+                  : '—'}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Método de Pagamento</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
-              {organization.plan === 'free' ? 'Sem cobrança' : 'Cartão de Crédito'}
+              {organization.plan === 'free'
+                ? 'Sem cobrança'
+                : billing?.billingType
+                  ? BILLING_TYPE_LABEL[billing.billingType] ?? billing.billingType
+                  : '—'}
             </p>
           </div>
         </div>

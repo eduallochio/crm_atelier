@@ -30,6 +30,8 @@ export async function GET(
           zipCode:            organizations.zipCode,
           website:            organizations.website,
           lifetimeLicense:    organizations.lifetimeLicense,
+          subscriptionNextDueDate: organizations.subscriptionNextDueDate,
+          asaasSubscriptionId:     organizations.asaasSubscriptionId,
           usersCount:   drizzleSql<number>`COUNT(DISTINCT ${profiles.id})::int`,
           clientsCount: drizzleSql<number>`COUNT(DISTINCT ${orgClients.id})::int`,
         })
@@ -68,6 +70,8 @@ export async function GET(
       zip_code:         row.zipCode,
       website:          row.website,
       lifetime_license: row.lifetimeLicense,
+      subscription_next_due_date: row.subscriptionNextDueDate,
+      has_asaas_subscription:     !!row.asaasSubscriptionId,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
