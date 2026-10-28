@@ -52,11 +52,11 @@ export default function OrganizationDetailPage() {
       const res = await fetch(`/api/admin/organizations/${orgId}/impersonate`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erro ao gerar acesso')
-      window.open(data.url, '_blank')
-      toast.success('Abrindo sessão da organização em nova aba')
+      // A sessão master continua intacta (cookie separado) — basta navegar
+      // para o dashboard, que agora já lê a sessão da organização impersonada
+      window.location.href = '/dashboard'
     } catch (err) {
       toast.error((err as Error).message)
-    } finally {
       setImpersonating(false)
     }
   }

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { AppTour } from '@/components/tour/app-tour'
 import { SessionGuard } from '@/components/layouts/session-guard'
 import { ProCelebrationWatcher } from '@/components/subscription/plan-celebration'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 
 // ssr: false garante que o Sidebar (que usa useQuery) nunca seja
 // renderizado no servidor, evitando o erro "No QueryClient set"
@@ -142,15 +143,18 @@ function CashierAutomation() {
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <SessionGuard>
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <AppTour />
-        <CashierAutomation />
-        <RenewalReminder />
-        <ProCelebrationWatcher />
-        <main className="flex-1 overflow-y-auto lg:ml-64 bg-muted/30">
-          {children}
-        </main>
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <ImpersonationBanner />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <AppTour />
+          <CashierAutomation />
+          <RenewalReminder />
+          <ProCelebrationWatcher />
+          <main className="flex-1 overflow-y-auto lg:ml-64 bg-muted/30">
+            {children}
+          </main>
+        </div>
       </div>
     </SessionGuard>
   )

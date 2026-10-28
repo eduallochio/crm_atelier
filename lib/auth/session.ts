@@ -1,7 +1,9 @@
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { getImpersonationPayload } from '@/lib/auth/impersonation'
 
 export type SessionUser = {
   id: string
@@ -11,6 +13,7 @@ export type SessionUser = {
   role: string
   isOwner: boolean
   isMaster: boolean
+  impersonating?: { organizationName: string }
 }
 
 /**
@@ -19,8 +22,47 @@ export type SessionUser = {
  *
  * O organization_id é buscado da tabela profiles (não do user_metadata),
  * pois o trigger handle_new_user não popula o user_metadata do Supabase Auth.
+ *
+ * Se houver um cookie de impersonation ativo (admin "entrando como" uma
+ * organização), retorna o usuário impersonado em vez da sessão real —
+ * sem nunca sobrescrever os cookies sb-* da sessão master.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
+  const impersonation = await getImpersonationPayload()
+  if (impersonation) {
+    const adminSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data, error } = await adminSupabase.auth.getUser(impersonation.accessToken)
+    if (!error && data.user) {
+      const [profile] = await db
+        .select({
+          organizationId: profiles.organizationId,
+          role:           profiles.role,
+          isOwner:        profiles.isOwner,
+          fullName:       profiles.fullName,
+        })
+        .from(profiles)
+        .where(eq(profiles.id, data.user.id))
+        .limit(1)
+
+      if (profile) {
+        return {
+          id:             data.user.id,
+          email:          data.user.email ?? '',
+          name:           profile.fullName ?? '',
+          organizationId: profile.organizationId,
+          role:           profile.role,
+          isOwner:        profile.isOwner,
+          isMaster:       false, // impersonado nunca herda privilégios de master
+          impersonating:  { organizationName: impersonation.organizationName },
+        }
+      }
+    }
+    // Cookie de impersonation inválido/expirado — cai para a sessão real abaixo
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
