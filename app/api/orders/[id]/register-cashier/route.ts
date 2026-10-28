@@ -5,9 +5,10 @@ import {
   orgServiceOrders,
   orgCashierSessions,
   orgCashierMovements,
+  orgCashiers,
   orgPaymentMethods,
 } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 export async function POST(
@@ -58,16 +59,18 @@ export async function POST(
       return NextResponse.json({ error: 'Esta OS já foi lançada no caixa' }, { status: 409 })
     }
 
-    // Buscar sessão de caixa aberta
+    // Buscar sessão de caixa aberta — prioriza o caixa marcado como padrão,
+    // com fallback para a sessão aberta mais antiga se o padrão não tiver uma
     const [openSession] = await db
       .select({ id: orgCashierSessions.id })
       .from(orgCashierSessions)
+      .leftJoin(orgCashiers, eq(orgCashiers.id, orgCashierSessions.caixaId))
       .where(and(
         eq(orgCashierSessions.organizationId, user.organizationId),
         eq(orgCashierSessions.status, 'aberto'),
         isNull(orgCashierSessions.dataFechamento),
       ))
-      .orderBy(orgCashierSessions.dataAbertura)
+      .orderBy(desc(orgCashiers.isDefault), orgCashierSessions.dataAbertura)
       .limit(1)
 
     if (!openSession) {

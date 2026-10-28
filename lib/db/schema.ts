@@ -380,6 +380,7 @@ export const orgCashiers = pgTable('org_cashiers', {
   descricao:      text('descricao'),
   chavePix:       text('chave_pix'),
   ativo:          boolean('ativo').notNull().default(true),
+  isDefault:      boolean('is_default').notNull().default(false),
   createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:      timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })

@@ -23,6 +23,9 @@ export async function GET(
         dataFechamento: orgCashierSessions.dataFechamento,
         saldoInicial: orgCashierSessions.saldoInicial,
         saldoReal: orgCashierSessions.saldoReal,
+        saldoEsperado: orgCashierSessions.saldoEsperado,
+        diferenca: orgCashierSessions.diferenca,
+        usuarioFechamentoId: orgCashierSessions.usuarioFechamentoId,
         status: orgCashierSessions.status,
         observacoesAbertura: orgCashierSessions.observacoesAbertura,
         observacoesFechamento: orgCashierSessions.observacoesFechamento,
@@ -53,6 +56,9 @@ export async function GET(
       data_fechamento:       r.dataFechamento,
       saldo_inicial:         r.saldoInicial,
       saldo_real:            r.saldoReal,
+      saldo_esperado:        r.saldoEsperado,
+      diferenca:             r.diferenca,
+      usuario_fechamento_id: r.usuarioFechamentoId,
       status:                r.status,
       observacoes_abertura:  r.observacoesAbertura,
       observacoes_fechamento: r.observacoesFechamento,
@@ -79,25 +85,39 @@ export async function PUT(
     const { id } = await params
 
     const isClosing = body.status === 'fechado'
+    const saldoReal = body.saldo_real != null ? Number(body.saldo_real) : null
+    const saldoEsperado = body.saldo_esperado != null ? Number(body.saldo_esperado) : null
 
     const [row] = await db
       .update(orgCashierSessions)
       .set({
         status: body.status,
-        saldoReal: body.saldo_real != null ? String(body.saldo_real) : null,
+        saldoReal: saldoReal != null ? String(saldoReal) : null,
+        saldoEsperado: saldoEsperado != null ? String(saldoEsperado) : null,
+        diferenca: (saldoReal != null && saldoEsperado != null) ? String(saldoReal - saldoEsperado) : null,
         dataFechamento: isClosing ? new Date() : null,
         observacoesFechamento: body.observacoes_fechamento ?? null,
+        // Quem fechou o caixa — ficava sem gravar, mesmo já tendo o usuário
+        // autenticado na mão; útil para auditoria em equipes com + de 1 usuário
+        ...(isClosing ? { usuarioFechamentoId: user.id } : {}),
         updatedAt: new Date(),
       })
       .where(
         and(
           eq(orgCashierSessions.id, id),
-          eq(orgCashierSessions.organizationId, user.organizationId)
+          eq(orgCashierSessions.organizationId, user.organizationId),
+          // Ao fechar, exige que ainda esteja aberta — sem isso, duas abas (ou um
+          // retry) fechando a mesma sessão em paralelo sobrescrevem silenciosamente
+          // o saldo_real/diferença um do outro, sem erro para nenhuma delas
+          ...(isClosing ? [eq(orgCashierSessions.status, 'aberto')] : []),
         )
       )
       .returning()
 
     if (!row) {
+      if (isClosing) {
+        return NextResponse.json({ error: 'Esta sessão já foi fechada' }, { status: 409 })
+      }
       return NextResponse.json({ error: 'Sessão não encontrada' }, { status: 404 })
     }
 
@@ -110,6 +130,9 @@ export async function PUT(
       data_fechamento:        row.dataFechamento,
       saldo_inicial:          row.saldoInicial,
       saldo_real:             row.saldoReal,
+      saldo_esperado:         row.saldoEsperado,
+      diferenca:              row.diferenca,
+      usuario_fechamento_id:  row.usuarioFechamentoId,
       status:                 row.status,
       observacoes_abertura:   row.observacoesAbertura,
       observacoes_fechamento: row.observacoesFechamento,

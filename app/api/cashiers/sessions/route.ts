@@ -26,6 +26,8 @@ export async function GET(request: Request) {
         dataFechamento: orgCashierSessions.dataFechamento,
         saldoInicial: orgCashierSessions.saldoInicial,
         saldoReal: orgCashierSessions.saldoReal,
+        saldoEsperado: orgCashierSessions.saldoEsperado,
+        diferenca: orgCashierSessions.diferenca,
         status: orgCashierSessions.status,
         observacoesAbertura: orgCashierSessions.observacoesAbertura,
         observacoesFechamento: orgCashierSessions.observacoesFechamento,
@@ -74,19 +76,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ ...existing, already_open: true }, { status: 200 })
     }
 
-    const [row] = await db
-      .insert(orgCashierSessions)
-      .values({
-        organizationId: user.organizationId,
-        caixaId: body.caixa_id,
-        usuarioAberturaId: user.id ?? null,
-        saldoInicial: String(body.saldo_inicial ?? 0),
-        status: 'aberto',
-        observacoesAbertura: body.observacoes_abertura ?? null,
-      })
-      .returning()
+    try {
+      const [row] = await db
+        .insert(orgCashierSessions)
+        .values({
+          organizationId: user.organizationId,
+          caixaId: body.caixa_id,
+          usuarioAberturaId: user.id ?? null,
+          saldoInicial: String(body.saldo_inicial ?? 0),
+          status: 'aberto',
+          observacoesAbertura: body.observacoes_abertura ?? null,
+        })
+        .returning()
 
-    return NextResponse.json(row, { status: 201 })
+      return NextResponse.json(row, { status: 201 })
+    } catch (insertError) {
+      // Duas aberturas do mesmo caixa em paralelo passam ambas pelo SELECT
+      // acima antes de qualquer INSERT completar — a unique constraint no
+      // banco (idx_cashier_sessions_one_open_per_cashier) pega essa corrida;
+      // aqui só devolvemos a sessão que já ficou aberta, igual ao caminho normal
+      if ((insertError as { code?: string }).code === '23505') {
+        const [already] = await db
+          .select()
+          .from(orgCashierSessions)
+          .where(and(
+            eq(orgCashierSessions.organizationId, user.organizationId),
+            eq(orgCashierSessions.caixaId, body.caixa_id),
+            eq(orgCashierSessions.status, 'aberto'),
+          ))
+          .limit(1)
+        if (already) {
+          return NextResponse.json({ ...already, already_open: true }, { status: 200 })
+        }
+      }
+      throw insertError
+    }
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

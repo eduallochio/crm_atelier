@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -22,20 +20,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
+import { useCreateCashierReconciliation } from '@/hooks/use-cashier'
 
-const closeCashierSchema = z.object({
-  saldo_real: z.coerce.number().min(0, 'Saldo não pode ser negativo'),
-  conferencia: z.object({
-    dinheiro: z.coerce.number().min(0).default(0),
-    pix: z.coerce.number().min(0).default(0),
-    credito: z.coerce.number().min(0).default(0),
-    debito: z.coerce.number().min(0).default(0),
-    outros: z.coerce.number().min(0).default(0),
-  }),
-  observacoes_fechamento: z.string().optional(),
-})
-
-type CloseCashierInput = z.infer<typeof closeCashierSchema>
+type CloseCashierInput = {
+  saldo_real: number
+  conferencia: Record<string, number> // chave = payment_method_id real
+  observacoes_fechamento?: string
+}
 
 type CashierSession = {
   id: string
@@ -52,35 +44,30 @@ interface CloseCashierDialogProps {
   isLoading?: boolean
 }
 
-export function CloseCashierDialog({ 
-  sessao, 
-  saldoEsperado, 
-  onClose, 
-  onConfirm, 
-  isLoading 
+export function CloseCashierDialog({
+  sessao,
+  saldoEsperado,
+  onClose,
+  onConfirm,
+  isLoading
 }: CloseCashierDialogProps) {
   const [showDifference, setShowDifference] = useState(false)
+  const { data: paymentMethods = [] } = useActivePaymentMethods()
+  const createReconciliation = useCreateCashierReconciliation()
 
-  const form = useForm({
-    resolver: zodResolver(closeCashierSchema),
+  const form = useForm<CloseCashierInput>({
     defaultValues: {
       saldo_real: saldoEsperado,
-      conferencia: {
-        dinheiro: 0,
-        pix: 0,
-        credito: 0,
-        debito: 0,
-        outros: 0,
-      },
+      conferencia: {},
       observacoes_fechamento: '',
     },
   })
 
   const watchSaldoReal = useWatch({ control: form.control, name: 'saldo_real', defaultValue: saldoEsperado }) as number
-  const watchConferencia = useWatch({ control: form.control, name: 'conferencia', defaultValue: { dinheiro: 0, pix: 0, credito: 0, debito: 0, outros: 0 } }) as { dinheiro: number; pix: number; credito: number; debito: number; outros: number }
-  
+  const watchConferencia = useWatch({ control: form.control, name: 'conferencia', defaultValue: {} }) as Record<string, number>
+
   const diferenca = watchSaldoReal - saldoEsperado
-  const totalConferencia = Object.values(watchConferencia).reduce((sum: number, val: number) => sum + val, 0)
+  const totalConferencia = Object.values(watchConferencia).reduce((sum: number, val) => sum + (Number(val) || 0), 0)
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -89,26 +76,42 @@ export function CloseCashierDialog({
     })
   }
 
+  // Salva a contagem por forma de pagamento (orgCashierReconciliations) antes de
+  // confirmar o fechamento — sem isso o trabalho de conferência do usuário era
+  // descartado, sem ficar registrado em lugar nenhum
+  const saveReconciliation = async (data: CloseCashierInput) => {
+    const items = Object.entries(data.conferencia)
+      .filter(([, valor]) => (Number(valor) || 0) > 0)
+      .map(([metodo_pagamento_id, valor_informado]) => ({
+        sessao_id: sessao.id,
+        metodo_pagamento_id,
+        valor_esperado: 0, // sem breakdown esperado por forma hoje — só registra o contado
+        valor_informado: Number(valor_informado) || 0,
+      }))
+    if (items.length > 0) {
+      try {
+        await createReconciliation.mutateAsync(items)
+      } catch {
+        // não bloqueia o fechamento se a conferência falhar ao salvar — o hook já avisa
+      }
+    }
+  }
+
   const handleSubmit = async (data: CloseCashierInput) => {
     if (Math.abs(diferenca) > 0.01) {
       setShowDifference(true)
       return
     }
-    await onConfirm(data as CloseCashierInput)
+    await saveReconciliation(data)
+    await onConfirm(data)
   }
 
   const handleConfirmWithDifference = async () => {
     const data = form.getValues()
-    await onConfirm(data as CloseCashierInput)
+    await saveReconciliation(data)
+    await onConfirm(data)
   }
 
-  const CONF: { key: keyof CloseCashierInput['conferencia']; label: string }[] = [
-    { key: 'dinheiro', label: 'Dinheiro' },
-    { key: 'pix', label: 'PIX' },
-    { key: 'credito', label: 'Crédito' },
-    { key: 'debito', label: 'Débito' },
-    { key: 'outros', label: 'Outros' },
-  ]
   const money = (onChange: (v: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.valueAsNumber || 0)
   const ok = Math.abs(diferenca) <= 0.01
 
@@ -140,13 +143,13 @@ export function CloseCashierDialog({
             <fieldset>
               <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Conferência por forma de pagamento</legend>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {CONF.map((c) => (
-                  <FormField key={c.key} control={form.control} name={`conferencia.${c.key}` as const}
+                {paymentMethods.map((pm) => (
+                  <FormField key={pm.id} control={form.control} name={`conferencia.${pm.id}` as const}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[12.5px] font-medium text-muted-foreground">{c.label}</FormLabel>
+                        <FormLabel className="text-[12.5px] font-medium text-muted-foreground">{pm.name}</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" inputMode="decimal" placeholder="0,00" {...field} value={field.value as number}
+                          <Input type="number" step="0.01" inputMode="decimal" placeholder="0,00" {...field} value={(field.value as number) ?? 0}
                             onChange={money(field.onChange)} className="tabular-nums" />
                         </FormControl>
                         <FormMessage />
@@ -158,6 +161,11 @@ export function CloseCashierDialog({
                   <b className="font-semibold tabular-nums">{formatCurrency(totalConferencia)}</b>
                 </div>
               </div>
+              {paymentMethods.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Configure formas de pagamento em Configurações → Financeiro para conferir por método.
+                </p>
+              )}
             </fieldset>
 
             {/* valor contado */}

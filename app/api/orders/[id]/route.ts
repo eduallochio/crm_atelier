@@ -10,6 +10,7 @@ import {
   orgTransactions,
   orgCashierSessions,
   orgCashierMovements,
+  orgCashiers,
   orgSystemPreferences,
   orgServiceOrderMaterials,
   orgStockExits,
@@ -248,15 +249,18 @@ export async function PUT(
               observacoes:     'Pagamento recebido na conclusão da OS',
             })
 
-            // Insert cashier movement if there's an open session
+            // Lança no caixa marcado como padrão; se não houver sessão aberta
+            // nele, cai para a sessão aberta mais recente da organização —
+            // evita cair no caixa errado quando há mais de um aberto ao mesmo tempo
             const [openSession] = await tx
               .select({ id: orgCashierSessions.id })
               .from(orgCashierSessions)
+              .leftJoin(orgCashiers, eq(orgCashiers.id, orgCashierSessions.caixaId))
               .where(and(
                 eq(orgCashierSessions.organizationId, user.organizationId),
                 eq(orgCashierSessions.status, 'aberto')
               ))
-              .orderBy(desc(orgCashierSessions.createdAt))
+              .orderBy(desc(orgCashiers.isDefault), desc(orgCashierSessions.createdAt))
               .limit(1)
 
             if (openSession) {

@@ -65,8 +65,14 @@ export async function POST() {
         .set({
           status:                'fechado',
           dataFechamento:        agora,
-          saldoReal:             String(saldoEsperado),
-          observacoesFechamento: 'Fechamento automático à meia-noite',
+          // saldoReal fica em branco de propósito — fechamento automático não
+          // conferiu dinheiro físico nenhum, então não existe valor "real" a
+          // registrar. Preencher com o esperado mascararia qualquer furo de
+          // caixa real do dia, já que sempre bateria "certinho"
+          saldoReal:             null,
+          saldoEsperado:         String(saldoEsperado),
+          diferenca:             null,
+          observacoesFechamento: 'Fechamento automático à meia-noite — sem conferência de dinheiro físico, revisar quando possível',
           updatedAt:             agora,
         })
         .where(eq(orgCashierSessions.id, sessao.id))

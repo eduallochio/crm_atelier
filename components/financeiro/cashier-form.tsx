@@ -33,6 +33,7 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
       descricao: '',
       chave_pix: '',
       ativo: true,
+      is_default: false,
     },
   })
 
@@ -130,6 +131,27 @@ export function CashierForm({ initialData, onSubmit, isLoading }: CashierFormPro
                   <FormLabel className="text-base">Caixa Ativo</FormLabel>
                   <FormDescription>
                     Caixas inativos não podem ser abertos
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="is_default"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Caixa Padrão</FormLabel>
+                  <FormDescription>
+                    Pagamentos de ordens de serviço são lançados automaticamente neste caixa quando há mais de um aberto
                   </FormDescription>
                 </div>
                 <FormControl>

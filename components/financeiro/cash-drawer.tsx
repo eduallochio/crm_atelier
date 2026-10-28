@@ -168,7 +168,7 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
           isLoading={closeCashier.isPending}
           onConfirm={async (data) => {
             try {
-              await closeCashier.mutateAsync({ sessaoId: sessionId, ...data })
+              await closeCashier.mutateAsync({ sessaoId: sessionId, saldo_esperado: t.gaveta, ...data })
               setClosing(false)
             } catch { /* o hook já mostra o erro */ }
           }}

@@ -67,24 +67,28 @@ export async function POST(
     const [row] = await db
       .insert(orgCashierMovements)
       .values({
-        organizationId: user.organizationId,
-        sessaoId: id,
-        tipo: body.tipo,
-        valor: String(body.valor),
-        descricao: body.descricao,
-        observacoes: body.observacoes ?? null,
+        organizationId:    user.organizationId,
+        sessaoId:          id,
+        tipo:              body.tipo,
+        valor:             String(body.valor),
+        descricao:         body.descricao,
+        metodoPagamentoId: body.metodo_pagamento_id || null,
+        usuarioId:         user.id,
+        observacoes:       body.observacoes ?? null,
       })
       .returning()
 
     return NextResponse.json({
-      id:              row.id,
-      organization_id: row.organizationId,
-      sessao_id:       row.sessaoId,
-      tipo:            row.tipo,
-      valor:           row.valor,
-      descricao:       row.descricao,
-      observacoes:     row.observacoes,
-      created_at:      row.createdAt,
+      id:                 row.id,
+      organization_id:    row.organizationId,
+      sessao_id:          row.sessaoId,
+      tipo:               row.tipo,
+      valor:              row.valor,
+      descricao:          row.descricao,
+      payment_method_id:  row.metodoPagamentoId,
+      usuario_id:         row.usuarioId,
+      observacoes:        row.observacoes,
+      created_at:         row.createdAt,
     }, { status: 201 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {

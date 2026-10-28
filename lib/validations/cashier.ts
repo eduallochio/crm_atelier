@@ -8,6 +8,7 @@ export const cashierSchema = z.object({
   descricao: z.string().optional(),
   chave_pix: z.string().optional().nullable(),
   ativo: z.boolean().default(true),
+  is_default: z.boolean().default(false),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 })
@@ -90,6 +91,7 @@ export const cashierInputSchema = z.object({
   descricao: z.string().optional(),
   chave_pix: z.string().optional(),
   ativo: z.boolean().default(true),
+  is_default: z.boolean().default(false),
 })
 
 export const cashierSessionInputSchema = z.object({

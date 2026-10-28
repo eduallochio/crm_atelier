@@ -176,16 +176,18 @@ export function useCloseCashier() {
     mutationFn: async ({
       sessaoId,
       saldo_real,
+      saldo_esperado,
       observacoes_fechamento,
     }: {
       sessaoId: string
       saldo_real: number
+      saldo_esperado?: number
       observacoes_fechamento?: string
     }) => {
       const res = await fetch(`/api/cashiers/sessions/${sessaoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'fechado', saldo_real, observacoes_fechamento }),
+        body: JSON.stringify({ status: 'fechado', saldo_real, saldo_esperado, observacoes_fechamento }),
       })
       if (!res.ok) throw new Error('Erro ao fechar caixa')
       return res.json()

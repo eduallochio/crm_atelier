@@ -24,7 +24,7 @@ export default function EditarCaixaPage() {
         <Loader text="Carregando caixa..." />
       ) : caixa ? (
         <CashierForm
-          initialData={{ nome: caixa.nome, descricao: caixa.descricao || '', chave_pix: caixa.chave_pix || '', ativo: caixa.ativo }}
+          initialData={{ nome: caixa.nome, descricao: caixa.descricao || '', chave_pix: caixa.chave_pix || '', ativo: caixa.ativo, is_default: caixa.is_default }}
           onSubmit={handleSubmit}
           isLoading={updateCashier.isPending}
         />

@@ -123,16 +123,21 @@ export default function SessaoCaixaPage() {
                 <dt className="text-muted-foreground">Saídas</dt><dd className="text-right font-semibold tabular-nums">{brl(t.saidas)}</dd>
                 <dt className="text-muted-foreground">Sangrias</dt><dd className="text-right font-semibold tabular-nums">{brl(t.sangrias)}</dd>
                 <dt className="text-muted-foreground">Reforços</dt><dd className="text-right font-semibold tabular-nums">{brl(t.reforcos)}</dd>
-                {!aberta && (
+                {!aberta && sessao.saldo_real != null && (
                   <>
                     <dt className="border-t border-dashed border-border pt-2 text-muted-foreground">Contado no fechamento</dt>
-                    <dd className="border-t border-dashed border-border pt-2 text-right font-semibold tabular-nums">{brl(Number(sessao.saldo_real) || 0)}</dd>
+                    <dd className="border-t border-dashed border-border pt-2 text-right font-semibold tabular-nums">{brl(Number(sessao.saldo_real))}</dd>
                   </>
                 )}
               </dl>
-              {!aberta && (
+              {!aberta && sessao.saldo_real != null && (
                 <p className={`mt-3 rounded-lg px-3 py-2.5 text-[13.5px] font-medium ${Math.abs(dif) < 0.01 ? 'bg-emerald-600/10 fin-pos' : dif < 0 ? 'bg-red-600/10 fin-late' : 'bg-[#D4A85A]/15 text-[#7A5A1E] dark:text-[#E8C98A]'}`}>
                   {Math.abs(dif) < 0.01 ? 'Bateu certinho com o esperado.' : dif < 0 ? `Faltaram ${brl(-dif)} na gaveta.` : `Sobraram ${brl(dif)} na gaveta.`}
+                </p>
+              )}
+              {!aberta && sessao.saldo_real == null && (
+                <p className="mt-3 rounded-lg bg-[#D4A85A]/15 px-3 py-2.5 text-[13.5px] font-medium text-[#7A5A1E] dark:text-[#E8C98A]">
+                  Fechamento automático — sem conferência de dinheiro físico.
                 </p>
               )}
               {!aberta && sessao.observacoes_fechamento && <p className="mt-3 whitespace-pre-line text-[13px] text-muted-foreground">{sessao.observacoes_fechamento}</p>}
@@ -185,7 +190,7 @@ export default function SessaoCaixaPage() {
           isLoading={closeCashier.isPending}
           onConfirm={async (data) => {
             try {
-              await closeCashier.mutateAsync({ sessaoId, ...data })
+              await closeCashier.mutateAsync({ sessaoId, saldo_esperado: t.gaveta, ...data })
               setClosing(false)
               router.push('/financeiro/caixa')
             } catch { /* o hook já mostra o erro */ }
