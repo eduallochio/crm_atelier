@@ -183,82 +183,6 @@ function VideoDemo() {
   )
 }
 
-function LeadCapture() {
-  const [email, setEmail] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [instagram, setInstagram] = useState('')
-  const [sent, setSent] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const track = useTrack()
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !whatsapp || loading) return
-    setError('')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/promo/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, whatsapp, instagram: instagram || undefined }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.error || 'Erro ao salvar')
-        return
-      }
-      track('lead_submit', { source: 'promo_page' })
-      setSent(true)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (sent) {
-    return (
-      <div className="lead-sent">
-        Anotado! Vamos te avisar antes da oferta expirar.
-      </div>
-    )
-  }
-
-  return (
-    <form className="lead-form" onSubmit={submit}>
-      <p className="lead-label">Não pode agora? Deixe seu contato e avisamos antes de expirar.</p>
-      <div className="lead-fields">
-        <input
-          type="email"
-          required
-          placeholder="seu@email.com"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="lead-input"
-        />
-        <input
-          type="tel"
-          required
-          placeholder="WhatsApp (ex: 27999990000)"
-          value={whatsapp}
-          onChange={e => setWhatsapp(e.target.value)}
-          className="lead-input"
-        />
-        <input
-          type="text"
-          placeholder="@instagram (opcional)"
-          value={instagram}
-          onChange={e => setInstagram(e.target.value)}
-          className="lead-input"
-        />
-      </div>
-      {error && <p style={{ fontSize: 13, color: 'var(--accent)', marginTop: 8 }}>{error}</p>}
-      <button type="submit" className="lead-btn lead-btn-full" disabled={loading}>
-        {loading ? 'Salvando...' : 'Me avisar antes de expirar'}
-      </button>
-    </form>
-  )
-}
-
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
     <details className="faq-item">
@@ -588,19 +512,6 @@ export default function PromoPage() {
         .compare-no { color: var(--muted); font-size: 15px; }
         .compare-th-pro { color: var(--accent) !important; }
 
-        /* LEAD CAPTURE */
-        .lead-wrap-end { padding-bottom: 96px !important; margin-top: -48px !important; }
-        .lead-wrap { max-width: 560px; margin: 0 auto; padding: 48px 24px 0; text-align: center; }
-        .lead-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px 32px; }
-        .lead-label { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
-        .lead-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-        .lead-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg); color: var(--text); font-family: inherit; outline: none; }
-        .lead-input:focus { border-color: var(--accent); }
-        .lead-btn { padding: 12px 20px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 2px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; white-space: nowrap; }
-        .lead-btn:hover { background: var(--accent2); }
-        .lead-btn-full { width: 100%; }
-        .lead-sent { background: rgba(26,138,60,0.08); border: 1px solid rgba(26,138,60,0.2); border-radius: 10px; padding: 20px 28px; font-size: 14px; color: var(--green); font-weight: 500; }
-
         /* URGENCY SOCIAL PROOF */
         .urgency-social { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; margin-bottom: 20px; }
         .urgency-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; animation: pulse-dot 2s infinite; }
@@ -675,7 +586,7 @@ export default function PromoPage() {
           <span className="urgency-dot" />
           Ateliês de costura e artesanato já usam o sistema
         </div>
-        <span className="promo-eyebrow">Promoção de lançamento</span>
+        <span className="promo-eyebrow">Promoção de primeira assinatura</span>
         <div className="promo-disc-wrap">
           <span className="promo-disc-num">2</span>
           <span className="promo-disc-pct">×1</span>
@@ -916,11 +827,6 @@ export default function PromoPage() {
           Desconto válido apenas na 1ª cobrança · Garantia de 7 dias
         </p>
       </section>
-
-      {/* LEAD CAPTURE */}
-      <div className="lead-wrap lead-wrap-end">
-        <LeadCapture />
-      </div>
 
       {/* STICKY CTA MOBILE */}
       <StickyCta />
