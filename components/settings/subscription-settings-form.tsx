@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { PlanCelebration, clearProPending, markProPending } from '@/components/subscription/plan-celebration'
 import { PixPayment } from '@/components/subscription/pix-payment'
+import { renewalLabel } from '@/lib/utils/subscription'
 
 type PlanUsage = {
   plan:           string
@@ -541,8 +542,27 @@ export function SubscriptionSettingsForm() {
         ) : null}
       </div>
 
+      {/* Resumo compacto para quem já é Pro — substitui os cards de comparação */}
+      {!showCheckout && isPro && (
+        <div className="rounded-2xl border border-[#c8714a]/30 bg-[#c8714a]/5 p-5 flex items-center gap-4">
+          <div className="p-2.5 rounded-xl bg-[#c8714a]/10 text-[#c8714a] shrink-0">
+            <Crown className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">Você já tem acesso a tudo do Pro</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isOverdue
+                ? 'Pagamento em atraso — regularize para manter o acesso'
+                : subscriptionInfo?.next_due_date
+                  ? renewalLabel(subscriptionInfo.next_due_date)
+                  : 'Assinatura ativa'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Planos */}
-      {!showCheckout && (
+      {!showCheckout && !isPro && (
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-4">Planos disponíveis</h3>
           {loadingPlans ? (
