@@ -164,7 +164,7 @@ export function SubscriptionSettingsForm() {
     },
   })
 
-  const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number; first_payment_confirmed_at?: string | null }>({
+  const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number; first_payment_confirmed_at?: string | null; in_bonus_window?: boolean }>({
     queryKey: ['subscription-info'],
     queryFn: async () => {
       const res = await fetch('/api/subscription')
@@ -422,8 +422,22 @@ export function SubscriptionSettingsForm() {
         </div>
       )}
 
-      {/* Banner de migração para Anual — só para Pro Mensal sem inadimplência */}
-      {isPro && subscriptionInfo?.cycle === 'MONTHLY' && !isOverdue && (
+      {/* Banner de migração para Anual — só para Pro Mensal sem inadimplência.
+          Enquanto durar o bônus de 60 dias da 1ª assinatura, a migração fica
+          bloqueada (ver /api/subscription/upgrade) — migrar agora trocaria o
+          valor pro anual cheio já na data do fim do bônus, perdendo a promoção */}
+      {isPro && subscriptionInfo?.cycle === 'MONTHLY' && !isOverdue && subscriptionInfo?.in_bonus_window && (
+        <div className="rounded-xl border border-[#c8714a]/30 bg-[#c8714a]/5 p-4 flex items-start gap-3">
+          <Crown className="h-5 w-5 text-[#c8714a] shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-foreground text-sm">Você está no período promocional de 60 dias</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              A migração para o plano Anual fica disponível assim que esse período terminar.
+            </p>
+          </div>
+        </div>
+      )}
+      {isPro && subscriptionInfo?.cycle === 'MONTHLY' && !isOverdue && !subscriptionInfo?.in_bonus_window && (
         <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4 flex items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <RefreshCw className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />

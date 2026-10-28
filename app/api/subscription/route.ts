@@ -5,6 +5,7 @@ import { organizations, plans } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getSubscription, getSubscriptionPayments } from '@/lib/asaas'
 import { logServerError } from '@/lib/log-error'
+import { addDays } from 'date-fns'
 
 export async function GET() {
   try {
@@ -45,13 +46,24 @@ export async function GET() {
       .filter(p => p.status === 'PENDING' || p.status === 'OVERDUE')
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
 
+    const nextDueDate = nextUnpaid?.dueDate ?? subscription.nextDueDate
+
+    // Dentro do bônus de 60 dias da 1ª assinatura mensal: bloqueia migração pra
+    // anual até o período terminar (ver /api/subscription/upgrade)
+    const inBonusWindow = Boolean(
+      org.firstPaymentConfirmedAt &&
+      cycle === 'MONTHLY' &&
+      new Date(`${nextDueDate}T12:00:00`) < addDays(new Date(org.firstPaymentConfirmedAt), 60)
+    )
+
     return NextResponse.json({
       plan:                      org.plan,
       status:                    org.subscriptionStatus,
-      next_due_date:             nextUnpaid?.dueDate ?? subscription.nextDueDate,
+      next_due_date:             nextDueDate,
       cycle,
       value,
       first_payment_confirmed_at: org.firstPaymentConfirmedAt,
+      in_bonus_window:           inBonusWindow,
     })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
