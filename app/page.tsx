@@ -294,6 +294,27 @@ function Landing() {
   const annualPlan = plans.find((p) => p.price > 0 && p.price_annual)
   const annualSave = annualPlan ? monthsFree(annualPlan) : 0
 
+  // dados da empresa para o Knowledge Graph do Google — complementa o Perfil
+  // da Empresa (Google Business Profile), ajudando o Google a conectar o
+  // site ao perfil e a exibir os links sociais na busca
+  const orgLd = useMemo(() => JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Meu Atelier Sistema',
+    url: SITE_URL,
+    logo: `${SITE_URL}/logo-512.png`,
+    description: 'Sistema de gestão para ateliês de costura e artesanato: clientes, ordens de serviço, financeiro e estoque em um só lugar.',
+    email: 'suporte@meuateliersistema.com.br',
+    sameAs: ['https://instagram.com/eduallochio'],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: 'suporte@meuateliersistema.com.br',
+      contactType: 'customer support',
+      areaServed: 'BR',
+      availableLanguage: 'Portuguese',
+    },
+  }).replace(/</g, '\\u003c'), [])
+
   // dados estruturados para o Google (software + preços dos planos)
   const jsonLd = useMemo(() => JSON.stringify({
     '@context': 'https://schema.org',
@@ -451,6 +472,7 @@ function Landing() {
 
   return (
     <div className={`${dmSans.variable} m-fonts`}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgLd }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLd }} />
       {announcement && (
