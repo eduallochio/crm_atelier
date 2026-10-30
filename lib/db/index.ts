@@ -25,6 +25,11 @@ function createQueryClient() {
     max: 5,           // permite que queries paralelas (Promise.all) usem conexões distintas em vez de competir por um único socket
     connect_timeout: 10,
     idle_timeout: 20,
+    max_lifetime: 60 * 30, // recicla conexões a cada 30min — evita conexões presas por dias no pooler
+    // statement_timeout: sem isso, uma query travada (lock, pooler preso) segura
+    // o slot do pool indefinidamente até o function timeout de 300s da Vercel —
+    // com max: 5, basta 5 requisições travadas para derrubar TODAS as rotas que usam `db`
+    connection: { statement_timeout: 15000 },
   })
 }
 
