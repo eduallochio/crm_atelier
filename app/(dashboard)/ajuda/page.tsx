@@ -136,7 +136,7 @@ function Note({ title = 'Dica', warn, children }: { title?: string; warn?: boole
 }
 
 const FAQ: [string, string][] = [
-  ['Como reabrir o tour do sistema?', 'Clique em “Ver tour do sistema”, no rodapé do menu lateral.'],
+  ['Como reabrir o tour do sistema?', 'Clique em “Ver tour do sistema”, no rodapé do menu lateral. No primeiro acesso, uma mensagem de boas-vindas aparece antes do tour; nas vezes seguintes, o tour começa direto.'],
   ['O que acontece se eu excluir uma cliente?', 'O cadastro dela é apagado. As ordens continuam no sistema, mas ficam sem o nome dela (aparece “Cliente não informado”). Por isso, exclua só cadastros duplicados ou feitos por engano.'],
   ['Posso ter mais de um usuário?', 'Sim. Em Configurações → Usuários, clique em “Novo usuário” e informe nome, e-mail, senha e cargo. No plano Free o limite é 2 usuários; no Pro, 3.'],
   ['Como defino a meta do mês?', 'No Dashboard, na faixa de faturamento, clique em “Definir meta” (ou “Mudar a meta”), digite o valor e salve.'],
@@ -276,6 +276,7 @@ export default function AjudaPage() {
                   <p className="mt-1 text-[14px] text-foreground/85">Clientes, serviços e ordens ilimitados · 3 usuários · Financeiro e Estoque</p>
                 </div>
               </div>
+              <Note title="Promoção">Na primeira assinatura mensal do plano Pro (PIX ou cartão), o ateliê ganha 2 meses pelo preço de 1 — 60 dias de acesso contados a partir da aprovação do pagamento, em vez dos 30 dias normais. É só na primeira vez; nas renovações seguintes, o ciclo volta ao normal.</Note>
             </section>
 
             {/* 2. Dashboard */}
@@ -411,9 +412,12 @@ export default function AjudaPage() {
               <Steps items={[
                 'Em Financeiro → Caixa, clique em “Novo caixa”.',
                 'Dê um nome (ex.: “Gaveta do balcão”, “Conta PIX”) e, se quiser, uma descrição e a chave PIX.',
+                'Se o ateliê tiver mais de um caixa, marque “Caixa Padrão” no que deve receber os pagamentos das ordens de serviço.',
                 'Salve. O caixa fica pronto para abrir quando o dia começar.',
               ]} />
               <Note>A chave PIX do caixa é informativa: ajuda a saber para qual conta o dinheiro foi. Se o ateliê tem uma chave só, cadastre em Configurações → Financeiro e use o atalho “Usar chave das configurações”.</Note>
+              <Note title="Caixa Padrão">Com mais de um caixa aberto ao mesmo tempo (ex.: “Loja” e “Online”), o pagamento de uma ordem de serviço é lançado automaticamente no caixa marcado como padrão. Existe sempre um padrão: ao excluir o caixa atual ou cadastrar o primeiro, o sistema define outro sozinho.</Note>
+              <Note warn title="Fechamento automático">Se um caixa ficar aberto até a meia-noite, o sistema fecha a sessão sozinho. Como ninguém contou o dinheiro nesse fechamento, ele fica marcado como “sem conferência” — o valor esperado é registrado, mas sem um valor real para comparar. Revise essa sessão quando puder.</Note>
             </section>
 
             {/* 6.2 Contas */}
@@ -508,7 +512,7 @@ export default function AjudaPage() {
                   ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão e impressora.'],
                   ['Notificações', 'Lembretes para você e a mensagem padrão das ordens.'],
                   ['Sistema', 'Formato de data e moeda, caixa e os módulos ligados, como o controle de estoque.'],
-                  ['Assinatura', 'O seu plano, o uso dos recursos e o upgrade.'],
+                  ['Assinatura', 'O seu plano, o uso dos recursos, o upgrade e a data da próxima renovação.'],
                 ].map(([t, d]) => (
                   <div key={t} className="aj-card p-3.5">
                     <p className="text-[14.5px] font-semibold text-foreground">{t}</p>

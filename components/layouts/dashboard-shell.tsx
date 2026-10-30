@@ -141,6 +141,16 @@ function CashierAutomation() {
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
+  // Trava o scroll do <body> enquanto o dashboard está montado — sem isso, em
+  // páginas longas (ex.: o Manual do sistema) o documento ganha um scroll
+  // próprio que compete com o scroll interno do <main>, dando a impressão de
+  // duas barras de rolagem e um espaço vazio sobrando abaixo do conteúdo
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prevOverflow }
+  }, [])
+
   return (
     <SessionGuard>
       <div className="flex h-screen flex-col overflow-hidden bg-background">
