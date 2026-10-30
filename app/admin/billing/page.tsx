@@ -38,6 +38,11 @@ interface Invoice {
   invoiceUrl: string | null
 }
 
+// Taxa de mensageria do Asaas (SMS/WhatsApp de notificação) — cobrada à parte,
+// fora do objeto de pagamento da API, então não dá pra buscar automaticamente.
+// Valor informado manualmente por Eduardo com base no painel Asaas.
+const MESSAGING_FEE_PER_PAYMENT = 0.99
+
 function useBillingData() {
   return useQuery<DashboardData>({
     queryKey: ['admin-billing-dashboard'],
@@ -122,9 +127,10 @@ export default function AdminBillingPage() {
     forecast: 0,
   }))
 
-  const totalReceivedNet = (invoices ?? [])
-    .filter((inv) => inv.status === 'paid')
-    .reduce((sum, inv) => sum + inv.netAmount, 0)
+  const paidInvoices = (invoices ?? []).filter((inv) => inv.status === 'paid')
+  const totalReceivedNet = paidInvoices.reduce((sum, inv) => sum + inv.netAmount, 0)
+  const totalMessagingFees = paidInvoices.length * MESSAGING_FEE_PER_PAYMENT
+  const totalReceivedAfterMessaging = totalReceivedNet - totalMessagingFees
 
   const churn = analytics?.churn
   const churnTotal = churn?.total ?? 0
@@ -151,10 +157,16 @@ export default function AdminBillingPage() {
                 <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
                   <Wallet className="h-6 w-6" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Total Recebido (líquido, já com taxa Asaas descontada)</p>
                   <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                    R$ {totalReceivedNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {totalReceivedAfterMessaging.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    R$ {totalReceivedNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pós-processamento
+                    {' − '}
+                    R$ {totalMessagingFees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de mensageria
+                    {' '}({paidInvoices.length} {paidInvoices.length === 1 ? 'cobrança' : 'cobranças'} × R$ {MESSAGING_FEE_PER_PAYMENT.toFixed(2)})
                   </p>
                 </div>
               </div>
