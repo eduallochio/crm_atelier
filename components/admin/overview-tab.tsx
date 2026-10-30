@@ -16,6 +16,11 @@ import {
   MapPin,
   Globe,
   Award,
+  Instagram,
+  Facebook,
+  Twitter,
+  Music2,
+  Share2,
 } from 'lucide-react'
 
 interface OverviewTabProps {
@@ -36,6 +41,12 @@ interface OverviewTabProps {
     org_state?: string | null
     zip_code?: string | null
     website?: string | null
+    logo_url?: string | null
+    instagram?: string | null
+    facebook?: string | null
+    twitter?: string | null
+    tiktok?: string | null
+    kwai?: string | null
     lifetime_license?: boolean
     subscription_next_due_date?: string | null
     has_asaas_subscription?: boolean
@@ -76,6 +87,18 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <FileText className="w-5 h-5" />
           Informações Gerais
         </h3>
+
+        {organization.logo_url && (
+          <div className="mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={organization.logo_url}
+              alt={`Logo de ${organization.name}`}
+              className="h-16 w-16 rounded-lg object-cover border border-gray-200 dark:border-gray-800"
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Nome da Organização</p>
@@ -188,6 +211,73 @@ export function OverviewTab({ organization }: OverviewTabProps) {
         </div>
       </div>
 
+      {/* Redes Sociais */}
+      {(organization.instagram || organization.facebook || organization.twitter || organization.tiktok || organization.kwai) && (
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Share2 className="w-5 h-5" />
+            Redes Sociais
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            {organization.instagram && (
+              <a
+                href={`https://instagram.com/${organization.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-base font-medium text-pink-600 dark:text-pink-400 hover:underline"
+              >
+                <Instagram className="w-4 h-4" />
+                @{organization.instagram.replace('@', '')}
+              </a>
+            )}
+            {organization.facebook && (
+              <a
+                href={`https://facebook.com/${organization.facebook.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-base font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <Facebook className="w-4 h-4" />
+                @{organization.facebook.replace('@', '')}
+              </a>
+            )}
+            {organization.twitter && (
+              <a
+                href={`https://x.com/${organization.twitter.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-white hover:underline"
+              >
+                <Twitter className="w-4 h-4" />
+                @{organization.twitter.replace('@', '')}
+              </a>
+            )}
+            {organization.tiktok && (
+              <a
+                href={`https://tiktok.com/@${organization.tiktok.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-white hover:underline"
+              >
+                <Music2 className="w-4 h-4" />
+                @{organization.tiktok.replace('@', '')}
+              </a>
+            )}
+            {organization.kwai && (
+              <a
+                href={`https://kwai.com/@${organization.kwai.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-base font-medium text-orange-600 dark:text-orange-400 hover:underline"
+              >
+                <Share2 className="w-4 h-4" />
+                @{organization.kwai.replace('@', '')}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Status da Assinatura */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -198,7 +288,11 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Receita Mensal</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {organization.mrr > 0 ? `R$ ${organization.mrr.toFixed(2)}` : 'Grátis'}
+              {organization.lifetime_license
+                ? 'Licença Vitalícia'
+                : organization.mrr > 0
+                  ? `R$ ${organization.mrr.toFixed(2)}`
+                  : 'Grátis'}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">

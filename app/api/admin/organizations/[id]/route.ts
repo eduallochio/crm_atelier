@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { organizations, plans, profiles, orgClients } from '@/lib/db/schema'
 import { eq, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { getSubscription } from '@/lib/asaas'
 
 export async function GET(
   _request: Request,
@@ -29,6 +30,12 @@ export async function GET(
           orgState:           organizations.state,
           zipCode:            organizations.zipCode,
           website:            organizations.website,
+          logoUrl:            organizations.logoUrl,
+          instagram:          organizations.instagram,
+          facebook:           organizations.facebook,
+          twitter:            organizations.twitter,
+          tiktok:             organizations.tiktok,
+          kwai:               organizations.kwai,
           lifetimeLicense:    organizations.lifetimeLicense,
           subscriptionNextDueDate: organizations.subscriptionNextDueDate,
           asaasSubscriptionId:     organizations.asaasSubscriptionId,
@@ -52,6 +59,24 @@ export async function GET(
     for (const p of planRows) planPrices[p.slug] = parseFloat(p.price) || 0
 
     const row = rows[0]
+
+    // Receita mensal real: licença vitalícia não paga nada; organizações com
+    // assinatura no Asaas podem ter valor diferente do preço de tabela (bônus
+    // de 60 dias, cupom, desconto manual) — busca o valor real da assinatura
+    // em vez do preço de tabela do plano. Assinatura anual é dividida por 12
+    // para manter "mensal". Se a busca no Asaas falhar, cai pro preço de tabela.
+    let mrr = planPrices[row.plan] ?? 0
+    if (row.lifetimeLicense) {
+      mrr = 0
+    } else if (row.asaasSubscriptionId) {
+      try {
+        const subscription = await getSubscription(row.asaasSubscriptionId)
+        mrr = subscription.cycle === 'YEARLY' ? subscription.value / 12 : subscription.value
+      } catch (error) {
+        logServerError('[GET /api/admin/organizations/:id] getSubscription', error)
+      }
+    }
+
     return NextResponse.json({
       id:               row.id,
       name:             row.name,
@@ -60,7 +85,7 @@ export async function GET(
       created_at:       row.createdAt,
       users_count:      row.usersCount,
       clients_count:    row.clientsCount,
-      mrr:              planPrices[row.plan] ?? 0,
+      mrr,
       email:            row.email,
       phone:            row.phone,
       cnpj:             row.cnpj,
@@ -69,6 +94,12 @@ export async function GET(
       org_state:        row.orgState,
       zip_code:         row.zipCode,
       website:          row.website,
+      logo_url:         row.logoUrl,
+      instagram:        row.instagram,
+      facebook:         row.facebook,
+      twitter:          row.twitter,
+      tiktok:           row.tiktok,
+      kwai:             row.kwai,
       lifetime_license: row.lifetimeLicense,
       subscription_next_due_date: row.subscriptionNextDueDate,
       has_asaas_subscription:     !!row.asaasSubscriptionId,

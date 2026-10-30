@@ -35,6 +35,12 @@ interface Organization {
   org_state?: string | null
   zip_code?: string | null
   website?: string | null
+  logo_url?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  twitter?: string | null
+  tiktok?: string | null
+  kwai?: string | null
   lifetime_license?: boolean
 }
 
@@ -238,7 +244,11 @@ export default function OrganizationDetailPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">MRR</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {organization.mrr > 0 ? `R$ ${organization.mrr.toFixed(2)}` : 'Grátis'}
+                {organization.lifetime_license
+                  ? 'Vitalícia'
+                  : organization.mrr > 0
+                    ? `R$ ${organization.mrr.toFixed(2)}`
+                    : 'Grátis'}
               </p>
             </div>
           </div>

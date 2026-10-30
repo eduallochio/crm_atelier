@@ -6,6 +6,7 @@ import { BillingMetricsGrid } from '@/components/admin/billing-metrics-grid'
 import { RevenueChart } from '@/components/admin/revenue-chart'
 import { InvoicesTable } from '@/components/admin/invoices-table'
 import { Card } from '@/components/ui/card'
+import { Wallet } from 'lucide-react'
 
 interface DashboardData {
   totalOrganizations: number
@@ -30,6 +31,7 @@ interface Invoice {
   organizationName: string
   plan: string
   amount: number
+  netAmount: number
   status: 'paid' | 'pending' | 'overdue' | 'failed'
   dueDate: string
   paidDate: string | null
@@ -120,6 +122,10 @@ export default function AdminBillingPage() {
     forecast: 0,
   }))
 
+  const totalReceivedNet = (invoices ?? [])
+    .filter((inv) => inv.status === 'paid')
+    .reduce((sum, inv) => sum + inv.netAmount, 0)
+
   const churn = analytics?.churn
   const churnTotal = churn?.total ?? 0
   const churnCancelled = churn?.cancelled ?? 0
@@ -139,6 +145,20 @@ export default function AdminBillingPage() {
         ) : (
           <>
             <BillingMetricsGrid metrics={metrics} />
+
+            <Card className="p-6 bg-gradient-to-br from-emerald-50 to-card dark:from-emerald-950/20 dark:to-card border-emerald-200 dark:border-emerald-900">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                  <Wallet className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Recebido (líquido, já com taxa Asaas descontada)</p>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                    R$ {totalReceivedNet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <RevenueChart data={revenueChartData} />
