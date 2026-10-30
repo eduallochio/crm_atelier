@@ -66,7 +66,7 @@ export async function GET() {
       .limit(10)
 
     const top_referrers = referrersRows
-      .filter((r) => r.referrer && r.referrer !== '')
+      .filter((r) => r.referrer && r.referrer !== '' && !r.referrer.includes('localhost'))
       .map((r) => ({ referrer: r.referrer, count: Number(r.cnt) }))
 
     // Top UTM sources — stored in data->>'utm_source'

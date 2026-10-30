@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Não grava eventos de ambiente de dev/teste — polui as métricas reais de produção
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({ ok: true })
+    }
+
     // Build data object for jsonb field
     const data: Record<string, unknown> = {}
     if (metadata !== undefined && metadata !== null) {
