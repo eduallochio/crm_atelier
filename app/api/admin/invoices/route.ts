@@ -37,6 +37,7 @@ export async function GET() {
       organizationName: string
       plan: string
       amount: number
+      netAmount: number
       status: ReturnType<typeof mapStatus>
       dueDate: string
       paidDate: string | null
@@ -52,6 +53,9 @@ export async function GET() {
           organizationName: org.name,
           plan:             org.plan,
           amount:           p.value,
+          // netValue já vem descontado da taxa do Asaas; cai como null em cobranças
+          // ainda não processadas (PENDING), então usa o valor bruto como fallback
+          netAmount:        p.netValue ?? p.value,
           status:           mapStatus(p),
           dueDate:          p.dueDate,
           paidDate:         p.paymentDate ?? null,

@@ -19,6 +19,7 @@ interface Invoice {
   organizationName: string
   plan: string
   amount: number
+  netAmount: number
   status: 'paid' | 'pending' | 'overdue' | 'failed'
   dueDate: string
   paidDate?: string | null
@@ -101,7 +102,9 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                 <tr>
                   <th className="text-left p-4 text-sm font-medium">Organização</th>
                   <th className="text-left p-4 text-sm font-medium">Plano</th>
-                  <th className="text-left p-4 text-sm font-medium">Valor</th>
+                  <th className="text-left p-4 text-sm font-medium">Valor Bruto</th>
+                  <th className="text-left p-4 text-sm font-medium">Taxa Asaas</th>
+                  <th className="text-left p-4 text-sm font-medium">Valor Líquido</th>
                   <th className="text-left p-4 text-sm font-medium">Status</th>
                   <th className="text-left p-4 text-sm font-medium">Vencimento</th>
                   <th className="text-left p-4 text-sm font-medium">Pagamento</th>
@@ -111,6 +114,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
               <tbody className="divide-y">
                 {filtered.map((invoice) => {
                   const status = statusConfig[invoice.status]
+                  const fee = Math.max(0, invoice.amount - invoice.netAmount)
                   return (
                     <tr key={invoice.id} className="hover:bg-muted/50 transition-colors">
                       <td className="p-4">
@@ -120,7 +124,19 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
                         <Badge variant="outline">{invoice.plan}</Badge>
                       </td>
                       <td className="p-4 font-medium">
-                        R$ {invoice.amount.toLocaleString('pt-BR')}
+                        R$ {invoice.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-sm text-red-600 dark:text-red-400">
+                        {invoice.status === 'paid'
+                          ? `- R$ ${fee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                          : '—'
+                        }
+                      </td>
+                      <td className="p-4 font-medium text-green-600 dark:text-green-400">
+                        {invoice.status === 'paid'
+                          ? `R$ ${invoice.netAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                          : '—'
+                        }
                       </td>
                       <td className="p-4">
                         <Badge variant={status.variant}>{status.label}</Badge>
