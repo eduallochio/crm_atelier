@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { adminErrorLogs } from '@/lib/db/schema'
+import { adminErrorLogs, organizations } from '@/lib/db/schema'
 import { desc, eq, and } from 'drizzle-orm'
 import { requireMasterFast, getSessionUser } from '@/lib/auth/session'
 
@@ -75,13 +75,50 @@ export async function GET(request: Request) {
     if (resolved === 'true')  conditions.push(eq(adminErrorLogs.resolved, true))
 
     const rows = await db
-      .select()
+      .select({
+        id:               adminErrorLogs.id,
+        organizationId:   adminErrorLogs.organizationId,
+        organizationName: organizations.name,
+        userId:           adminErrorLogs.userId,
+        message:          adminErrorLogs.message,
+        stack:            adminErrorLogs.stack,
+        componentStack:   adminErrorLogs.componentStack,
+        errorType:        adminErrorLogs.errorType,
+        severity:         adminErrorLogs.severity,
+        url:              adminErrorLogs.url,
+        userAgent:        adminErrorLogs.userAgent,
+        extra:            adminErrorLogs.extra,
+        resolved:         adminErrorLogs.resolved,
+        resolvedAt:       adminErrorLogs.resolvedAt,
+        resolutionNote:   adminErrorLogs.resolutionNote,
+        createdAt:        adminErrorLogs.createdAt,
+      })
       .from(adminErrorLogs)
+      .leftJoin(organizations, eq(organizations.id, adminErrorLogs.organizationId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(adminErrorLogs.createdAt))
       .limit(limit)
 
-    return NextResponse.json(rows)
+    // Frontend espera snake_case — select() do Drizzle devolve camelCase
+    // (chaves do schema), por isso o mapeamento explícito aqui
+    return NextResponse.json(rows.map(r => ({
+      id:               r.id,
+      organization_id:  r.organizationId,
+      organization_name: r.organizationName,
+      user_id:          r.userId,
+      message:          r.message,
+      stack:            r.stack,
+      component_stack:  r.componentStack,
+      error_type:       r.errorType,
+      severity:         r.severity,
+      url:              r.url,
+      user_agent:       r.userAgent,
+      extra:            r.extra,
+      resolved:         r.resolved,
+      resolved_at:      r.resolvedAt,
+      resolution_note:  r.resolutionNote,
+      created_at:       r.createdAt,
+    })))
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if ((error as Error).message === 'FORBIDDEN')    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })

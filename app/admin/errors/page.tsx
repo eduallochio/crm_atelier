@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 type ErrorLog = {
   id: string
   organization_id: string | null
+  organization_name: string | null
   user_id: string | null
   message: string
   stack: string | null
@@ -50,21 +51,9 @@ export default function AdminErrorsPage() {
   const [expanded, setExpanded]   = useState<Set<string>>(new Set())
   const [selected, setSelected]   = useState<Set<string>>(new Set())
 
-  // Busca nomes das organizações para exibir no lugar do UUID
-  const { data: orgs = [] } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ['admin-orgs-minimal'],
-    queryFn: async () => {
-      const res = await fetch('/api/admin/organizations')
-      if (!res.ok) return []
-      const data = await res.json()
-      return (data.organizations ?? data).map((o: any) => ({ id: o.id, name: o.name }))
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const orgName = (id: string | null) => {
-    if (!id) return null
-    return orgs.find(o => o.id === id)?.name ?? id.slice(0, 8) + '...'
+  const orgName = (err: ErrorLog) => {
+    if (!err.organization_id) return null
+    return err.organization_name ?? err.organization_id.slice(0, 8) + '...'
   }
 
   const { data: errors = [], isLoading, isError, error: queryError, refetch } = useQuery<ErrorLog[]>({
@@ -387,7 +376,7 @@ export default function AdminErrorsPage() {
                     <div className="flex items-center gap-3 mt-0.5">
                       {err.organization_id && (
                         <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">
-                          {orgName(err.organization_id)}
+                          {orgName(err)}
                         </span>
                       )}
                       {err.url && <p className="text-xs text-gray-400 truncate">{err.url}</p>}
@@ -441,7 +430,7 @@ export default function AdminErrorsPage() {
                         <div>
                           <span className="text-gray-400">Organização: </span>
                           <span className="text-gray-700 dark:text-gray-300 font-medium">
-                            {orgName(err.organization_id)}
+                            {orgName(err)}
                           </span>
                         </div>
                       )}

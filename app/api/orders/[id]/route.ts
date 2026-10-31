@@ -116,8 +116,10 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
     const { id } = await params
 
@@ -355,7 +357,7 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[PUT /api/orders/:id]', error); console.error('[PUT /api/orders/:id]', error)
+    logServerError('[PUT /api/orders/:id]', error, undefined, organizationId); console.error('[PUT /api/orders/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -17,8 +17,10 @@ async function checkPlan(organizationId: string) {
 }
 
 export async function GET() {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     await checkPlan(user.organizationId)
 
     const entries = await db
@@ -78,14 +80,16 @@ export async function GET() {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    logServerError('[GET /api/inventory/entries]', error); console.error('[GET /api/inventory/entries]', error)
+    logServerError('[GET /api/inventory/entries]', error, undefined, organizationId); console.error('[GET /api/inventory/entries]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     await checkPlan(user.organizationId)
 
     const body = await request.json()
@@ -149,7 +153,7 @@ export async function POST(request: Request) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    logServerError('[POST /api/inventory/entries]', error); console.error('[POST /api/inventory/entries]', error)
+    logServerError('[POST /api/inventory/entries]', error, undefined, organizationId); console.error('[POST /api/inventory/entries]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

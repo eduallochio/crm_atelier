@@ -15,8 +15,10 @@ import { requireAuth } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 
 export async function GET() {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     const orderRows = await db
       .select({
@@ -107,14 +109,16 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/orders]', error); console.error('[GET /api/orders]', error)
+    logServerError('[GET /api/orders]', error, undefined, organizationId); console.error('[GET /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
 
     // Verificar limite do plano (usa contador cumulativo)
@@ -258,7 +262,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/orders]', error); console.error('[POST /api/orders]', error)
+    logServerError('[POST /api/orders]', error, undefined, organizationId); console.error('[POST /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -8,8 +8,10 @@ import { logServerError } from '@/lib/log-error'
 import { addDays } from 'date-fns'
 
 export async function GET() {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     const [org] = await db
       .select({
@@ -69,7 +71,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/subscription]', error)
+    logServerError('[GET /api/subscription]', error, undefined, organizationId)
     return NextResponse.json({ error: 'Erro ao carregar dados da assinatura' }, { status: 500 })
   }
 }

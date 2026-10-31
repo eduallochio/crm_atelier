@@ -17,8 +17,10 @@ import { format, addDays, addMonths, addYears } from 'date-fns'
 // POST /api/checkout/asaas
 // Cria (ou reutiliza) cliente no Asaas e gera assinatura
 export async function POST(req: NextRequest) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     const body = await req.json()
     const {
@@ -301,7 +303,7 @@ export async function POST(req: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/checkout/asaas]', error)
+    logServerError('[POST /api/checkout/asaas]', error, undefined, organizationId)
     console.error('[POST /api/checkout/asaas]', error)
     // Expõe a mensagem do Asaas para facilitar diagnóstico
     const msg = (error as Error).message ?? ''

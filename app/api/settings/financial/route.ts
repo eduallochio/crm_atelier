@@ -14,8 +14,10 @@ const DEFAULTS = {
 }
 
 export async function GET() {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     const result = await db
       .select()
@@ -46,15 +48,17 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/settings/financial]', error); console.error('[GET /api/settings/financial]', error)
+    logServerError('[GET /api/settings/financial]', error, undefined, organizationId); console.error('[GET /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 // POST — atualiza campos pontuais sem sobrescrever tudo (usado pelo toggle de lançamento automático)
 export async function POST(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
 
     const patch: Partial<typeof orgFinancialSettings.$inferInsert> = {
@@ -78,14 +82,16 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/settings/financial]', error)
+    logServerError('[POST /api/settings/financial]', error, undefined, organizationId)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 export async function PUT(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
 
     const values = {
@@ -139,7 +145,7 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[PUT /api/settings/financial]', error); console.error('[PUT /api/settings/financial]', error)
+    logServerError('[PUT /api/settings/financial]', error, undefined, organizationId); console.error('[PUT /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

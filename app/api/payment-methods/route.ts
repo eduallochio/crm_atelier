@@ -41,8 +41,10 @@ function mapRow(row: typeof orgPaymentMethods.$inferSelect) {
 }
 
 export async function GET(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { searchParams } = new URL(request.url)
     const onlyEnabled = searchParams.get('enabled') === 'true'
 
@@ -71,14 +73,16 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/payment-methods]', error); console.error('[GET /api/payment-methods]', error)
+    logServerError('[GET /api/payment-methods]', error, undefined, organizationId); console.error('[GET /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
 
     const maxOrderResult = await db
@@ -104,7 +108,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/payment-methods]', error); console.error('[POST /api/payment-methods]', error)
+    logServerError('[POST /api/payment-methods]', error, undefined, organizationId); console.error('[POST /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -8,7 +8,8 @@ import { adminErrorLogs } from '@/lib/db/schema'
 export async function logServerError(
   context: string,
   error: unknown,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
+  organizationId?: string | null
 ) {
   try {
     const err = error instanceof Error ? error : new Error(String(error))
@@ -16,6 +17,7 @@ export async function logServerError(
     if (err.message === 'UNAUTHORIZED' || err.message === 'FORBIDDEN') return
 
     await db.insert(adminErrorLogs).values({
+      organizationId: organizationId ?? null,
       message:   `[${context}] ${err.message}`.slice(0, 2000),
       stack:     err.stack?.slice(0, 5000) ?? null,
       errorType: 'server',

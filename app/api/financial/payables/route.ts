@@ -6,8 +6,10 @@ import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     const rows = await db
       .select({
@@ -62,14 +64,16 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[GET /api/financial/payables]', error); console.error('[GET /api/financial/payables]', error)
+    logServerError('[GET /api/financial/payables]', error, undefined, organizationId); console.error('[GET /api/financial/payables]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const body = await request.json()
 
     const valor = parseFloat(String(body.valor || 0).replace(',', '.'))
@@ -136,7 +140,7 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/financial/payables]', error); console.error('[POST /api/financial/payables]', error)
+    logServerError('[POST /api/financial/payables]', error, undefined, organizationId); console.error('[POST /api/financial/payables]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
