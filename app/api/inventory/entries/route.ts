@@ -118,10 +118,12 @@ export async function POST(request: Request) {
           valorTotal?: number
         }) => ({
           entryId: entry.id,
-          productId: item.productId ?? null,
+          // productId pode chegar como string vazia do <Select> sem seleção —
+          // coluna é uuid, '' quebra o insert (Postgres rejeita como UUID inválido)
+          productId: item.productId || null,
           quantidade: Number(item.quantidade),
-          valorUnitario: item.valorUnitario != null ? String(item.valorUnitario) : null,
-          valorTotal: item.valorTotal != null ? String(item.valorTotal) : null,
+          precoUnitario: item.valorUnitario != null ? String(item.valorUnitario) : null,
+          precoTotal: item.valorTotal != null ? String(item.valorTotal) : null,
         }))
       )
       .returning()
