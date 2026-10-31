@@ -78,6 +78,14 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    // FK com onDelete: 'no action' — método já usado em movimentos de caixa,
+    // transações ou recebíveis não pode ser apagado (preserva o histórico)
+    if ((error as Error).message?.includes('foreign key constraint')) {
+      return NextResponse.json(
+        { error: 'Esta forma de pagamento já foi usada em lançamentos e não pode ser excluída. Desative-a em vez de excluir.' },
+        { status: 409 }
+      )
+    }
     logServerError('[DELETE /api/payment-methods/:id]', error); console.error('[DELETE /api/payment-methods/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

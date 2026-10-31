@@ -29,11 +29,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useCreateCashierMovement } from '@/hooks/use-cashier'
+import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 
 const movementSchema = z.object({
   tipo: z.enum(['entrada', 'saida', 'sangria', 'reforco']),
   valor: z.coerce.number().positive('Valor deve ser maior que zero'),
-  forma_pagamento: z.string().min(1, 'Selecione a forma de pagamento'),
+  metodo_pagamento_id: z.string().min(1, 'Selecione a forma de pagamento'),
   descricao: z.string().optional(),
 })
 
@@ -61,13 +62,14 @@ const typeDescriptions = {
 
 export function AddMovementDialog({ sessaoId, type, onClose }: AddMovementDialogProps) {
   const createMovement = useCreateCashierMovement()
+  const { data: paymentMethods = [] } = useActivePaymentMethods()
 
   const form = useForm({
     resolver: zodResolver(movementSchema),
     defaultValues: {
       tipo: type,
       valor: 0,
-      forma_pagamento: 'dinheiro',
+      metodo_pagamento_id: '',
       descricao: '',
     },
   })
@@ -79,7 +81,7 @@ export function AddMovementDialog({ sessaoId, type, onClose }: AddMovementDialog
         tipo: data.tipo,
         valor: data.valor,
         descricao: data.descricao || '',
-        metodo_pagamento_id: data.forma_pagamento,
+        metodo_pagamento_id: data.metodo_pagamento_id,
       })
       onClose()
     } catch (error) {
@@ -122,7 +124,7 @@ export function AddMovementDialog({ sessaoId, type, onClose }: AddMovementDialog
 
             <FormField
               control={form.control}
-              name="forma_pagamento"
+              name="metodo_pagamento_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Forma de Pagamento</FormLabel>
@@ -133,14 +135,9 @@ export function AddMovementDialog({ sessaoId, type, onClose }: AddMovementDialog
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                      <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="credito">Crédito</SelectItem>
-                      <SelectItem value="debito">Débito</SelectItem>
-                      <SelectItem value="boleto">Boleto</SelectItem>
-                      <SelectItem value="transferencia">Transferência</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
+                      {paymentMethods.map((pm) => (
+                        <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

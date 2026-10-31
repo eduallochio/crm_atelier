@@ -109,7 +109,10 @@ export function useDeletePaymentMethod() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/payment-methods/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Erro ao remover forma de pagamento')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Erro ao remover forma de pagamento')
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })

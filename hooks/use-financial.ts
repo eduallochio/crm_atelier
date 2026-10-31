@@ -387,3 +387,25 @@ export function useCreateTransaction() {
     },
   })
 }
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/financial/transactions/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Erro ao excluir lançamento')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-stats'] })
+      toast.success('Lançamento excluído!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}

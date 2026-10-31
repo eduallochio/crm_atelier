@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgStockEntries, orgStockEntryItems, organizations } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { orgStockEntries, orgStockEntryItems, organizations, orgProducts } from '@/lib/db/schema'
+import { eq, desc, and, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 
@@ -102,35 +102,52 @@ export async function POST(request: Request) {
 
     if (!itens.length) return NextResponse.json({ error: 'Ao menos um item é obrigatório' }, { status: 400 })
 
-    const [entry] = await db
-      .insert(orgStockEntries)
-      .values({
-        organizationId: user.organizationId,
-        supplierId: supplierId ?? null,
-        tipo,
-        observacoes: observacoes ?? null,
-      })
-      .returning()
+    const { entry, insertedItems } = await db.transaction(async (tx) => {
+      const [entry] = await tx
+        .insert(orgStockEntries)
+        .values({
+          organizationId: user.organizationId,
+          supplierId: supplierId ?? null,
+          tipo,
+          observacoes: observacoes ?? null,
+        })
+        .returning()
 
-    const insertedItems = await db
-      .insert(orgStockEntryItems)
-      .values(
-        itens.map((item: {
-          productId?: string
-          quantidade: number
-          valorUnitario?: number
-          valorTotal?: number
-        }) => ({
-          entryId: entry.id,
-          // productId pode chegar como string vazia do <Select> sem seleção —
-          // coluna é uuid, '' quebra o insert (Postgres rejeita como UUID inválido)
-          productId: item.productId || null,
-          quantidade: Number(item.quantidade),
-          precoUnitario: item.valorUnitario != null ? String(item.valorUnitario) : null,
-          precoTotal: item.valorTotal != null ? String(item.valorTotal) : null,
-        }))
-      )
-      .returning()
+      const insertedItems = await tx
+        .insert(orgStockEntryItems)
+        .values(
+          itens.map((item: {
+            productId?: string
+            quantidade: number
+            valorUnitario?: number
+            valorTotal?: number
+          }) => ({
+            entryId: entry.id,
+            // productId pode chegar como string vazia do <Select> sem seleção —
+            // coluna é uuid, '' quebra o insert (Postgres rejeita como UUID inválido)
+            productId: item.productId || null,
+            quantidade: Number(item.quantidade),
+            precoUnitario: item.valorUnitario != null ? String(item.valorUnitario) : null,
+            precoTotal: item.valorTotal != null ? String(item.valorTotal) : null,
+          }))
+        )
+        .returning()
+
+      // Soma a quantidade entrada no saldo do produto — sem isso a entrada fica
+      // registrada como documento mas o estoque exibido no produto nunca muda
+      for (const item of insertedItems) {
+        if (!item.productId) continue
+        await tx
+          .update(orgProducts)
+          .set({
+            quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} + ${item.quantidade}`,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(orgProducts.id, item.productId), eq(orgProducts.organizationId, user.organizationId)))
+      }
+
+      return { entry, insertedItems }
+    })
 
     return NextResponse.json({
       id:              entry.id,

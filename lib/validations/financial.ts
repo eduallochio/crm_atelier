@@ -136,6 +136,7 @@ export interface Transaction {
   payment_method_tipo: string | null
   receivable_id: string | null
   payable_id: string | null
+  service_order_id: string | null
   observacoes: string | null
   created_at: string
 }

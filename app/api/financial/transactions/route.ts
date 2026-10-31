@@ -23,6 +23,7 @@ export async function GET() {
         paymentMethodTipo: orgPaymentMethods.tipo,
         receivableId:    orgTransactions.receivableId,
         payableId:       orgTransactions.payableId,
+        serviceOrderId:  orgTransactions.serviceOrderId,
         observacoes:     orgTransactions.observacoes,
         createdAt:       orgTransactions.createdAt,
       })
@@ -45,6 +46,7 @@ export async function GET() {
       payment_method_tipo:   r.paymentMethodTipo ?? null,
       receivable_id:         r.receivableId,
       payable_id:            r.payableId,
+      service_order_id:      r.serviceOrderId,
       observacoes:           r.observacoes,
       created_at:            r.createdAt ? r.createdAt.toISOString() : null,
     }))

@@ -68,7 +68,10 @@ export function useUpdateCashier() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       })
-      if (!res.ok) throw new Error('Erro ao atualizar caixa')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Erro ao atualizar caixa')
+      }
       return res.json()
     },
     onSuccess: () => {

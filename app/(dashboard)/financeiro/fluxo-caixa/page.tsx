@@ -1,12 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, FileSpreadsheet, FileText, Plus, Search, SearchX } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, FileSpreadsheet, FileText, Plus, Search, SearchX, Trash2 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Header } from '@/components/layouts/header'
-import { useTransactions } from '@/hooks/use-financial'
+import { useTransactions, useDeleteTransaction } from '@/hooks/use-financial'
 import { useCashFlow } from '@/hooks/use-financial-stats'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { TransactionDialog } from '@/components/financial/transaction-dialog'
@@ -34,6 +34,7 @@ function inPeriod(d: string, p: Period) {
 /** O livro do fluxo de caixa: lançamentos agrupados por dia, e ao lado o resumo, as formas de pagamento e os últimos 6 meses */
 export default function FluxoCaixaPage() {
   const { data: transactions = [], isLoading } = useTransactions()
+  const deleteTransaction = useDeleteTransaction()
   const { data: months = [] } = useCashFlow()
   const { data: planUsage } = usePlanUsage()
   const isFree = planUsage?.plan === 'free'
@@ -186,8 +187,9 @@ export default function FluxoCaixaPage() {
                       {g.items.map((t) => {
                         const inflow = t.tipo === 'entrada'
                         const Icon = inflow ? ArrowUpRight : ArrowDownLeft
+                        const isAvulso = !t.receivable_id && !t.payable_id && !t.service_order_id
                         return (
-                          <li key={t.id} className="grid grid-cols-[30px_1fr_auto] items-center gap-3 border-t border-dashed border-border py-2.5 first:border-t-0">
+                          <li key={t.id} className="grid grid-cols-[30px_1fr_auto_auto] items-center gap-3 border-t border-dashed border-border py-2.5 first:border-t-0">
                             <span className={`flex h-[30px] w-[30px] items-center justify-center rounded-full ${inflow ? 'bg-emerald-600/12 fin-pos' : 'bg-[#8A4B2C]/10 text-[#8A4B2C] dark:text-[#E39B78]'}`}>
                               <Icon className="h-4 w-4" aria-hidden="true" /><span className="sr-only">{inflow ? 'Entrada' : 'Saída'}</span>
                             </span>
@@ -198,6 +200,17 @@ export default function FluxoCaixaPage() {
                               </small>
                             </span>
                             <span className={`text-sm font-semibold tabular-nums ${inflow ? 'fin-pos' : ''}`}>{inflow ? '+ ' : '− '}{brl(Number(t.valor))}</span>
+                            {isAvulso && (
+                              <button
+                                type="button"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                title="Excluir lançamento"
+                                aria-label="Excluir lançamento"
+                                onClick={() => { if (confirm(`Excluir o lançamento "${t.descricao}"?`)) deleteTransaction.mutate(t.id) }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            )}
                           </li>
                         )
                       })}

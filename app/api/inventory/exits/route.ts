@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, orgProducts, organizations } from '@/lib/db/schema'
-import { eq, desc, inArray } from 'drizzle-orm'
+import { eq, desc, and, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 
@@ -112,6 +112,29 @@ export async function POST(request: Request) {
           }))
         )
         .returning()
+
+      // Subtrai a quantidade retirada do saldo do produto — a condição
+      // quantidade_atual >= quantidade no WHERE garante atomicidade: se não
+      // sobrar linha afetada, o saldo era insuficiente (sem race condition
+      // entre o SELECT de validação e o UPDATE)
+      for (const item of insertedItems) {
+        const [updated] = await tx
+          .update(orgProducts)
+          .set({
+            quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} - ${item.quantidade}`,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(orgProducts.id, item.productId),
+            eq(orgProducts.organizationId, user.organizationId),
+            drizzleSql`${orgProducts.quantidadeAtual} >= ${item.quantidade}`
+          ))
+          .returning({ id: orgProducts.id })
+
+        if (!updated) {
+          throw new Error(`Estoque insuficiente para o produto "${item.produtoNome}"`)
+        }
+      }
 
       return { ...exit, itens: insertedItems }
     })

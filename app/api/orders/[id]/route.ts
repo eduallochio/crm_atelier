@@ -16,6 +16,7 @@ import {
   orgStockExits,
   orgStockExitItems,
   orgPaymentMethods,
+  orgProducts,
 } from '@/lib/db/schema'
 import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
@@ -341,6 +342,19 @@ export async function PUT(
                 unidade:     m.unidade ?? 'un',
               }))
             )
+
+            // Subtrai do saldo do produto — mesma lógica de baixa manual, sem
+            // bloquear a conclusão da OS por falta de estoque (produto fica
+            // negativo e visível no alerta de estoque, não trava o fluxo da OS)
+            for (const m of materiaisComProduto) {
+              await tx
+                .update(orgProducts)
+                .set({
+                  quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} - ${String(m.quantidade)}`,
+                  updatedAt: new Date(),
+                })
+                .where(and(eq(orgProducts.id, m.productId!), eq(orgProducts.organizationId, user.organizationId)))
+            }
           }
         }
       }
