@@ -14,6 +14,7 @@ interface User {
   created_at: string
   last_sign_in_at?: string
   is_active: boolean
+  login_providers?: string[]
 }
 
 interface UsersTabProps {
@@ -41,6 +42,28 @@ export function UsersTab({ organizationId }: UsersTabProps) {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  const PROVIDER_LABEL: Record<string, string> = { email: 'Email', google: 'Google' }
+
+  const getLoginBadge = (providers?: string[]) => {
+    const list = providers && providers.length > 0 ? providers : ['email']
+    return (
+      <div className="flex flex-wrap gap-1">
+        {list.map((p) => (
+          <span
+            key={p}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+              p === 'google'
+                ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-700'
+            }`}
+          >
+            {PROVIDER_LABEL[p] ?? p}
+          </span>
+        ))}
+      </div>
+    )
+  }
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
@@ -145,6 +168,9 @@ export function UsersTab({ organizationId }: UsersTabProps) {
                   Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Login
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -173,6 +199,9 @@ export function UsersTab({ organizationId }: UsersTabProps) {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {user.email}
+                  </td>
+                  <td className="px-6 py-4">
+                    {getLoginBadge(user.login_providers)}
                   </td>
                   <td className="px-6 py-4">
                     {getRoleBadge(user.role)}

@@ -31,13 +31,17 @@ export async function GET(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data } = await supabase.auth.admin.listUsers()
-    const authMap: Record<string, { email: string; lastSignInAt: string | null; isActive: boolean }> = {}
+    const authMap: Record<string, { email: string; lastSignInAt: string | null; isActive: boolean; providers: string[] }> = {}
     if (data?.users) {
       for (const u of data.users) {
+        // identities reflete os métodos de login vinculados (email/senha,
+        // Google, etc.) — um usuário pode ter mais de um
+        const providers = [...new Set((u.identities ?? []).map((i) => i.provider))]
         authMap[u.id] = {
           email:        u.email ?? '',
           lastSignInAt: u.last_sign_in_at ?? null,
           isActive:     !u.banned_until || new Date(u.banned_until) < new Date(),
+          providers:    providers.length > 0 ? providers : ['email'],
         }
       }
     }
@@ -50,6 +54,7 @@ export async function GET(
       created_at:       p.createdAt,
       last_sign_in_at:  authMap[p.id]?.lastSignInAt ?? null,
       is_active:        authMap[p.id]?.isActive ?? true,
+      login_providers:  authMap[p.id]?.providers ?? ['email'],
     }))
 
     return NextResponse.json(result)
