@@ -145,6 +145,7 @@ const FAQ: [string, string][] = [
   ['O estoque baixa sozinho quando concluo uma ordem?', 'Sim, se o controle de estoque estiver ligado (Configurações → Sistema) e a ordem tiver materiais. A baixa acontece uma vez só, mesmo se a ordem for reaberta.'],
   ['Como imprimo ou envio a ordem para a cliente?', 'Abra a ordem: “Imprimir” gera o comprovante em PDF e “Enviar OS” abre o WhatsApp com o resumo pronto.'],
   ['Consigo exportar meus dados?', 'Sim. Contas a receber, contas a pagar e o fluxo de caixa exportam para Excel e PDF (ícones no topo da tela), e o estoque tem relatórios em PDF e Excel.'],
+  ['Lancei um valor de teste no fluxo de caixa, como apago?', 'Lançamentos feitos direto pelo botão “Lançamento” (sem vir de uma conta ou ordem de serviço) têm um ícone de lixeira na lista para excluir. Lançamentos que vieram de uma conta a receber/pagar ou de uma ordem de serviço não têm essa opção — para corrigi-los, ajuste ou cancele a conta/ordem de origem.'],
   ['Posso usar no celular?', 'Pode. Todas as telas funcionam no celular: a lista aparece primeiro e, ao tocar num item, a ficha abre em seguida, com “Voltar” para a lista.'],
 ]
 
@@ -448,6 +449,7 @@ export default function AjudaPage() {
                 <><strong>Últimos 6 meses</strong>: entradas e saídas mês a mês.</>,
                 <><strong>Exportar</strong> em PDF ou Excel e, ao lado, <strong>Lançamento</strong> para registrar uma entrada ou saída avulsa.</>,
               ]} />
+              <Note>Lançamentos avulsos (feitos por aqui, sem vir de uma conta ou ordem de serviço) têm um ícone de lixeira para excluir. Lançamentos vindos de contas a receber/pagar ou de uma ordem de serviço não podem ser excluídos direto — eles refletem um pagamento real registrado em outro lugar.</Note>
             </section>
 
             {/* 7. Estoque */}
