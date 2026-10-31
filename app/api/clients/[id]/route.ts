@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgClients, usageMetrics } from '@/lib/db/schema'
+import { orgClients, usageMetrics, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -51,18 +51,40 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
+    // DELETE ... RETURNING é atômico — evita a corrida de um SELECT de
+    // verificação separado (duas exclusões concorrentes nunca gravam log
+    // duplicado/fantasma, porque só quem realmente apagou a linha recebe
+    // o retorno). Snapshot pro log vem do próprio retorno do delete.
     const [deleted] = await db
       .delete(orgClients)
       .where(and(eq(orgClients.id, id), eq(orgClients.organizationId, user.organizationId)))
-      .returning({ id: orgClients.id })
+      .returning()
 
     if (!deleted) {
       return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
     }
+
+    // Snapshot — ordens de serviço do cliente ficam com client_id nulo
+    // (onDelete: set null), sem rastro de quem era, daí o log aqui
+    await db.insert(orgDeletionLog).values({
+      organizationId: user.organizationId,
+      userId:         user.id,
+      userEmail:      user.email,
+      resourceType:   'client',
+      resourceId:     deleted.id,
+      snapshot: {
+        nome:      deleted.nome,
+        telefone:  deleted.telefone,
+        email:     deleted.email,
+        createdAt: deleted.createdAt,
+      },
+    })
 
     // Atualizar métricas (decremento, mínimo 0)
     await db
@@ -78,7 +100,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/clients/:id]', error); console.error('[DELETE /api/clients/:id]', error)
+    logServerError('[DELETE /api/clients/:id]', error, undefined, organizationId); console.error('[DELETE /api/clients/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { profiles } from '@/lib/db/schema'
+import { profiles, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
@@ -51,9 +51,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  let organizationId: string | undefined
   try {
     const { id } = await params
     const user = await requireAuth()
+    organizationId = user.organizationId
 
     if (!user.isOwner) {
       return NextResponse.json({ error: 'Apenas o proprietário pode remover usuários' }, { status: 403 })
@@ -64,7 +66,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
 
     const check = await db
-      .select({ id: profiles.id, isOwner: profiles.isOwner })
+      .select({ id: profiles.id, isOwner: profiles.isOwner, fullName: profiles.fullName, role: profiles.role })
       .from(profiles)
       .where(and(eq(profiles.id, id), eq(profiles.organizationId, user.organizationId)))
       .limit(1)
@@ -76,19 +78,35 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Não é possível remover o proprietário' }, { status: 403 })
     }
 
-    // Delete from Supabase Auth (cascades to profiles via trigger)
     const supabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    await supabase.auth.admin.deleteUser(id)
+
+    // Delete from Supabase Auth first (cascades to profiles via trigger) — só
+    // grava o log depois de confirmar que a exclusão realmente aconteceu,
+    // senão uma falha aqui deixaria um registro de auditoria falso
+    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(id)
+    if (deleteAuthError) throw deleteAuthError
+
+    await db.insert(orgDeletionLog).values({
+      organizationId: user.organizationId,
+      userId:         user.id,
+      userEmail:      user.email,
+      resourceType:   'user',
+      resourceId:     id,
+      snapshot: {
+        nome: check[0].fullName,
+        role: check[0].role,
+      },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/users/[id]]', error); console.error('[DELETE /api/users/[id]]', error)
+    logServerError('[DELETE /api/users/[id]]', error, undefined, organizationId); console.error('[DELETE /api/users/[id]]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

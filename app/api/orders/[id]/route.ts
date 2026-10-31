@@ -17,6 +17,7 @@ import {
   orgStockExitItems,
   orgPaymentMethods,
   orgProducts,
+  orgDeletionLog,
 } from '@/lib/db/schema'
 import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
@@ -380,18 +381,39 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
+    // DELETE ... RETURNING é atômico — evita gravar log pra uma exclusão
+    // concorrente que já aconteceu. A OS some com cascade (itens, materiais,
+    // histórico), então sem esse log não sobra rastro de quem excluiu o quê
     const [deleted] = await db
       .delete(orgServiceOrders)
       .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
-      .returning({ id: orgServiceOrders.id })
+      .returning()
 
     if (!deleted) {
       return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
     }
+
+    await db.insert(orgDeletionLog).values({
+      organizationId: user.organizationId,
+      userId:         user.id,
+      userEmail:      user.email,
+      resourceType:   'service_order',
+      resourceId:     deleted.id,
+      snapshot: {
+        numero:       deleted.numero,
+        status:       deleted.status,
+        valorTotal:   deleted.valorTotal,
+        valorPago:    deleted.valorPago,
+        clientId:     deleted.clientId,
+        dataAbertura: deleted.dataAbertura,
+      },
+    })
 
     // Update metrics — decrement orders_count (not cumulative)
     await db
@@ -407,7 +429,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/orders/:id]', error); console.error('[DELETE /api/orders/:id]', error)
+    logServerError('[DELETE /api/orders/:id]', error, undefined, organizationId); console.error('[DELETE /api/orders/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

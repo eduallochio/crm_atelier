@@ -611,6 +611,25 @@ export const adminLogs = pgTable('admin_logs', {
   index('idx_admin_logs_resource').on(t.resourceType, t.resourceId),
 ])
 
+// ─── 30.1. ORG DELETION LOG ───────────────────────────────────────────────────
+// Auditoria de exclusões de registros importantes feitas por usuários comuns
+// (não-admin) — sobrevive à exclusão do registro original, já que não tem FK
+// para ele. Diferente de admin_logs, que só cobre ações do painel master.
+
+export const orgDeletionLog = pgTable('org_deletion_log', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId:         uuid('user_id'),
+  userEmail:      text('user_email').notNull(),
+  resourceType:   text('resource_type').notNull(),
+  resourceId:     uuid('resource_id').notNull(),
+  snapshot:       jsonb('snapshot').notNull(),
+  createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_deletion_log_org').on(t.organizationId),
+  index('idx_deletion_log_resource').on(t.resourceType, t.resourceId),
+])
+
 // ─── 31. ADMIN SYSTEM SETTINGS ────────────────────────────────────────────────
 
 export const adminSystemSettings = pgTable('admin_system_settings', {

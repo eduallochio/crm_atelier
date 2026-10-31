@@ -176,9 +176,9 @@ export function ActivityTab({ organizationId }: ActivityTabProps) {
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {[...new Set(activities.map(a => a.admin_id).filter(Boolean))].length}
+              {[...new Set(activities.map(a => a.admin_email).filter(Boolean))].length}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Admins Envolvidos</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Pessoas Envolvidas</p>
           </div>
         </div>
       </div>

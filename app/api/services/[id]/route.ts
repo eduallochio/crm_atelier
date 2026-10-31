@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { orgServices } from '@/lib/db/schema'
+import { orgServices, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
@@ -116,25 +116,39 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
     const [deleted] = await db
       .delete(orgServices)
       .where(and(eq(orgServices.id, id), eq(orgServices.organizationId, user.organizationId)))
-      .returning({ id: orgServices.id })
+      .returning()
 
     if (!deleted) {
       return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 })
     }
+
+    await db.insert(orgDeletionLog).values({
+      organizationId: user.organizationId,
+      userId:         user.id,
+      userEmail:      user.email,
+      resourceType:   'service',
+      resourceId:     deleted.id,
+      snapshot: {
+        nome:  deleted.nome,
+        preco: deleted.preco,
+      },
+    })
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/services/:id]', error); console.error('[DELETE /api/services/:id]', error)
+    logServerError('[DELETE /api/services/:id]', error, undefined, organizationId); console.error('[DELETE /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

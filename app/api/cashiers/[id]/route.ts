@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgCashiers } from '@/lib/db/schema'
+import { orgCashiers, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and, ne } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -115,17 +115,32 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
     const row = await db.transaction(async (tx) => {
+      // DELETE ... RETURNING dentro da transação é atômico — evita gravar
+      // log pra uma exclusão concorrente que já aconteceu
       const [deleted] = await tx
         .delete(orgCashiers)
         .where(and(eq(orgCashiers.id, id), eq(orgCashiers.organizationId, user.organizationId)))
-        .returning({ id: orgCashiers.id, isDefault: orgCashiers.isDefault })
+        .returning({ id: orgCashiers.id, nome: orgCashiers.nome, isDefault: orgCashiers.isDefault })
 
-      if (deleted?.isDefault) {
+      if (!deleted) return null
+
+      await tx.insert(orgDeletionLog).values({
+        organizationId: user.organizationId,
+        userId:         user.id,
+        userEmail:      user.email,
+        resourceType:   'cashier',
+        resourceId:     deleted.id,
+        snapshot: { nome: deleted.nome },
+      })
+
+      if (deleted.isDefault) {
         const [next] = await tx
           .select({ id: orgCashiers.id })
           .from(orgCashiers)
@@ -148,7 +163,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/cashiers/:id]', error); console.error('[DELETE /api/cashiers/:id]', error)
+    logServerError('[DELETE /api/cashiers/:id]', error, undefined, organizationId); console.error('[DELETE /api/cashiers/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

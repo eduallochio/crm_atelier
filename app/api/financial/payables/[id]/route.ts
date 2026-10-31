@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgPayables, orgTransactions } from '@/lib/db/schema'
+import { orgPayables, orgTransactions, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -117,24 +117,54 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
-    // Remove any linked transactions first (if payable was paid)
-    await db
-      .delete(orgTransactions)
-      .where(eq(orgTransactions.payableId, id))
+    // SELECT de verificação + log + exclusão na mesma transação — evita tanto
+    // a corrida de duas exclusões concorrentes quanto gravar um log para uma
+    // exclusão que falhou depois
+    const row = await db.transaction(async (tx) => {
+      const [payable] = await tx
+        .select()
+        .from(orgPayables)
+        .where(and(eq(orgPayables.id, id), eq(orgPayables.organizationId, user.organizationId)))
 
-    const [row] = await db
-      .delete(orgPayables)
-      .where(
-        and(
-          eq(orgPayables.id, id),
-          eq(orgPayables.organizationId, user.organizationId)
+      if (!payable) return null
+
+      await tx.insert(orgDeletionLog).values({
+        organizationId: user.organizationId,
+        userId:         user.id,
+        userEmail:      user.email,
+        resourceType:   'payable',
+        resourceId:     payable.id,
+        snapshot: {
+          descricao:      payable.descricao,
+          valor:          payable.valor,
+          status:         payable.status,
+          dataVencimento: payable.dataVencimento,
+        },
+      })
+
+      // Remove any linked transactions first (if payable was paid)
+      await tx
+        .delete(orgTransactions)
+        .where(eq(orgTransactions.payableId, id))
+
+      const [deleted] = await tx
+        .delete(orgPayables)
+        .where(
+          and(
+            eq(orgPayables.id, id),
+            eq(orgPayables.organizationId, user.organizationId)
+          )
         )
-      )
-      .returning({ id: orgPayables.id })
+        .returning({ id: orgPayables.id })
+
+      return deleted
+    })
 
     if (!row) {
       return NextResponse.json({ error: 'Conta a pagar não encontrada' }, { status: 404 })
@@ -145,7 +175,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/financial/payables/:id]', error); console.error('[DELETE /api/financial/payables/:id]', error)
+    logServerError('[DELETE /api/financial/payables/:id]', error, undefined, organizationId); console.error('[DELETE /api/financial/payables/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

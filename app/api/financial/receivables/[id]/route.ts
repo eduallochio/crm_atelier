@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgReceivables, orgTransactions, orgServiceOrders } from '@/lib/db/schema'
+import { orgReceivables, orgTransactions, orgServiceOrders, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 
@@ -127,55 +127,82 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    organizationId = user.organizationId
     const { id } = await params
 
-    const [rec] = await db
-      .select({
-        id:            orgReceivables.id,
-        serviceOrderId: orgReceivables.serviceOrderId,
-        valor:         orgReceivables.valor,
-        status:        orgReceivables.status,
-      })
-      .from(orgReceivables)
-      .where(
-        and(
-          eq(orgReceivables.id, id),
-          eq(orgReceivables.organizationId, user.organizationId)
+    // SELECT de verificação + log + exclusão (e eventual reversão do
+    // valor_pago da OS) na mesma transação — evita tanto a corrida de
+    // exclusões concorrentes quanto gravar um log para um delete que falhou
+    const rec = await db.transaction(async (tx) => {
+      const [rec] = await tx
+        .select({
+          id:            orgReceivables.id,
+          serviceOrderId: orgReceivables.serviceOrderId,
+          descricao:     orgReceivables.descricao,
+          valor:         orgReceivables.valor,
+          status:        orgReceivables.status,
+          dataVencimento: orgReceivables.dataVencimento,
+        })
+        .from(orgReceivables)
+        .where(
+          and(
+            eq(orgReceivables.id, id),
+            eq(orgReceivables.organizationId, user.organizationId)
+          )
         )
-      )
-      .limit(1)
+        .limit(1)
+
+      if (!rec) return null
+
+      await tx.insert(orgDeletionLog).values({
+        organizationId: user.organizationId,
+        userId:         user.id,
+        userEmail:      user.email,
+        resourceType:   'receivable',
+        resourceId:     rec.id,
+        snapshot: {
+          descricao:      rec.descricao,
+          valor:          rec.valor,
+          status:         rec.status,
+          dataVencimento: rec.dataVencimento,
+        },
+      })
+
+      await tx
+        .delete(orgReceivables)
+        .where(
+          and(
+            eq(orgReceivables.id, id),
+            eq(orgReceivables.organizationId, user.organizationId)
+          )
+        )
+
+      // If receivable was received and linked to a service order, restore valor_pago
+      if (rec.serviceOrderId && rec.status === 'recebido') {
+        const valor = parseFloat(String(rec.valor))
+        await tx
+          .update(orgServiceOrders)
+          .set({
+            valorPago: drizzleSql`GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0)`,
+            statusPagamento: drizzleSql`
+              CASE
+                WHEN GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0) <= 0 THEN 'pendente'
+                WHEN GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0) < ${orgServiceOrders.valorTotal} THEN 'parcial'
+                ELSE 'pago'
+              END
+            `,
+          })
+          .where(eq(orgServiceOrders.id, rec.serviceOrderId))
+      }
+
+      return rec
+    })
 
     if (!rec) {
       return NextResponse.json({ error: 'Conta a receber não encontrada' }, { status: 404 })
-    }
-
-    await db
-      .delete(orgReceivables)
-      .where(
-        and(
-          eq(orgReceivables.id, id),
-          eq(orgReceivables.organizationId, user.organizationId)
-        )
-      )
-
-    // If receivable was received and linked to a service order, restore valor_pago
-    if (rec.serviceOrderId && rec.status === 'recebido') {
-      const valor = parseFloat(String(rec.valor))
-      await db
-        .update(orgServiceOrders)
-        .set({
-          valorPago: drizzleSql`GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0)`,
-          statusPagamento: drizzleSql`
-            CASE
-              WHEN GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0) <= 0 THEN 'pendente'
-              WHEN GREATEST(COALESCE(${orgServiceOrders.valorPago}, 0) - ${String(valor)}, 0) < ${orgServiceOrders.valorTotal} THEN 'parcial'
-              ELSE 'pago'
-            END
-          `,
-        })
-        .where(eq(orgServiceOrders.id, rec.serviceOrderId))
     }
 
     return new NextResponse(null, { status: 204 })
@@ -183,7 +210,7 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[DELETE /api/financial/receivables/:id]', error); console.error('[DELETE /api/financial/receivables/:id]', error)
+    logServerError('[DELETE /api/financial/receivables/:id]', error, undefined, organizationId); console.error('[DELETE /api/financial/receivables/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
