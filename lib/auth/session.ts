@@ -1,7 +1,7 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { profiles } from '@/lib/db/schema'
+import { profiles, organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getImpersonationPayload } from '@/lib/auth/impersonation'
 
@@ -98,11 +98,25 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 /**
  * Retorna o usuário da sessão ou lança erro 401.
  * Use em API Routes que exigem autenticação.
+ *
+ * Bloqueia organizações suspensas pelo admin (lança 'SUSPENDED') — exceto
+ * durante impersonation, onde o admin precisa poder acessar a org suspensa
+ * (ex: pra investigar antes de reativar).
  */
 export async function requireAuth(): Promise<SessionUser> {
   const user = await getSessionUser()
   if (!user) {
     throw new Error('UNAUTHORIZED')
+  }
+  if (!user.impersonating) {
+    const [org] = await db
+      .select({ subscriptionStatus: organizations.subscriptionStatus })
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId))
+      .limit(1)
+    if (org?.subscriptionStatus === 'suspended') {
+      throw new Error('SUSPENDED')
+    }
   }
   return user
 }

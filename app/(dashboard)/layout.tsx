@@ -2,8 +2,9 @@ import { DashboardShell } from '@/components/layouts/dashboard-shell'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { adminSystemSettings } from '@/lib/db/schema'
+import { adminSystemSettings, profiles, organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { getImpersonationPayload } from '@/lib/auth/impersonation'
 
 async function getMaintenanceMode(): Promise<boolean> {
   try {
@@ -30,6 +31,30 @@ export default async function DashboardLayout({
 
   const maintenanceMode = await getMaintenanceMode()
   if (maintenanceMode) redirect('/manutencao')
+
+  // Organização suspensa pelo admin: bloqueia o acesso ao dashboard. Não
+  // aplica durante impersonation — o admin precisa poder entrar numa org
+  // suspensa (ex: pra investigar antes de reativar)
+  const impersonation = await getImpersonationPayload()
+  if (!impersonation) {
+    const [profile] = await db
+      .select({ organizationId: profiles.organizationId })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1)
+
+    if (profile) {
+      const [org] = await db
+        .select({ subscriptionStatus: organizations.subscriptionStatus })
+        .from(organizations)
+        .where(eq(organizations.id, profile.organizationId))
+        .limit(1)
+
+      if (org?.subscriptionStatus === 'suspended') {
+        redirect('/suspenso')
+      }
+    }
+  }
 
   return <DashboardShell>{children}</DashboardShell>
 }
