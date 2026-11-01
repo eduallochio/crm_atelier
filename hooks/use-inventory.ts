@@ -134,6 +134,11 @@ export function useStockEntries() {
   })
 }
 
+function buildSaldoMessage(updatedProducts?: { nome: string; quantidade_atual: number }[]) {
+  if (!updatedProducts?.length) return ''
+  return ' Novo saldo: ' + updatedProducts.map(p => `${p.nome}: ${p.quantidade_atual} un`).join(', ')
+}
+
 export function useCreateStockEntry() {
   const qc = useQueryClient()
   return useMutation({
@@ -149,10 +154,10 @@ export function useCreateStockEntry() {
       }
       return res.json()
     },
-    onSuccess: () => {
+    onSuccess: (result: { updated_products?: { nome: string; quantidade_atual: number }[] }) => {
       qc.invalidateQueries({ queryKey: ['stock-entries'] })
       qc.invalidateQueries({ queryKey: ['products'] })
-      toast.success('Entrada registrada com sucesso!')
+      toast.success('Entrada registrada com sucesso!' + buildSaldoMessage(result?.updated_products))
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -211,10 +216,10 @@ export function useCreateStockExit() {
       }
       return res.json()
     },
-    onSuccess: () => {
+    onSuccess: (result: { updated_products?: { nome: string; quantidade_atual: number }[] }) => {
       qc.invalidateQueries({ queryKey: ['stock-exits'] })
       qc.invalidateQueries({ queryKey: ['products'] })
-      toast.success('Saída registrada com sucesso!')
+      toast.success('Saída registrada com sucesso!' + buildSaldoMessage(result?.updated_products))
     },
     onError: (e: Error) => toast.error(e.message),
   })

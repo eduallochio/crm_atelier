@@ -122,8 +122,15 @@ export async function POST(request: Request) {
       // que também validam estoque insuficiente com RAISE EXCEPTION — não
       // subtrai aqui de novo, senão duplica o efeito. A mensagem do trigger
       // já é reconhecida pelo catch abaixo (mesma string "Estoque insuficiente")
+      const productIds = [...new Set(insertedItems.map(i => i.productId).filter((id): id is string => !!id))]
+      const updatedProducts = productIds.length > 0
+        ? await tx
+            .select({ id: orgProducts.id, nome: orgProducts.nome, quantidadeAtual: orgProducts.quantidadeAtual })
+            .from(orgProducts)
+            .where(inArray(orgProducts.id, productIds))
+        : []
 
-      return { ...exit, itens: insertedItems }
+      return { ...exit, itens: insertedItems, updatedProducts }
     })
 
     return NextResponse.json({
@@ -141,6 +148,13 @@ export async function POST(request: Request) {
         produto_nome: i.produtoNome,
         quantidade:   Number(i.quantidade ?? 0),
         unidade:      i.unidade,
+      })),
+      // Saldo já atualizado (pelos triggers) de cada produto afetado — usado
+      // pelo frontend para mostrar o novo saldo no toast de confirmação
+      updated_products: result.updatedProducts.map((p: { id: string; nome: string; quantidadeAtual: string | number | null }) => ({
+        id: p.id,
+        nome: p.nome,
+        quantidade_atual: Number(p.quantidadeAtual ?? 0),
       })),
     }, { status: 201 })
   } catch (error) {

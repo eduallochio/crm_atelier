@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgStockEntries, orgStockEntryItems, organizations } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { orgStockEntries, orgStockEntryItems, organizations, orgProducts } from '@/lib/db/schema'
+import { eq, desc, inArray, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 
@@ -103,7 +103,22 @@ export async function POST(request: Request) {
 
     if (!itens.length) return NextResponse.json({ error: 'Ao menos um item é obrigatório' }, { status: 400 })
 
-    const { entry, insertedItems } = await db.transaction(async (tx) => {
+    // Valida que os produtos referenciados existem e pertencem a esta org —
+    // sem esse filtro, um product_id de outra organização passaria e o
+    // trigger do banco atualizaria estoque alheio (e a resposta abaixo
+    // devolveria nome/saldo de produto de outro tenant)
+    const productIdsToValidate = itens.map((i: { product_id?: string }) => i.product_id).filter(Boolean)
+    if (productIdsToValidate.length) {
+      const products = await db
+        .select({ id: orgProducts.id })
+        .from(orgProducts)
+        .where(and(inArray(orgProducts.id, productIdsToValidate), eq(orgProducts.organizationId, user.organizationId)))
+      if (products.length !== new Set(productIdsToValidate).size) {
+        return NextResponse.json({ error: 'Um ou mais produtos não encontrados' }, { status: 400 })
+      }
+    }
+
+    const { entry, insertedItems, updatedProducts } = await db.transaction(async (tx) => {
       const [entry] = await tx
         .insert(orgStockEntries)
         .values({
@@ -143,9 +158,17 @@ export async function POST(request: Request) {
 
       // O saldo do produto já é atualizado automaticamente por um trigger no
       // banco (update_product_quantity, AFTER INSERT em org_stock_entry_items)
-      // — não soma aqui de novo, senão duplica o efeito
+      // — não soma aqui de novo, senão duplica o efeito. Já roda AFTER INSERT,
+      // então o saldo abaixo já reflete o trigger
+      const productIds = [...new Set(insertedItems.map(i => i.productId).filter((id): id is string => !!id))]
+      const updatedProducts = productIds.length > 0
+        ? await tx
+            .select({ id: orgProducts.id, nome: orgProducts.nome, quantidadeAtual: orgProducts.quantidadeAtual })
+            .from(orgProducts)
+            .where(inArray(orgProducts.id, productIds))
+        : []
 
-      return { entry, insertedItems }
+      return { entry, insertedItems, updatedProducts }
     })
 
     return NextResponse.json({
@@ -164,6 +187,13 @@ export async function POST(request: Request) {
         unidade:        i.unidade,
         preco_unitario: i.precoUnitario != null ? Number(i.precoUnitario) : null,
         preco_total:    i.precoTotal != null ? Number(i.precoTotal) : null,
+      })),
+      // Saldo já atualizado (pelo trigger) de cada produto afetado — usado
+      // pelo frontend para mostrar o novo saldo no toast de confirmação
+      updated_products: updatedProducts.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        quantidade_atual: Number(p.quantidadeAtual ?? 0),
       })),
     }, { status: 201 })
   } catch (error) {
