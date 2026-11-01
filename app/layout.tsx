@@ -5,11 +5,21 @@ import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 
+// Separado em duas declarações (normal/italic) para contornar um bug do
+// Turbopack no Next.js 16.1 com next/font/google: múltiplos weight + múltiplos
+// style juntos quebram o build com "next/font/google queries have exactly one entry"
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
-  style: ["normal", "italic"],
+  style: ["normal"],
   variable: "--font-cormorant",
+});
+
+const cormorantItalic = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  style: ["italic"],
+  variable: "--font-cormorant-italic",
 });
 
 export const metadata: Metadata = {
@@ -107,7 +117,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={`${cormorant.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${cormorant.variable} ${cormorantItalic.variable} font-sans antialiased bg-background text-foreground`}>
         <Providers>
           {children}
           <Toaster position="top-right" richColors />
