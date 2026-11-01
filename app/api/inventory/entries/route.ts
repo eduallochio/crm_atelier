@@ -70,6 +70,7 @@ export async function GET() {
         id:              i.id,
         entry_id:        i.entryId,
         product_id:      i.productId,
+        produto_nome:    i.produtoNome,
         quantidade:      Number(i.quantidade ?? 0),
         unidade:         i.unidade,
         preco_unitario:  i.precoUnitario != null ? Number(i.precoUnitario) : null,
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const {
       tipo = 'entrada',
-      supplierId,
+      supplier_id: supplierId,
       observacoes,
       itens = [],
     } = body
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
         .insert(orgStockEntries)
         .values({
           organizationId: user.organizationId,
-          supplierId: supplierId ?? null,
+          supplierId: supplierId || null,
           tipo,
           observacoes: observacoes ?? null,
         })
@@ -117,18 +118,25 @@ export async function POST(request: Request) {
         .insert(orgStockEntryItems)
         .values(
           itens.map((item: {
-            productId?: string
+            product_id?: string
+            produto_nome?: string
             quantidade: number
-            valorUnitario?: number
-            valorTotal?: number
+            unidade?: string
+            preco_unitario?: number
+            preco_total?: number
           }) => ({
             entryId: entry.id,
-            // productId pode chegar como string vazia do <Select> sem seleção —
+            // product_id pode chegar como string vazia do <select> sem seleção —
             // coluna é uuid, '' quebra o insert (Postgres rejeita como UUID inválido)
-            productId: item.productId || null,
+            productId: item.product_id || null,
+            // produto_nome é NOT NULL sem default no banco — o formulário
+            // sempre exige esse campo antes de submeter, mas usa fallback
+            // seguro aqui também (API não deve confiar só na validação do client)
+            produtoNome: item.produto_nome || '',
             quantidade: Number(item.quantidade),
-            precoUnitario: item.valorUnitario != null ? String(item.valorUnitario) : null,
-            precoTotal: item.valorTotal != null ? String(item.valorTotal) : null,
+            unidade: item.unidade || 'un',
+            precoUnitario: item.preco_unitario != null ? String(item.preco_unitario) : null,
+            precoTotal: item.preco_total != null ? String(item.preco_total) : null,
           }))
         )
         .returning()
@@ -160,6 +168,7 @@ export async function POST(request: Request) {
         id:             i.id,
         entry_id:       i.entryId,
         product_id:     i.productId,
+        produto_nome:   i.produtoNome,
         quantidade:     Number(i.quantidade ?? 0),
         unidade:        i.unidade,
         preco_unitario: i.precoUnitario != null ? Number(i.precoUnitario) : null,
