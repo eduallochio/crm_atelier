@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, orgProducts, organizations } from '@/lib/db/schema'
-import { eq, desc, and, inArray, sql as drizzleSql } from 'drizzle-orm'
+import { eq, desc, and, inArray } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 
@@ -66,24 +66,28 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let itensForErrorLookup: { productId: string; produtoNome: string }[] | undefined
   try {
     const user = await requireAuth()
     await checkPlan(user.organizationId)
 
     const body = await request.json()
     const { serviceOrderId, tipo = 'manual', observacoes, itens = [] } = body
+    itensForErrorLookup = itens
 
     if (!itens.length) {
       return NextResponse.json({ error: 'Ao menos um item é obrigatório' }, { status: 400 })
     }
 
-    // Validate all products exist and belong to this org
+    // Validate all products exist and belong to this org — filtro por
+    // organizationId é essencial aqui: sem ele, um productId de outra
+    // organização passaria na validação e o trigger alteraria estoque alheio
     const productIds = itens.map((i: { productId: string }) => i.productId).filter(Boolean)
     if (productIds.length) {
       const products = await db
         .select({ id: orgProducts.id })
         .from(orgProducts)
-        .where(inArray(orgProducts.id, productIds))
+        .where(and(inArray(orgProducts.id, productIds), eq(orgProducts.organizationId, user.organizationId)))
       if (products.length !== productIds.length) {
         return NextResponse.json({ error: 'Um ou mais produtos não encontrados' }, { status: 400 })
       }
@@ -113,28 +117,11 @@ export async function POST(request: Request) {
         )
         .returning()
 
-      // Subtrai a quantidade retirada do saldo do produto — a condição
-      // quantidade_atual >= quantidade no WHERE garante atomicidade: se não
-      // sobrar linha afetada, o saldo era insuficiente (sem race condition
-      // entre o SELECT de validação e o UPDATE)
-      for (const item of insertedItems) {
-        const [updated] = await tx
-          .update(orgProducts)
-          .set({
-            quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} - ${item.quantidade}`,
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(orgProducts.id, item.productId),
-            eq(orgProducts.organizationId, user.organizationId),
-            drizzleSql`${orgProducts.quantidadeAtual} >= ${item.quantidade}`
-          ))
-          .returning({ id: orgProducts.id })
-
-        if (!updated) {
-          throw new Error(`Estoque insuficiente para o produto "${item.produtoNome}"`)
-        }
-      }
+      // O saldo do produto já é atualizado automaticamente por triggers no
+      // banco (handle_stock_exit_item, AFTER INSERT em org_stock_exit_items),
+      // que também validam estoque insuficiente com RAISE EXCEPTION — não
+      // subtrai aqui de novo, senão duplica o efeito. A mensagem do trigger
+      // já é reconhecida pelo catch abaixo (mesma string "Estoque insuficiente")
 
       return { ...exit, itens: insertedItems }
     })
@@ -160,7 +147,18 @@ export async function POST(request: Request) {
     const msg = (error as Error).message
     if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
-    if (msg.includes('Estoque insuficiente')) return NextResponse.json({ error: msg }, { status: 422 })
+    // Mensagem do trigger do banco (handle_stock_exit_item) traz o UUID do
+    // produto, não o nome — tenta trocar pelo nome real a partir do payload
+    if (msg.includes('Estoque insuficiente')) {
+      const uuidMatch = msg.match(/[0-9a-f-]{36}/i)
+      const produtoNome = uuidMatch
+        ? itensForErrorLookup?.find(i => i.productId.toLowerCase() === uuidMatch[0].toLowerCase())?.produtoNome
+        : undefined
+      return NextResponse.json(
+        { error: produtoNome ? `Estoque insuficiente para o produto "${produtoNome}"` : 'Estoque insuficiente' },
+        { status: 422 }
+      )
+    }
     logServerError('[POST /api/inventory/exits]', error); console.error('[POST /api/inventory/exits]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

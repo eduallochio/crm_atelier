@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgStockEntries, orgStockEntryItems, organizations, orgProducts } from '@/lib/db/schema'
-import { eq, desc, and, sql as drizzleSql } from 'drizzle-orm'
+import { orgStockEntries, orgStockEntryItems, organizations } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
 
@@ -141,18 +141,9 @@ export async function POST(request: Request) {
         )
         .returning()
 
-      // Soma a quantidade entrada no saldo do produto — sem isso a entrada fica
-      // registrada como documento mas o estoque exibido no produto nunca muda
-      for (const item of insertedItems) {
-        if (!item.productId) continue
-        await tx
-          .update(orgProducts)
-          .set({
-            quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} + ${item.quantidade}`,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(orgProducts.id, item.productId), eq(orgProducts.organizationId, user.organizationId)))
-      }
+      // O saldo do produto já é atualizado automaticamente por um trigger no
+      // banco (update_product_quantity, AFTER INSERT em org_stock_entry_items)
+      // — não soma aqui de novo, senão duplica o efeito
 
       return { entry, insertedItems }
     })

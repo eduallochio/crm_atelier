@@ -60,10 +60,10 @@ export async function POST(request: Request) {
       nome,
       descricao,
       unidade = 'un',
-      quantidadeAtual = 0,
-      quantidadeMinima = 0,
-      precoCusto,
-      codigoBarras,
+      quantidade_atual: quantidadeAtual = 0,
+      quantidade_minima: quantidadeMinima = 0,
+      preco_custo: precoCusto,
+      codigo_barras: codigoBarras,
     } = body
 
     if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })

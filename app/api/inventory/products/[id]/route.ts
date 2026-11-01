@@ -60,7 +60,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     await checkPlanAndProduct(user.organizationId, id)
 
     const body = await request.json()
-    const { nome, descricao, unidade, quantidadeMinima, precoCusto, codigoBarras, ativo } = body
+    const {
+      nome,
+      descricao,
+      unidade,
+      quantidade_minima: quantidadeMinima,
+      preco_custo: precoCusto,
+      codigo_barras: codigoBarras,
+      ativo,
+    } = body
 
     const [updated] = await db
       .update(orgProducts)

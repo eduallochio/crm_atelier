@@ -16,7 +16,6 @@ import {
   orgStockExits,
   orgStockExitItems,
   orgPaymentMethods,
-  orgProducts,
   orgDeletionLog,
 } from '@/lib/db/schema'
 import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
@@ -334,6 +333,11 @@ export async function PUT(
               })
               .returning()
 
+            // O saldo do produto já é atualizado (e validado) automaticamente
+            // por um trigger no banco (handle_stock_exit_item) — não subtrai
+            // aqui de novo, senão duplica o efeito. Diferente da baixa manual,
+            // o trigger bloqueia com exceção se faltar estoque; deixamos essa
+            // exceção propagar e cancelar a conclusão da OS (ver catch abaixo)
             await tx.insert(orgStockExitItems).values(
               materiaisComProduto.map(m => ({
                 exitId:      stockExit.id,
@@ -343,19 +347,6 @@ export async function PUT(
                 unidade:     m.unidade ?? 'un',
               }))
             )
-
-            // Subtrai do saldo do produto — mesma lógica de baixa manual, sem
-            // bloquear a conclusão da OS por falta de estoque (produto fica
-            // negativo e visível no alerta de estoque, não trava o fluxo da OS)
-            for (const m of materiaisComProduto) {
-              await tx
-                .update(orgProducts)
-                .set({
-                  quantidadeAtual: drizzleSql`${orgProducts.quantidadeAtual} - ${String(m.quantidade)}`,
-                  updatedAt: new Date(),
-                })
-                .where(and(eq(orgProducts.id, m.productId!), eq(orgProducts.organizationId, user.organizationId)))
-            }
           }
         }
       }
@@ -369,8 +360,17 @@ export async function PUT(
 
     return NextResponse.json({ ...result.updatedOrder, no_cashier_session: result.noCashierSession })
   } catch (error) {
-    if ((error as Error).message === 'UNAUTHORIZED') {
+    const msg = (error as Error).message
+    if (msg === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    // Trigger do banco (handle_stock_exit_item) bloqueia a baixa automática
+    // de material se faltar estoque — a OS não é concluída nesse caso
+    if (msg.includes('Estoque insuficiente')) {
+      return NextResponse.json(
+        { error: 'Não foi possível concluir: falta estoque de um ou mais materiais da OS.' },
+        { status: 422 }
+      )
     }
     logServerError('[PUT /api/orders/:id]', error, undefined, organizationId); console.error('[PUT /api/orders/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
