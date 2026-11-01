@@ -363,7 +363,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
                   <Input
                     type="number"
                     min="0.001"
-                    step="0.001"
+                    step="any"
                     value={materialQtd}
                     onChange={e => setMaterialQtd(parseFloat(e.target.value) || 1)}
                     className="w-20"

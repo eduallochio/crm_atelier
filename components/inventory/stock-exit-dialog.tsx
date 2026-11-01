@@ -67,7 +67,7 @@ function ExitForm({ defaultProduct, onDone }: { defaultProduct?: Product | null;
               </label>
               <label className="text-xs text-muted-foreground">
                 {idx === 0 && <span className="mb-1 block">Qtd.</span>}
-                <input type="number" min="0.001" step="0.001" value={item.quantidade} onChange={(e) => update(idx, { quantidade: Number(e.target.value) })} className={`${field} text-foreground`} required aria-label={`Quantidade ${idx + 1}`} />
+                <input type="number" min="0.001" step="any" value={item.quantidade} onChange={(e) => update(idx, { quantidade: Number(e.target.value) })} onWheel={(e) => e.currentTarget.blur()} className={`${field} text-foreground`} required aria-label={`Quantidade ${idx + 1}`} />
               </label>
               <label className="text-xs text-muted-foreground">
                 {idx === 0 && <span className="mb-1 block">Un.</span>}

@@ -518,7 +518,7 @@ export function StockEntryDialog({ open, onOpenChange, defaultProduct }: StockEn
                         <Label className="text-xs">Quantidade *</Label>
                         <Input
                           type="number"
-                          step="0.001"
+                          step="any"
                           min="0.001"
                           value={item.quantidade}
                           onChange={e => updateItem(index, 'quantidade', Number(e.target.value))}

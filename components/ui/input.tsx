@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onWheel, ...props }, ref) => {
     return (
       <input
         type={type}
@@ -12,6 +12,9 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
           className
         )}
         ref={ref}
+        // input[type=number] incrementa/decrementa o valor ao rolar o mouse
+        // por cima enquanto focado — tira o foco pra evitar mudança sem querer
+        onWheel={type === 'number' ? (e) => { e.currentTarget.blur(); onWheel?.(e) } : onWheel}
         {...props}
       />
     )

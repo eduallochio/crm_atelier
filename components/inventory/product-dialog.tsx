@@ -117,7 +117,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
               <Input
                 id="quantidade_atual"
                 type="number"
-                step="0.001"
+                step="any"
                 min="0"
                 {...register('quantidade_atual', { valueAsNumber: true })}
                 placeholder="0"
@@ -131,7 +131,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
               <Input
                 id="quantidade_minima"
                 type="number"
-                step="0.001"
+                step="any"
                 min="0"
                 {...register('quantidade_minima', { valueAsNumber: true })}
                 placeholder="0"
