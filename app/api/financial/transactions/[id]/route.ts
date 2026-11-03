@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgTransactions } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 export async function DELETE(
   _request: Request,
@@ -11,6 +12,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { id } = await params
 
     const [transaction] = await db
@@ -45,6 +47,9 @@ export async function DELETE(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[DELETE /api/financial/transactions/:id]', error); console.error('[DELETE /api/financial/transactions/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

@@ -55,7 +55,7 @@ export async function GET(
         clienteEmail:       orgClients.email,
       })
       .from(orgServiceOrders)
-      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .leftJoin(orgClients, and(eq(orgClients.id, orgServiceOrders.clientId), eq(orgClients.organizationId, user.organizationId)))
       .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
     if (!orderRow) {
@@ -142,7 +142,7 @@ export async function PUT(
           clienteNome:   orgClients.nome,
         })
         .from(orgServiceOrders)
-        .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+        .leftJoin(orgClients, and(eq(orgClients.id, orgServiceOrders.clientId), eq(orgClients.organizationId, user.organizationId)))
         .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
       if (!order) {

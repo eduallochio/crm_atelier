@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { clearImpersonationCookie, getImpersonationPayload } from '@/lib/auth/impersonation'
 import { logServerError } from '@/lib/log-error'
 
@@ -15,6 +16,23 @@ export async function GET() {
 // tocada, então o admin volta a ver seus próprios dados automaticamente
 export async function DELETE() {
   try {
+    const payload = await getImpersonationPayload()
+    if (payload) {
+      // Revoga o access/refresh token no servidor do Supabase — sem isso, o
+      // token minted no início da impersonation continuaria válido até expirar
+      // naturalmente (até 1h) mesmo depois do admin "encerrar" por aqui
+      try {
+        const adminSupabase = createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        await adminSupabase.auth.admin.signOut(payload.accessToken, 'global')
+      } catch (revokeError) {
+        // Não bloqueia o encerramento da impersonation se a revogação falhar
+        // (ex.: token já expirado) — o cookie é limpo de qualquer forma
+        logServerError('[DELETE /api/admin/impersonation] revogar token', revokeError)
+      }
+    }
     await clearImpersonationCookie()
     return NextResponse.json({ ok: true })
   } catch (error) {

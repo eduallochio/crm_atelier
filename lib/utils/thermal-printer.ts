@@ -319,6 +319,21 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
 }
 
 /**
+ * Escapa texto livre antes de interpolar em HTML — generateThermalPreview()
+ * é renderizado via dangerouslySetInnerHTML/document.write, então qualquer
+ * campo de texto vindo do usuário (nome de cliente, observações, etc.)
+ * precisa passar por aqui antes de entrar no template
+ */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
  * Gera preview HTML da ordem para impressora térmica
  */
 export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
@@ -347,7 +362,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
     <div style="width: 300px; font-family: 'Courier New', monospace; font-size: 12px; padding: 16px; background: white; border: 2px dashed #ccc; margin: 0 auto;">
       <!-- Cabeçalho -->
       <div style="text-align: center; margin-bottom: 16px;">
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${organizationName}</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${escapeHtml(organizationName)}</div>
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ORDEM DE SERVIÇO</div>
         <div style="font-size: 13px; font-weight: bold;">${order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`}</div>
       </div>
@@ -365,9 +380,9 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       <div style="margin-bottom: 12px;">
         <div style="font-weight: bold; margin-bottom: 4px;">CLIENTE</div>
         <div style="margin-left: 4px;">
-          <div>${order.client?.nome || 'Não informado'}</div>
-          ${order.client?.telefone ? `<div style="font-size: 11px;">Tel: ${order.client.telefone}</div>` : ''}
-          ${order.client?.email ? `<div style="font-size: 10px;">${order.client.email}</div>` : ''}
+          <div>${order.client?.nome ? escapeHtml(order.client.nome) : 'Não informado'}</div>
+          ${order.client?.telefone ? `<div style="font-size: 11px;">Tel: ${escapeHtml(order.client.telefone)}</div>` : ''}
+          ${order.client?.email ? `<div style="font-size: 10px;">${escapeHtml(order.client.email)}</div>` : ''}
         </div>
       </div>
       
@@ -380,8 +395,8 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           <div>Status: ${statusLabels[order.status]}</div>
           ${order.data_prevista ? `<div>Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
           ${order.data_conclusao ? `<div>Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
-          ${order.forma_pagamento ? `<div>Pagamento: ${order.forma_pagamento}</div>` : '<div style="color: #999;">Pagamento: Não informado</div>'}
-          ${(orgData?.show_pix_key_on_order && orgData?.pix_key && order.forma_pagamento?.toLowerCase().includes('pix')) ? `<div style="font-size: 10px; margin-top: 2px; padding: 4px 6px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; color: #166534;">Chave PIX: ${orgData.pix_key}</div>` : ''}
+          ${order.forma_pagamento ? `<div>Pagamento: ${escapeHtml(order.forma_pagamento)}</div>` : '<div style="color: #999;">Pagamento: Não informado</div>'}
+          ${(orgData?.show_pix_key_on_order && orgData?.pix_key && order.forma_pagamento?.toLowerCase().includes('pix')) ? `<div style="font-size: 10px; margin-top: 2px; padding: 4px 6px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; color: #166534;">Chave PIX: ${escapeHtml(orgData.pix_key)}</div>` : ''}
         </div>
       </div>
       
@@ -405,14 +420,14 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           })
           return htmlGroups.map(g => `
             <div style="margin-bottom: 8px;">
-              <div style="font-weight: bold; font-size: 11px;">${g.service_nome}</div>
+              <div style="font-weight: bold; font-size: 11px;">${escapeHtml(g.service_nome)}</div>
               <div style="display: flex; justify-content: space-between; font-size: 10px; margin-left: 4px;">
                 <span>${g.qtdTotal} x R$ ${g.valor_unitario.toFixed(2)}</span>
                 <span>R$ ${g.valorTotal.toFixed(2)}</span>
               </div>
               ${g.obs.length === 1
-                ? `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ ${g.obs[0]}</div>`
-                : g.obs.map((o, i) => `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ #${i + 1} ${o}</div>`).join('')
+                ? `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ ${escapeHtml(g.obs[0])}</div>`
+                : g.obs.map((o, i) => `<div style="font-size: 9.5px; color: #666; margin-left: 4px; margin-top: 2px;">↳ #${i + 1} ${escapeHtml(o)}</div>`).join('')
               }
             </div>
           `).join('')
@@ -455,7 +470,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
         <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
         <div style="margin-bottom: 8px;">
           <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px;">OBSERVAÇÕES</div>
-          <div style="font-size: 10px; margin-left: 4px;">${order.observacoes}</div>
+          <div style="font-size: 10px; margin-left: 4px;">${escapeHtml(order.observacoes)}</div>
         </div>
       ` : ''}
       
@@ -473,7 +488,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
           ].filter(s => s.handle)
           if (socials.length === 0) return ''
           return `<div style="margin-top: 6px; font-size: 9px; line-height: 1.6;">
-            ${socials.map(s => `<div>${s.label}: @${s.handle}</div>`).join('')}
+            ${socials.map(s => `<div>${s.label}: @${escapeHtml(s.handle)}</div>`).join('')}
           </div>`
         })() : ''}
         <div style="font-size: 9px; margin-top: 4px;">${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>

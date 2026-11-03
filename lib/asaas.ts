@@ -49,6 +49,7 @@ export interface AsaasPayment {
   id: string
   customer: string
   subscription?: string
+  externalReference?: string
   billingType: string
   value: number
   netValue: number

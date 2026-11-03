@@ -2,7 +2,13 @@ import { db } from '@/lib/db'
 import { adminSystemSettings, organizations } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 
-// CNPJs com licença vitalícia — sem mensalidade, sem limites, plano enterprise permanente
+// CNPJs com licença vitalícia — referência histórica apenas. NUNCA remover estes
+// valores (política do projeto — ver CLAUDE.md), mas também nunca usá-los para
+// conceder a licença automaticamente: organizations.cnpj é um campo editável
+// pelo próprio usuário, então usá-lo como prova de identidade permite que
+// qualquer organização se auto-conceda a licença vitalícia (bug de segurança
+// corrigido — ver auditoria de 2026-11-03). As duas organizações legítimas já
+// têm lifetimeLicense = true setado diretamente no banco.
 const LIFETIME_CNPJS = new Set([
   '33065719000160', // empresa 1 — desenvolvimento
   '27791182000112', // empresa 2 — parceiro
@@ -70,22 +76,20 @@ export async function getPlanLimits(): Promise<PlanLimits> {
 
 /**
  * Verifica se uma organização tem licença vitalícia.
- * Checa tanto o campo lifetime_license quanto a lista de CNPJs hardcoded.
+ * Checa exclusivamente o campo lifetimeLicense (setado manualmente no banco
+ * por um admin) — nunca o CNPJ da organização, que é um campo editável pelo
+ * próprio usuário e não pode ser usado como prova de identidade.
  * Licenças vitalícias têm acesso enterprise ilimitado sem mensalidade.
  */
 export async function hasLifetimeLicense(organizationId: string): Promise<boolean> {
   try {
     const [org] = await db
-      .select({ lifetimeLicense: organizations.lifetimeLicense, cnpj: organizations.cnpj })
+      .select({ lifetimeLicense: organizations.lifetimeLicense })
       .from(organizations)
       .where(eq(organizations.id, organizationId))
       .limit(1)
 
-    if (!org) return false
-    if (org.lifetimeLicense) return true
-
-    const cnpjDigits = org.cnpj?.replace(/\D/g, '') ?? ''
-    return LIFETIME_CNPJS.has(cnpjDigits)
+    return org?.lifetimeLicense ?? false
   } catch {
     return false
   }
@@ -95,5 +99,23 @@ export async function hasLifetimeLicense(organizationId: string): Promise<boolea
 export function limitExceededResponse(resource: string, limit: number) {
   return {
     error: `Limite do plano Free atingido: máximo de ${limit} ${resource}. Faça upgrade para o plano Pro para continuar.`,
+  }
+}
+
+/**
+ * Bloqueia acesso de organizações no plano Free a módulos exclusivos do Pro+
+ * (financeiro, caixa, estoque). Lança 'FORBIDDEN' — mesmo padrão já usado nas
+ * rotas de estoque — para o catch de cada rota converter em 403.
+ */
+export async function requireProPlan(organizationId: string): Promise<void> {
+  const [org] = await db
+    .select({ plan: organizations.plan, lifetimeLicense: organizations.lifetimeLicense })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+  // org.lifetimeLicense já é a mesma coluna que hasLifetimeLicense() consultaria
+  // de novo — evita um segundo round-trip ao banco por request em rotas de
+  // alto tráfego (financeiro/caixa)
+  if (org?.plan === 'free' && !org?.lifetimeLicense) {
+    throw new Error('FORBIDDEN')
   }
 }

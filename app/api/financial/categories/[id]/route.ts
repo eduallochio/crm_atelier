@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgFinancialCategories } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 export async function PUT(
   request: Request,
@@ -11,6 +12,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const body = await request.json()
     const { id } = await params
 
@@ -51,6 +53,9 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
+    }
     logServerError('[PUT /api/financial/categories/:id]', error); console.error('[PUT /api/financial/categories/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -62,6 +67,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { id } = await params
 
     const [row] = await db
@@ -82,6 +88,9 @@ export async function DELETE(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[DELETE /api/financial/categories/:id]', error); console.error('[DELETE /api/financial/categories/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

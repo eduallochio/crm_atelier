@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgRecurringExpenses } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 // PUT — pausa a repetição (ativo = false). Não apaga o template nem as contas já geradas.
 export async function PUT(
@@ -12,6 +13,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { id } = await params
     const body = await request.json()
 
@@ -34,6 +36,9 @@ export async function PUT(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[PUT /api/financial/recurring-expenses/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

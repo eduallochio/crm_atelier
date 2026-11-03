@@ -46,7 +46,7 @@ export async function GET() {
         clienteEmail:       orgClients.email,
       })
       .from(orgServiceOrders)
-      .leftJoin(orgClients, eq(orgClients.id, orgServiceOrders.clientId))
+      .leftJoin(orgClients, and(eq(orgClients.id, orgServiceOrders.clientId), eq(orgClients.organizationId, user.organizationId)))
       .where(eq(orgServiceOrders.organizationId, user.organizationId))
       .orderBy(drizzleSql`${orgServiceOrders.createdAt} desc`)
 
@@ -143,6 +143,20 @@ export async function POST(request: Request) {
         limitExceededResponse('ordens de serviço', limits.max_orders_free),
         { status: 403 }
       )
+    }
+
+    // Valida que o cliente referenciado pertence a esta org — sem esse filtro,
+    // um client_id de outra organização passaria e a OS vazaria nome/telefone/
+    // email desse cliente em toda leitura subsequente (GET /api/orders)
+    if (body.client_id) {
+      const [ownedClient] = await db
+        .select({ id: orgClients.id })
+        .from(orgClients)
+        .where(and(eq(orgClients.id, body.client_id), eq(orgClients.organizationId, user.organizationId)))
+        .limit(1)
+      if (!ownedClient) {
+        return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 400 })
+      }
     }
 
     const items: Array<{

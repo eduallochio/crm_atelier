@@ -118,6 +118,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Quantidade deve ser positiva — mesma classe de bug corrigida em exits:
+    // um valor negativo faria a entrada diminuir o estoque em vez de aumentar,
+    // enquanto é auditada como uma "entrada"
+    for (const item of itens as { quantidade: number }[]) {
+      if (!Number.isFinite(Number(item.quantidade)) || Number(item.quantidade) <= 0) {
+        return NextResponse.json({ error: 'Quantidade deve ser maior que zero' }, { status: 400 })
+      }
+    }
+
     const { entry, insertedItems, updatedProducts } = await db.transaction(async (tx) => {
       const [entry] = await tx
         .insert(orgStockEntries)

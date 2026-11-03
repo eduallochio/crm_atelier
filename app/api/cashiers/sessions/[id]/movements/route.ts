@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgCashierMovements, orgPaymentMethods } from '@/lib/db/schema'
+import { orgCashierMovements, orgPaymentMethods, orgCashierSessions } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 export async function GET(
   _request: Request,
@@ -11,6 +12,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { id } = await params
 
     const rows = await db
@@ -50,6 +52,9 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
+    }
     logServerError('[GET /api/cashiers/sessions/:id/movements]', error); console.error('[GET /api/cashiers/sessions/:id/movements]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -61,8 +66,33 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const body = await request.json()
     const { id } = await params
+
+    // Confirma que a sessão existe, pertence a esta org e está aberta — sem
+    // isso, um sessaoId de outra organização seria aceito, e a movimentação
+    // poderia contaminar o saldoEsperado calculado no close-all dessa org
+    const [session] = await db
+      .select({ id: orgCashierSessions.id, status: orgCashierSessions.status })
+      .from(orgCashierSessions)
+      .where(and(eq(orgCashierSessions.id, id), eq(orgCashierSessions.organizationId, user.organizationId)))
+      .limit(1)
+    if (!session) {
+      return NextResponse.json({ error: 'Sessão não encontrada' }, { status: 404 })
+    }
+    if (session.status !== 'aberto') {
+      return NextResponse.json({ error: 'Sessão de caixa não está aberta' }, { status: 409 })
+    }
+
+    const valorNumerico = Number(body.valor)
+    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+      return NextResponse.json({ error: 'Valor deve ser maior que zero' }, { status: 400 })
+    }
+    const tiposValidos = ['entrada', 'saida', 'sangria', 'reforco']
+    if (!tiposValidos.includes(body.tipo)) {
+      return NextResponse.json({ error: 'Tipo de movimentação inválido' }, { status: 400 })
+    }
 
     const [row] = await db
       .insert(orgCashierMovements)
@@ -93,6 +123,9 @@ export async function POST(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[POST /api/cashiers/sessions/:id/movements]', error); console.error('[POST /api/cashiers/sessions/:id/movements]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

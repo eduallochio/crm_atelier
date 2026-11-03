@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgReceivables, orgPayables, orgTransactions, orgFinancialCategories } from '@/lib/db/schema'
 import { eq, and, gte, lte, lt, isNull, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 function getPeriodDates(period: string) {
   const now = new Date()
@@ -43,6 +44,7 @@ const toDateStr = (d: Date) => d.toISOString().split('T')[0]
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'thisMonth'
     const { start: startOfMonth, end: endOfMonth } = getPeriodDates(period)
@@ -253,6 +255,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[GET /api/financial/stats]', error); console.error('[GET /api/financial/stats]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

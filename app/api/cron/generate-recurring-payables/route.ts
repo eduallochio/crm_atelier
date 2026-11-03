@@ -33,8 +33,13 @@ function toDateStr(d: Date): string {
 // recorrentes cujo próximo vencimento está a LEAD_DAYS dias ou menos.
 export async function GET(request: Request) {
   try {
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+      logServerError('[cron/generate-recurring-payables]', new Error('CRON_SECRET não configurado'))
+      return NextResponse.json({ error: 'CRON_SECRET não configurado' }, { status: 500 })
+    }
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 

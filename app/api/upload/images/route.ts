@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (!validation.ok) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
-    const { ext } = validation
+    const { ext, mime } = validation
     const random = Math.random().toString(36).slice(2, 8)
     const path = `orders/${user.organizationId}/${Date.now()}-${random}.${ext}`
 
@@ -35,7 +35,10 @@ export async function POST(request: Request) {
     const { error } = await supabase.storage
       .from('org-assets')
       .upload(path, file, {
-        contentType: file.type,
+        // Usa o mime verificado por magic bytes, não o Content-Type declarado
+        // pelo cliente — esse é facilmente forjável e seria servido de volta
+        // como header Content-Type real do objeto público
+        contentType: mime,
         upsert: false,
       })
 

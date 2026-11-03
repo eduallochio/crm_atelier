@@ -10,7 +10,7 @@ const ALLOWED: Record<string, { magic: number[]; mime: string }> = {
 export async function validateImageUpload(
   file: File,
   maxSizeMB = 5
-): Promise<{ ok: true; ext: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; ext: string; mime: string } | { ok: false; error: string }> {
   // 1. Tamanho
   if (file.size > maxSizeMB * 1024 * 1024) {
     return { ok: false, error: `Tamanho máximo: ${maxSizeMB}MB` }
@@ -31,11 +31,20 @@ export async function validateImageUpload(
     return { ok: false, error: 'Arquivo inválido ou corrompido.' }
   }
 
+  // 3b. WEBP: o magic acima só verifica o container RIFF genérico (compartilhado
+  // com WAV/AVI) — confirma também a marca 'WEBP' no offset 8, específica do formato
+  if (ext === 'webp') {
+    const webpTag = new TextDecoder().decode(bytes.slice(8, 12))
+    if (webpTag !== 'WEBP') {
+      return { ok: false, error: 'Arquivo inválido ou corrompido.' }
+    }
+  }
+
   // 4. SVG é proibido mesmo que renomeado — busca tag <svg no conteúdo
   const text = new TextDecoder().decode(bytes.slice(0, 512)).toLowerCase()
   if (text.includes('<svg') || text.includes('<!doctype svg')) {
     return { ok: false, error: 'SVG não é permitido por segurança.' }
   }
 
-  return { ok: true, ext }
+  return { ok: true, ext, mime: ALLOWED[ext].mime }
 }

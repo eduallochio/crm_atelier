@@ -93,6 +93,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // Quantidade deve ser positiva — um valor negativo inverte a aritmética do
+    // trigger do banco (quantidade_atual = quantidade_atual - NEW.quantidade),
+    // transformando uma "saída" em adição de estoque disfarçada e contornando
+    // o guard de "estoque insuficiente"
+    for (const item of itens as { quantidade: number }[]) {
+      if (!Number.isFinite(Number(item.quantidade)) || Number(item.quantidade) <= 0) {
+        return NextResponse.json({ error: 'Quantidade deve ser maior que zero' }, { status: 400 })
+      }
+    }
+
     const result = await db.transaction(async (tx) => {
       const [exit] = await tx
         .insert(orgStockExits)

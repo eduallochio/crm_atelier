@@ -4,10 +4,12 @@ import { db } from '@/lib/db'
 import { orgCashierSessions, orgCashiers } from '@/lib/db/schema'
 import { eq, and, desc, isNull } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const { searchParams } = new URL(request.url)
     const caixaId = searchParams.get('caixa_id')
     const status = searchParams.get('status')
@@ -50,6 +52,9 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
+    }
     logServerError('[GET /api/cashiers/sessions]', error); console.error('[GET /api/cashiers/sessions]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -58,6 +63,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const body = await request.json()
 
     // Se já existe sessão aberta para este caixa, retorna ela sem criar outra
@@ -114,6 +120,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[POST /api/cashiers/sessions]', error); console.error('[POST /api/cashiers/sessions]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

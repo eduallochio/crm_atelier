@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
 import { organizations, orgFinancialSettings, orgPayables } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and, like } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { format, addDays } from 'date-fns'
-import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment } from '@/lib/asaas'
+import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment, getPayment } from '@/lib/asaas'
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? ''
 
 function validateToken(req: NextRequest): boolean {
   // O Asaas envia o token no header 'asaas-access-token'
   const token = req.headers.get('asaas-access-token') ?? ''
-  return WEBHOOK_TOKEN.length > 0 && token === WEBHOOK_TOKEN
+  if (WEBHOOK_TOKEN.length === 0) return false
+  // Comparação em tempo constante — evita timing attack contra o token
+  const tokenBuf = Buffer.from(token)
+  const expectedBuf = Buffer.from(WEBHOOK_TOKEN)
+  if (tokenBuf.length !== expectedBuf.length) return false
+  return timingSafeEqual(tokenBuf, expectedBuf)
 }
 
 // Eventos de nova cobrança gerada (renovação)
@@ -62,18 +68,52 @@ export async function POST(req: NextRequest) {
     // Pagamento confirmado → ativar plano Pro
     // Tenta primeiro por externalReference (pagamento avulso), depois por subscription ID
     if (PAYMENT_CONFIRMED.has(event) && payment) {
-      let orgId: string | null = payment.externalReference ?? null
+      // Corrobora o pagamento diretamente na API do Asaas antes de confiar em
+      // qualquer campo do corpo da requisição — o body de um webhook pode ser
+      // forjado por qualquer um que tenha o token estático; sem essa checagem,
+      // um externalReference arbitrário mudaria o plano de qualquer organização
+      let confirmedPayment
+      try {
+        confirmedPayment = payment.id ? await getPayment(payment.id) : null
+      } catch (corroborationErr) {
+        logServerError('[webhook/asaas] falha ao corroborar pagamento com a API do Asaas', corroborationErr)
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar o pagamento' }, { status: 200 })
+      }
+      if (!confirmedPayment || !['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(confirmedPayment.status)) {
+        logServerError('[webhook/asaas] pagamento não confirmado na API do Asaas', new Error(`payment.id=${payment.id} status=${confirmedPayment?.status}`))
+        return NextResponse.json({ ok: false, error: 'Pagamento não confirmado' }, { status: 200 })
+      }
 
-      if (!orgId && payment.subscription) {
+      // Usa exclusivamente o externalReference corroborado pela API do Asaas —
+      // nunca o do corpo da requisição, que é a fonte não confiável que essa
+      // corroboração inteira existe para neutralizar
+      let orgId: string | null = confirmedPayment.externalReference ?? null
+
+      if (!orgId && confirmedPayment.subscription) {
         const [found] = await db
           .select({ id: organizations.id })
           .from(organizations)
-          .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+          .where(eq(organizations.asaasSubscriptionId, confirmedPayment.subscription))
           .limit(1)
         orgId = found?.id ?? null
       }
 
       if (orgId) {
+        // Idempotência — um evento reenviado/duplicado pelo Asaas não deve
+        // lançar o mesmo pagamento duas vezes no financeiro. Escapa % e _
+        // (caracteres curinga do LIKE) antes de interpolar o payment.id —
+        // sem isso, um id contendo esses caracteres poderia casar com outras
+        // linhas por acidente
+        const escapedPaymentId = String(payment.id).replace(/[%_]/g, '\\$&')
+        const [already] = await db
+          .select({ id: orgPayables.id })
+          .from(orgPayables)
+          .where(and(eq(orgPayables.organizationId, orgId), like(orgPayables.observacoes, `%ID: ${escapedPaymentId}%`)))
+          .limit(1)
+        if (already) {
+          console.log(`[webhook/asaas] ${event} → payment ${payment.id} já processado, ignorando`)
+          return NextResponse.json({ ok: true, duplicate: true })
+        }
         await db
           .update(organizations)
           .set({ plan: 'pro', subscriptionStatus: 'active' })
@@ -83,9 +123,10 @@ export async function POST(req: NextRequest) {
         // Sincroniza a data da próxima cobrança — usada no contador de dias até a
         // renovação no dashboard/sidebar. O dueDate do pagamento confirmado já
         // passou, então busca o nextDueDate atualizado direto da assinatura
-        if (payment.subscription) {
+        const subscriptionId = confirmedPayment.subscription
+        if (subscriptionId) {
           try {
-            const sub = await getSubscription(payment.subscription)
+            const sub = await getSubscription(subscriptionId)
 
             // Bônus da 1ª assinatura mensal: 2 meses pelo preço de 1 (60 dias a
             // partir da aprovação, não do checkout). Só aplica uma vez por
@@ -107,7 +148,7 @@ export async function POST(req: NextRequest) {
                 // antes do webhook rodar — como o próximo vencimento real vira
                 // +60 dias, essa cobrança intermediária fica obsoleta e precisa
                 // ser cancelada pra não cobrar o cliente de novo antes da hora
-                const pendentes = await getSubscriptionPayments(payment.subscription)
+                const pendentes = await getSubscriptionPayments(subscriptionId)
                 const intermediarias = pendentes.filter(p => p.status === 'PENDING' && p.id !== payment.id)
                 for (const p of intermediarias) {
                   try {
@@ -117,7 +158,7 @@ export async function POST(req: NextRequest) {
                   }
                 }
 
-                const updated = await updateSubscription(payment.subscription, { nextDueDate: bonusDueDateStr })
+                const updated = await updateSubscription(subscriptionId, { nextDueDate: bonusDueDateStr })
                 await db
                   .update(organizations)
                   .set({ subscriptionNextDueDate: updated.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
@@ -153,9 +194,9 @@ export async function POST(req: NextRequest) {
             .limit(1)
 
           if (settings?.autoLaunchSubscription) {
-            const valor = String(payment.value ?? '0')
+            const valor = String(confirmedPayment.value ?? '0')
             const hoje  = format(new Date(), 'yyyy-MM-dd')
-            const venc  = payment.dueDate ?? hoje
+            const venc  = confirmedPayment.dueDate ?? hoje
             await db.insert(orgPayables).values({
               organizationId: orgId,
               descricao:      'Assinatura Meu Atelier Sistema - Plano Pro',
@@ -164,7 +205,7 @@ export async function POST(req: NextRequest) {
               dataPagamento:  hoje,
               status:         'pago',
               categoria:      'Assinatura',
-              formaPagamento: payment.billingType === 'PIX' ? 'PIX' : payment.billingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Outro',
+              formaPagamento: confirmedPayment.billingType === 'PIX' ? 'PIX' : confirmedPayment.billingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Outro',
               observacoes:    `Pagamento automático via Asaas · ID: ${payment.id}`,
             })
             console.log(`[webhook/asaas] lançamento financeiro criado para org ${orgId}`)

@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgReceivables, orgTransactions, orgServiceOrders, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 const toDateStr = (v: unknown): string | null => {
   if (!v) return null
@@ -17,6 +18,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
     const body = await request.json()
     const { id } = await params
 
@@ -118,6 +120,9 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
+    }
     logServerError('[PUT /api/financial/receivables/:id]', error); console.error('[PUT /api/financial/receivables/:id]', error)
     return NextResponse.json({ error: 'Erro interno', details: (error as Error).message }, { status: 500 })
   }
@@ -131,6 +136,7 @@ export async function DELETE(
   try {
     const user = await requireAuth()
     organizationId = user.organizationId
+    await requireProPlan(user.organizationId)
     const { id } = await params
 
     // SELECT de verificação + log + exclusão (e eventual reversão do
@@ -209,6 +215,9 @@ export async function DELETE(
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[DELETE /api/financial/receivables/:id]', error, undefined, organizationId); console.error('[DELETE /api/financial/receivables/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

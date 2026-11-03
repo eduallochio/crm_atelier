@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (!validation.ok) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
-    const { ext } = validation
+    const { ext, mime } = validation
     const path = `logos/${user.organizationId}/logo-${Date.now()}.${ext}`
 
     const supabase = getStorageClient()
@@ -35,7 +35,9 @@ export async function POST(request: Request) {
     const { error } = await supabase.storage
       .from('org-assets')
       .upload(path, file, {
-        contentType: file.type,
+        // Usa o mime verificado por magic bytes, não o Content-Type declarado
+        // pelo cliente — ver mesma correção em upload/images/route.ts
+        contentType: mime,
         upsert: true,
       })
 

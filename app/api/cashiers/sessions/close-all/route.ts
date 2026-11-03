@@ -4,11 +4,13 @@ import { db } from '@/lib/db'
 import { orgCashierSessions, orgCashierMovements, orgSystemPreferences } from '@/lib/db/schema'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { requireProPlan } from '@/lib/plan-limits'
 
 // Fecha todas as sessões abertas da organização com saldo_real = saldo_esperado
 export async function POST() {
   try {
     const user = await requireAuth()
+    await requireProPlan(user.organizationId)
 
     // Verifica se fechamento automático está habilitado
     const [prefs] = await db
@@ -37,11 +39,15 @@ export async function POST() {
 
     const sessaoIds = sessoes.map(s => s.id)
 
-    // Busca todos os movimentos de todas as sessões em uma única query
+    // Busca todos os movimentos de todas as sessões em uma única query —
+    // filtro por organizationId como defesa em profundidade: sessaoIds já
+    // vem só desta org, mas se um movimento com sessaoId correto e
+    // organizationId de outra org existir (bug em outro ponto), não deve
+    // contaminar o saldoEsperado calculado aqui
     const todosMovs = await db
       .select({ sessaoId: orgCashierMovements.sessaoId, tipo: orgCashierMovements.tipo, valor: orgCashierMovements.valor })
       .from(orgCashierMovements)
-      .where(inArray(orgCashierMovements.sessaoId, sessaoIds))
+      .where(and(inArray(orgCashierMovements.sessaoId, sessaoIds), eq(orgCashierMovements.organizationId, user.organizationId)))
 
     const movsPorSessao = new Map<string, typeof todosMovs>()
     for (const mov of todosMovs) {
@@ -82,6 +88,9 @@ export async function POST() {
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Recurso disponível apenas no plano pago' }, { status: 403 })
     }
     logServerError('[POST /api/cashiers/sessions/close-all]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
