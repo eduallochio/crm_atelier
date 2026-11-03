@@ -14,8 +14,16 @@ export default function EditarCaixaPage() {
   const updateCashier = useUpdateCashier()
 
   const handleSubmit = async (data: CashierInput) => {
-    await updateCashier.mutateAsync({ id, input: data })
-    router.push('/financeiro/caixa')
+    try {
+      await updateCashier.mutateAsync({ id, input: data })
+      router.push('/financeiro/caixa')
+    } catch {
+      // Erro já tratado e exibido via toast no onError do hook — aqui só
+      // evita que a rejeição suba como unhandledrejection (useUpdateCashier
+      // sempre lança no catch de erro, então sem isso toda falha de validação
+      // esperada, como "defina outro caixa padrão antes", era reportada como
+      // erro não tratado)
+    }
   }
 
   return (

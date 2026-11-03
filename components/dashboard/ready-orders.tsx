@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Banknote, Check, MessageCircle } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
@@ -31,7 +31,11 @@ function readNotified(): Record<string, string> {
 
 /** Ordens concluídas nos últimos dias, prontas para a cliente buscar: avisar pelo WhatsApp e receber o saldo */
 export function ReadyOrders({ orders, isLoading }: { orders: ServiceOrder[]; isLoading: boolean }) {
-  const [notified, setNotified] = useState<Record<string, string>>(readNotified)
+  // Lido só após montar no cliente — ler o localStorage durante o render
+  // diverge do HTML do servidor (que sempre vê {}), causando hydration
+  // mismatch (#418) sempre que o navegador já tinha avisos salvos
+  const [notified, setNotified] = useState<Record<string, string>>({})
+  useEffect(() => { setNotified(readNotified()) }, [])
   const [paying, setPaying] = useState<ServiceOrder | null>(null)
 
   const { list, total } = useMemo(() => {
