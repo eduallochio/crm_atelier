@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.12.0](https://github.com/eduallochio/crm_atelier/compare/v1.11.0...v1.12.0) (2026-11-04)
+
+
+### Features
+
+* adiciona cadastro de categorias de produto e previsão de fechamento no caixa ([4d5735c](https://github.com/eduallochio/crm_atelier/commit/4d5735c5f48224f438b883044f238b7e99fb95d3))
+* **assinatura:** formulário de cartão no novo padrão do Atelier ([d844c14](https://github.com/eduallochio/crm_atelier/commit/d844c1434e312c47c9630dc0b55e38b5ee3ea74e))
+* permite editar itens/valor de OS e fecha caixa automaticamente via cron ([461800b](https://github.com/eduallochio/crm_atelier/commit/461800b12882f34d0101451ac42a56fef7a14e27))
+
+
+### Bug Fixes
+
+* corrige 11 vulnerabilidades encontradas em auditoria de segurança ([27ce4e7](https://github.com/eduallochio/crm_atelier/commit/27ce4e7443eb37a2e1c2d91c0e51a504f7aed31c))
+* corrige hydration mismatch recorrente e unhandledrejection em erro de caixa ([2990f63](https://github.com/eduallochio/crm_atelier/commit/2990f632a449ba0e58539df4771979599923553d))
+* corrige responsividade mobile no painel admin de organizações ([923b1bb](https://github.com/eduallochio/crm_atelier/commit/923b1bbce354c14490fac3104ca7cabd4ead8933))
+* remove card "Em Trial" do painel admin, nunca usado no sistema ([885dd84](https://github.com/eduallochio/crm_atelier/commit/885dd84b5cd4a6c112bcdbf0d2703a494c2e14ea))
+* reverte tentativa de habilitar SSR no Sidebar ([45c8b85](https://github.com/eduallochio/crm_atelier/commit/45c8b852a7277ac4a718613ac183ac729fc6d55b))
+
 ## [1.11.0](https://github.com/eduallochio/crm_atelier/compare/v1.10.2...v1.11.0) (2026-11-01)
 
 
