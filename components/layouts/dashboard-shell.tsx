@@ -9,11 +9,14 @@ import { SessionGuard } from '@/components/layouts/session-guard'
 import { ProCelebrationWatcher } from '@/components/subscription/plan-celebration'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 
-// ssr: false garante que o Sidebar (que usa useQuery) nunca seja
-// renderizado no servidor, evitando o erro "No QueryClient set"
-// loading: mantém o espaço reservado (largura fixa) até a hidratação
-// completar — evita DOM vazio/instável nessa janela (ligado a hydration
-// mismatches intermitentes observados em mobile)
+// ssr: false — tentativa anterior de habilitar SSR aqui (sem esse flag)
+// reproduziu um hydration mismatch NOVO e real: o id="radix-..." gerado por
+// useId() no DropdownMenuTrigger do menu de usuário divergiu entre servidor
+// e cliente (ver sidebar.tsx:498), mesmo com suppressHydrationWarning no
+// elemento — o Radix monta Popper/Menu providers que amplificam qualquer
+// mismatch anterior na árvore em vez de só suprimir o warning local. Ficou
+// pior que o ssr:false original, então foi revertido. loading: mantém o
+// espaço reservado (largura fixa) até a hidratação completar.
 const Sidebar = dynamic(() => import('@/components/layouts/sidebar').then(m => m.Sidebar), {
   ssr: false,
   loading: () => <div className="hidden lg:block fixed top-0 left-0 z-40 h-screen w-64 bg-[#2C1810]" />,
