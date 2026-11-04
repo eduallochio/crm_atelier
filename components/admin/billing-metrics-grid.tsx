@@ -1,12 +1,13 @@
 'use client'
 
-import { 
-  LucideIcon, 
-  TrendingUp, 
+import {
+  LucideIcon,
+  TrendingUp,
   TrendingDown,
   DollarSign,
   Clock,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 
@@ -15,6 +16,7 @@ const iconMap: Record<string, LucideIcon> = {
   TrendingUp,
   Clock,
   AlertCircle,
+  AlertTriangle,
 }
 
 interface Metric {

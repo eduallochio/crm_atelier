@@ -29,7 +29,7 @@ export async function GET() {
       .select({
         total: count(),
         activeCount: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'active')`,
-        trialCount: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'trialing')`,
+        overdueCount: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'overdue')`,
         cancelledCount: drizzleSql<number>`COUNT(*) FILTER (WHERE subscription_status = 'cancelled')`,
         freeCount: drizzleSql<number>`COUNT(*) FILTER (WHERE plan = 'free')`,
         proCount: drizzleSql<number>`COUNT(*) FILTER (WHERE plan = 'pro')`,
@@ -50,7 +50,7 @@ export async function GET() {
     return NextResponse.json({
       totalOrganizations: totalOrgs,
       activeOrganizations: Number(o.activeCount),
-      trialOrganizations: Number(o.trialCount),
+      overdueOrganizations: Number(o.overdueCount),
       cancelledOrganizations: cancelled,
       freePlanCount: Number(o.freeCount),
       proPlanCount: proCount,

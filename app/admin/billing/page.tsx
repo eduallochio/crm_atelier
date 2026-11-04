@@ -11,7 +11,7 @@ import { Wallet } from 'lucide-react'
 interface DashboardData {
   totalOrganizations: number
   activeOrganizations: number
-  trialOrganizations: number
+  overdueOrganizations: number
   cancelledOrganizations: number
   freePlanCount: number
   proPlanCount: number
@@ -106,9 +106,9 @@ export default function AdminBillingPage() {
     {
       title: 'Orgs Ativas',
       value: String(dashboard?.activeOrganizations ?? 0),
-      change: `${dashboard?.trialOrganizations ?? 0} em trial`,
+      change: `${dashboard?.overdueOrganizations ?? 0} em atraso`,
       trend: 'up' as const,
-      icon: 'Clock',
+      icon: 'AlertTriangle',
       color: 'yellow' as const,
     },
     {

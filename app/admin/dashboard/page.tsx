@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, Users, DollarSign, BarChart3, AlertCircle } from 'lucide-react'
+import { TrendingUp, Users, DollarSign, AlertTriangle, AlertCircle } from 'lucide-react'
 import { AdminMetricsCard } from '@/components/admin/admin-metrics-card'
 import { AdminPageSkeleton } from '@/components/admin/admin-skeleton'
 import { AdminGrowthChart } from '@/components/admin/admin-growth-chart'
@@ -12,7 +12,7 @@ import { AdminRecentActivity } from '@/components/admin/admin-recent-activity'
 interface DashboardMetrics {
   totalOrganizations: number
   activeOrganizations: number
-  trialOrganizations: number
+  overdueOrganizations: number
   cancelledOrganizations: number
   freePlanCount: number
   proPlanCount: number
@@ -122,9 +122,9 @@ export default function AdminDashboard() {
           color="green"
         />
         <AdminMetricsCard
-          title="Em Trial"
-          value={metrics.trialOrganizations.toString()}
-          icon={BarChart3}
+          title="Pagamentos em Atraso"
+          value={metrics.overdueOrganizations.toString()}
+          icon={AlertTriangle}
           color="yellow"
         />
         <AdminMetricsCard
