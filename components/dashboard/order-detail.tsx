@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  ArrowLeft, Ban, Banknote, Check, Ellipsis, Eye, Landmark, Mail, MessageCircle, Phone, Play, Printer,
+  ArrowLeft, Ban, Banknote, Check, Ellipsis, Eye, Landmark, Mail, MessageCircle, Pencil, Phone, Play, Printer,
   RotateCcw, Send, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -23,6 +23,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { OrderPreviewDialog } from './order-preview-dialog'
+import { OrderItemsDialog } from './order-items-dialog'
 import { formatBRL, formatDayMonthYear, initialsOf } from './client-utils'
 import {
   ORDER_STATUS, deadlineLabel, isToReceive, numeroOS, saldoOf, notifyOrderReady, sendOrderWhatsApp,
@@ -57,6 +58,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [preview, setPreview] = useState(false)
   const [registering, setRegistering] = useState(false)
+  const [editingItems, setEditingItems] = useState(false)
 
   const orgName = org?.name || 'Meu Atelier'
   const total = Number(order.valor_total) || 0
@@ -275,7 +277,15 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
 
       {/* itens */}
       <div className={`${box} mb-5`}>
-        <h3 className={boxTitle}>Serviços</h3>
+        <h3 className={boxTitle}>
+          Serviços
+          {(order.status === 'pendente' || order.status === 'em_andamento') && (
+            <button type="button" onClick={() => setEditingItems(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold normal-case tracking-normal text-[#8A4B2C] hover:underline dark:text-[#E39B78]">
+              <Pencil className="h-3 w-3" aria-hidden="true" /> Editar
+            </button>
+          )}
+        </h3>
         {order.items && order.items.length > 0 ? (
           <>
             <ul className="divide-y divide-dashed divide-border">
@@ -359,6 +369,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
       </AlertDialog>
 
       <OrderPreviewDialog open={preview} onOpenChange={setPreview} order={order} organizationName={orgName} showConfirmButton={false} />
+      <OrderItemsDialog order={editingItems ? order : null} onClose={() => setEditingItems(false)} />
     </div>
   )
 }

@@ -366,6 +366,10 @@ export default function AjudaPage() {
               ]} />
               <Shot src="/manual/ordens-nova.webp" alt="Janela de nova ordem de serviço" onZoom={onZoom} caption="A janela de nova ordem. O número (#000036…) só é criado depois que a ordem é gerada." />
 
+              <H3>Editando os serviços de uma ordem já criada</H3>
+              <P>Na ficha da ordem, clique em <strong>Editar</strong> ao lado de “Serviços” para adicionar, remover ou ajustar quantidade, valor e desconto. O total é recalculado na hora.</P>
+              <Note warn title="Atenção">Só é possível editar os serviços enquanto a ordem está <strong>pendente</strong> ou <strong>em andamento</strong>. Depois de concluída (já com pagamento ou estoque lançado) ou cancelada, os itens ficam travados. O novo total também não pode ficar menor que o valor já pago.</Note>
+
               <H3>Concluindo e recebendo</H3>
               <P>Ao concluir uma ordem que ainda tem saldo, o sistema pergunta se a cliente já pagou:</P>
               <Shot src="/manual/ordens-pagamento.webp" alt="Janela de conclusão perguntando se a ordem foi paga" onZoom={onZoom} />

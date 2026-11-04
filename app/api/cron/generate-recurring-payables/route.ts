@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { orgRecurringExpenses, orgPayables } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { validateCronSecret } from '@/lib/cron-auth'
 
 const LEAD_DAYS = 7
 
@@ -33,13 +34,11 @@ function toDateStr(d: Date): string {
 // recorrentes cujo próximo vencimento está a LEAD_DAYS dias ou menos.
 export async function GET(request: Request) {
   try {
-    const cronSecret = process.env.CRON_SECRET
-    if (!cronSecret) {
+    if (!process.env.CRON_SECRET) {
       logServerError('[cron/generate-recurring-payables]', new Error('CRON_SECRET não configurado'))
       return NextResponse.json({ error: 'CRON_SECRET não configurado' }, { status: 500 })
     }
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (!validateCronSecret(request.headers.get('authorization'))) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 

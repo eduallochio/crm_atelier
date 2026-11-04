@@ -94,6 +94,20 @@ export async function POST(
       return NextResponse.json({ error: 'Tipo de movimentação inválido' }, { status: 400 })
     }
 
+    // Valida que o método de pagamento informado pertence a esta org — sem
+    // isso, um metodo_pagamento_id de outra organização seria aceito e a
+    // movimentação ficaria associada a um método de pagamento fora do tenant
+    if (body.metodo_pagamento_id) {
+      const [owned] = await db
+        .select({ id: orgPaymentMethods.id })
+        .from(orgPaymentMethods)
+        .where(and(eq(orgPaymentMethods.id, body.metodo_pagamento_id), eq(orgPaymentMethods.organizationId, user.organizationId)))
+        .limit(1)
+      if (!owned) {
+        return NextResponse.json({ error: 'Método de pagamento não encontrado' }, { status: 400 })
+      }
+    }
+
     const [row] = await db
       .insert(orgCashierMovements)
       .values({

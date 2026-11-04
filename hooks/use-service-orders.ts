@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ServiceOrder, ServiceOrderInput } from '@/lib/validations/service-order'
+import type { ServiceOrder, ServiceOrderInput, ServiceOrderItem, ServiceOrderItemInput } from '@/lib/validations/service-order'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/utils/error-message'
 
@@ -78,6 +78,37 @@ export function useUpdateServiceOrder() {
       queryClient.invalidateQueries({ queryKey: ['orders-unlaunched'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Ordem de serviço atualizada com sucesso!')
+    },
+    onError: (error: Error) => {
+      toast.error(getErrorMessage(error))
+    },
+  })
+}
+
+/** Substitui os itens/serviços de uma OS já lançada e recalcula o valor_total. */
+export function useUpdateOrderItems() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, items, desconto_valor, desconto_percentual }: {
+      id: string
+      items: ServiceOrderItemInput[]
+      desconto_valor?: number
+      desconto_percentual?: number
+    }) => {
+      const res = await fetch(`/api/orders/${id}/items`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, desconto_valor, desconto_percentual }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar itens da ordem de serviço')
+      return data as { valor_total: number; desconto_valor: number; desconto_percentual: number; status_pagamento: string; items: ServiceOrderItem[] }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      toast.success('Itens da ordem de serviço atualizados!')
     },
     onError: (error: Error) => {
       toast.error(getErrorMessage(error))

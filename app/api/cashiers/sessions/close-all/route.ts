@@ -5,6 +5,7 @@ import { orgCashierSessions, orgCashierMovements, orgSystemPreferences } from '@
 import { eq, and, isNull, inArray } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { requireProPlan } from '@/lib/plan-limits'
+import { calcularSaldoEsperado } from '@/lib/cashier-balance'
 
 // Fecha todas as sessões abertas da organização com saldo_real = saldo_esperado
 export async function POST() {
@@ -60,28 +61,27 @@ export async function POST() {
 
     await Promise.all(sessoes.map(async (sessao) => {
       const movs = movsPorSessao.get(sessao.id) ?? []
-      const entradas = movs.filter(m => m.tipo === 'entrada').reduce((s, m) => s + Number(m.valor), 0)
-      const saidas   = movs.filter(m => m.tipo === 'saida').reduce((s, m) => s + Number(m.valor), 0)
-      const sangrias = movs.filter(m => m.tipo === 'sangria').reduce((s, m) => s + Number(m.valor), 0)
-      const reforcos = movs.filter(m => m.tipo === 'reforco').reduce((s, m) => s + Number(m.valor), 0)
-      const saldoEsperado = Number(sessao.saldoInicial) + entradas - saidas - sangrias + reforcos
+      const saldoEsperado = calcularSaldoEsperado(sessao.saldoInicial, movs)
 
       await db
         .update(orgCashierSessions)
         .set({
           status:                'fechado',
           dataFechamento:        agora,
-          // saldoReal fica em branco de propósito — fechamento automático não
+          // saldoReal fica em branco de propósito — fechamento em lote não
           // conferiu dinheiro físico nenhum, então não existe valor "real" a
           // registrar. Preencher com o esperado mascararia qualquer furo de
           // caixa real do dia, já que sempre bateria "certinho"
           saldoReal:             null,
           saldoEsperado:         String(saldoEsperado),
           diferenca:             null,
-          observacoesFechamento: 'Fechamento automático à meia-noite — sem conferência de dinheiro físico, revisar quando possível',
+          observacoesFechamento: 'Fechamento em lote (todos os caixas) — sem conferência de dinheiro físico, revisar quando possível',
           updatedAt:             agora,
         })
-        .where(eq(orgCashierSessions.id, sessao.id))
+        // status='aberto' no WHERE evita que esta requisição sobrescreva
+        // silenciosamente um fechamento que outra chamada concorrente (duplo
+        // clique, ou overlap com o cron noturno) já tenha feito na mesma sessão
+        .where(and(eq(orgCashierSessions.id, sessao.id), eq(orgCashierSessions.status, 'aberto')))
     }))
 
     return NextResponse.json({ closed: sessoes.length })

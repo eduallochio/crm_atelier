@@ -13,6 +13,7 @@ import {
 import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
+import { calcularDesconto } from '@/lib/order-discount'
 
 export async function GET() {
   let organizationId: string | undefined
@@ -168,16 +169,19 @@ export async function POST(request: Request) {
       observacoes?: string
     }> = body.items || []
 
-    const subtotal = items.reduce((sum, item) => sum + item.valor_total, 0)
+    // valor_total de cada item é sempre recalculado aqui (quantidade × valor
+    // unitário) — nunca confia no valor_total que o cliente mandou, mesma
+    // regra já aplicada em PUT /api/orders/[id]/items; sem isso um caller
+    // poderia subfaturar a OS mandando um valor_total divergente
+    const itemTotals = items.map(item => {
+      const quantidade = Math.max(1, Number(item.quantidade) || 1)
+      const valorUnitario = Math.max(0, Number(item.valor_unitario) || 0)
+      return quantidade * valorUnitario
+    })
+    const subtotal = itemTotals.reduce((sum, v) => sum + v, 0)
 
-    let valorDesconto = 0
-    if (body.desconto_percentual && body.desconto_percentual > 0) {
-      valorDesconto = (subtotal * body.desconto_percentual) / 100
-    } else if (body.desconto_valor && body.desconto_valor > 0) {
-      valorDesconto = body.desconto_valor
-    }
-
-    const valor_total = Math.max(0, subtotal - valorDesconto)
+    const { descontoPercentual, descontoValor, valorTotal: valor_total } =
+      calcularDesconto(subtotal, body.desconto_percentual, body.desconto_valor)
     const valor_entrada = body.valor_entrada || 0
     const valor_pago = valor_entrada
 
@@ -203,8 +207,8 @@ export async function POST(request: Request) {
           valorEntrada:       String(valor_entrada),
           valorPago:          String(valor_pago),
           statusPagamento:    status_pagamento,
-          descontoValor:      String(body.desconto_valor || 0),
-          descontoPercentual: String(body.desconto_percentual || 0),
+          descontoValor:      String(descontoValor),
+          descontoPercentual: String(descontoPercentual),
           dataPrevista:       body.data_prevista || null,
           formaPagamento:     body.forma_pagamento || null,
           observacoes:        body.observacoes || null,
@@ -216,13 +220,13 @@ export async function POST(request: Request) {
       // Create items
       if (items.length > 0) {
         await tx.insert(orgServiceOrderItems).values(
-          items.map(item => ({
+          items.map((item, index) => ({
             orderId:       newOrder.id,
             serviceId:     item.service_id || null,
             serviceNome:   item.service_nome,
-            quantidade:    item.quantidade,
-            valorUnitario: String(item.valor_unitario),
-            valorTotal:    String(item.valor_total),
+            quantidade:    Math.max(1, Number(item.quantidade) || 1),
+            valorUnitario: String(Math.max(0, Number(item.valor_unitario) || 0)),
+            valorTotal:    String(itemTotals[index]),
             observacoes:   item.observacoes || null,
           }))
         )

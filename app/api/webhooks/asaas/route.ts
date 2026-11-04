@@ -76,8 +76,12 @@ export async function POST(req: NextRequest) {
       try {
         confirmedPayment = payment.id ? await getPayment(payment.id) : null
       } catch (corroborationErr) {
+        // Falha ao chamar a API do Asaas (rede, instabilidade) é transitória,
+        // diferente de "pagamento não confirmado" — 200 aqui faria o Asaas
+        // desistir de reenviar e o evento se perderia de vez. 503 sinaliza
+        // falha temporária para o Asaas tentar novamente depois.
         logServerError('[webhook/asaas] falha ao corroborar pagamento com a API do Asaas', corroborationErr)
-        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar o pagamento' }, { status: 200 })
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar o pagamento' }, { status: 503 })
       }
       if (!confirmedPayment || !['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(confirmedPayment.status)) {
         logServerError('[webhook/asaas] pagamento não confirmado na API do Asaas', new Error(`payment.id=${payment.id} status=${confirmedPayment?.status}`))
@@ -104,7 +108,10 @@ export async function POST(req: NextRequest) {
         // (caracteres curinga do LIKE) antes de interpolar o payment.id —
         // sem isso, um id contendo esses caracteres poderia casar com outras
         // linhas por acidente
-        const escapedPaymentId = String(payment.id).replace(/[%_]/g, '\\$&')
+        // Escapa primeiro o backslash (escape char padrão do LIKE no Postgres),
+        // depois % e _ — ordem importa, senão os backslashes inseridos para
+        // escapar % e _ seriam re-escapados incorretamente
+        const escapedPaymentId = String(payment.id).replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&')
         const [already] = await db
           .select({ id: orgPayables.id })
           .from(orgPayables)
@@ -139,7 +146,11 @@ export async function POST(req: NextRequest) {
               .limit(1)
 
             const isFirstConfirmedPayment = !orgRow?.firstPaymentConfirmedAt
-            const confirmedAt = payment.confirmedDate ?? payment.paymentDate ?? format(new Date(), 'yyyy-MM-dd')
+            // Usa a data corroborada pela API do Asaas, não o corpo da
+            // requisição — esse valor alimenta o cálculo da data de bônus
+            // (+60 dias) persistida em firstPaymentConfirmedAt, então
+            // confiar no body permitiria manipular a janela de renovação
+            const confirmedAt = confirmedPayment.confirmedDate ?? confirmedPayment.paymentDate ?? format(new Date(), 'yyyy-MM-dd')
 
             if (isFirstConfirmedPayment && sub.cycle === 'MONTHLY') {
               const bonusDueDateStr = format(addDays(new Date(`${confirmedAt}T12:00:00`), 60), 'yyyy-MM-dd')
@@ -222,10 +233,22 @@ export async function POST(req: NextRequest) {
 
     // Pagamento atrasado → manter pro mas marcar como inadimplente (não rebaixar imediatamente)
     if (PAYMENT_OVERDUE.has(event) && payment?.subscription) {
+      // Corrobora contra a API do Asaas antes de confiar no subscription.id do
+      // body — mesmo vetor de spoofing do branch PAYMENT_CONFIRMED: qualquer um
+      // com o token estático do webhook poderia, sem isso, marcar qualquer
+      // assinatura paga como inadimplente
+      let confirmedSub
+      try {
+        confirmedSub = await getSubscription(payment.subscription)
+      } catch (corroborationErr) {
+        logServerError('[webhook/asaas] falha ao corroborar assinatura (overdue) com a API do Asaas', corroborationErr)
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar a assinatura' }, { status: 503 })
+      }
+
       const [org] = await db
         .select({ id: organizations.id })
         .from(organizations)
-        .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+        .where(eq(organizations.asaasSubscriptionId, confirmedSub.id))
         .limit(1)
 
       if (org) {
@@ -241,10 +264,21 @@ export async function POST(req: NextRequest) {
 
     // Assinatura cancelada → rebaixar para free
     if (SUBSCRIPTION_CANCELLED.has(event) && subscription?.id) {
+      // Idem: corrobora o ID da assinatura antes de rebaixar qualquer
+      // organização — essa é a mutação mais destrutiva do webhook (derruba
+      // o plano pago), então o gate de corroboração é obrigatório aqui
+      let confirmedSub
+      try {
+        confirmedSub = await getSubscription(subscription.id)
+      } catch (corroborationErr) {
+        logServerError('[webhook/asaas] falha ao corroborar assinatura (cancelamento) com a API do Asaas', corroborationErr)
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar a assinatura' }, { status: 503 })
+      }
+
       const [org] = await db
         .select({ id: organizations.id })
         .from(organizations)
-        .where(eq(organizations.asaasSubscriptionId, subscription.id))
+        .where(eq(organizations.asaasSubscriptionId, confirmedSub.id))
         .limit(1)
 
       if (org) {
@@ -260,13 +294,27 @@ export async function POST(req: NextRequest) {
 
     // Estorno ou chargeback → marca como overdue para revisão manual
     if (PAYMENT_REFUNDED.has(event) && payment) {
-      let orgId: string | null = payment.externalReference ?? null
+      // Corrobora o pagamento contra a API do Asaas — mesmo princípio dos
+      // outros branches: o corpo do webhook não é confiável por si só
+      let confirmedPayment
+      try {
+        confirmedPayment = payment.id ? await getPayment(payment.id) : null
+      } catch (corroborationErr) {
+        logServerError('[webhook/asaas] falha ao corroborar pagamento (estorno/chargeback) com a API do Asaas', corroborationErr)
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar o pagamento' }, { status: 503 })
+      }
+      if (!confirmedPayment) {
+        logServerError('[webhook/asaas] pagamento não encontrado na API do Asaas (estorno/chargeback)', new Error(`payment.id=${payment.id}`))
+        return NextResponse.json({ ok: false, error: 'Pagamento não encontrado' }, { status: 200 })
+      }
 
-      if (!orgId && payment.subscription) {
+      let orgId: string | null = confirmedPayment.externalReference ?? null
+
+      if (!orgId && confirmedPayment.subscription) {
         const [found] = await db
           .select({ id: organizations.id })
           .from(organizations)
-          .where(eq(organizations.asaasSubscriptionId, payment.subscription))
+          .where(eq(organizations.asaasSubscriptionId, confirmedPayment.subscription))
           .limit(1)
         orgId = found?.id ?? null
       }
@@ -282,7 +330,7 @@ export async function POST(req: NextRequest) {
         // aparecer em /fix-payment-errors, não só no console (efêmero)
         logServerError(
           '[webhook/asaas] chargeback/estorno',
-          new Error(`${event} para organização ${orgId} (payment ${payment.id ?? 'desconhecido'}, valor R$ ${payment.value ?? '?'})`)
+          new Error(`${event} para organização ${orgId} (payment ${confirmedPayment.id}, valor R$ ${confirmedPayment.value ?? '?'})`)
         )
       }
       return NextResponse.json({ ok: true })

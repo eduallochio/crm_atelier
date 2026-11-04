@@ -102,20 +102,45 @@ export function limitExceededResponse(resource: string, limit: number) {
   }
 }
 
+// Cache em memória por organização, mesmo TTL de getPlanLimits() — requireProPlan
+// agora é chamado em ~22 rotas por request, então sem cache cada uma pagaria
+// um round-trip extra contra o pooler do Supabase (recurso limitado sob carga
+// serverless, conforme CLAUDE.md). Só persiste entre requests na mesma
+// instância de função (Fluid Compute reaproveita instâncias), não é global.
+const proPlanCache = new Map<string, { eligible: boolean; at: number }>()
+const PRO_PLAN_CACHE_TTL_MS = 60_000
+const PRO_PLAN_CACHE_MAX_SIZE = 500
+
 /**
  * Bloqueia acesso de organizações no plano Free a módulos exclusivos do Pro+
  * (financeiro, caixa, estoque). Lança 'FORBIDDEN' — mesmo padrão já usado nas
  * rotas de estoque — para o catch de cada rota converter em 403.
  */
 export async function requireProPlan(organizationId: string): Promise<void> {
+  const hit = proPlanCache.get(organizationId)
+  if (hit && Date.now() - hit.at < PRO_PLAN_CACHE_TTL_MS) {
+    if (!hit.eligible) throw new Error('FORBIDDEN')
+    return
+  }
+
   const [org] = await db
     .select({ plan: organizations.plan, lifetimeLicense: organizations.lifetimeLicense })
     .from(organizations)
     .where(eq(organizations.id, organizationId))
-  // org.lifetimeLicense já é a mesma coluna que hasLifetimeLicense() consultaria
-  // de novo — evita um segundo round-trip ao banco por request em rotas de
-  // alto tráfego (financeiro/caixa)
-  if (org?.plan === 'free' && !org?.lifetimeLicense) {
+
+  // Organização inexistente/ilegível deve negar acesso (fail-closed), não
+  // conceder — sem este guard, `org` undefined faria a condição abaixo
+  // avaliar false e a função retornaria normalmente, liberando acesso Pro
+  // para um organizationId órfão ou uma linha que não pôde ser lida
+  const eligible = !!org && (org.plan !== 'free' || !!org.lifetimeLicense)
+
+  // Limite de tamanho simples — evita crescimento ilimitado do Map numa
+  // instância de função de vida longa; não precisa ser LRU sofisticado,
+  // só impedir memory leak em cenários extremos
+  if (proPlanCache.size >= PRO_PLAN_CACHE_MAX_SIZE) proPlanCache.clear()
+  proPlanCache.set(organizationId, { eligible, at: Date.now() })
+
+  if (!eligible) {
     throw new Error('FORBIDDEN')
   }
 }
