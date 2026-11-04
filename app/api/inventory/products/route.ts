@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgProducts, organizations } from '@/lib/db/schema'
+import { orgProducts, orgProductCategories, organizations } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
@@ -22,8 +22,24 @@ export async function GET() {
     await checkPlan(user.organizationId)
 
     const products = await db
-      .select()
+      .select({
+        id:               orgProducts.id,
+        organizationId:   orgProducts.organizationId,
+        nome:             orgProducts.nome,
+        descricao:        orgProducts.descricao,
+        unidade:          orgProducts.unidade,
+        quantidadeAtual:  orgProducts.quantidadeAtual,
+        quantidadeMinima: orgProducts.quantidadeMinima,
+        precoCusto:       orgProducts.precoCusto,
+        codigoBarras:     orgProducts.codigoBarras,
+        ativo:            orgProducts.ativo,
+        createdAt:        orgProducts.createdAt,
+        updatedAt:        orgProducts.updatedAt,
+        categoryId:       orgProducts.categoryId,
+        categoriaNome:    orgProductCategories.nome,
+      })
       .from(orgProducts)
+      .leftJoin(orgProductCategories, eq(orgProductCategories.id, orgProducts.categoryId))
       .where(eq(orgProducts.organizationId, user.organizationId))
       .orderBy(asc(orgProducts.nome))
 
@@ -32,6 +48,8 @@ export async function GET() {
       organization_id:  p.organizationId,
       nome:             p.nome,
       descricao:        p.descricao,
+      categoria:        p.categoriaNome,
+      category_id:      p.categoryId,
       unidade:          p.unidade,
       quantidade_atual: Number(p.quantidadeAtual ?? 0),
       quantidade_minima: Number(p.quantidadeMinima ?? 0),
@@ -59,6 +77,7 @@ export async function POST(request: Request) {
     const {
       nome,
       descricao,
+      category_id: categoryId,
       unidade = 'un',
       quantidade_atual: quantidadeAtual = 0,
       quantidade_minima: quantidadeMinima = 0,
@@ -68,12 +87,26 @@ export async function POST(request: Request) {
 
     if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
 
+    // Valida que a categoria informada pertence a esta org — sem esse
+    // filtro, um category_id de outra organização seria aceito
+    let categoryName: string | null = null
+    if (categoryId) {
+      const [owned] = await db
+        .select({ nome: orgProductCategories.nome })
+        .from(orgProductCategories)
+        .where(and(eq(orgProductCategories.id, categoryId), eq(orgProductCategories.organizationId, user.organizationId)))
+        .limit(1)
+      if (!owned) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 400 })
+      categoryName = owned.nome
+    }
+
     const [product] = await db
       .insert(orgProducts)
       .values({
         organizationId: user.organizationId,
         nome,
         descricao: descricao ?? null,
+        categoryId: categoryId || null,
         unidade,
         quantidadeAtual: String(quantidadeAtual ?? 0),
         quantidadeMinima: String(quantidadeMinima ?? 0),
@@ -87,6 +120,8 @@ export async function POST(request: Request) {
       organization_id:  product.organizationId,
       nome:             product.nome,
       descricao:        product.descricao,
+      categoria:        categoryName,
+      category_id:      product.categoryId,
       unidade:          product.unidade,
       quantidade_atual: Number(product.quantidadeAtual ?? 0),
       quantidade_minima: Number(product.quantidadeMinima ?? 0),

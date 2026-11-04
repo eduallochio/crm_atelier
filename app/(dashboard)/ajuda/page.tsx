@@ -459,7 +459,7 @@ export default function AjudaPage() {
             {/* 7. Estoque */}
             <section className="page-break">
               <SectionHeader icon={Package} n="7" title="Estoque" />
-              <P>Os materiais do ateliê (tecidos, linhas, aviamentos) com a quantidade de cada um. Cinco abas: <strong>Produtos</strong>, <strong>Entradas</strong>, <strong>Saídas</strong>, <strong>Relatórios</strong> e <strong>Fornecedores</strong>.</P>
+              <P>Os materiais do ateliê (tecidos, linhas, aviamentos) com a quantidade de cada um. Seis abas: <strong>Produtos</strong>, <strong>Entradas</strong>, <strong>Saídas</strong>, <strong>Categorias</strong>, <strong>Relatórios</strong> e <strong>Fornecedores</strong>.</P>
               <Shot src="/manual/estoque.webp" alt="Tela de estoque com os produtos e a ficha do produto" pins={PINS.estoque} onZoom={onZoom} legend={[
                 <><strong>Filtros</strong>: estoque baixo, zerados, ativos e inativos.</>,
                 <><strong>Régua de cada produto</strong>: a linha costurada mostra a quantidade até o mínimo. Abaixo dele, o produto fica em alerta.</>,
@@ -475,6 +475,8 @@ export default function AjudaPage() {
               ]} />
               <H3>Baixa automática pelas ordens</H3>
               <P>Com o controle de estoque ligado, ao concluir uma ordem que tem materiais, o sistema dá baixa em cada produto. A saída aparece na aba Saídas, com o número da ordem.</P>
+              <H3>Categorias de produto</H3>
+              <P>Na aba <strong>Categorias</strong>, cadastre e organize os grupos de produto (Tecidos, Aviamentos, Linhas...) com nome e cor. Ao criar ou editar um produto, escolha a categoria num menu — não é mais preciso digitar o nome toda vez. Uma categoria com produtos vinculados não pode ser excluída; é preciso mover os produtos para outra categoria antes.</P>
               <Note>Em <strong>Relatórios</strong> há a posição do estoque, os itens em estoque baixo, o valor total parado em estoque e o histórico de entradas, todos com exportação em PDF e Excel.</Note>
             </section>
 

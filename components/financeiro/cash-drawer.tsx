@@ -10,7 +10,7 @@ import type { CashierMovement, CashierSessionWithRelations } from '@/lib/validat
 import { AddMovementDialog } from './add-movement-dialog'
 import { CloseCashierDialog } from './close-cashier-dialog'
 import { OpenCashierDialog } from './open-cashier-dialog'
-import { brl, timeOf } from './finance-ui'
+import { brl, dayLabel, timeOf } from './finance-ui'
 
 export type MoveKind = 'entrada' | 'saida' | 'sangria' | 'reforco'
 
@@ -94,10 +94,22 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
   const { data: moves = [], isLoading } = useCashierMovements(sessionId)
   const closeCashier = useCloseCashier()
   const unl = useUnlaunchedOrders()
+  const { data: settings } = useQuery({
+    queryKey: ['system-preferences'],
+    queryFn: () => fetch('/api/settings/system').then((r) => r.json()),
+    staleTime: 60_000,
+  })
   const [adding, setAdding] = useState<MoveKind | null>(null)
   const [closing, setClosing] = useState(false)
   const t = sessionTotals(session.saldo_inicial, moves)
   const unlTotal = unl.list.reduce((s, o) => s + (Number(o.valorTotal) || 0), 0)
+
+  const abertura = session.data_abertura
+  const aberturaLabel = abertura ? `${dayLabel(abertura).toLowerCase()} às ${timeOf(abertura)}` : '—'
+  // Fechamento automático roda à meia-noite (03:00 UTC = meia-noite BRT) via
+  // Vercel Cron — ver app/api/cron/close-cashiers. Quando desligado nas
+  // preferências do sistema, o caixa só fecha manualmente.
+  const autoClose = settings?.fechamento_automatico_caixa !== false
 
   return (
     <section aria-label="Caixa de hoje" className="drawer">
@@ -105,6 +117,9 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
         <b className="truncate text-sm font-semibold">{session.org_cashiers?.nome || 'Caixa'}</b>
         <span className="dr-pill shrink-0">Aberto {timeOf(session.data_abertura)}</span>
       </div>
+      <p className="dr-soft px-5 pt-1 text-[12px]">
+        Aberto {aberturaLabel} · {autoClose ? 'fecha automaticamente à meia-noite' : 'fechamento manual'}
+      </p>
 
       <div className="dr-line border-b border-dashed px-5 pt-3 pb-4">
         <p className="fin-cap">Na gaveta agora</p>

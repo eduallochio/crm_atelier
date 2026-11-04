@@ -521,6 +521,23 @@ export const orgSystemPreferences = pgTable('org_system_preferences', {
   updatedAt:                  timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
+// ─── 25.1. ORG PRODUCT CATEGORIES ─────────────────────────────────────────────
+
+export const orgProductCategories = pgTable('org_product_categories', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  nome:           text('nome').notNull(),
+  cor:            text('cor'),
+  ativo:          boolean('ativo').notNull().default(true),
+  createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt:      timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_product_categories_org').on(t.organizationId),
+  // Índice único case-insensitive — 'Tecidos' e 'tecidos' não podem coexistir
+  // na mesma organização (uq_product_categories_org_nome_ci no banco)
+  uniqueIndex('uq_product_categories_org_nome_ci').on(t.organizationId, sql`lower(${t.nome})`),
+])
+
 // ─── 26. ORG PRODUCTS (Estoque) ───────────────────────────────────────────────
 
 export const orgProducts = pgTable('org_products', {
@@ -528,7 +545,11 @@ export const orgProducts = pgTable('org_products', {
   organizationId:   uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   nome:             text('nome').notNull(),
   descricao:        text('descricao'),
+  // Mantida apenas por compatibilidade com dados antigos — o cadastro atual
+  // de categoria usa categoryId (org_product_categories). Não escrever aqui
+  // em código novo.
   categoria:        text('categoria'),
+  categoryId:       uuid('category_id').references(() => orgProductCategories.id, { onDelete: 'set null' }),
   unidade:          text('unidade').notNull().default('un'),
   quantidadeAtual:  numeric('quantidade_atual', { precision: 10, scale: 3 }).notNull().default('0'),
   quantidadeMinima: numeric('quantidade_minima', { precision: 10, scale: 3 }).notNull().default('0'),
@@ -540,6 +561,7 @@ export const orgProducts = pgTable('org_products', {
 }, (t) => [
   index('idx_products_org').on(t.organizationId),
   index('idx_products_active').on(t.organizationId, t.ativo),
+  index('idx_products_category').on(t.categoryId),
 ])
 
 // ─── 27. ORG STOCK ENTRIES ────────────────────────────────────────────────────
@@ -793,6 +815,8 @@ export type NewOrgTransaction      = typeof orgTransactions.$inferInsert
 export type OrgCashier             = typeof orgCashiers.$inferSelect
 export type OrgCashierSession      = typeof orgCashierSessions.$inferSelect
 export type OrgCashierMovement     = typeof orgCashierMovements.$inferSelect
+export type OrgProductCategory     = typeof orgProductCategories.$inferSelect
+export type NewOrgProductCategory  = typeof orgProductCategories.$inferInsert
 export type OrgProduct             = typeof orgProducts.$inferSelect
 export type NewOrgProduct          = typeof orgProducts.$inferInsert
 export type OrgStockEntry          = typeof orgStockEntries.$inferSelect

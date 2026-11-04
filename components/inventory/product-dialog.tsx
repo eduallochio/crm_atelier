@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,10 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateProduct, useUpdateProduct, type Product } from '@/hooks/use-inventory'
+import { useProductCategories } from '@/hooks/use-product-categories'
 
 const schema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório'),
-  categoria: z.string().optional(),
+  category_id: z.string().optional(),
   unidade: z.string(),
   quantidade_atual: z.number().min(0),
   quantidade_minima: z.number().min(0),
@@ -40,6 +42,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const isEditing = !!product?.id
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
+  const { data: categories = [] } = useProductCategories()
+  const activeCategories = categories.filter(c => c.ativo)
 
   const {
     register,
@@ -55,7 +59,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     if (open) {
       reset({
         nome: product?.nome || '',
-        categoria: product?.categoria || '',
+        category_id: product?.category_id || '',
         unidade: product?.unidade || 'un',
         quantidade_atual: isEditing ? (product?.quantidade_atual ?? 0) : 0,
         quantidade_minima: product?.quantidade_minima ?? 0,
@@ -94,8 +98,20 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="categoria">Categoria</Label>
-              <Input id="categoria" {...register('categoria')} placeholder="Ex: Tecidos" />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="category_id">Categoria</Label>
+                <Link href="/estoque/categorias" className="text-[12px] font-medium text-[#8A4B2C] hover:underline dark:text-[#E39B78]">Gerenciar</Link>
+              </div>
+              <select
+                id="category_id"
+                {...register('category_id')}
+                className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground"
+              >
+                <option value="">Sem categoria</option>
+                {activeCategories.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="unidade">Unidade</Label>

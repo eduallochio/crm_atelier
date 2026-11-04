@@ -16,6 +16,7 @@ const TABS = [
   { href: '/estoque', label: 'Produtos', key: 'produtos' },
   { href: '/estoque/entradas', label: 'Entradas', key: 'entradas' },
   { href: '/estoque/saidas', label: 'Saídas', key: 'saidas' },
+  { href: '/estoque/categorias', label: 'Categorias', key: 'categorias' },
   { href: '/estoque/relatorios', label: 'Relatórios', key: 'relatorios' },
   { href: '/fornecedores', label: 'Fornecedores', key: 'fornecedores' },
 ] as const

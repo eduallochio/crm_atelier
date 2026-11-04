@@ -9,6 +9,7 @@ export interface Product {
   nome: string
   descricao?: string
   categoria?: string
+  category_id?: string | null
   unidade: string
   quantidade_atual: number
   quantidade_minima: number
@@ -76,6 +77,7 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['product-categories'] })
       toast.success('Produto cadastrado!')
     },
     onError: (e: Error) => toast.error(e.message),
@@ -99,6 +101,7 @@ export function useUpdateProduct() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['product-categories'] })
       toast.success('Produto atualizado!')
     },
     onError: (e: Error) => toast.error(e.message),
@@ -117,6 +120,7 @@ export function useDeleteProduct() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['product-categories'] })
       toast.success('Produto removido!')
     },
     onError: (e: Error) => toast.error(e.message),

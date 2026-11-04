@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgProducts, organizations } from '@/lib/db/schema'
+import { orgProducts, orgProductCategories, organizations } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { hasLifetimeLicense } from '@/lib/plan-limits'
@@ -15,9 +15,27 @@ async function checkPlanAndProduct(organizationId: string, productId: string) {
     throw new Error('FORBIDDEN')
   }
 
+  // leftJoin traz o nome da categoria na mesma query — evita um round-trip
+  // extra contra o pooler do Supabase (max: 5 conexões, ver lib/db/index.ts)
   const [product] = await db
-    .select()
+    .select({
+      id:               orgProducts.id,
+      organizationId:   orgProducts.organizationId,
+      nome:             orgProducts.nome,
+      descricao:        orgProducts.descricao,
+      categoryId:       orgProducts.categoryId,
+      categoriaNome:    orgProductCategories.nome,
+      unidade:          orgProducts.unidade,
+      quantidadeAtual:  orgProducts.quantidadeAtual,
+      quantidadeMinima: orgProducts.quantidadeMinima,
+      precoCusto:       orgProducts.precoCusto,
+      codigoBarras:     orgProducts.codigoBarras,
+      ativo:            orgProducts.ativo,
+      createdAt:        orgProducts.createdAt,
+      updatedAt:        orgProducts.updatedAt,
+    })
     .from(orgProducts)
+    .leftJoin(orgProductCategories, eq(orgProductCategories.id, orgProducts.categoryId))
     .where(and(eq(orgProducts.id, productId), eq(orgProducts.organizationId, organizationId)))
   if (!product) throw new Error('NOT_FOUND')
 
@@ -34,6 +52,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       organization_id:  product.organizationId,
       nome:             product.nome,
       descricao:        product.descricao,
+      categoria:        product.categoriaNome,
+      category_id:      product.categoryId,
       unidade:          product.unidade,
       quantidade_atual: Number(product.quantidadeAtual ?? 0),
       quantidade_minima: Number(product.quantidadeMinima ?? 0),
@@ -63,6 +83,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const {
       nome,
       descricao,
+      category_id: categoryId,
       unidade,
       quantidade_minima: quantidadeMinima,
       preco_custo: precoCusto,
@@ -70,11 +91,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       ativo,
     } = body
 
+    // Valida que a categoria informada pertence a esta org
+    let categoryName: string | null = null
+    if (categoryId) {
+      const [owned] = await db
+        .select({ nome: orgProductCategories.nome })
+        .from(orgProductCategories)
+        .where(and(eq(orgProductCategories.id, categoryId), eq(orgProductCategories.organizationId, user.organizationId)))
+        .limit(1)
+      if (!owned) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 400 })
+      categoryName = owned.nome
+    }
+
     const [updated] = await db
       .update(orgProducts)
       .set({
         nome,
         descricao: descricao ?? null,
+        categoryId: categoryId || null,
         unidade: unidade ?? 'un',
         quantidadeMinima: quantidadeMinima != null ? String(quantidadeMinima) : '0',
         precoCusto: precoCusto != null ? String(precoCusto) : null,
@@ -90,6 +124,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       organization_id:  updated.organizationId,
       nome:             updated.nome,
       descricao:        updated.descricao,
+      categoria:        categoryName,
+      category_id:      updated.categoryId,
       unidade:          updated.unidade,
       quantidade_atual: Number(updated.quantidadeAtual ?? 0),
       quantidade_minima: Number(updated.quantidadeMinima ?? 0),
