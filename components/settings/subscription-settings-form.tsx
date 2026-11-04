@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { PlanCelebration, clearProPending, markProPending } from '@/components/subscription/plan-celebration'
 import { PixPayment } from '@/components/subscription/pix-payment'
+import { CardForm, EMPTY_CARD, splitExpiry, validateCard, type CardData, type CardErrors } from '@/components/subscription/card-form'
 import { renewalLabel } from '@/lib/utils/subscription'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -145,15 +146,14 @@ export function SubscriptionSettingsForm() {
   // Parcelamento (apenas anual + cartão)
   const [installments, setInstallments] = useState(3)
 
-  // Dados do cartão
-  const [cardHolderName, setCardHolderName] = useState('')
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardExpiry, setCardExpiry] = useState('')   // MM/AAAA
-  const [cardCcv, setCardCcv] = useState('')
-  const [cardHolderCpf, setCardHolderCpf] = useState('')
-  const [cardHolderPhone, setCardHolderPhone] = useState('')
-  const [cardHolderPostalCode, setCardHolderPostalCode] = useState('')
-  const [cardHolderAddressNumber, setCardHolderAddressNumber] = useState('')
+  // Dados do cartão (os erros só aparecem depois da 1ª tentativa de assinar e somem conforme corrige)
+  const [card, setCard] = useState<CardData>(EMPTY_CARD)
+  const [cardErrors, setCardErrors] = useState<CardErrors>({})
+  const [cardTried, setCardTried] = useState(false)
+  const changeCard = (next: CardData) => {
+    setCard(next)
+    if (cardTried) setCardErrors(validateCard(next))
+  }
 
   const { data: usage, isLoading: loadingUsage } = useQuery<PlanUsage>({
     queryKey: ['plan-usage'],
@@ -293,31 +293,20 @@ export function SubscriptionSettingsForm() {
 
   async function handleCheckout() {
     if (billingType === 'CREDIT_CARD') {
-      if (!cardHolderName.trim() || !cardNumber.trim() || !cardExpiry.trim() || !cardCcv.trim()) {
-        toast.error('Preencha todos os dados do cartão')
-        return
-      }
-      if (!cardHolderCpf.trim()) {
-        toast.error('Informe o CPF do titular do cartão')
-        return
-      }
-      if (!cardHolderPhone.trim()) {
-        toast.error('Informe o telefone do titular do cartão')
-        return
-      }
-      if (!cardHolderPostalCode.trim()) {
-        toast.error('Informe o CEP do titular do cartão')
-        return
-      }
-      if (!cardHolderAddressNumber.trim()) {
-        toast.error('Informe o número do endereço do titular do cartão')
+      const errs = validateCard(card)
+      setCardTried(true)
+      setCardErrors(errs)
+      if (Object.keys(errs).length > 0) {
+        // leva a pessoa (e o leitor de tela) direto ao primeiro campo com problema
+        requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-card-form] [aria-invalid="true"]')?.focus())
         return
       }
     }
 
     setSubmitting(true)
     try {
-      const [expiryMonth, expiryYear] = cardExpiry.split('/')
+      const { month: expiryMonth, year: expiryYear } = splitExpiry(card.expiry)
+      const isCard = billingType === 'CREDIT_CARD'
 
       const res = await fetch('/api/checkout/asaas', {
         method: 'POST',
@@ -330,15 +319,15 @@ export function SubscriptionSettingsForm() {
           installment_count:  activeInstallments > 1 ? activeInstallments : undefined,
           // sem juros → enviamos o valor por parcela; com juros → Asaas calcula
           installment_value:  activeInstallments > 1 && activeInstallments <= 3 ? installmentValue : undefined,
-          card_holder_name:   billingType === 'CREDIT_CARD' ? cardHolderName.trim() : undefined,
-          card_number:        billingType === 'CREDIT_CARD' ? cardNumber.replace(/\s/g, '') : undefined,
-          card_expiry_month:  billingType === 'CREDIT_CARD' ? expiryMonth?.trim() : undefined,
-          card_expiry_year:   billingType === 'CREDIT_CARD' ? expiryYear?.trim() : undefined,
-          card_ccv:           billingType === 'CREDIT_CARD' ? cardCcv.trim() : undefined,
-          card_holder_cpf:         billingType === 'CREDIT_CARD' ? cardHolderCpf : undefined,
-          card_holder_phone:       billingType === 'CREDIT_CARD' ? cardHolderPhone : undefined,
-          card_holder_postal_code:    billingType === 'CREDIT_CARD' ? cardHolderPostalCode : undefined,
-          card_holder_address_number: billingType === 'CREDIT_CARD' ? cardHolderAddressNumber : undefined,
+          card_holder_name:   isCard ? card.holderName.trim() : undefined,
+          card_number:        isCard ? card.number.replace(/\s/g, '') : undefined,
+          card_expiry_month:  isCard ? expiryMonth : undefined,
+          card_expiry_year:   isCard ? expiryYear : undefined,  // sempre com 4 dígitos (MM/AA vira 20AA)
+          card_ccv:           isCard ? card.ccv : undefined,
+          card_holder_cpf:         isCard ? card.cpf : undefined,
+          card_holder_phone:       isCard ? card.phone : undefined,
+          card_holder_postal_code:    isCard ? card.postalCode : undefined,
+          card_holder_address_number: isCard ? card.addressNumber.trim() : undefined,
         }),
       })
       const data = await res.json()
@@ -663,18 +652,16 @@ export function SubscriptionSettingsForm() {
       {showCheckout && (
         <div className="rounded-2xl border-2 border-[#c8714a] bg-card p-4 sm:p-6 space-y-5 sm:space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Crown className="h-5 w-5 text-[#c8714a]" />
-              Assinar Plano Pro
+            <h3 className="flex items-center gap-2 text-[28px] font-normal leading-tight text-foreground" style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}>
+              <Crown className="h-5 w-5 text-[#c8714a]" aria-hidden="true" />
+              Assinar o plano <em className="text-[#A9532F] dark:text-[#E39B78]">Pro</em>
             </h3>
-            <Button variant="ghost" size="icon" onClick={() => {
+            <Button variant="ghost" size="icon" aria-label="Fechar o checkout" onClick={() => {
               setShowCheckout(false)
               setPixData(null)
               removeCoupon()
               setInstallments(3)
-              setCardHolderName(''); setCardNumber(''); setCardExpiry('')
-              setCardCcv(''); setCardHolderCpf(''); setCardHolderPhone('')
-              setCardHolderPostalCode(''); setCardHolderAddressNumber('')
+              setCard(EMPTY_CARD); setCardErrors({}); setCardTried(false)
             }}>
               <X className="h-4 w-4" />
             </Button>
@@ -784,126 +771,9 @@ export function SubscriptionSettingsForm() {
 
           {/* Formulário de cartão */}
           {billingType === 'CREDIT_CARD' && (
-            <div className="space-y-3 rounded-xl border border-border p-4 bg-muted/30">
-              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4 text-[#c8714a]" />
-                Dados do cartão
-              </p>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Nome no cartão</Label>
-                <Input
-                  placeholder="NOME SOBRENOME"
-                  value={cardHolderName}
-                  onChange={e => setCardHolderName(e.target.value.toUpperCase())}
-                  className="uppercase text-base sm:text-sm"
-                  autoComplete="cc-name"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Número do cartão</Label>
-                <Input
-                  placeholder="0000 0000 0000 0000"
-                  value={cardNumber}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 16)
-                    setCardNumber(v.replace(/(.{4})/g, '$1 ').trim())
-                  }}
-                  inputMode="numeric"
-                  maxLength={19}
-                  className="text-base sm:text-sm tracking-widest"
-                  autoComplete="cc-number"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Validade (MM/AAAA)</Label>
-                  <Input
-                    placeholder="MM/AAAA"
-                    value={cardExpiry}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 6)
-                      setCardExpiry(v.length > 2 ? `${v.slice(0, 2)}/${v.slice(2)}` : v)
-                    }}
-                    inputMode="numeric"
-                    maxLength={7}
-                    className="text-base sm:text-sm"
-                    autoComplete="cc-exp"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">CVV</Label>
-                  <Input
-                    placeholder="000"
-                    value={cardCcv}
-                    onChange={e => setCardCcv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    inputMode="numeric"
-                    maxLength={4}
-                    type="password"
-                    className="text-base sm:text-sm"
-                    autoComplete="cc-csc"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">CPF do titular</Label>
-                <Input
-                  placeholder="000.000.000-00"
-                  value={cardHolderCpf}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 11)
-                    setCardHolderCpf(v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4'))
-                  }}
-                  inputMode="numeric"
-                  className="text-base sm:text-sm"
-                  autoComplete="off"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Telefone do titular</Label>
-                <Input
-                  placeholder="(00) 00000-0000"
-                  value={cardHolderPhone}
-                  onChange={e => setCardHolderPhone(e.target.value)}
-                  inputMode="tel"
-                  className="text-base sm:text-sm"
-                  autoComplete="tel"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">CEP do titular</Label>
-                  <Input
-                    placeholder="00000-000"
-                    value={cardHolderPostalCode}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 8)
-                      setCardHolderPostalCode(v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5)}` : v)
-                    }}
-                    inputMode="numeric"
-                    maxLength={9}
-                    className="text-base sm:text-sm"
-                    autoComplete="postal-code"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Número</Label>
-                  <Input
-                    placeholder="123"
-                    value={cardHolderAddressNumber}
-                    onChange={e => setCardHolderAddressNumber(e.target.value)}
-                    inputMode="numeric"
-                    className="text-base sm:text-sm"
-                    autoComplete="address-line2"
-                  />
-                </div>
-              </div>
-            </div>
+            <section data-card-form aria-label="Dados do cartão" className="rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
+              <CardForm value={card} onChange={changeCard} errors={cardErrors} disabled={submitting} />
+            </section>
           )}
 
           {/* Cupom de desconto */}
@@ -984,7 +854,7 @@ export function SubscriptionSettingsForm() {
           </div>
 
           <Button
-            className="w-full gap-2 bg-[#c8714a] hover:bg-[#b5623e] text-white h-12 sm:h-11 text-base sm:text-sm"
+            className="w-full gap-2 bg-[#A9532F] hover:bg-[#8A4B2C] text-white h-12 text-base sm:text-sm"
             onClick={handleCheckout}
             disabled={submitting}
           >
