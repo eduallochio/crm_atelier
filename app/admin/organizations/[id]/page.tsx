@@ -135,17 +135,17 @@ export default function OrganizationDetailPage() {
           </Link>
         </Button>
 
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded-lg">
+              <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded-lg shrink-0">
                 <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {organization.name}
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   ID: {organization.id}
                 </p>
               </div>
@@ -156,7 +156,7 @@ export default function OrganizationDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Entrar como org — exclusivo master */}
             <Button
               variant="outline"
@@ -262,7 +262,7 @@ export default function OrganizationDetailPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Cadastro</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {new Date(organization.created_at).toLocaleDateString('pt-BR')}
+                {organization.created_at ? new Date(organization.created_at).toLocaleDateString('pt-BR') : '—'}
               </p>
             </div>
           </div>
@@ -271,15 +271,15 @@ export default function OrganizationDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 lg:w-auto">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="subscription">Assinatura</TabsTrigger>
-          <TabsTrigger value="usage">Uso</TabsTrigger>
-          <TabsTrigger value="billing">Faturamento</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-          <TabsTrigger value="activity">Atividade</TabsTrigger>
-          <TabsTrigger value="notes">Notas</TabsTrigger>
-          <TabsTrigger value="health">Saúde</TabsTrigger>
+        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto lg:grid lg:w-auto lg:grid-cols-8 lg:overflow-visible">
+          <TabsTrigger value="overview" className="shrink-0">Visão Geral</TabsTrigger>
+          <TabsTrigger value="subscription" className="shrink-0">Assinatura</TabsTrigger>
+          <TabsTrigger value="usage" className="shrink-0">Uso</TabsTrigger>
+          <TabsTrigger value="billing" className="shrink-0">Faturamento</TabsTrigger>
+          <TabsTrigger value="users" className="shrink-0">Usuários</TabsTrigger>
+          <TabsTrigger value="activity" className="shrink-0">Atividade</TabsTrigger>
+          <TabsTrigger value="notes" className="shrink-0">Notas</TabsTrigger>
+          <TabsTrigger value="health" className="shrink-0">Saúde</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">

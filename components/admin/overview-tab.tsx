@@ -99,7 +99,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Nome da Organização</p>
             <p className="text-base font-medium text-gray-900 dark:text-white">
@@ -108,7 +108,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           </div>
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">ID da Organização</p>
-            <p className="text-base font-mono text-gray-900 dark:text-white">
+            <p className="text-base font-mono text-gray-900 dark:text-white break-all">
               {organization.id}
             </p>
           </div>
@@ -218,7 +218,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
             <Share2 className="w-5 h-5" />
             Redes Sociais
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {organization.instagram && (
               <a
                 href={`https://instagram.com/${organization.instagram.replace('@', '')}`}
@@ -284,7 +284,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <TrendingUp className="w-5 h-5" />
           Status da Assinatura
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Receita Mensal</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -324,7 +324,7 @@ export function OverviewTab({ organization }: OverviewTabProps) {
           <Activity className="w-5 h-5" />
           Resumo de Uso
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">Usuários</p>

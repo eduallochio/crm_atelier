@@ -50,6 +50,10 @@ export function OrganizationTable({
     }
   }
 
+  const orgIdShort = (id: string) => `${id.slice(0, 8)}...`
+  const orgMrr = (mrr: number) => (mrr > 0 ? `R$ ${mrr.toFixed(2)}` : '-')
+  const orgCreatedAt = (createdAt: string) => (createdAt ? format(new Date(createdAt), 'dd/MM/yyyy', { locale: ptBR }) : '—')
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -87,12 +91,96 @@ export function OrganizationTable({
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Mobile: cards empilhados — a tabela abaixo (md:block) é densa
+          demais pra telas pequenas, mesmo com scroll horizontal */}
+      <div className="md:hidden">
+        <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+          <input
+            id="org-select-all-mobile"
+            type="checkbox"
+            checked={selectedOrgs.length === organizations.length}
+            onChange={toggleSelectAll}
+            className="rounded border-gray-300 dark:border-gray-700"
+          />
+          <label htmlFor="org-select-all-mobile" className="text-sm text-gray-600 dark:text-gray-400">
+            Selecionar todos
+          </label>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {organizations.map((org) => {
+            const checkboxId = `org-select-${org.id}`
+            return (
+              <div key={org.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor={checkboxId} className="flex min-w-0 items-start gap-3">
+                    <input
+                      id={checkboxId}
+                      type="checkbox"
+                      checked={selectedOrgs.includes(org.id)}
+                      onChange={() => toggleSelectOrg(org.id)}
+                      className="mt-1 shrink-0 rounded border-gray-300 dark:border-gray-700"
+                    />
+                    <span className="min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-white truncate">{org.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{orgIdShort(org.id)}</p>
+                    </span>
+                  </label>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/admin/organizations/${org.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <PlanBadge plan={org.plan} />
+                  <StateBadge state={org.state} />
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500 dark:text-gray-400">Usuários</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{org.users_count}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500 dark:text-gray-400">Clientes</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{org.clients_count}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500 dark:text-gray-400">OS</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{org.orders_count}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500 dark:text-gray-400">MRR</dt>
+                    <dd className="font-medium text-gray-900 dark:text-white">{orgMrr(org.mrr)}</dd>
+                  </div>
+                </dl>
+
+                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  Cadastro: {orgCreatedAt(org.created_at)}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Desktop/tablet: tabela tradicional */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-3 text-left">
                 <input
+                  id="org-select-all-table"
                   type="checkbox"
                   checked={selectedOrgs.length === organizations.length}
                   onChange={toggleSelectAll}
@@ -136,6 +224,7 @@ export function OrganizationTable({
               >
                 <td className="px-6 py-4">
                   <input
+                    id={`org-select-table-${org.id}`}
                     type="checkbox"
                     checked={selectedOrgs.includes(org.id)}
                     onChange={() => toggleSelectOrg(org.id)}
@@ -145,7 +234,7 @@ export function OrganizationTable({
                 <td className="px-6 py-4">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">{org.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{org.id.slice(0, 8)}...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{orgIdShort(org.id)}</p>
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -164,10 +253,10 @@ export function OrganizationTable({
                   {org.orders_count}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                  {org.mrr > 0 ? `R$ ${org.mrr.toFixed(2)}` : '-'}
+                  {orgMrr(org.mrr)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {org.created_at ? format(new Date(org.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                  {orgCreatedAt(org.created_at)}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
