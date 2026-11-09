@@ -74,7 +74,10 @@ export async function GET(
         const subscription = await getSubscription(row.asaasSubscriptionId)
         mrr = subscription.cycle === 'YEARLY' ? subscription.value / 12 : subscription.value
       } catch (error) {
-        logServerError('[GET /api/admin/organizations/:id] getSubscription', error)
+        // 404 significa assinatura removida na Asaas — mantém o preço de tabela silenciosamente
+        if (!(error instanceof Error && error.message.includes('→ 404'))) {
+          logServerError('[GET /api/admin/organizations/:id] getSubscription', error)
+        }
       }
     }
 
