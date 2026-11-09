@@ -16,6 +16,7 @@ import {
   orgServices,
   orgStockExits,
   orgStockExitItems,
+  orgProducts,
   orgPaymentMethods,
   orgDeletionLog,
 } from '@/lib/db/schema'
@@ -382,30 +383,41 @@ export async function PUT(
 
             const materiaisComProduto = [...agregados.values()].filter(m => m.productId)
             if (materiaisComProduto.length > 0) {
-              const [stockExit] = await tx
-                .insert(orgStockExits)
-                .values({
-                  organizationId: user.organizationId,
-                  serviceOrderId: id,
-                  tipo:           'ordem_servico',
-                  observacoes:    `Baixa automática — OS #${order.numero}`,
-                })
-                .returning()
+              // Filtra apenas produtos com estoque suficiente — produtos do tipo
+              // "custo fixo" (quantidade_atual = 0, nunca tiveram entrada) são
+              // ignorados silenciosamente, igual a serviços excluídos
+              const prodIds = materiaisComProduto.map(m => m.productId!)
+              const estoqueAtual = await tx
+                .select({ id: orgProducts.id, quantidadeAtual: orgProducts.quantidadeAtual })
+                .from(orgProducts)
+                .where(inArray(orgProducts.id, prodIds))
+              const estoqueMap = new Map(estoqueAtual.map(p => [p.id, Number(p.quantidadeAtual)]))
+              const materiaisBaixar = materiaisComProduto.filter(m => {
+                const atual = estoqueMap.get(m.productId!) ?? 0
+                return atual >= m.quantidade
+              })
 
-              // O saldo do produto já é atualizado (e validado) automaticamente
-              // por um trigger no banco (handle_stock_exit_item) — não subtrai
-              // aqui de novo, senão duplica o efeito. Diferente da baixa manual,
-              // o trigger bloqueia com exceção se faltar estoque; deixamos essa
-              // exceção propagar e cancelar a conclusão da OS (ver catch abaixo)
-              await tx.insert(orgStockExitItems).values(
-                materiaisComProduto.map(m => ({
-                  exitId:      stockExit.id,
-                  productId:   m.productId!,
-                  produtoNome: m.nome,
-                  quantidade:  String(m.quantidade),
-                  unidade:     m.unidade,
-                }))
-              )
+              if (materiaisBaixar.length > 0) {
+                const [stockExit] = await tx
+                  .insert(orgStockExits)
+                  .values({
+                    organizationId: user.organizationId,
+                    serviceOrderId: id,
+                    tipo:           'ordem_servico',
+                    observacoes:    `Baixa automática — OS #${order.numero}`,
+                  })
+                  .returning()
+
+                await tx.insert(orgStockExitItems).values(
+                  materiaisBaixar.map(m => ({
+                    exitId:      stockExit.id,
+                    productId:   m.productId!,
+                    produtoNome: m.nome,
+                    quantidade:  String(m.quantidade),
+                    unidade:     m.unidade,
+                  }))
+                )
+              }
             }
           }
         }
