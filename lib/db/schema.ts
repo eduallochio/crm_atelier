@@ -59,6 +59,16 @@ export const organizations = pgTable('organizations', {
 
 // ─── 2. PROFILES (substitui users — vinculado a auth.users) ───────────────────
 
+export type UserPermissions = {
+  clientes?: boolean
+  ordens_servico?: boolean
+  servicos?: boolean
+  financeiro?: boolean
+  estoque?: boolean
+  fornecedores?: boolean
+  configuracoes?: boolean
+}
+
 export const profiles = pgTable('profiles', {
   id:             uuid('id').primaryKey(), // mesmo UUID do auth.users
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
@@ -66,6 +76,7 @@ export const profiles = pgTable('profiles', {
   role:           text('role').notNull().default('owner'),
   isOwner:        boolean('is_owner').notNull().default(false),
   isMaster:       boolean('is_master').notNull().default(false),
+  permissions:    jsonb('permissions').notNull().default({}).$type<UserPermissions>(),
   createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_profiles_org').on(t.organizationId),

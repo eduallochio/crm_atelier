@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashierSessions, orgCashiers } from '@/lib/db/schema'
 import { eq, and, desc, isNull } from 'drizzle-orm'
@@ -9,6 +9,7 @@ import { requireProPlan } from '@/lib/plan-limits'
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     await requireProPlan(user.organizationId)
     const { searchParams } = new URL(request.url)
     const caixaId = searchParams.get('caixa_id')
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     await requireProPlan(user.organizationId)
     const body = await request.json()
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgProducts, orgProductCategories, organizations } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -46,6 +46,7 @@ async function checkPlanAndProduct(organizationId: string, productId: string) {
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     const { id } = await params
     const product = await checkPlanAndProduct(user.organizationId, id)
     return NextResponse.json({
@@ -78,6 +79,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     const { id } = await params
     await checkPlanAndProduct(user.organizationId, id)
 
@@ -153,6 +155,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     const { id } = await params
     await checkPlanAndProduct(user.organizationId, id)
 

@@ -64,6 +64,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<{ formData: ServiceOrderInput; previewOrder: ServiceOrder } | null>(null)
   const confirmedRef = useRef(false)
+  // Sinaliza que o form está reabrindo após cancelar o preview — nesse caso
+  // o reset() do useEffect deve ser pulado para preservar os valores digitados
+  const returningFromPreviewRef = useRef(false)
   const [openClientCombo, setOpenClientCombo] = useState(false)
   const [openServiceCombo, setOpenServiceCombo] = useState(false)
   const [clientSearchValue, setClientSearchValue] = useState('')
@@ -139,9 +142,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       data_prevista: undefined,
       forma_pagamento: undefined,
       observacoes: undefined,
-      valor_entrada: 0,
-      desconto_valor: 0,
-      desconto_percentual: 0,
+      valor_entrada: undefined,
+      desconto_valor: undefined,
+      desconto_percentual: undefined,
       notas_internas: undefined,
       items: [],
     },
@@ -163,6 +166,13 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   useEffect(() => {
     if (open) {
       confirmedRef.current = false
+
+      // Reabrindo após cancelar o preview — preserva os valores do form
+      if (returningFromPreviewRef.current) {
+        returningFromPreviewRef.current = false
+        return
+      }
+
       // Pré-preenche observações com aviso padrão se configurado
       const avisoInicial = notifSettings?.ordem_aviso_ativo && notifSettings.ordem_aviso_texto
         ? notifSettings.ordem_aviso_texto
@@ -174,9 +184,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
         data_prevista: undefined,
         forma_pagamento: undefined,
         observacoes: avisoInicial,
-        valor_entrada: 0,
-        desconto_valor: 0,
-        desconto_percentual: 0,
+        valor_entrada: undefined,
+        desconto_valor: undefined,
+        desconto_percentual: undefined,
         notas_internas: undefined,
         items: [],
       })
@@ -799,7 +809,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                   step="0.01"
                   min="0"
                   placeholder="0.00"
-                  {...register('desconto_valor', { valueAsNumber: true })}
+                  {...register('desconto_valor', { setValueAs: v => v === '' || v === null ? undefined : Number(v) })}
                   disabled={isLoading || descontoPercentual > 0}
                 />
               </div>
@@ -813,7 +823,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                   min="0"
                   max="100"
                   placeholder="0"
-                  {...register('desconto_percentual', { valueAsNumber: true })}
+                  {...register('desconto_percentual', { setValueAs: v => v === '' || v === null ? undefined : Number(v) })}
                   disabled={isLoading || descontoValor > 0}
                 />
               </div>
@@ -828,7 +838,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                 min="0"
                 max={totalComDesconto}
                 placeholder="0.00"
-                {...register('valor_entrada', { valueAsNumber: true })}
+                {...register('valor_entrada', { setValueAs: v => v === '' || v === null ? undefined : Number(v) })}
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">
@@ -1090,7 +1100,8 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
               // Fechou por confirmação — não reabre o form
               confirmedRef.current = false
             } else if (previewData) {
-              // Fechou pelo X ou Voltar — reabre o form para editar
+              // Fechou pelo X ou Voltar — reabre o form preservando os valores
+              returningFromPreviewRef.current = true
               onOpenChange(true)
             }
           }

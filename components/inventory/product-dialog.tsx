@@ -53,7 +53,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: '', unidade: 'un', quantidade_atual: 0, quantidade_minima: 0, is_embalagem: false },
+    defaultValues: { nome: '', unidade: 'un', quantidade_atual: undefined, quantidade_minima: undefined, is_embalagem: false },
   })
 
   useEffect(() => {
@@ -62,8 +62,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         nome: product?.nome || '',
         category_id: product?.category_id || '',
         unidade: product?.unidade || 'un',
-        quantidade_atual: isEditing ? (product?.quantidade_atual ?? 0) : 0,
-        quantidade_minima: product?.quantidade_minima ?? 0,
+        quantidade_atual: isEditing ? (product?.quantidade_atual ?? 0) : undefined,
+        quantidade_minima: isEditing ? (product?.quantidade_minima ?? 0) : undefined,
         preco_custo: product?.preco_custo ?? undefined,
         codigo_barras: product?.codigo_barras || '',
         descricao: product?.descricao || '',
@@ -137,7 +137,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 type="number"
                 step="any"
                 min="0"
-                {...register('quantidade_atual', { valueAsNumber: true })}
+                {...register('quantidade_atual', { setValueAs: v => v === '' || v === null ? 0 : Number(v) })}
                 placeholder="0"
               />
             </div>
@@ -151,7 +151,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 type="number"
                 step="any"
                 min="0"
-                {...register('quantidade_minima', { valueAsNumber: true })}
+                {...register('quantidade_minima', { setValueAs: v => v === '' || v === null ? 0 : Number(v) })}
                 placeholder="0"
               />
             </div>
@@ -162,7 +162,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 type="number"
                 step="0.01"
                 min="0"
-                {...register('preco_custo', { valueAsNumber: true })}
+                {...register('preco_custo', { setValueAs: v => v === '' || v === null ? undefined : Number(v) })}
                 placeholder="0,00"
               />
             </div>

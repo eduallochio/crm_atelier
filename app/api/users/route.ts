@@ -42,6 +42,7 @@ export async function GET() {
         fullName: profiles.fullName,
         role: profiles.role,
         isOwner: profiles.isOwner,
+        permissions: profiles.permissions,
         createdAt: profiles.createdAt,
       })
       .from(profiles)
@@ -68,6 +69,7 @@ export async function GET() {
       email: emailMap[p.id] ?? '',
       role: p.role,
       is_owner: p.isOwner,
+      permissions: p.permissions ?? {},
       created_at: p.createdAt,
     }))
 
@@ -130,11 +132,17 @@ export async function POST(req: Request) {
     )
 
     // Criar usuário no Supabase Auth
+    // organization_id nos metadados sinaliza ao trigger handle_new_user que este
+    // é um sub-usuário: o trigger só cria o profile, sem criar nova organização.
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: email.toLowerCase().trim(),
       password,
       email_confirm: true,
-      user_metadata: { full_name: full_name.trim() },
+      user_metadata: {
+        full_name: full_name.trim(),
+        organization_id: user.organizationId,
+        role: safeRole,
+      },
     })
 
     if (authError) {
@@ -146,14 +154,8 @@ export async function POST(req: Request) {
 
     const newUserId = authData.user.id
 
-    // Criar perfil na tabela profiles
-    await db.insert(profiles).values({
-      id: newUserId,
-      organizationId: user.organizationId,
-      fullName: full_name.trim(),
-      role: safeRole,
-      isOwner: false,
-    })
+    // O trigger handle_new_user já cria o profile quando organization_id está
+    // nos metadados — não inserir manualmente para evitar conflito de PK.
 
     return NextResponse.json({
       id: newUserId,

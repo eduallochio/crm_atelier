@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgFinancialSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -17,6 +17,7 @@ export async function GET() {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     organizationId = user.organizationId
 
     const result = await db
@@ -48,6 +49,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/settings/financial]', error, undefined, organizationId); console.error('[GET /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -58,6 +61,7 @@ export async function POST(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     organizationId = user.organizationId
     const body = await request.json()
 
@@ -82,6 +86,8 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[POST /api/settings/financial]', error, undefined, organizationId)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -91,6 +97,7 @@ export async function PUT(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     organizationId = user.organizationId
     const body = await request.json()
 
@@ -145,6 +152,8 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[PUT /api/settings/financial]', error, undefined, organizationId); console.error('[PUT /api/settings/financial]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

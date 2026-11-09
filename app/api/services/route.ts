@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { orgServices, organizations } from '@/lib/db/schema'
 import { eq, and, count } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 import { logServerError } from '@/lib/log-error'
 
@@ -33,6 +33,7 @@ function mapService(s: OrgService) {
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
 
     const services = await db
       .select()
@@ -65,6 +66,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/services]', error); console.error('[GET /api/services]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -73,6 +76,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
     const body = await request.json()
 
     // Verificar limite do plano
@@ -133,6 +137,8 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[POST /api/services]', error); console.error('[POST /api/services]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

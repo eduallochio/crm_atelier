@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
 
 // org_service_price_history table does not exist in the Drizzle/Supabase schema.
@@ -17,6 +17,8 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/services/:id/price-history]', error); console.error('[GET /api/services/:id/price-history]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

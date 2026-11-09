@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { orgServices, orgDeletionLog } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
 
 type OrgService = typeof orgServices.$inferSelect
@@ -35,6 +35,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
     const body = await request.json()
     const { id } = await params
 
@@ -77,6 +78,8 @@ export async function PUT(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[PUT /api/services/:id]', error); console.error('[PUT /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -89,6 +92,7 @@ export async function PATCH(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
     const body = await request.json()
     const { id } = await params
 
@@ -107,6 +111,8 @@ export async function PATCH(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[PATCH /api/services/:id]', error); console.error('[PATCH /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -119,6 +125,7 @@ export async function DELETE(
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
     organizationId = user.organizationId
     const { id } = await params
 
@@ -148,6 +155,8 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[DELETE /api/services/:id]', error, undefined, organizationId); console.error('[DELETE /api/services/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

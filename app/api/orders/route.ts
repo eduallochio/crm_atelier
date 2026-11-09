@@ -12,7 +12,7 @@ import {
   orgPaymentMethods,
 } from '@/lib/db/schema'
 import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 import { calcularDesconto } from '@/lib/order-discount'
 
@@ -20,6 +20,7 @@ export async function GET() {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
 
     const orderRows = await db
@@ -132,6 +133,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/orders]', error, undefined, organizationId); console.error('[GET /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -141,6 +144,7 @@ export async function POST(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const body = await request.json()
 
@@ -302,6 +306,8 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[POST /api/orders]', error, undefined, organizationId); console.error('[POST /api/orders]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

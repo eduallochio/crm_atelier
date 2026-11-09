@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgPaymentMethods } from '@/lib/db/schema'
 import { asc, eq, sql as drizzleSql } from 'drizzle-orm'
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const { searchParams } = new URL(request.url)
     const onlyEnabled = searchParams.get('enabled') === 'true'
@@ -73,6 +74,8 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/payment-methods]', error, undefined, organizationId); console.error('[GET /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const body = await request.json()
 
@@ -108,6 +112,8 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[POST /api/payment-methods]', error, undefined, organizationId); console.error('[POST /api/payment-methods]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

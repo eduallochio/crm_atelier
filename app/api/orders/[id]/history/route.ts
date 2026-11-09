@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { orgServiceOrderHistory, orgServiceOrders } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET(
@@ -11,6 +11,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     const { id } = await params
 
     // Verify order belongs to org, then fetch history
@@ -38,6 +39,8 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/orders/:id/history]', error); console.error('[GET /api/orders/:id/history]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

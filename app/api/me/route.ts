@@ -93,6 +93,8 @@ export async function GET() {
       name: user.name,
       email: user.email,
       isMaster: user.isMaster,
+      isOwner: user.isOwner,
+      permissions: user.permissions,
       organizationName: org?.name ?? 'Meu Atelier',
       logoUrl: org?.logoUrl ?? null,
       plan: org?.plan ?? 'free',

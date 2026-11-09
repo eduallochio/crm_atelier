@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgMonthlyGoals } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
@@ -8,6 +8,7 @@ import { logServerError } from '@/lib/log-error'
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     const now   = new Date()
     const year  = now.getFullYear()
     const month = now.getMonth() + 1
@@ -30,6 +31,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/settings/goals]', error); console.error('[GET /api/settings/goals]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -38,6 +41,7 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     const { monthly_revenue_goal } = await req.json()
 
     if (typeof monthly_revenue_goal !== 'number' || monthly_revenue_goal < 0) {
@@ -69,6 +73,8 @@ export async function PUT(req: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[PUT /api/settings/goals]', error); console.error('[PUT /api/settings/goals]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

@@ -20,7 +20,7 @@ import {
   orgDeletionLog,
 } from '@/lib/db/schema'
 import { eq, and, desc, inArray, sql as drizzleSql } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 
 export async function GET(
   _request: Request,
@@ -28,6 +28,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     const { id } = await params
 
     const [orderRow] = await db
@@ -124,6 +125,8 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/orders/:id]', error); console.error('[GET /api/orders/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -136,6 +139,7 @@ export async function PUT(
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const body = await request.json()
     const { id } = await params
@@ -472,6 +476,7 @@ export async function DELETE(
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const { id } = await params
 
@@ -517,6 +522,8 @@ export async function DELETE(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[DELETE /api/orders/:id]', error, undefined, organizationId); console.error('[DELETE /api/orders/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

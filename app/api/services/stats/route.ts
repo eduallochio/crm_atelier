@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { orgServices, orgServiceOrderItems } from '@/lib/db/schema'
 import { eq, inArray, sql as drizzleSql } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
 
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'servicos')
 
     const services = await db
       .select({
@@ -92,6 +93,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/services/stats]', error); console.error('[GET /api/services/stats]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

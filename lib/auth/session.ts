@@ -1,7 +1,7 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { profiles, organizations } from '@/lib/db/schema'
+import { profiles, organizations, type UserPermissions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getImpersonationPayload } from '@/lib/auth/impersonation'
 
@@ -13,6 +13,7 @@ export type SessionUser = {
   role: string
   isOwner: boolean
   isMaster: boolean
+  permissions: UserPermissions
   impersonating?: { organizationName: string }
 }
 
@@ -42,6 +43,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
           role:           profiles.role,
           isOwner:        profiles.isOwner,
           fullName:       profiles.fullName,
+          permissions:    profiles.permissions,
         })
         .from(profiles)
         .where(eq(profiles.id, data.user.id))
@@ -56,6 +58,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
           role:           profile.role,
           isOwner:        profile.isOwner,
           isMaster:       false, // impersonado nunca herda privilégios de master
+          permissions:    (profile.permissions as UserPermissions) ?? {},
           impersonating:  { organizationName: impersonation.organizationName },
         }
       }
@@ -70,13 +73,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   if (!user) return null
 
-  // Busca o profile para obter organization_id, role e is_owner
+  // Busca o profile para obter organization_id, role, is_owner e permissions
   const [profile] = await db
     .select({
       organizationId: profiles.organizationId,
       role:           profiles.role,
       isOwner:        profiles.isOwner,
       fullName:       profiles.fullName,
+      permissions:    profiles.permissions,
     })
     .from(profiles)
     .where(eq(profiles.id, user.id))
@@ -92,6 +96,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     role:           profile.role,
     isOwner:        profile.isOwner,
     isMaster:       user.app_metadata?.is_master === true,
+    permissions:    (profile.permissions as UserPermissions) ?? {},
   }
 }
 
@@ -119,6 +124,18 @@ export async function requireAuth(): Promise<SessionUser> {
     }
   }
   return user
+}
+
+/**
+ * Verifica se o usuário tem permissão para um módulo.
+ * Owner e master sempre têm acesso. Membros sem a permissão explícita são bloqueados.
+ * Lança 'FORBIDDEN' se não tiver permissão.
+ */
+export function assertPermission(user: SessionUser, module: keyof import('@/lib/db/schema').UserPermissions): void {
+  if (user.isOwner || user.isMaster) return
+  if (user.permissions[module] !== true) {
+    throw new Error('FORBIDDEN')
+  }
 }
 
 /**

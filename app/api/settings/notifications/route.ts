@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgNotificationSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -62,6 +62,7 @@ function mapRow(row: {
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
 
     const result = await db
       .select()
@@ -83,6 +84,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/settings/notifications]', error); console.error('[GET /api/settings/notifications]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -91,6 +94,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     const body = await request.json()
 
     const values = {
@@ -144,6 +148,8 @@ export async function PUT(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[PUT /api/settings/notifications]', error); console.error('[PUT /api/settings/notifications]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

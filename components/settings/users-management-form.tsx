@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { UserPlus, Trash2, Shield, User, Crown, Loader2, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Trash2, Shield, User, Crown, Loader2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
 
 interface OrgUser {
@@ -22,8 +22,19 @@ interface OrgUser {
   email: string
   role: 'owner' | 'admin' | 'member'
   is_owner: boolean
+  permissions: Record<string, boolean>
   created_at: string
 }
+
+const MODULES: { key: string; label: string }[] = [
+  { key: 'clientes',       label: 'Clientes' },
+  { key: 'ordens_servico', label: 'Ordens de Serviço' },
+  { key: 'servicos',       label: 'Serviços' },
+  { key: 'financeiro',     label: 'Financeiro' },
+  { key: 'estoque',        label: 'Estoque' },
+  { key: 'fornecedores',   label: 'Fornecedores' },
+  { key: 'configuracoes',  label: 'Configurações' },
+]
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Proprietário',
@@ -43,6 +54,9 @@ export function UsersManagementForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'member' })
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [expandedPermissions, setExpandedPermissions] = useState<string | null>(null)
+  const [localPermissions, setLocalPermissions] = useState<Record<string, Record<string, boolean>>>({})
+  const [savingPermissions, setSavingPermissions] = useState<string | null>(null)
 
   const { data: users = [], isLoading } = useQuery<OrgUser[]>({
     queryKey: ['org-users'],
@@ -112,6 +126,39 @@ export function UsersManagementForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     inviteMutation.mutate(form)
+  }
+
+  const getPermissions = (userId: string, defaultPerms: Record<string, boolean>) =>
+    localPermissions[userId] ?? defaultPerms
+
+  const togglePermission = (userId: string, key: string, defaultPerms: Record<string, boolean>) => {
+    const current = getPermissions(userId, defaultPerms)
+    setLocalPermissions(prev => ({
+      ...prev,
+      [userId]: { ...current, [key]: !current[key] },
+    }))
+  }
+
+  const savePermissions = async (userId: string) => {
+    setSavingPermissions(userId)
+    try {
+      const perms = localPermissions[userId] ?? {}
+      const res = await fetch(`/api/users/${userId}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(perms),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erro ao salvar permissões')
+      queryClient.invalidateQueries({ queryKey: ['org-users'] })
+      toast.success('Permissões salvas!')
+      setExpandedPermissions(null)
+      setLocalPermissions(prev => { const n = { ...prev }; delete n[userId]; return n })
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSavingPermissions(null)
+    }
   }
 
   const owner = users.find(u => u.is_owner)
@@ -278,6 +325,20 @@ export function UsersManagementForm() {
                   </Select>
                 )}
 
+                {/* Permissões */}
+                {!u.is_owner && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
+                    onClick={() => setExpandedPermissions(expandedPermissions === u.id ? null : u.id)}
+                  >
+                    <Shield className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Permissões</span>
+                    {expandedPermissions === u.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                )}
+
                 {/* Delete */}
                 {!u.is_owner && (
                   deletingId === u.id ? (
@@ -308,6 +369,51 @@ export function UsersManagementForm() {
                   )
                 )}
               </div>
+
+              {/* Painel de permissões expandido */}
+              {expandedPermissions === u.id && !u.is_owner && (
+                <div className="border-t border-border/40 px-4 py-3 space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Módulos com acesso</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {MODULES.map(mod => {
+                      const checked = getPermissions(u.id, u.permissions)[mod.key] === true
+                      return (
+                        <label
+                          key={mod.key}
+                          className="flex items-center gap-2 cursor-pointer select-none rounded-lg border border-border/50 px-3 py-2 hover:bg-muted/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePermission(u.id, mod.key, u.permissions)}
+                            className="h-3.5 w-3.5 rounded border-input"
+                          />
+                          <span className="text-xs font-medium">{mod.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      className="h-7 px-3 text-xs gap-1.5"
+                      onClick={() => savePermissions(u.id)}
+                      disabled={savingPermissions === u.id}
+                    >
+                      {savingPermissions === u.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Salvar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-3 text-xs"
+                      onClick={() => { setExpandedPermissions(null); setLocalPermissions(prev => { const n = { ...prev }; delete n[u.id]; return n }) }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

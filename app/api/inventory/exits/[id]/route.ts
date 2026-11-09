@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, organizations } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -8,6 +8,7 @@ import { logServerError } from '@/lib/log-error'
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     const { id } = await params
 
     const [org] = await db
@@ -40,6 +41,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     const { id } = await params
 
     // Items are deleted by CASCADE → trigger reverts stock automatically

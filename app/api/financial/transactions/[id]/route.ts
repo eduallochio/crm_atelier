@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgTransactions } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
@@ -12,6 +12,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const { id } = await params
 

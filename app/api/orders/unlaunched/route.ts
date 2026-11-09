@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgServiceOrders, orgClients, orgCashierMovements, orgPaymentMethods } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -9,6 +9,7 @@ import { logServerError } from '@/lib/log-error'
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
 
     const rows = await db
       .select({
@@ -54,6 +55,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/orders/unlaunched]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgCashierSessions, orgCashierMovements, orgSystemPreferences } from '@/lib/db/schema'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
@@ -11,6 +11,7 @@ import { calcularSaldoEsperado } from '@/lib/cashier-balance'
 export async function POST() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     await requireProPlan(user.organizationId)
 
     // Verifica se fechamento automático está habilitado

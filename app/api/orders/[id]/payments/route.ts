@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { orgTransactions, orgPaymentMethods, orgServiceOrders, profiles } from '@/lib/db/schema'
 import { eq, and, asc, inArray } from 'drizzle-orm'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
 
 // GET /api/orders/:id/payments
@@ -15,6 +15,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'ordens_servico')
     const { id } = await params
 
     const [order] = await db
@@ -69,6 +70,8 @@ export async function GET(
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/orders/:id/payments]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

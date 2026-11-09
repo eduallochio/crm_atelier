@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockEntries, orgStockEntryItems, organizations, orgProducts } from '@/lib/db/schema'
 import { eq, desc, inArray, and } from 'drizzle-orm'
@@ -20,6 +20,7 @@ export async function GET() {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     organizationId = user.organizationId
     await checkPlan(user.organizationId)
 
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     organizationId = user.organizationId
     await checkPlan(user.organizationId)
 

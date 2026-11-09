@@ -53,6 +53,7 @@ type MenuItem = {
   href: string
   icon: LucideIcon
   tourId?: string
+  permission?: string
   subitems?: { name: string; href: string; icon: LucideIcon }[]
 }
 
@@ -71,9 +72,9 @@ const navigation: NavigationSection[] = [
   {
     section: 'Gestão',
     items: [
-      { name: 'Clientes', href: '/clientes', icon: Users, tourId: 'nav-clientes' },
-      { name: 'Serviços', href: '/servicos', icon: Scissors, tourId: 'nav-servicos' },
-      { name: 'Ordens de Serviço', href: '/ordens-servico', icon: FileText, tourId: 'nav-ordens' },
+      { name: 'Clientes', href: '/clientes', icon: Users, tourId: 'nav-clientes', permission: 'clientes' },
+      { name: 'Serviços', href: '/servicos', icon: Scissors, tourId: 'nav-servicos', permission: 'servicos' },
+      { name: 'Ordens de Serviço', href: '/ordens-servico', icon: FileText, tourId: 'nav-ordens', permission: 'ordens_servico' },
     ],
   },
   {
@@ -85,6 +86,7 @@ const navigation: NavigationSection[] = [
         href: '/financeiro',
         icon: DollarSign,
         tourId: 'nav-financeiro',
+        permission: 'financeiro',
         subitems: [
           { name: 'Caixa', href: '/financeiro', icon: Wallet },
           { name: 'Fluxo de Caixa', href: '/financeiro/fluxo-caixa', icon: ArrowLeftRight },
@@ -97,6 +99,7 @@ const navigation: NavigationSection[] = [
         href: '/estoque',
         icon: Package,
         tourId: 'nav-estoque',
+        permission: 'estoque',
         subitems: [
           { name: 'Produtos', href: '/estoque', icon: Package },
           { name: 'Entradas', href: '/estoque/entradas', icon: PackageOpen },
@@ -111,7 +114,7 @@ const navigation: NavigationSection[] = [
   {
     section: 'Sistema',
     items: [
-      { name: 'Configurações', href: '/configuracoes', icon: Settings, tourId: 'nav-configuracoes' },
+      { name: 'Configurações', href: '/configuracoes', icon: Settings, tourId: 'nav-configuracoes', permission: 'configuracoes' },
       { name: 'Manual do Sistema', href: '/ajuda', icon: BookOpen },
     ],
   },
@@ -220,6 +223,8 @@ export function Sidebar() {
   const userProfile = meData ? { name: meData.name, email: meData.email, organization: meData.organizationName } : null
   const orgSettings = meData ? { name: meData.organizationName, logo_url: meData.logoUrl } : null
   const isMaster: boolean = meData?.isMaster === true
+  const isOwner: boolean = meData?.isOwner === true
+  const permissions: Record<string, boolean> = meData?.permissions ?? {}
   const badges: Record<string, number> = meData?.badges ?? {}
   const alerts: Record<string, number> = meData?.alerts ?? {}
   const plan: string = meData?.plan ?? 'free'
@@ -310,7 +315,9 @@ export function Sidebar() {
           <div key={group.section} className="sb-sec">
             <p className="sb-sec-l">{group.section}</p>
             <ul className="sb-list">
-              {group.items.map((item) => {
+              {group.items.filter(item =>
+                !item.permission || isOwner || isMaster || permissions[item.permission] === true
+              ).map((item) => {
                 const isActive    = isOn(item.href) && !item.subitems
                 const isSubActive = item.subitems?.some(s => pathname === s.href || pathname.startsWith(s.href + '/')) ?? false
                 const highlighted = isActive || isSubActive

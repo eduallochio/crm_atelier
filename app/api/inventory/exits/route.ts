@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgStockExits, orgStockExitItems, orgProducts, organizations } from '@/lib/db/schema'
 import { eq, desc, and, inArray } from 'drizzle-orm'
@@ -19,6 +19,7 @@ async function checkPlan(organizationId: string) {
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     await checkPlan(user.organizationId)
 
     const exits = await db
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
   let itensForErrorLookup: { productId: string; produtoNome: string }[] | undefined
   try {
     const user = await requireAuth()
+    assertPermission(user, 'estoque')
     await checkPlan(user.organizationId)
 
     const body = await request.json()

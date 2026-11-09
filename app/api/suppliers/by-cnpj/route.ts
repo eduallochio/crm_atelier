@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgSuppliers } from '@/lib/db/schema'
 import { eq, and, sql as drizzleSql } from 'drizzle-orm'
@@ -9,6 +9,7 @@ import { logServerError } from '@/lib/log-error'
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'fornecedores')
     const { searchParams } = new URL(request.url)
     const cnpj = searchParams.get('cnpj')?.replace(/\D/g, '') // strip punctuation
 
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/suppliers/by-cnpj]', error); console.error('[GET /api/suppliers/by-cnpj]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

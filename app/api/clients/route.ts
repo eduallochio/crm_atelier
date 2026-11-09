@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgClients, usageMetrics, organizations } from '@/lib/db/schema'
 import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
@@ -9,6 +9,7 @@ import { logServerError } from '@/lib/log-error'
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'clientes')
 
     const clients = await db
       .select()
@@ -24,6 +25,8 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[GET /api/clients]', error); console.error('[GET /api/clients]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
@@ -32,6 +35,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'clientes')
     const body = await request.json()
 
     // Verificar limite do plano (usa contador cumulativo — exclusões não resetam o limite)
@@ -88,6 +92,8 @@ export async function POST(request: Request) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+    if ((error as Error).message === 'FORBIDDEN')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     logServerError('[POST /api/clients]', error); console.error('[POST /api/clients]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

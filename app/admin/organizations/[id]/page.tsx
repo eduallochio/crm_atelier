@@ -1,10 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2, LogIn } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Users, TrendingUp, Loader2, LogIn, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { PlanBadge, StateBadge } from '@/components/admin/subscription-badge'
 import { AdminDetailSkeleton } from '@/components/admin/admin-skeleton'
 import { toast } from 'sonner'
@@ -46,11 +51,15 @@ interface Organization {
 
 export default function OrganizationDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const orgId = params.id as string
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [impersonating, setImpersonating] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   async function impersonate() {
     setImpersonating(true)
@@ -64,6 +73,20 @@ export default function OrganizationDetailPage() {
     } catch (err) {
       toast.error((err as Error).message)
       setImpersonating(false)
+    }
+  }
+
+  async function deleteOrganization() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/organizations/${orgId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao deletar organização')
+      toast.success('Organização deletada com sucesso')
+      router.push('/admin/organizations')
+    } catch (err) {
+      toast.error((err as Error).message)
+      setDeleting(false)
     }
   }
 
@@ -202,6 +225,16 @@ export default function OrganizationDetailPage() {
                 Cancelar
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={deleting}
+              onClick={() => { setDeleteConfirmName(''); setShowDeleteDialog(true) }}
+              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Deletar org
+            </Button>
           </div>
         </div>
       </div>
@@ -314,6 +347,44 @@ export default function OrganizationDetailPage() {
           <HealthTab organizationId={organization.id} />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar organização permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Esta ação é <strong>irreversível</strong>. Todos os dados serão apagados:
+                  clientes, ordens de serviço, financeiro, estoque, usuários e a organização em si.
+                  Os emails dos usuários serão liberados para novo cadastro.
+                </p>
+                <p>
+                  Para confirmar, digite o nome exato da organização:
+                  <span className="block font-mono font-semibold mt-1 text-foreground">{organization.name}</span>
+                </p>
+                <Input
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder="Digite o nome da organização"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmName !== organization.name || deleting}
+              onClick={deleteOrganization}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Deletar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

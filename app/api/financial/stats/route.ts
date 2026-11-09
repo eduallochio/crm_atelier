@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { orgReceivables, orgPayables, orgTransactions, orgFinancialCategories } from '@/lib/db/schema'
 import { eq, and, gte, lte, lt, isNull, sql as drizzleSql } from 'drizzle-orm'
@@ -44,6 +44,7 @@ const toDateStr = (d: Date) => d.toISOString().split('T')[0]
 export async function GET(request: Request) {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'thisMonth'

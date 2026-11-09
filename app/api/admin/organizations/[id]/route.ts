@@ -5,6 +5,7 @@ import { organizations, plans, profiles, orgClients } from '@/lib/db/schema'
 import { eq, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { getSubscription } from '@/lib/asaas'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function GET(
   _request: Request,
@@ -109,6 +110,46 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
     logServerError('[GET /api/admin/organizations/:id]', error); console.error('[GET /api/admin/organizations/:id]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireMasterFast()
+    const { id } = await params
+
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // Buscar todos os usuários da org para deletar do Auth (libera os emails)
+    const orgProfiles = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.organizationId, id))
+
+    // Deletar cada usuário do Supabase Auth (libera o email para reutilização)
+    for (const profile of orgProfiles) {
+      const { error } = await supabase.auth.admin.deleteUser(profile.id)
+      if (error) {
+        logServerError(`[DELETE /api/admin/organizations/:id] deleteUser ${profile.id}`, error)
+      }
+    }
+
+    // Deletar a organização — todas as tabelas filhas caem por CASCADE
+    await db.delete(organizations).where(eq(organizations.id, id))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    logServerError('[DELETE /api/admin/organizations/:id]', error); console.error('[DELETE /api/admin/organizations/:id]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
