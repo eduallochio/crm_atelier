@@ -47,6 +47,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import { useQuery } from '@tanstack/react-query'
 import { ThemeToggle } from './theme-toggle'
 import { renewalLabel } from '@/lib/utils/subscription'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
 
 type MenuItem = {
   name: string
@@ -179,6 +180,10 @@ const SIDEBAR_CSS = `
 .sb-out{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:rgba(247,240,230,.62);cursor:pointer;transition:background-color .15s,color .15s}
 .sb-out:hover{background:rgba(226,97,74,.18);color:#F4A08C}
 .sb-ver{margin:8px 12px 0;font-size:10.5px;color:rgba(247,240,230,.48);font-variant-numeric:tabular-nums;user-select:none}
+.sb-usage{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.sb-usage-row{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:rgba(247,240,230,.5)}
+.sb-usage-bar{height:3px;border-radius:2px;background:rgba(247,240,230,.1);overflow:hidden}
+.sb-usage-fill{height:100%;border-radius:2px;background:rgba(200,113,74,.55);transition:width .4s ease}
 .sb-skel{height:56px;margin-top:6px;border-radius:10px;background:rgba(247,240,230,.05)}
 @media (max-width:1023px){.sb.is-closed{transform:translateX(-100%)}.sb-head{padding-left:64px}}
 @media (prefers-reduced-motion:reduce){.sb,.sb-ind,.sb-subwrap,.sb-chev{transition:none}.sb-ind.sew::before{animation:none}}
@@ -230,6 +235,7 @@ export function Sidebar() {
   const plan: string = meData?.plan ?? 'free'
   const isPro = plan === 'pro' || plan === 'enterprise'
   const nextDueDate: string | null = meData?.subscriptionNextDueDate ?? null
+  const { data: planUsage } = usePlanUsage()
 
   useEffect(() => {
     navigation.forEach(group => {
@@ -418,14 +424,31 @@ export function Sidebar() {
                   )}
                 </>
               ) : (
-                <Link
-                  href="/configuracoes?tab=assinatura"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  title="Fazer upgrade para o plano Pro"
-                  className="sb-plan free"
-                >
-                  FREE · fazer upgrade
-                </Link>
+                <>
+                  <Link
+                    href="/configuracoes?tab=assinatura"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    title="Fazer upgrade para o plano Pro"
+                    className="sb-plan free"
+                  >
+                    FREE · fazer upgrade
+                  </Link>
+                  {planUsage && (
+                    <div className="sb-usage">
+                      {[
+                        { label: 'Clientes', used: planUsage.clients_count, max: planUsage.limits.max_clients },
+                        { label: 'OS', used: planUsage.orders_count, max: planUsage.limits.max_orders },
+                      ].map(({ label, used, max }) => (
+                        <div key={label}>
+                          <div className="sb-usage-row"><span>{label}</span><span>{used}/{max}</span></div>
+                          <div className="sb-usage-bar">
+                            <div className="sb-usage-fill" style={{ width: `${Math.min(100, (used / max) * 100)}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <button type="button" onClick={handleLogout} className="sb-out" aria-label="Sair" title="Sair">

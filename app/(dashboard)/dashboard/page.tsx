@@ -16,6 +16,7 @@ import { formatBRL } from '@/components/dashboard/client-utils'
 import { isOpen, daysToDeadline, isToReceive } from '@/components/dashboard/order-utils'
 import { FIN_CSS, timeOf, todayISO } from '@/components/financeiro/finance-ui'
 import { sessionTotals } from '@/components/financeiro/cash-drawer'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
 import { useServiceOrders } from '@/hooks/use-service-orders'
 import { useClients } from '@/hooks/use-clients'
 import { useCashierMovements, useCashierSessions, useCloseCashier } from '@/hooks/use-cashier'
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const recOverdue = Number(stats?.financial_health?.receivables_overdue) || 0
   const isPro = me?.plan === 'pro' || me?.plan === 'enterprise'
   const subscriptionNextDueDate: string | null = me?.subscriptionNextDueDate ?? null
+  const { data: planUsage } = usePlanUsage()
 
   return (
     <div>
@@ -110,6 +112,15 @@ export default function DashboardPage() {
 
         {isPro && subscriptionNextDueDate && (
           <SubscriptionCard nextDueDate={subscriptionNextDueDate} />
+        )}
+
+        {!isPro && planUsage && (
+          <ProNudgeCard
+            clientsUsed={planUsage.clients_count}
+            clientsMax={planUsage.limits.max_clients}
+            ordersUsed={planUsage.orders_count}
+            ordersMax={planUsage.limits.max_orders}
+          />
         )}
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_1.4fr]">
@@ -277,6 +288,50 @@ function DayLine({ activities, isLoading }: { activities: Activity[]; isLoading:
   )
 }
 
+function ProNudgeCard({ clientsUsed, clientsMax, ordersUsed, ordersMax }: {
+  clientsUsed: number; clientsMax: number; ordersUsed: number; ordersMax: number
+}) {
+  const items = [
+    { label: 'Clientes cadastrados', used: clientsUsed, max: clientsMax },
+    { label: 'Ordens de serviço criadas', used: ordersUsed, max: ordersMax },
+  ]
+  const mostUsed = items.reduce((a, b) => (a.used / a.max > b.used / b.max ? a : b))
+  const pct = Math.round((mostUsed.used / mostUsed.max) * 100)
+
+  return (
+    <section className="nudge-card" aria-label="Plano gratuito — uso">
+      <div className="nudge-left">
+        <p className="nudge-tag">Plano Gratuito</p>
+        <p className="nudge-title">
+          {pct >= 80
+            ? <>Você está usando <strong>{pct}%</strong> do seu limite.</>
+            : <>Aproveite mais com o <strong>Plano Pro</strong>.</>}
+        </p>
+        <p className="nudge-desc">
+          Desbloqueie clientes e ordens ilimitadas, financeiro completo, controle de estoque e muito mais.
+        </p>
+        <Link href="/configuracoes?tab=assinatura" className="nudge-btn">
+          Ver planos e preços →
+        </Link>
+      </div>
+      <div className="nudge-bars">
+        {items.map(({ label, used, max }) => {
+          const p = Math.min(100, Math.round((used / max) * 100))
+          const warn = p >= 80
+          return (
+            <div key={label} className="nudge-bar-wrap">
+              <div className="nudge-bar-label"><span>{label}</span><span className={warn ? 'nudge-warn' : ''}>{used}/{max}</span></div>
+              <div className="nudge-bar-track">
+                <div className="nudge-bar-fill" style={{ width: `${p}%`, background: warn ? '#C8714A' : 'rgba(200,113,74,.45)' }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 const HOME_CSS = `
 .day-line { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 1fr); overflow-x: auto; scrollbar-width: thin; }
 .day-line li { position: relative; min-width: 0; padding: 16px 14px 4px 0; }
@@ -284,4 +339,17 @@ const HOME_CSS = `
 .day-line li::after { content: ''; position: absolute; left: 0; top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 2px solid #C8714A; }
 .day-line li.out::after { background: var(--foreground); border-color: var(--foreground); }
 .day-line li.done::after { background: #C8714A; }
+.nudge-card { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; padding: 20px 24px; border-radius: 14px; background: var(--card); border: 1px solid rgba(200,113,74,.2); }
+.nudge-left { flex: 1; min-width: 200px; }
+.nudge-tag { margin: 0 0 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #C8714A; }
+.nudge-title { margin: 0 0 6px; font-size: 15px; font-weight: 500; color: var(--foreground); }
+.nudge-desc { margin: 0 0 14px; font-size: 13px; line-height: 1.6; color: var(--muted-foreground); }
+.nudge-btn { display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: #C8714A; text-decoration: none; }
+.nudge-btn:hover { color: #d4875a; }
+.nudge-bars { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 10px; }
+.nudge-bar-wrap {}
+.nudge-bar-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted-foreground); margin-bottom: 4px; }
+.nudge-warn { color: #C8714A; font-weight: 600; }
+.nudge-bar-track { height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.nudge-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
 `
