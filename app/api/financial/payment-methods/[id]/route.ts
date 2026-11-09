@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgPaymentMethods } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { orgPaymentMethods, orgTransactions, orgReceivables, orgCashierMovements } from '@/lib/db/schema'
+import { eq, and, count } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { requireProPlan } from '@/lib/plan-limits'
 
@@ -15,6 +15,21 @@ export async function DELETE(
     assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const { id } = await params
+
+    // Verificar se o método está em uso antes de deletar
+    const [txCount, recCount, movCount] = await Promise.all([
+      db.select({ n: count() }).from(orgTransactions).where(eq(orgTransactions.paymentMethodId, id)),
+      db.select({ n: count() }).from(orgReceivables).where(eq(orgReceivables.paymentMethodId, id)),
+      db.select({ n: count() }).from(orgCashierMovements).where(eq(orgCashierMovements.metodoPagamentoId, id)),
+    ])
+
+    const totalUsos = Number(txCount[0]?.n ?? 0) + Number(recCount[0]?.n ?? 0) + Number(movCount[0]?.n ?? 0)
+    if (totalUsos > 0) {
+      return NextResponse.json(
+        { error: `Este método de pagamento está em uso em ${totalUsos} registro(s) e não pode ser excluído. Desative-o em vez de deletar.` },
+        { status: 409 }
+      )
+    }
 
     const [row] = await db
       .delete(orgPaymentMethods)
