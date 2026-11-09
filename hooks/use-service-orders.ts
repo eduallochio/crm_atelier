@@ -74,7 +74,7 @@ export function useUpdateServiceOrder() {
       if (!res.ok) throw new Error(data.error || 'Erro ao atualizar ordem de serviço')
       return data as ServiceOrder & { no_cashier_session?: boolean }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
@@ -84,6 +84,10 @@ export function useUpdateServiceOrder() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['orders-unlaunched'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      if (data?.status === 'concluido') {
+        queryClient.invalidateQueries({ queryKey: ['products'] })
+        queryClient.invalidateQueries({ queryKey: ['stock-exits'] })
+      }
       toast.success('Ordem de serviço atualizada com sucesso!')
     },
     onError: (error: Error) => {
