@@ -316,7 +316,7 @@ export function Sidebar() {
             <p className="sb-sec-l">{group.section}</p>
             <ul className="sb-list">
               {group.items.filter(item =>
-                !item.permission || isOwner || isMaster || permissions[item.permission] === true
+                !item.permission || !meData || isOwner || isMaster || permissions[item.permission] === true
               ).map((item) => {
                 const isActive    = isOn(item.href) && !item.subitems
                 const isSubActive = item.subitems?.some(s => pathname === s.href || pathname.startsWith(s.href + '/')) ?? false
