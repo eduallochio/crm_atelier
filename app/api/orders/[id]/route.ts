@@ -19,7 +19,7 @@ import {
   orgPaymentMethods,
   orgDeletionLog,
 } from '@/lib/db/schema'
-import { eq, and, desc, inArray, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, desc, inArray, count, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 
 export async function GET(
@@ -479,6 +479,46 @@ export async function DELETE(
     assertPermission(user, 'ordens_servico')
     organizationId = user.organizationId
     const { id } = await params
+
+    // Buscar a OS antes de deletar para validar estado e fazer snapshot no log
+    const [os] = await db
+      .select({
+        id:            orgServiceOrders.id,
+        numero:        orgServiceOrders.numero,
+        status:        orgServiceOrders.status,
+        valorTotal:    orgServiceOrders.valorTotal,
+        valorPago:     orgServiceOrders.valorPago,
+        clientId:      orgServiceOrders.clientId,
+        dataAbertura:  orgServiceOrders.dataAbertura,
+      })
+      .from(orgServiceOrders)
+      .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
+      .limit(1)
+
+    if (!os) {
+      return NextResponse.json({ error: 'Ordem não encontrada' }, { status: 404 })
+    }
+
+    // Bloquear deleção de OS concluída ou com pagamento registrado
+    if (os.status === 'concluido' || Number(os.valorPago) > 0) {
+      return NextResponse.json(
+        { error: 'Não é possível excluir uma OS concluída ou com pagamento registrado. Cancele a OS em vez de excluir.' },
+        { status: 409 }
+      )
+    }
+
+    // Bloquear deleção de OS com recebível pendente
+    const [recCount] = await db
+      .select({ n: count() })
+      .from(orgReceivables)
+      .where(and(eq(orgReceivables.serviceOrderId, id), eq(orgReceivables.status, 'pendente')))
+
+    if (Number(recCount?.n ?? 0) > 0) {
+      return NextResponse.json(
+        { error: 'Esta OS possui cobrança pendente. Quite ou cancele o recebível antes de excluir a OS.' },
+        { status: 409 }
+      )
+    }
 
     // DELETE ... RETURNING é atômico — evita gravar log pra uma exclusão
     // concorrente que já aconteceu. A OS some com cascade (itens, materiais,
