@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { serviceSchema, type ServiceInput, type Service, type ServiceMaterial } from '@/lib/validations/service'
 import { useCreateService, useUpdateService } from '@/hooks/use-services'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { PlanLimitBanner } from '@/components/ui/plan-limit-banner'
 import { useSystemPreferences } from '@/hooks/use-settings'
 import { type Product } from '@/hooks/use-inventory'
 import {
@@ -46,6 +48,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
   const createService = useCreateService()
   const updateService = useUpdateService()
   const isEditing = !!service?.id
+  const planLimit = usePlanLimit('services')
 
   const { data: systemPrefs } = useSystemPreferences()
   const controlaEstoque = !!systemPrefs?.controla_estoque
@@ -216,6 +219,15 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
               : 'Preencha os dados do novo serviço'}
           </DialogDescription>
         </DialogHeader>
+
+        {!isEditing && planLimit.isFree && (planLimit.nearLimit || planLimit.atLimit) && (
+          <PlanLimitBanner
+            resource="serviços"
+            usage={planLimit.usage}
+            limit={planLimit.limit}
+            atLimit={planLimit.atLimit}
+          />
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
@@ -518,7 +530,7 @@ export function ServiceDialog({ open, onOpenChange, service }: ServiceDialogProp
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || (!isEditing && planLimit.atLimit)}>
               {isLoading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Cadastrar'}
             </Button>
           </div>

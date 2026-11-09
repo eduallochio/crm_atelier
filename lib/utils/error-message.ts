@@ -10,3 +10,8 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   return 'Ocorreu um erro inesperado. Tente novamente.'
 }
+
+/** Retorna true se o erro é de limite de plano Free atingido. */
+export function isPlanLimitError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes('Limite do plano Free atingido')
+}

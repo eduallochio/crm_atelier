@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { clientSchema, type ClientInput, type Client } from '@/lib/validations/client'
 import { useCreateClient, useUpdateClient } from '@/hooks/use-clients'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { PlanLimitBanner } from '@/components/ui/plan-limit-banner'
 import { buscarCep, formatarCep } from '@/lib/services/viacep'
 import {
   Dialog,
@@ -30,6 +32,7 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
   const createClient = useCreateClient()
   const updateClient = useUpdateClient()
   const isEditing = !!client
+  const planLimit = usePlanLimit('clients')
 
   const {
     register,
@@ -150,6 +153,15 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
               : 'Preencha os dados do novo cliente'}
           </DialogDescription>
         </DialogHeader>
+
+        {!isEditing && planLimit.isFree && (planLimit.nearLimit || planLimit.atLimit) && (
+          <PlanLimitBanner
+            resource="clientes"
+            usage={planLimit.usage}
+            limit={planLimit.limit}
+            atLimit={planLimit.atLimit}
+          />
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
@@ -343,7 +355,7 @@ export function ClientDialog({ open, onOpenChange, client }: ClientDialogProps) 
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || (!isEditing && planLimit.atLimit)}>
               {isLoading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Cadastrar'}
             </Button>
           </div>

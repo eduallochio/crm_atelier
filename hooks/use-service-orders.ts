@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ServiceOrder, ServiceOrderInput, ServiceOrderItem, ServiceOrderItemInput, ServiceOrderEmbalagem } from '@/lib/validations/service-order'
 import { toast } from 'sonner'
-import { getErrorMessage } from '@/lib/utils/error-message'
+import { getErrorMessage, isPlanLimitError } from '@/lib/utils/error-message'
 
 export function useServiceOrders() {
   return useQuery({
@@ -48,7 +48,14 @@ export function useCreateServiceOrder() {
       toast.success('Ordem de serviço criada com sucesso!')
     },
     onError: (error: Error) => {
-      toast.error(getErrorMessage(error))
+      if (isPlanLimitError(error)) {
+        toast.error('Limite de ordens de serviço atingido no plano gratuito.', {
+          action: { label: 'Fazer upgrade', onClick: () => window.location.href = '/configuracoes?tab=assinatura' },
+          duration: 8000,
+        })
+      } else {
+        toast.error(getErrorMessage(error))
+      }
     },
   })
 }

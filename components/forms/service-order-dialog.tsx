@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { buildServiceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
 import { useQuery } from '@tanstack/react-query'
 import { useCreateServiceOrder } from '@/hooks/use-service-orders'
+import { usePlanLimit } from '@/hooks/use-plan-usage'
+import { PlanLimitBanner } from '@/components/ui/plan-limit-banner'
 import { useClients } from '@/hooks/use-clients'
 import { useServices } from '@/hooks/use-services'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
@@ -80,6 +82,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const [embalagemSearchValue, setEmbalagemSearchValue] = useState('')
 
   const createOrder = useCreateServiceOrder()
+  const planLimit = usePlanLimit('orders')
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useServices()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
@@ -432,6 +435,15 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             Escolha a cliente, os serviços e o prazo. A OS só ganha número depois de gerada.
           </DialogDescription>
         </DialogHeader>
+
+        {planLimit.isFree && (planLimit.nearLimit || planLimit.atLimit) && (
+          <PlanLimitBanner
+            resource="ordens de serviço"
+            usage={planLimit.usage}
+            limit={planLimit.limit}
+            atLimit={planLimit.atLimit}
+          />
+        )}
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           {/* Cliente */}
@@ -1072,7 +1084,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             </Button>
             <Button
               type="button"
-              disabled={isLoading}
+              disabled={isLoading || planLimit.atLimit}
               onClick={() => handleSubmit(onSubmit, (erros) => {
                 const msgs: string[] = []
                 if (erros.client_id) msgs.push('Selecione um cliente')
