@@ -15,6 +15,7 @@ export interface Product {
   quantidade_minima: number
   preco_custo?: number
   codigo_barras?: string
+  is_embalagem: boolean
   ativo: boolean
   created_at: string
   updated_at: string

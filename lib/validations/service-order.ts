@@ -88,6 +88,17 @@ export interface ServiceOrderItem {
   created_at: string
 }
 
+export interface ServiceOrderEmbalagem {
+  id: string
+  order_id: string
+  product_id: string | null
+  nome: string
+  quantidade: number
+  unidade: string | null
+  preco_unitario: number | null
+  created_at: string
+}
+
 export interface ServiceOrder {
   id: string
   numero: number
@@ -115,4 +126,5 @@ export interface ServiceOrder {
     email: string | null
   }
   items?: ServiceOrderItem[]
+  embalagens?: ServiceOrderEmbalagem[]
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import {
@@ -29,6 +29,7 @@ import { PlanCelebration, clearProPending, markProPending } from '@/components/s
 import { PixPayment } from '@/components/subscription/pix-payment'
 import { CardForm, EMPTY_CARD, splitExpiry, validateCard, type CardData, type CardErrors } from '@/components/subscription/card-form'
 import { renewalLabel } from '@/lib/utils/subscription'
+import { readPendingCoupon, clearPendingCoupon } from '@/lib/utils/pending-coupon'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -186,6 +187,26 @@ export function SubscriptionSettingsForm() {
   const currentPlan = usage?.plan ?? 'free'
   const isPro = currentPlan === 'pro'
 
+  // Cupom vindo de /promo (salvo no navegador ao clicar em "Assinar agora"):
+  // abre o checkout do Pro e já aplica o cupom automaticamente, uma única
+  // vez por carregamento da página. Só se aplica à 1ª assinatura — alguém
+  // que já foi Pro alguma vez (currentPlan !== 'free') não deve ter esse
+  // fluxo disparado de novo.
+  const appliedPendingCoupon = useRef(false)
+  useEffect(() => {
+    if (appliedPendingCoupon.current) return
+    if (loadingUsage) return // espera saber o plano atual antes de decidir
+    appliedPendingCoupon.current = true
+    if (currentPlan !== 'free') return
+    const pending = readPendingCoupon()
+    if (!pending) return
+    clearPendingCoupon()
+    setCouponCode(pending)
+    setShowCheckout(true)
+    validateCoupon(pending)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingUsage, currentPlan])
+
   // Preferência: lançar assinatura no financeiro
   const { data: financialSettings } = useQuery<{ autoLaunchSubscription?: boolean } | null>({
     queryKey: ['financial-settings-subscription'],
@@ -240,15 +261,19 @@ export function SubscriptionSettingsForm() {
   // Valor por parcela sem juros
   const installmentValue = activeInstallments > 1 ? Math.ceil((finalPrice / activeInstallments) * 100) / 100 : finalPrice
 
-  async function validateCoupon() {
-    if (!couponCode.trim()) return
+  // code vem por parâmetro (em vez de ler couponCode do state) para o
+  // preenchimento automático do cupom vindo de /promo poder chamar esta
+  // função sem esperar um re-render — setCouponCode + validateCoupon() em
+  // sequência leria o valor antigo de couponCode (stale closure)
+  async function validateCoupon(code = couponCode) {
+    if (!code.trim()) return
     setValidatingCoupon(true)
     setCouponResult(null)
     try {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, plan: 'pro', cycle }),
+        body: JSON.stringify({ code, plan: 'pro', cycle }),
       })
       const data: CouponResult = await res.json()
       setCouponResult(data)
@@ -815,7 +840,7 @@ export function SubscriptionSettingsForm() {
                 />
                 <Button
                   variant="outline"
-                  onClick={validateCoupon}
+                  onClick={() => validateCoupon()}
                   disabled={validatingCoupon || !couponCode.trim()}
                   className="shrink-0"
                 >

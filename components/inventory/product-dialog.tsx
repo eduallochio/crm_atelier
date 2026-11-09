@@ -26,6 +26,7 @@ const schema = z.object({
   preco_custo: z.number().min(0).optional(),
   codigo_barras: z.string().optional(),
   descricao: z.string().optional(),
+  is_embalagem: z.boolean(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -52,7 +53,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: '', unidade: 'un', quantidade_atual: 0, quantidade_minima: 0 },
+    defaultValues: { nome: '', unidade: 'un', quantidade_atual: 0, quantidade_minima: 0, is_embalagem: false },
   })
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         preco_custo: product?.preco_custo ?? undefined,
         codigo_barras: product?.codigo_barras || '',
         descricao: product?.descricao || '',
+        is_embalagem: product?.is_embalagem ?? false,
       })
     }
   }, [open, product, isEditing, reset])
@@ -183,6 +185,21 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
               placeholder="Observações sobre o produto"
             />
           </div>
+
+          <label htmlFor="is_embalagem" className="flex items-start gap-2.5 rounded-md border border-input px-3 py-2.5 cursor-pointer">
+            <input
+              id="is_embalagem"
+              type="checkbox"
+              {...register('is_embalagem')}
+              className="mt-0.5 h-4 w-4 rounded border-input"
+            />
+            <span className="text-sm">
+              <span className="block font-medium">Este produto é embalagem</span>
+              <span className="block text-xs text-muted-foreground">
+                Aparece no campo de Embalagem da ordem de serviço, em vez da lista de Materiais
+              </span>
+            </span>
+          </label>
 
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

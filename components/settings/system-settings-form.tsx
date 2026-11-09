@@ -28,6 +28,9 @@ const systemSettingsSchema = z.object({
   currency: z.enum(['BRL', 'USD', 'EUR']),
   controla_estoque: z.boolean(),
   fechamento_automatico_caixa: z.boolean(),
+  usa_embalagem: z.boolean(),
+  embalagem_soma_total: z.boolean(),
+  embalagem_destacar_recibo: z.boolean(),
 })
 
 type SystemSettings = z.infer<typeof systemSettingsSchema>
@@ -72,6 +75,9 @@ export function SystemSettingsForm() {
       currency: 'BRL',
       controla_estoque: false,
       fechamento_automatico_caixa: true,
+      usa_embalagem: false,
+      embalagem_soma_total: false,
+      embalagem_destacar_recibo: false,
     },
   })
 
@@ -85,6 +91,9 @@ export function SystemSettingsForm() {
         currency: settings.currency || 'BRL',
         controla_estoque: !!settings.controla_estoque,
         fechamento_automatico_caixa: settings.fechamento_automatico_caixa !== false,
+        usa_embalagem: !!settings.usa_embalagem,
+        embalagem_soma_total: !!settings.embalagem_soma_total,
+        embalagem_destacar_recibo: !!settings.embalagem_destacar_recibo,
       })
     }
   }, [settings, form])
@@ -96,6 +105,9 @@ export function SystemSettingsForm() {
   const timeFormat = useWatch({ control: form.control, name: 'time_format' })
   const controlaEstoque = useWatch({ control: form.control, name: 'controla_estoque' })
   const fechamentoAutomatico = useWatch({ control: form.control, name: 'fechamento_automatico_caixa' })
+  const usaEmbalagem = useWatch({ control: form.control, name: 'usa_embalagem' })
+  const embalagemSomaTotal = useWatch({ control: form.control, name: 'embalagem_soma_total' })
+  const embalagemDestacarRecibo = useWatch({ control: form.control, name: 'embalagem_destacar_recibo' })
 
   const onSubmit = async (data: SystemSettings) => {
     if (!settings?.organization_id) {
@@ -116,6 +128,9 @@ export function SystemSettingsForm() {
         show_tooltips: true,
         controla_estoque: data.controla_estoque,
         fechamento_automatico_caixa: data.fechamento_automatico_caixa,
+        usa_embalagem: data.usa_embalagem,
+        embalagem_soma_total: data.embalagem_soma_total,
+        embalagem_destacar_recibo: data.embalagem_destacar_recibo,
       })
       toast.success('Preferências salvas com sucesso!')
     } catch (error) {
@@ -333,6 +348,92 @@ export function SystemSettingsForm() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   ✓ Histórico de saídas disponível em Estoque → Relatórios
                 </p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-4 mt-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Embalagem</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Habilita o campo Embalagem nas ordens de serviço, separado de Materiais. Use produtos
+                  marcados como &quot;Este produto é embalagem&quot; no cadastro de Estoque.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={usaEmbalagem}
+                onClick={() => form.setValue('usa_embalagem', !usaEmbalagem, { shouldDirty: true })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  usaEmbalagem ? 'bg-primary' : 'bg-input'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                    usaEmbalagem ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+            {usaEmbalagem && (
+              <div className="mt-3 pt-3 border-t border-border/60 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  ✓ Seção &quot;Embalagem&quot; visível nas ordens de serviço, com baixa automática de estoque
+                </p>
+
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-foreground">Somar valor da embalagem ao total da OS</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Usa o preço de custo do produto como valor cobrado e soma ao total do pedido.
+                      Quando desligado, a embalagem só controla estoque, sem afetar o valor cobrado.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={embalagemSomaTotal}
+                    onClick={() => form.setValue('embalagem_soma_total', !embalagemSomaTotal, { shouldDirty: true })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      embalagemSomaTotal ? 'bg-primary' : 'bg-input'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                        embalagemSomaTotal ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {embalagemSomaTotal && (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-foreground">Destacar embalagem no recibo do cliente</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Mostra uma linha separada &quot;Embalagem: R$ X&quot; no PDF/recibo enviado ao cliente,
+                        em vez de somar o valor de forma invisível ao total dos serviços.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={embalagemDestacarRecibo}
+                      onClick={() => form.setValue('embalagem_destacar_recibo', !embalagemDestacarRecibo, { shouldDirty: true })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        embalagemDestacarRecibo ? 'bg-primary' : 'bg-input'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                          embalagemDestacarRecibo ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

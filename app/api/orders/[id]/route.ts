@@ -12,13 +12,14 @@ import {
   orgCashierMovements,
   orgCashiers,
   orgSystemPreferences,
-  orgServiceOrderMaterials,
+  orgServiceOrderEmbalagens,
+  orgServices,
   orgStockExits,
   orgStockExitItems,
   orgPaymentMethods,
   orgDeletionLog,
 } from '@/lib/db/schema'
-import { eq, and, desc, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, desc, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 
 export async function GET(
@@ -67,6 +68,11 @@ export async function GET(
       .from(orgServiceOrderItems)
       .where(eq(orgServiceOrderItems.orderId, id))
 
+    const embalagens = await db
+      .select()
+      .from(orgServiceOrderEmbalagens)
+      .where(eq(orgServiceOrderEmbalagens.orderId, id))
+
     const order = {
       id:                  orderRow.id,
       numero:              orderRow.numero,
@@ -100,6 +106,16 @@ export async function GET(
         valor_total:    Number(i.valorTotal ?? 0),
         observacoes:    i.observacoes ?? null,
         created_at:     i.createdAt,
+      })),
+      embalagens: embalagens.map(e => ({
+        id:             e.id,
+        order_id:       e.orderId,
+        product_id:     e.productId,
+        nome:           e.nome,
+        quantidade:     Number(e.quantidade ?? 1),
+        unidade:        e.unidade,
+        preco_unitario: e.precoUnitario != null ? Number(e.precoUnitario) : null,
+        created_at:     e.createdAt,
       })),
     }
 
@@ -308,43 +324,115 @@ export async function PUT(
         }
       }
 
-      // Stock exit on conclusion if inventory control is active
+      // Stock exit on conclusion if inventory control (materials) or
+      // embalagem is active — são dois toggles independentes em
+      // Configurações, cada um gerando sua própria saída de estoque
       if (isBeingConcluded) {
         const [pref] = await tx
-          .select({ controlaEstoque: orgSystemPreferences.controlaEstoque })
+          .select({ controlaEstoque: orgSystemPreferences.controlaEstoque, usaEmbalagem: orgSystemPreferences.usaEmbalagem })
           .from(orgSystemPreferences)
           .where(eq(orgSystemPreferences.organizationId, user.organizationId))
 
         if (pref?.controlaEstoque) {
-          const materials = await tx
-            .select()
-            .from(orgServiceOrderMaterials)
-            .where(eq(orgServiceOrderMaterials.orderId, id))
+          // Materiais não são mais digitados na OS — vêm da "receita" já
+          // cadastrada em cada serviço (orgServices.materiaisJson),
+          // multiplicada pela quantidade vendida de cada item. Itens cujo
+          // serviço foi excluído (serviceId null) são ignorados em silêncio,
+          // pois não há como recuperar quais materiais usar
+          const items = await tx
+            .select({ serviceId: orgServiceOrderItems.serviceId, quantidade: orgServiceOrderItems.quantidade })
+            .from(orgServiceOrderItems)
+            .where(eq(orgServiceOrderItems.orderId, id))
 
-          const materiaisComProduto = materials.filter(m => m.productId)
-          if (materiaisComProduto.length > 0) {
+          const serviceIds = [...new Set(items.map(i => i.serviceId).filter((v): v is string => !!v))]
+
+          if (serviceIds.length > 0) {
+            const services = await tx
+              .select({ id: orgServices.id, materiaisJson: orgServices.materiaisJson })
+              .from(orgServices)
+              .where(and(inArray(orgServices.id, serviceIds), eq(orgServices.organizationId, user.organizationId)))
+
+            const materiaisPorServico = new Map(services.map(s => [s.id, (Array.isArray(s.materiaisJson) ? s.materiaisJson : []) as Array<{
+              product_id?: string | null
+              produto_nome: string
+              quantidade: number
+              unidade: string
+            }>]))
+
+            // Agrega por produto (ou por nome, se não tiver product_id) — mesma regra já usada na auto-população do formulário
+            const agregados = new Map<string, { productId: string | null; nome: string; quantidade: number; unidade: string }>()
+            for (const item of items) {
+              if (!item.serviceId) continue
+              const materiais = materiaisPorServico.get(item.serviceId) ?? []
+              for (const m of materiais) {
+                const key = m.product_id || `nome:${m.produto_nome}`
+                const existing = agregados.get(key)
+                const quantidade = Number(m.quantidade) * item.quantidade
+                if (existing) {
+                  existing.quantidade += quantidade
+                } else {
+                  agregados.set(key, { productId: m.product_id || null, nome: m.produto_nome, quantidade, unidade: m.unidade || 'un' })
+                }
+              }
+            }
+
+            const materiaisComProduto = [...agregados.values()].filter(m => m.productId)
+            if (materiaisComProduto.length > 0) {
+              const [stockExit] = await tx
+                .insert(orgStockExits)
+                .values({
+                  organizationId: user.organizationId,
+                  serviceOrderId: id,
+                  tipo:           'ordem_servico',
+                  observacoes:    `Baixa automática — OS #${order.numero}`,
+                })
+                .returning()
+
+              // O saldo do produto já é atualizado (e validado) automaticamente
+              // por um trigger no banco (handle_stock_exit_item) — não subtrai
+              // aqui de novo, senão duplica o efeito. Diferente da baixa manual,
+              // o trigger bloqueia com exceção se faltar estoque; deixamos essa
+              // exceção propagar e cancelar a conclusão da OS (ver catch abaixo)
+              await tx.insert(orgStockExitItems).values(
+                materiaisComProduto.map(m => ({
+                  exitId:      stockExit.id,
+                  productId:   m.productId!,
+                  produtoNome: m.nome,
+                  quantidade:  String(m.quantidade),
+                  unidade:     m.unidade,
+                }))
+              )
+            }
+          }
+        }
+
+        if (pref?.usaEmbalagem) {
+          const embalagens = await tx
+            .select()
+            .from(orgServiceOrderEmbalagens)
+            .where(eq(orgServiceOrderEmbalagens.orderId, id))
+
+          const embalagensComProduto = embalagens.filter(e => e.productId)
+          if (embalagensComProduto.length > 0) {
             const [stockExit] = await tx
               .insert(orgStockExits)
               .values({
                 organizationId: user.organizationId,
                 serviceOrderId: id,
                 tipo:           'ordem_servico',
-                observacoes:    `Baixa automática — OS #${order.numero}`,
+                observacoes:    `Baixa automática (embalagem) — OS #${order.numero}`,
               })
               .returning()
 
-            // O saldo do produto já é atualizado (e validado) automaticamente
-            // por um trigger no banco (handle_stock_exit_item) — não subtrai
-            // aqui de novo, senão duplica o efeito. Diferente da baixa manual,
-            // o trigger bloqueia com exceção se faltar estoque; deixamos essa
-            // exceção propagar e cancelar a conclusão da OS (ver catch abaixo)
+            // Mesmo trigger handle_stock_exit_item já valida/atualiza o
+            // saldo do produto — ver comentário acima sobre materiais
             await tx.insert(orgStockExitItems).values(
-              materiaisComProduto.map(m => ({
+              embalagensComProduto.map(e => ({
                 exitId:      stockExit.id,
-                productId:   m.productId!,
-                produtoNome: m.nome,
-                quantidade:  String(m.quantidade),
-                unidade:     m.unidade ?? 'un',
+                productId:   e.productId!,
+                produtoNome: e.nome,
+                quantidade:  String(e.quantidade),
+                unidade:     e.unidade ?? 'un',
               }))
             )
           }

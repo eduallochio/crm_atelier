@@ -120,6 +120,9 @@ export interface SystemPreferences {
   // Módulos
   controla_estoque: boolean
   fechamento_automatico_caixa: boolean
+  usa_embalagem: boolean
+  embalagem_soma_total: boolean
+  embalagem_destacar_recibo: boolean
   updated_at: string
 }
 

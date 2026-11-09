@@ -32,6 +32,7 @@ export async function GET() {
         quantidadeMinima: orgProducts.quantidadeMinima,
         precoCusto:       orgProducts.precoCusto,
         codigoBarras:     orgProducts.codigoBarras,
+        isEmbalagem:      orgProducts.isEmbalagem,
         ativo:            orgProducts.ativo,
         createdAt:        orgProducts.createdAt,
         updatedAt:        orgProducts.updatedAt,
@@ -55,6 +56,7 @@ export async function GET() {
       quantidade_minima: Number(p.quantidadeMinima ?? 0),
       preco_custo:      p.precoCusto != null ? Number(p.precoCusto) : null,
       codigo_barras:    p.codigoBarras,
+      is_embalagem:     p.isEmbalagem,
       ativo:            p.ativo,
       created_at:       p.createdAt,
       updated_at:       p.updatedAt,
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
       quantidade_minima: quantidadeMinima = 0,
       preco_custo: precoCusto,
       codigo_barras: codigoBarras,
+      is_embalagem: isEmbalagem = false,
     } = body
 
     if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -112,6 +115,7 @@ export async function POST(request: Request) {
         quantidadeMinima: String(quantidadeMinima ?? 0),
         precoCusto: precoCusto != null ? String(precoCusto) : null,
         codigoBarras: codigoBarras ?? null,
+        isEmbalagem: !!isEmbalagem,
       })
       .returning()
 
@@ -127,6 +131,7 @@ export async function POST(request: Request) {
       quantidade_minima: Number(product.quantidadeMinima ?? 0),
       preco_custo:      product.precoCusto != null ? Number(product.precoCusto) : null,
       codigo_barras:    product.codigoBarras,
+      is_embalagem:     product.isEmbalagem,
       ativo:            product.ativo,
       created_at:       product.createdAt,
       updated_at:       product.updatedAt,

@@ -192,18 +192,23 @@ export const orgServiceOrderItems = pgTable('org_service_order_items', {
   createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
-// ─── 9. ORG SERVICE ORDER MATERIALS ───────────────────────────────────────────
+// ─── 9.1. ORG SERVICE ORDER EMBALAGENS ────────────────────────────────────────
 
-export const orgServiceOrderMaterials = pgTable('org_service_order_materials', {
-  id:          uuid('id').primaryKey().defaultRandom(),
-  orderId:     uuid('order_id').notNull().references(() => orgServiceOrders.id, { onDelete: 'cascade' }),
-  productId:   uuid('product_id'),
-  nome:        text('nome').notNull(),
-  quantidade:  numeric('quantidade', { precision: 10, scale: 3 }).notNull().default('1'),
-  unidade:     text('unidade').default('un'),
-  precoCusto:  numeric('preco_custo', { precision: 10, scale: 2 }),
-  createdAt:   timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+export const orgServiceOrderEmbalagens = pgTable('org_service_order_embalagens', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  orderId:        uuid('order_id').notNull().references(() => orgServiceOrders.id, { onDelete: 'cascade' }),
+  productId:      uuid('product_id'),
+  nome:           text('nome').notNull(),
+  quantidade:     numeric('quantidade', { precision: 10, scale: 3 }).notNull().default('1'),
+  unidade:        text('unidade').default('un'),
+  // snapshot do preco_custo do produto no momento em que foi adicionada —
+  // editar o preço do produto depois não deve alterar o valor já cobrado
+  // em OS passadas
+  precoUnitario:  numeric('preco_unitario', { precision: 10, scale: 2 }),
+  createdAt:      timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_order_embalagens_order').on(t.orderId),
+])
 
 // ─── 10. ORG SERVICE ORDER HISTORY ────────────────────────────────────────────
 
@@ -518,6 +523,9 @@ export const orgSystemPreferences = pgTable('org_system_preferences', {
   showTooltips:     boolean('show_tooltips').notNull().default(true),
   controlaEstoque:            boolean('controla_estoque').notNull().default(false),
   fechamentoAutomaticoCaixa:  boolean('fechamento_automatico_caixa').notNull().default(true),
+  usaEmbalagem:               boolean('usa_embalagem').notNull().default(false),
+  embalagemSomaTotal:         boolean('embalagem_soma_total').notNull().default(false),
+  embalagemDestacarRecibo:    boolean('embalagem_destacar_recibo').notNull().default(false),
   updatedAt:                  timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
@@ -555,6 +563,7 @@ export const orgProducts = pgTable('org_products', {
   quantidadeMinima: numeric('quantidade_minima', { precision: 10, scale: 3 }).notNull().default('0'),
   precoCusto:       numeric('preco_custo', { precision: 10, scale: 2 }),
   codigoBarras:     text('codigo_barras'),
+  isEmbalagem:      boolean('is_embalagem').notNull().default(false),
   ativo:            boolean('ativo').notNull().default(true),
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:        timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -801,6 +810,7 @@ export type NewOrgService      = typeof orgServices.$inferInsert
 export type OrgServiceOrder    = typeof orgServiceOrders.$inferSelect
 export type NewOrgServiceOrder = typeof orgServiceOrders.$inferInsert
 export type OrgServiceOrderItem    = typeof orgServiceOrderItems.$inferSelect
+export type OrgServiceOrderEmbalagem = typeof orgServiceOrderEmbalagens.$inferSelect
 export type OrgFinancialCategory   = typeof orgFinancialCategories.$inferSelect
 export type OrgPaymentMethod       = typeof orgPaymentMethods.$inferSelect
 export type OrgSupplier            = typeof orgSuppliers.$inferSelect

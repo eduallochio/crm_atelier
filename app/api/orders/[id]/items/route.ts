@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { orgServiceOrders, orgServiceOrderItems, orgServices } from '@/lib/db/schema'
+import { orgServiceOrders, orgServiceOrderItems, orgServices, orgServiceOrderEmbalagens, orgSystemPreferences } from '@/lib/db/schema'
 import { eq, and, asc, inArray } from 'drizzle-orm'
 import { requireAuth } from '@/lib/auth/session'
 import { logServerError } from '@/lib/log-error'
@@ -120,10 +120,7 @@ export async function PUT(
     // caller poderia subfaturar a OS mandando um valor_total divergente.
     // quantidade/valor_unitario já foram validados como positivos acima.
     const itemTotals = items.map(item => Number(item.quantidade) * Number(item.valor_unitario))
-    const subtotal = itemTotals.reduce((sum, v) => sum + v, 0)
-
-    const { descontoPercentual, descontoValor, valorTotal: novoValorTotal } =
-      calcularDesconto(subtotal, body.desconto_percentual, body.desconto_valor)
+    const subtotalItens = itemTotals.reduce((sum, v) => sum + v, 0)
 
     const result = await db.transaction(async (tx) => {
       // valorPago/status são lidos aqui dentro da transaction, não antes —
@@ -149,6 +146,28 @@ export async function PUT(
       if (order.status !== 'pendente' && order.status !== 'em_andamento') {
         throw new Error('ORDER_NOT_EDITABLE')
       }
+
+      // Soma o subtotal de embalagens já salvas na OS (se a preferência
+      // embalagem_soma_total estiver ligada), para não "perder" esse valor
+      // quando o usuário editar só os itens de serviço depois — mesma regra
+      // aplicada em /embalagens ao salvar embalagens
+      const [prefs] = await tx
+        .select({ embalagemSomaTotal: orgSystemPreferences.embalagemSomaTotal })
+        .from(orgSystemPreferences)
+        .where(eq(orgSystemPreferences.organizationId, user.organizationId))
+
+      let subtotalEmbalagens = 0
+      if (prefs?.embalagemSomaTotal) {
+        const embalagens = await tx
+          .select({ quantidade: orgServiceOrderEmbalagens.quantidade, precoUnitario: orgServiceOrderEmbalagens.precoUnitario })
+          .from(orgServiceOrderEmbalagens)
+          .where(eq(orgServiceOrderEmbalagens.orderId, id))
+        subtotalEmbalagens = embalagens.reduce((sum, e) => sum + Number(e.quantidade) * Number(e.precoUnitario ?? 0), 0)
+      }
+
+      const subtotal = subtotalItens + subtotalEmbalagens
+      const { descontoPercentual, descontoValor, valorTotal: novoValorTotal } =
+        calcularDesconto(subtotal, body.desconto_percentual, body.desconto_valor)
 
       const valorPagoAtual = Number(order.valorPago ?? 0)
       if (novoValorTotal < valorPagoAtual) {

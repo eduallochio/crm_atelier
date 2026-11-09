@@ -30,6 +30,7 @@ async function checkPlanAndProduct(organizationId: string, productId: string) {
       quantidadeMinima: orgProducts.quantidadeMinima,
       precoCusto:       orgProducts.precoCusto,
       codigoBarras:     orgProducts.codigoBarras,
+      isEmbalagem:      orgProducts.isEmbalagem,
       ativo:            orgProducts.ativo,
       createdAt:        orgProducts.createdAt,
       updatedAt:        orgProducts.updatedAt,
@@ -59,6 +60,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       quantidade_minima: Number(product.quantidadeMinima ?? 0),
       preco_custo:      product.precoCusto != null ? Number(product.precoCusto) : null,
       codigo_barras:    product.codigoBarras,
+      is_embalagem:     product.isEmbalagem,
       ativo:            product.ativo,
       created_at:       product.createdAt,
       updated_at:       product.updatedAt,
@@ -88,6 +90,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       quantidade_minima: quantidadeMinima,
       preco_custo: precoCusto,
       codigo_barras: codigoBarras,
+      is_embalagem: isEmbalagem,
       ativo,
     } = body
 
@@ -113,6 +116,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         quantidadeMinima: quantidadeMinima != null ? String(quantidadeMinima) : '0',
         precoCusto: precoCusto != null ? String(precoCusto) : null,
         codigoBarras: codigoBarras ?? null,
+        isEmbalagem: !!isEmbalagem,
         ativo: ativo !== false,
         updatedAt: new Date(),
       })
@@ -131,6 +135,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       quantidade_minima: Number(updated.quantidadeMinima ?? 0),
       preco_custo:      updated.precoCusto != null ? Number(updated.precoCusto) : null,
       codigo_barras:    updated.codigoBarras,
+      is_embalagem:     updated.isEmbalagem,
       ativo:            updated.ativo,
       created_at:       updated.createdAt,
       updated_at:       updated.updatedAt,

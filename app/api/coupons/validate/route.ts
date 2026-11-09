@@ -40,8 +40,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false, error: 'Cupom esgotado' })
     }
 
+    // Comparação case-insensitive — applicable_plans no banco pode ter sido
+    // cadastrado com capitalização diferente do slug (ex.: "Pro" vs "pro"),
+    // e isso não deveria fazer um cupom válido ser rejeitado
     const applicable = coupon.applicablePlans as string[] | null
-    if (applicable && applicable.length > 0 && !applicable.includes(plan)) {
+    if (applicable && applicable.length > 0 && !applicable.some(p => p.toLowerCase() === plan.toLowerCase())) {
       return NextResponse.json({ valid: false, error: `Cupom não aplicável ao plano ${plan}` })
     }
 

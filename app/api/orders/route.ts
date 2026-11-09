@@ -4,6 +4,7 @@ import { logServerError } from '@/lib/log-error'
 import {
   orgServiceOrders,
   orgServiceOrderItems,
+  orgServiceOrderEmbalagens,
   orgClients,
   organizations,
   usageMetrics,
@@ -69,6 +70,17 @@ export async function GET() {
       itemsByOrder[item.orderId].push(item)
     }
 
+    const allEmbalagens = await db
+      .select()
+      .from(orgServiceOrderEmbalagens)
+      .where(inArray(orgServiceOrderEmbalagens.orderId, orderIds))
+
+    const embalagensByOrder: Record<string, typeof allEmbalagens> = {}
+    for (const e of allEmbalagens) {
+      if (!embalagensByOrder[e.orderId]) embalagensByOrder[e.orderId] = []
+      embalagensByOrder[e.orderId].push(e)
+    }
+
     const orders = orderRows.map(row => ({
       id:                  row.id,
       numero:              row.numero,
@@ -102,6 +114,16 @@ export async function GET() {
         valor_total:    Number(i.valorTotal ?? 0),
         observacoes:    i.observacoes ?? null,
         created_at:     i.createdAt,
+      })),
+      embalagens: (embalagensByOrder[row.id] || []).map((e: any) => ({
+        id:             e.id,
+        order_id:       e.orderId,
+        product_id:     e.productId,
+        nome:           e.nome,
+        quantidade:     Number(e.quantidade ?? 1),
+        unidade:        e.unidade,
+        preco_unitario: e.precoUnitario != null ? Number(e.precoUnitario) : null,
+        created_at:     e.createdAt,
       })),
     }))
 

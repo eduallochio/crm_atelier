@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { dmSans } from '@/components/landing/atelier/fonts'
 import { usePageView, useTrack } from '@/hooks/use-track'
+import { markPendingCoupon } from '@/lib/utils/pending-coupon'
 
 const WA_LINK = 'https://wa.me/5527998714453?text=Ol%C3%A1%2C%20vim%20pela%20promo%C3%A7%C3%A3o%20de%2050%25%20do%20Meu%20Atelier%20Sistema%20e%20gostaria%20de%20saber%20mais!'
 
@@ -141,7 +142,7 @@ function StickyCta() {
           <strong>R$ 49,90 por 2 meses</strong>
           Cupom PROMO50 · Por tempo limitado
         </div>
-        <Link href="/cadastro" className="sticky-cta-btn">Assinar agora</Link>
+        <Link href="/cadastro" className="sticky-cta-btn" onClick={() => markPendingCoupon('PROMO50')}>Assinar agora</Link>
       </div>
     </div>
   )
@@ -204,6 +205,7 @@ function CopyCoupon() {
   const copy = () => {
     navigator.clipboard.writeText('PROMO50').then(() => {
       setCopied(true)
+      markPendingCoupon('PROMO50')
       track('coupon_copy', { coupon: 'PROMO50' })
       setTimeout(() => setCopied(false), 2000)
     })
@@ -608,7 +610,7 @@ export default function PromoPage() {
           </div>
         </div>
         <p className="promo-annual-hint">Ou assine anual por R$ 498/ano e economize R$ 100</p>
-        <Link href="/cadastro" className="promo-btn" onClick={() => track('cta_click', { location: 'hero' })}>Começar agora com 50% off</Link>
+        <Link href="/cadastro" className="promo-btn" onClick={() => { markPendingCoupon('PROMO50'); track('cta_click', { location: 'hero' }) }}>Começar agora com 50% off</Link>
         <p className="promo-note">Sem cartão de crédito para começar · 7 dias de garantia</p>
       </section>
 
@@ -815,7 +817,7 @@ export default function PromoPage() {
         </p>
         <CopyCoupon />
         <br />
-        <Link href="/cadastro" className="promo-btn" onClick={() => track('cta_click', { location: 'cta_final' })}>Criar conta e usar cupom</Link>
+        <Link href="/cadastro" className="promo-btn" onClick={() => { markPendingCoupon('PROMO50'); track('cta_click', { location: 'cta_final' }) }}>Criar conta e usar cupom</Link>
         <br />
         <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="promo-wa-btn" onClick={() => track('whatsapp_click', { location: 'cta_final' })}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

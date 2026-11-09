@@ -55,6 +55,9 @@ export function ThemeToggle() {
         show_tooltips: preferences.show_tooltips !== false,
         controla_estoque: preferences.controla_estoque || false,
         fechamento_automatico_caixa: preferences.fechamento_automatico_caixa !== false,
+        usa_embalagem: preferences.usa_embalagem || false,
+        embalagem_soma_total: preferences.embalagem_soma_total || false,
+        embalagem_destacar_recibo: preferences.embalagem_destacar_recibo || false,
       })
     } catch (error) {
       console.error('Erro ao alterar tema:', error)

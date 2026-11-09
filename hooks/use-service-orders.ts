@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ServiceOrder, ServiceOrderInput, ServiceOrderItem, ServiceOrderItemInput } from '@/lib/validations/service-order'
+import type { ServiceOrder, ServiceOrderInput, ServiceOrderItem, ServiceOrderItemInput, ServiceOrderEmbalagem } from '@/lib/validations/service-order'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/utils/error-message'
 
@@ -109,6 +109,39 @@ export function useUpdateOrderItems() {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Itens da ordem de serviço atualizados!')
+    },
+    onError: (error: Error) => {
+      toast.error(getErrorMessage(error))
+    },
+  })
+}
+
+/**
+ * Substitui as embalagens de uma OS já lançada. Se embalagem_soma_total
+ * estiver ligado, o backend recalcula valor_total — ver PUT
+ * /api/orders/[id]/embalagens.
+ */
+export function useUpdateOrderEmbalagens() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, embalagens }: {
+      id: string
+      embalagens: Array<{ product_id?: string | null; nome: string; quantidade: number; unidade?: string }>
+    }) => {
+      const res = await fetch(`/api/orders/${id}/embalagens`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embalagens }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar embalagem da ordem de serviço')
+      return data as ServiceOrderEmbalagem[]
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      toast.success('Embalagem da ordem de serviço atualizada!')
     },
     onError: (error: Error) => {
       toast.error(getErrorMessage(error))

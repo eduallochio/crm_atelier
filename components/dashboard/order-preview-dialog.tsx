@@ -6,7 +6,7 @@ import { Printer, X, MessageCircle, Loader2 } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { generateThermalPreview, generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
-import { useOrganizationSettings, useFinancialSettings, useOrderSettings } from '@/hooks/use-settings'
+import { useOrganizationSettings, useFinancialSettings, useOrderSettings, useSystemPreferences } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { whatsappNumber } from '@/lib/utils/whatsapp'
@@ -35,7 +35,9 @@ export function OrderPreviewDialog({
   const { data: orgSettings } = useOrganizationSettings()
   const { data: financialSettings } = useFinancialSettings()
   const { data: orderSettings } = useOrderSettings()
+  const { data: systemPrefs } = useSystemPreferences()
   const printerWidth = orderSettings?.printer_width ?? '80mm'
+  const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
 
   // Identifica PIX pelo código original (estável), não pelo nome customizável exibido
   const isPixPayment = order?.forma_pagamento?.toLowerCase() === 'pix'
@@ -73,11 +75,11 @@ export function OrderPreviewDialog({
       if (isMobile) {
         // Mobile/Bluetooth: gera PDF para download — o Android abre no leitor de PDF
         // que consegue enviar para impressoras Bluetooth/WiFi
-        generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData)
+        generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
         toast.success('PDF gerado! Abra o arquivo e imprima pela impressora Bluetooth.')
       } else {
         // Desktop: abre janela de impressão do sistema
-        const html = generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData)
+        const html = generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
         const win = window.open('', '_blank', 'width=400,height=600')
         if (!win) { toast.error('Permita pop-ups para imprimir'); return }
         win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>OS</title><style>
@@ -109,7 +111,7 @@ export function OrderPreviewDialog({
       const phoneWithCountry = whatsappNumber(orderWithPaymentName.client.telefone)
 
       // Gerar mensagem formatada igual ao cupom
-      const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData)
+      const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
 
       // Abrir WhatsApp Web com a OS completa
       const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`
@@ -164,7 +166,7 @@ export function OrderPreviewDialog({
         {orderWithPaymentName && (
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
             <div
-              dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData) }}
+              dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem) }}
             />
           </div>
         )}

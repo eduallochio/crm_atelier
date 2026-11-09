@@ -132,8 +132,9 @@ export async function POST(req: NextRequest) {
       if (found.maxUses != null && (found.usesCount ?? 0) >= found.maxUses) {
         return NextResponse.json({ error: 'Cupom esgotado' }, { status: 400 })
       }
+      // Comparação case-insensitive — ver mesmo ajuste em /api/coupons/validate
       const applicable = found.applicablePlans as string[] | null
-      if (applicable && applicable.length > 0 && !applicable.includes(plan)) {
+      if (applicable && applicable.length > 0 && !applicable.some(p => p.toLowerCase() === plan.toLowerCase())) {
         return NextResponse.json({ error: 'Cupom não aplicável a este plano' }, { status: 400 })
       }
 

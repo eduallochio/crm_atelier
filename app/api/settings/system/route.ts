@@ -40,6 +40,9 @@ export async function GET() {
         showTooltips:              DEFAULTS.showTooltips,
         controlaEstoque:           false,
         fechamentoAutomaticoCaixa: true,
+        usaEmbalagem:              false,
+        embalagemSomaTotal:        false,
+        embalagemDestacarRecibo:   false,
       }).onConflictDoNothing()
 
       const created = await db
@@ -65,6 +68,9 @@ export async function GET() {
       show_tooltips:               r.showTooltips,
       controla_estoque:            r.controlaEstoque,
       fechamento_automatico_caixa: r.fechamentoAutomaticoCaixa,
+      usa_embalagem:               r.usaEmbalagem,
+      embalagem_soma_total:        r.embalagemSomaTotal,
+      embalagem_destacar_recibo:   r.embalagemDestacarRecibo,
       updated_at:                  r.updatedAt,
     })
   } catch (error) {
@@ -93,6 +99,9 @@ export async function PUT(request: Request) {
       showTooltips:              body.show_tooltips !== false,
       controlaEstoque:           !!body.controla_estoque,
       fechamentoAutomaticoCaixa: body.fechamento_automatico_caixa !== false,
+      usaEmbalagem:              !!body.usa_embalagem,
+      embalagemSomaTotal:        !!body.embalagem_soma_total,
+      embalagemDestacarRecibo:   !!body.embalagem_destacar_recibo,
     }
 
     await db
@@ -111,6 +120,9 @@ export async function PUT(request: Request) {
           showTooltips:              values.showTooltips,
           controlaEstoque:           values.controlaEstoque,
           fechamentoAutomaticoCaixa: values.fechamentoAutomaticoCaixa,
+          usaEmbalagem:              values.usaEmbalagem,
+          embalagemSomaTotal:        values.embalagemSomaTotal,
+          embalagemDestacarRecibo:   values.embalagemDestacarRecibo,
           updatedAt:                 new Date(),
         },
       })
@@ -135,6 +147,9 @@ export async function PUT(request: Request) {
       show_tooltips:               r.showTooltips,
       controla_estoque:            r.controlaEstoque,
       fechamento_automatico_caixa: r.fechamentoAutomaticoCaixa,
+      usa_embalagem:               r.usaEmbalagem,
+      embalagem_soma_total:        r.embalagemSomaTotal,
+      embalagem_destacar_recibo:   r.embalagemDestacarRecibo,
       updated_at:                  r.updatedAt,
     })
   } catch (error) {

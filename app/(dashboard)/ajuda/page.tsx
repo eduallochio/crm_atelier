@@ -142,7 +142,7 @@ const FAQ: [string, string][] = [
   ['Como defino a meta do mês?', 'No Dashboard, na faixa de faturamento, clique em “Definir meta” (ou “Mudar a meta”), digite o valor e salve.'],
   ['Concluí uma ordem paga e o valor não entrou no caixa. Por quê?', 'O valor só entra no caixa se houver um caixa aberto. Quando isso acontece, o Financeiro mostra o aviso “ordens pagas ainda não entraram no caixa”, com o botão Lançar.'],
   ['Como funciona a numeração das ordens?', 'Cada ordem nova ganha o próximo número (#000001, #000002…). O prefixo e o número inicial ficam em Configurações → Ordens de serviço.'],
-  ['O estoque baixa sozinho quando concluo uma ordem?', 'Sim, se o controle de estoque estiver ligado (Configurações → Sistema) e a ordem tiver materiais. A baixa acontece uma vez só, mesmo se a ordem for reaberta.'],
+  ['O estoque baixa sozinho quando concluo uma ordem?', 'Sim, se o controle de estoque estiver ligado (Configurações → Sistema). Os materiais que baixam são os já cadastrados em cada serviço (Serviços → Materiais e custo), multiplicados pela quantidade vendida — não é preciso informar materiais na ordem. A baixa acontece uma vez só, mesmo se a ordem for reaberta.'],
   ['Como imprimo ou envio a ordem para a cliente?', 'Abra a ordem: “Imprimir” gera o comprovante em PDF e “Enviar OS” abre o WhatsApp com o resumo pronto.'],
   ['Consigo exportar meus dados?', 'Sim. Contas a receber, contas a pagar e o fluxo de caixa exportam para Excel e PDF (ícones no topo da tela), e o estoque tem relatórios em PDF e Excel.'],
   ['Lancei um valor de teste no fluxo de caixa, como apago?', 'Lançamentos feitos direto pelo botão “Lançamento” (sem vir de uma conta ou ordem de serviço) têm um ícone de lixeira na lista para excluir. Lançamentos que vieram de uma conta a receber/pagar ou de uma ordem de serviço não têm essa opção — para corrigi-los, ajuste ou cancele a conta/ordem de origem.'],
@@ -338,7 +338,7 @@ export default function AjudaPage() {
               <Steps items={[
                 'Com o controle de estoque ligado (Configurações → Sistema), abra o serviço e clique em “Editar”.',
                 'Em “Materiais e custo”, escolha o produto, informe a quantidade e adicione.',
-                'O custo e a margem são calculados na hora. Ao criar uma ordem com esse serviço, os materiais já vêm preenchidos.',
+                'O custo e a margem são calculados na hora. Esses materiais são debitados do estoque automaticamente ao concluir qualquer ordem com esse serviço — não é preciso escolher materiais na ordem.',
               ]} />
             </section>
 
@@ -366,9 +366,21 @@ export default function AjudaPage() {
               ]} />
               <Shot src="/manual/ordens-nova.webp" alt="Janela de nova ordem de serviço" onZoom={onZoom} caption="A janela de nova ordem. O número (#000036…) só é criado depois que a ordem é gerada." />
 
+              <H3>Embalagem na ordem</H3>
+              <P>Se o ateliê usa caixas, papel de seda, fitas ou sacolas na entrega, dá para cadastrar esses itens como produto (em Estoque → Novo produto, marcando “Este produto é embalagem”) e adicioná-los na ordem, num campo próprio, separado dos serviços.</P>
+              <List items={[
+                <>O campo “Embalagem” só aparece na ordem depois de ligado em <strong>Configurações → Sistema</strong>.</>,
+                <>Lá também é possível escolher se o valor da embalagem <strong>soma no total</strong> da ordem (usando o preço de custo do produto) e se aparece como <strong>linha separada</strong> no PDF/recibo da cliente.</>,
+                <>A lista de embalagens aparece no preview, no PDF e na mensagem de WhatsApp da ordem, junto com os serviços.</>,
+                <>Ao concluir a ordem, a embalagem usada dá baixa no estoque do produto, do mesmo jeito que os materiais do serviço.</>,
+              ]} />
+
               <H3>Editando os serviços de uma ordem já criada</H3>
               <P>Na ficha da ordem, clique em <strong>Editar</strong> ao lado de “Serviços” para adicionar, remover ou ajustar quantidade, valor e desconto. O total é recalculado na hora.</P>
               <Note warn title="Atenção">Só é possível editar os serviços enquanto a ordem está <strong>pendente</strong> ou <strong>em andamento</strong>. Depois de concluída (já com pagamento ou estoque lançado) ou cancelada, os itens ficam travados. O novo total também não pode ficar menor que o valor já pago.</Note>
+
+              <H3>Editando a embalagem de uma ordem já criada</H3>
+              <P>Do mesmo jeito, clique em <strong>Editar</strong> ao lado de “Embalagem” na ficha da ordem para adicionar ou remover embalagens. Se “Somar valor da embalagem ao total” estiver ligado, o total da ordem é recalculado na hora, com a mesma regra de não poder ficar menor que o valor já pago.</P>
 
               <H3>Concluindo e recebendo</H3>
               <P>Ao concluir uma ordem que ainda tem saldo, o sistema pergunta se a cliente já pagou:</P>
@@ -474,7 +486,7 @@ export default function AjudaPage() {
                 <><strong>Itens</strong> da entrada; o saldo de cada produto sobe na hora.</>,
               ]} />
               <H3>Baixa automática pelas ordens</H3>
-              <P>Com o controle de estoque ligado, ao concluir uma ordem que tem materiais, o sistema dá baixa em cada produto. A saída aparece na aba Saídas, com o número da ordem.</P>
+              <P>Com o controle de estoque ligado, ao concluir uma ordem o sistema dá baixa nos materiais já cadastrados em cada serviço vendido (Serviços → Materiais e custo), multiplicados pela quantidade. A saída aparece na aba Saídas, com o número da ordem.</P>
               <H3>Categorias de produto</H3>
               <P>Na aba <strong>Categorias</strong>, cadastre e organize os grupos de produto (Tecidos, Aviamentos, Linhas...) com nome e cor. Ao criar ou editar um produto, escolha a categoria num menu — não é mais preciso digitar o nome toda vez. Uma categoria com produtos vinculados não pode ser excluída; é preciso mover os produtos para outra categoria antes.</P>
               <Note>Em <strong>Relatórios</strong> há a posição do estoque, os itens em estoque baixo, o valor total parado em estoque e o histórico de entradas, todos com exportação em PDF e Excel.</Note>
@@ -532,7 +544,14 @@ export default function AjudaPage() {
               <Steps items={[
                 'Abra Configurações → Sistema.',
                 'Ligue “Controle de estoque” e salve.',
-                'A partir daí, os materiais aparecem nos serviços e nas ordens, e a baixa passa a ser automática.',
+                'A partir daí, cadastre os materiais em cada serviço (Serviços → Materiais e custo). Ao concluir uma ordem com esse serviço, a baixa é automática.',
+              ]} />
+
+              <H3>Ligando o campo de embalagem</H3>
+              <Steps items={[
+                'Abra Configurações → Sistema e ligue “Usar campo de embalagem na OS”.',
+                'Se quiser que o valor da embalagem some no total da ordem, ligue “Somar valor da embalagem ao total”.',
+                'Para destacar esse valor como linha própria no PDF/recibo da cliente, ligue também “Destacar embalagem no recibo”.',
               ]} />
               <Note title="Plano Free">Permite até 2 usuários. No plano Pro são 3.</Note>
             </section>

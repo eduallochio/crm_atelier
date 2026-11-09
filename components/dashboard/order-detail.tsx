@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useCreateOrderNote, useOrderHistory, useOrderNotes } from '@/hooks/use-order-notes'
-import { useOrganizationSettings } from '@/hooks/use-settings'
+import { useOrganizationSettings, useSystemPreferences } from '@/hooks/use-settings'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import { generateThermalPDF } from '@/lib/utils/thermal-printer'
 import type { ServiceOrder, ServiceOrderHistory, ServiceOrderNote } from '@/lib/validations/service-order'
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { OrderPreviewDialog } from './order-preview-dialog'
 import { OrderItemsDialog } from './order-items-dialog'
+import { OrderEmbalagensDialog } from './order-embalagens-dialog'
 import { formatBRL, formatDayMonthYear, initialsOf } from './client-utils'
 import {
   ORDER_STATUS, deadlineLabel, isToReceive, numeroOS, saldoOf, notifyOrderReady, sendOrderWhatsApp,
@@ -53,12 +54,16 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   const queryClient = useQueryClient()
   const deleteOrder = useDeleteServiceOrder()
   const { data: org } = useOrganizationSettings()
+  const { data: systemPrefs } = useSystemPreferences()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
+  const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
+  const usaEmbalagem = !!systemPrefs?.usa_embalagem
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [preview, setPreview] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [editingItems, setEditingItems] = useState(false)
+  const [editingEmbalagens, setEditingEmbalagens] = useState(false)
 
   const orgName = org?.name || 'Meu Atelier'
   const total = Number(order.valor_total) || 0
@@ -76,7 +81,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   }
 
   const printPDF = () => {
-    try { generateThermalPDF(order, orgName); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') }
+    try { generateThermalPDF(order, orgName, undefined, destacarEmbalagem); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') }
   }
 
   const registerInCashier = async () => {
@@ -177,7 +182,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
           </button>
         )}
         {tel && (
-          <button type="button" onClick={() => sendOrderWhatsApp(order, orgName)} className="cli-ghost">
+          <button type="button" onClick={() => sendOrderWhatsApp(order, orgName, destacarEmbalagem)} className="cli-ghost">
             <MessageCircle className="h-4 w-4" aria-hidden="true" /> Enviar OS
           </button>
         )}
@@ -313,6 +318,31 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
         ) : <p className="text-sm text-muted-foreground">Nenhum serviço nesta ordem.</p>}
       </div>
 
+      {/* embalagem */}
+      {(usaEmbalagem || (order.embalagens && order.embalagens.length > 0)) && (
+        <div className={`${box} mb-5`}>
+          <h3 className={boxTitle}>
+            Embalagem
+            {usaEmbalagem && (order.status === 'pendente' || order.status === 'em_andamento') && (
+              <button type="button" onClick={() => setEditingEmbalagens(true)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold normal-case tracking-normal text-[#8A4B2C] hover:underline dark:text-[#E39B78]">
+                <Pencil className="h-3 w-3" aria-hidden="true" /> Editar
+              </button>
+            )}
+          </h3>
+          {order.embalagens && order.embalagens.length > 0 ? (
+            <ul className="divide-y divide-dashed divide-border">
+              {order.embalagens.map((e) => (
+                <li key={e.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span className="min-w-0 truncate">{e.nome}</span>
+                  <span className="shrink-0 text-muted-foreground tabular-nums">{Number(e.quantidade) || 1} {e.unidade || 'un'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-muted-foreground">Nenhuma embalagem nesta ordem.</p>}
+        </div>
+      )}
+
       {(order.observacoes || order.notas_internas) && (
         <div className="mb-5 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
           {order.observacoes && (
@@ -370,6 +400,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
 
       <OrderPreviewDialog open={preview} onOpenChange={setPreview} order={order} organizationName={orgName} showConfirmButton={false} />
       <OrderItemsDialog order={editingItems ? order : null} onClose={() => setEditingItems(false)} />
+      <OrderEmbalagensDialog order={editingEmbalagens ? order : null} onClose={() => setEditingEmbalagens(false)} />
     </div>
   )
 }

@@ -85,6 +85,9 @@ export const systemPreferencesSchema = z.object({
   show_tooltips: z.boolean(),
   controla_estoque: z.boolean(),
   fechamento_automatico_caixa: z.boolean(),
+  usa_embalagem: z.boolean(),
+  embalagem_soma_total: z.boolean(),
+  embalagem_destacar_recibo: z.boolean(),
 })
 
 export type OrganizationSettingsInput = z.infer<typeof organizationSettingsSchema>

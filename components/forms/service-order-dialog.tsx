@@ -41,9 +41,9 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-interface MaterialRow {
+interface EmbalagemRow {
   product_id?: string | null
-  produto_nome: string
+  nome: string
   quantidade: number
   unidade: string
 }
@@ -69,12 +69,12 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const [clientSearchValue, setClientSearchValue] = useState('')
   const [serviceSearchValue, setServiceSearchValue] = useState('')
 
-  const [materiais, setMateriais] = useState<MaterialRow[]>([])
-  const [selectedProductId, setSelectedProductId] = useState('')
-  const [materialQtd, setMaterialQtd] = useState(1)
-  const [materialUnidade, setMaterialUnidade] = useState('un')
-  const [openProductCombo, setOpenProductCombo] = useState(false)
-  const [productSearchValue, setProductSearchValue] = useState('')
+  const [embalagens, setEmbalagens] = useState<EmbalagemRow[]>([])
+  const [selectedEmbalagemProductId, setSelectedEmbalagemProductId] = useState('')
+  const [embalagemQtd, setEmbalagemQtd] = useState(1)
+  const [embalagemUnidade, setEmbalagemUnidade] = useState('un')
+  const [openEmbalagemCombo, setOpenEmbalagemCombo] = useState(false)
+  const [embalagemSearchValue, setEmbalagemSearchValue] = useState('')
 
   const createOrder = useCreateServiceOrder()
   const { data: clients = [] } = useClients()
@@ -85,7 +85,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const { data: orgSettings } = useOrganizationSettings()
   const { data: financialSettings } = useFinancialSettings()
   const { data: orderSettings } = useOrderSettings()
-  const controlaEstoque = !!systemPrefs?.controla_estoque
+  const usaEmbalagem = !!systemPrefs?.usa_embalagem
 
   const requireClient        = orderSettings?.require_client        ?? true
   const requireService       = orderSettings?.require_service       ?? true
@@ -107,8 +107,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
     pix_key: financialSettings?.pix_key || null,
     show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
   } : undefined
-  // Só busca produtos quando o módulo de controle de estoque está ativo
-  // (evita 403 para planos free e requests desnecessários)
+  // Só busca produtos quando embalagem está ativa (evita 403 para planos
+  // free e requests desnecessários) — materiais não são mais escolhidos
+  // aqui, vêm da receita cadastrada no próprio serviço
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: async () => {
@@ -116,9 +117,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       if (!res.ok) throw new Error('Erro ao buscar produtos')
       return res.json()
     },
-    enabled: controlaEstoque,
+    enabled: usaEmbalagem,
   })
-  const activeProducts = products.filter(p => p.ativo)
+  const activeEmbalagemProducts = products.filter(p => p.ativo && p.is_embalagem)
 
   const activeServices = services.filter(s => s.ativo)
 
@@ -186,10 +187,10 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       setEnviarWhatsApp(true)
       setClientSearchValue('')
       setServiceSearchValue('')
-      setMateriais([])
-      setSelectedProductId('')
-      setMaterialQtd(1)
-      setProductSearchValue('')
+      setEmbalagens([])
+      setSelectedEmbalagemProductId('')
+      setEmbalagemQtd(1)
+      setEmbalagemSearchValue('')
     }
   }, [open, reset, notifSettings, defaultClientId])
 
@@ -226,33 +227,6 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
     setValue('items', updatedItems)
     setSelectedServiceId('')
     setQuantidade(1)
-
-    // Auto-popula materiais do serviço se controle de estoque ativo
-    // usa qtd capturado antes do reset do state
-    if (controlaEstoque && service.materiais_produtos && service.materiais_produtos.length > 0) {
-      setMateriais(prev => {
-        const next = [...prev]
-        for (const m of service.materiais_produtos!) {
-          const existingIdx = m.product_id
-            ? next.findIndex(x => x.product_id === m.product_id)
-            : next.findIndex(x => !x.product_id && x.produto_nome === m.produto_nome)
-          if (existingIdx >= 0) {
-            next[existingIdx] = {
-              ...next[existingIdx],
-              quantidade: next[existingIdx].quantidade + m.quantidade * qtd,
-            }
-          } else {
-            next.push({
-              product_id: m.product_id ?? null,
-              produto_nome: m.produto_nome,
-              quantidade: m.quantidade * qtd,
-              unidade: m.unidade || 'un',
-            })
-          }
-        }
-        return next
-      })
-    }
   }
 
   const removeItem = (index: number) => {
@@ -324,7 +298,21 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
         valor_total: Number(item.valor_total),
         observacoes: item.observacoes || null,
         created_at: new Date().toISOString(),
-      }))
+      })),
+      embalagens: usaEmbalagem ? embalagens.map((e, index) => ({
+        id: `temp-embalagem-${index}`,
+        order_id: 'preview',
+        product_id: e.product_id ?? null,
+        nome: e.nome,
+        quantidade: Number(e.quantidade),
+        unidade: e.unidade,
+        // preço de custo do produto, só para o preview mostrar o valor
+        // antes de salvar — o backend grava o snapshot real no PUT /embalagens
+        preco_unitario: e.product_id
+          ? Number(products.find(p => p.id === e.product_id)?.preco_custo ?? 0)
+          : null,
+        created_at: new Date().toISOString(),
+      })) : undefined,
     }
 
     setPreviewData({ formData: data, previewOrder })
@@ -349,15 +337,21 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
     try {
       const result = await createOrder.mutateAsync(orderData)
 
-      // Salvar materiais se controle de estoque ativo
-      if (result?.id && controlaEstoque && materiais.length > 0) {
+      // Salvar embalagens se o campo estiver ativo — se embalagem_soma_total
+      // estiver ligado no backend, essa chamada já recalcula o valor_total da
+      // OS, refletido no completeOrder buscado logo abaixo
+      if (result?.id && usaEmbalagem && embalagens.length > 0) {
         try {
-          await fetch(`/api/orders/${result.id}/materials`, {
+          const res = await fetch(`/api/orders/${result.id}/embalagens`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ materiais }),
+            body: JSON.stringify({ embalagens }),
           })
-        } catch { /* non-blocking */ }
+          if (!res.ok) {
+            const data = await res.json().catch(() => null)
+            toast.error(data?.error || 'Erro ao salvar embalagem da ordem')
+          }
+        } catch { toast.error('Erro ao salvar embalagem da ordem') }
       }
 
       // Buscar OS completa (com número, itens e dados do cliente)
@@ -387,7 +381,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       // Gerar PDF se opção estiver marcada
       if (gerarPDF && completeOrder) {
         try {
-          generateThermalPDF(orderForPreview, orgData?.name, orgData)
+          generateThermalPDF(orderForPreview, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo)
         } catch (error) {
           console.error('Erro ao gerar PDF:', error)
         }
@@ -400,7 +394,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       const telefone = orderForMsg.client?.telefone
       if (enviarWhatsApp && telefone) {
         const phone = formatPhoneForWhatsApp(telefone)
-        const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData)
+        const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo)
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
         window.open(url, '_blank')
         toast.success('Ordem criada! WhatsApp aberto com a mensagem.')
@@ -896,18 +890,18 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             />
           </div>
 
-          {/* Materiais utilizados (visível apenas com controle de estoque ativo) */}
-          {controlaEstoque && (
+          {/* Embalagem (visível apenas com o campo de embalagem ativo) */}
+          {usaEmbalagem && (
             <div className="space-y-3 border-t border-dashed pt-4">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Materiais Utilizados</h3>
-                <span className="text-xs text-muted-foreground">(debitados do estoque ao concluir)</span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Embalagem</h3>
+                <span className="text-xs text-muted-foreground">(debitada do estoque ao concluir)</span>
               </div>
 
-              {/* Adicionar material */}
+              {/* Adicionar embalagem */}
               <div className="flex gap-2 items-center flex-wrap">
-                <Popover open={openProductCombo} onOpenChange={setOpenProductCombo}>
+                <Popover open={openEmbalagemCombo} onOpenChange={setOpenEmbalagemCombo}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -915,36 +909,36 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                       role="combobox"
                       className="flex-1 min-w-40 justify-between text-left font-normal"
                     >
-                      {selectedProductId
-                        ? activeProducts.find(p => p.id === selectedProductId)?.nome
-                        : 'Selecionar produto...'}
+                      {selectedEmbalagemProductId
+                        ? activeEmbalagemProducts.find(p => p.id === selectedEmbalagemProductId)?.nome
+                        : 'Selecionar embalagem...'}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-0" align="start">
                     <Command shouldFilter={false}>
                       <CommandInput
-                        placeholder="Buscar produto..."
-                        value={productSearchValue}
-                        onValueChange={setProductSearchValue}
+                        placeholder="Buscar embalagem..."
+                        value={embalagemSearchValue}
+                        onValueChange={setEmbalagemSearchValue}
                       />
                       <CommandList>
-                        <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                        <CommandEmpty>Nenhuma embalagem encontrada</CommandEmpty>
                         <CommandGroup>
-                          {activeProducts
-                            .filter(p => productSearchValue === '' || p.nome.toLowerCase().includes(productSearchValue.toLowerCase()))
+                          {activeEmbalagemProducts
+                            .filter(p => embalagemSearchValue === '' || p.nome.toLowerCase().includes(embalagemSearchValue.toLowerCase()))
                             .map(p => (
                               <CommandItem
                                 key={p.id}
                                 value={p.nome}
                                 onSelect={() => {
-                                  setSelectedProductId(p.id)
-                                  setMaterialUnidade(p.unidade || 'un')
-                                  setOpenProductCombo(false)
-                                  setProductSearchValue('')
+                                  setSelectedEmbalagemProductId(p.id)
+                                  setEmbalagemUnidade(p.unidade || 'un')
+                                  setOpenEmbalagemCombo(false)
+                                  setEmbalagemSearchValue('')
                                 }}
                               >
-                                <Check className={`mr-2 h-4 w-4 ${selectedProductId === p.id ? 'opacity-100' : 'opacity-0'}`} />
+                                <Check className={`mr-2 h-4 w-4 ${selectedEmbalagemProductId === p.id ? 'opacity-100' : 'opacity-0'}`} />
                                 <div className="flex-1 min-w-0">
                                   <span className="truncate">{p.nome}</span>
                                   <span className="ml-1 text-xs text-muted-foreground">
@@ -963,49 +957,49 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                   type="number"
                   min="0.001"
                   step="any"
-                  value={materialQtd}
-                  onChange={(e) => setMaterialQtd(parseFloat(e.target.value) || 1)}
+                  value={embalagemQtd}
+                  onChange={(e) => setEmbalagemQtd(parseFloat(e.target.value) || 1)}
                   className="w-20"
                   placeholder="Qtd"
                 />
-                <span className="text-xs text-muted-foreground w-8">{materialUnidade}</span>
+                <span className="text-xs text-muted-foreground w-8">{embalagemUnidade}</span>
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
-                  disabled={!selectedProductId}
+                  disabled={!selectedEmbalagemProductId}
                   onClick={() => {
-                    const product = activeProducts.find(p => p.id === selectedProductId)
+                    const product = activeEmbalagemProducts.find(p => p.id === selectedEmbalagemProductId)
                     if (!product) return
-                    setMateriais(prev => [...prev, {
+                    setEmbalagens(prev => [...prev, {
                       product_id: product.id,
-                      produto_nome: product.nome,
-                      quantidade: materialQtd,
-                      unidade: materialUnidade,
+                      nome: product.nome,
+                      quantidade: embalagemQtd,
+                      unidade: embalagemUnidade,
                     }])
-                    setSelectedProductId('')
-                    setMaterialQtd(1)
+                    setSelectedEmbalagemProductId('')
+                    setEmbalagemQtd(1)
                   }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
-              {/* Lista de materiais */}
-              {materiais.length > 0 && (
+              {/* Lista de embalagens */}
+              {embalagens.length > 0 && (
                 <div className="rounded-md border text-sm">
-                  {materiais.map((m, i) => (
+                  {embalagens.map((e, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
-                      <span className="flex-1 truncate">{m.produto_nome}</span>
+                      <span className="flex-1 truncate">{e.nome}</span>
                       <span className="text-muted-foreground mx-3 whitespace-nowrap">
-                        {m.quantidade} {m.unidade}
+                        {e.quantidade} {e.unidade}
                       </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 shrink-0"
-                        onClick={() => setMateriais(prev => prev.filter((_, idx) => idx !== i))}
+                        onClick={() => setEmbalagens(prev => prev.filter((_, idx) => idx !== i))}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
@@ -1013,9 +1007,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                   ))}
                 </div>
               )}
-              {materiais.length === 0 && (
+              {embalagens.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-2">
-                  Nenhum material adicionado
+                  Nenhuma embalagem adicionada
                 </p>
               )}
             </div>

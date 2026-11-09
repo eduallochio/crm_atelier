@@ -14,6 +14,11 @@ export interface OrganizationData {
   show_pix_key_on_order?: boolean
 }
 
+/** Soma o valor das embalagens da OS (quantidade × preço unitário snapshot) */
+function calcularSubtotalEmbalagens(order: ServiceOrder): number {
+  return order.embalagens?.reduce((sum, e) => sum + Number(e.quantidade ?? 1) * Number(e.preco_unitario ?? 0), 0) ?? 0
+}
+
 /**
  * Gera PDF otimizado para impressora térmica (80mm)
  * Layout compacto e vertical, ideal para cupons não fiscais
@@ -35,7 +40,7 @@ function normalizeOrder(order: ServiceOrder): ServiceOrder {
   }
 }
 
-export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData) {
+export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false) {
   order = normalizeOrder(order)
   // Impressora térmica 80mm = ~75mm útil
   const doc = new jsPDF({
@@ -223,6 +228,37 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   y += 2
   addLine()
 
+  // EMBALAGEM — lista sempre visível quando a OS tem embalagens (igual à
+  // lista de serviços); o toggle destacarEmbalagem só controla se o VALOR
+  // em R$ aparece mais abaixo, nos totais
+  if (order.embalagens && order.embalagens.length > 0) {
+    y += 2
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('EMBALAGEM', margin, y)
+    y += 5
+
+    order.embalagens.forEach(e => {
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      const nomeLines = doc.splitTextToSize(e.nome, contentWidth)
+      doc.text(nomeLines, margin, y)
+      y += (nomeLines.length * 4)
+
+      doc.setFontSize(8)
+      const qtd = Number(e.quantidade ?? 1)
+      const custo = qtd * Number(e.preco_unitario ?? 0)
+      doc.text(`${qtd} ${e.unidade || 'un'}`, margin + 2, y)
+      if (custo > 0) {
+        doc.text(`R$ ${custo.toFixed(2)}`, width - margin, y, { align: 'right' })
+      }
+      y += 4
+    })
+
+    y += 1
+    addLine()
+  }
+
   // TOTAIS
   y += 2
   doc.setFontSize(9)
@@ -232,6 +268,18 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   doc.text('Subtotal:', margin, y)
   doc.text(`R$ ${subtotal.toFixed(2)}`, width - margin, y, { align: 'right' })
   y += 5
+
+  // Embalagem — linha de valor exibida se a preferência de destaque
+  // estiver ligada; o valor sempre entra no subtotal usado no
+  // desconto/total quando há embalagens com preço, pois reflete o que o
+  // backend já somou (ou não) em order.valor_total ao salvar —
+  // calcularDesconto() em /items e /embalagens
+  const subtotalEmbalagens = calcularSubtotalEmbalagens(order)
+  if (destacarEmbalagem && subtotalEmbalagens > 0) {
+    doc.text('Embalagem:', margin, y)
+    doc.text(`R$ ${subtotalEmbalagens.toFixed(2)}`, width - margin, y, { align: 'right' })
+    y += 5
+  }
 
   // Desconto
   let valorDesconto = 0
@@ -247,8 +295,11 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     y += 5
   }
 
-  // Total
-  const totalComDesconto = subtotal - valorDesconto
+  // Total — usa order.valor_total (fonte de verdade já calculada no
+  // backend, incluindo embalagem se embalagem_soma_total estiver ligado) em
+  // vez de recalcular subtotal-desconto aqui, para nunca divergir do valor
+  // real da ordem
+  const totalComDesconto = order.valor_total
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.text('TOTAL:', margin, y)
@@ -336,7 +387,7 @@ function escapeHtml(value: unknown): string {
 /**
  * Gera preview HTML da ordem para impressora térmica
  */
-export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
+export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false): string {
   order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
@@ -346,15 +397,21 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
   }
 
   const subtotal = order.items?.reduce((sum, item) => sum + item.valor_total, 0) || 0
-  
+
+  const subtotalEmbalagens = calcularSubtotalEmbalagens(order)
+  const mostrarEmbalagem = destacarEmbalagem && subtotalEmbalagens > 0
+
   let valorDesconto = 0
   if (order.desconto_percentual && order.desconto_percentual > 0) {
     valorDesconto = (subtotal * order.desconto_percentual) / 100
   } else if (order.desconto_valor && order.desconto_valor > 0) {
     valorDesconto = order.desconto_valor
   }
-  
-  const totalComDesconto = subtotal - valorDesconto
+
+  // Usa order.valor_total (fonte de verdade do backend, já incluindo
+  // embalagem se embalagem_soma_total estiver ligado) em vez de recalcular
+  // subtotal-desconto aqui, para nunca divergir do valor real da ordem
+  const totalComDesconto = order.valor_total
   const valorPago = order.valor_pago || 0
   const saldoRestante = totalComDesconto - valorPago
 
@@ -435,13 +492,37 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       </div>
       
       <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
-      
+
+      ${order.embalagens && order.embalagens.length > 0 ? `
+        <!-- Embalagem (lista sempre visível quando há embalagem na OS) -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-weight: bold; margin-bottom: 6px;">EMBALAGEM</div>
+          ${order.embalagens.map(e => {
+            const qtd = Number(e.quantidade ?? 1)
+            const custo = qtd * Number(e.preco_unitario ?? 0)
+            return `
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+              <span>${escapeHtml(e.nome)} — ${qtd} ${escapeHtml(e.unidade || 'un')}</span>
+              ${custo > 0 ? `<span>R$ ${custo.toFixed(2)}</span>` : ''}
+            </div>
+          `}).join('')}
+        </div>
+
+        <div style="border-top: 1px dashed #666; margin: 8px 0;"></div>
+      ` : ''}
+
       <!-- Totais -->
       <div style="margin-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
           <span>Subtotal:</span>
           <span>R$ ${subtotal.toFixed(2)}</span>
         </div>
+        ${mostrarEmbalagem ? `
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+            <span>Embalagem:</span>
+            <span>R$ ${subtotalEmbalagens.toFixed(2)}</span>
+          </div>
+        ` : ''}
         ${valorDesconto > 0 ? `
           <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
             <span>Desconto${order.desconto_percentual ? ` (${order.desconto_percentual}%)` : ''}:</span>
@@ -501,7 +582,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
  * Gera texto formatado para envio via WhatsApp
  * Usa formatação suportada pelo WhatsApp (*negrito*, _itálico_)
  */
-export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData): string {
+export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false): string {
   order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
@@ -515,6 +596,9 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
 
   const subtotal = order.items?.reduce((sum, item) => sum + item.valor_total, 0) || 0
 
+  const subtotalEmbalagens = calcularSubtotalEmbalagens(order)
+  const mostrarEmbalagem = destacarEmbalagem && subtotalEmbalagens > 0
+
   let valorDesconto = 0
   if (order.desconto_percentual && order.desconto_percentual > 0) {
     valorDesconto = (subtotal * order.desconto_percentual) / 100
@@ -522,7 +606,10 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
     valorDesconto = order.desconto_valor
   }
 
-  const totalComDesconto = subtotal - valorDesconto
+  // Usa order.valor_total (fonte de verdade do backend, já incluindo
+  // embalagem se embalagem_soma_total estiver ligado) em vez de recalcular
+  // subtotal-desconto aqui, para nunca divergir do valor real da ordem
+  const totalComDesconto = order.valor_total
   const valorPago = order.valor_pago || 0
   const saldoRestante = totalComDesconto - valorPago
 
@@ -600,8 +687,23 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   }
   lines.push(sep)
 
+  // Embalagem — lista sempre visível quando há embalagem na OS (igual à
+  // lista de serviços); mostrarEmbalagem (abaixo) só controla o VALOR
+  if (order.embalagens && order.embalagens.length > 0) {
+    lines.push(`*EMBALAGEM*`)
+    order.embalagens.forEach(e => {
+      const qtd = Number(e.quantidade ?? 1)
+      const custo = qtd * Number(e.preco_unitario ?? 0)
+      lines.push(`• ${e.nome} — ${qtd} ${e.unidade || 'un'}${custo > 0 ? ` — R$ ${custo.toFixed(2)}` : ''}`)
+    })
+    lines.push(sep)
+  }
+
   // Totais
   lines.push(`Subtotal: R$ ${subtotal.toFixed(2)}`)
+  if (mostrarEmbalagem) {
+    lines.push(`Embalagem: R$ ${subtotalEmbalagens.toFixed(2)}`)
+  }
   if (valorDesconto > 0) {
     const descontoLabel = order.desconto_percentual ? ` (${order.desconto_percentual}%)` : ''
     lines.push(`Desconto${descontoLabel}: -R$ ${valorDesconto.toFixed(2)}`)
