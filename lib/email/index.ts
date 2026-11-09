@@ -4,8 +4,8 @@ import path from 'path'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const FROM_DEFAULT = 'Meu Atelier <nao-responda@meuateliersistema.com.br>'
-const FROM_FINANCE = 'Meu Atelier Financeiro <financeiro@meuateliersistema.com.br>'
+const FROM_DEFAULT = 'Meu Atelier Sistema <nao-responda@meuateliersistema.com.br>'
+const FROM_FINANCE = 'Meu Atelier Sistema <financeiro@meuateliersistema.com.br>'
 const REPLY_TO = 'contato@meuateliersistema.com.br'
 
 function loadTemplate(name: string): string {

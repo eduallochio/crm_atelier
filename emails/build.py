@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera os e-mails do Meu Atelier em HTML pronto para envio (tabelas + estilo inline)."""
+"""Gera os e-mails do Meu Atelier Sistema em HTML pronto para envio (tabelas + estilo inline)."""
 import os, html, re
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'emails')
@@ -140,7 +140,7 @@ BASE = '''<!doctype html>
         <tr>
           <td align="center" style="padding:20px 24px 0;">
             <p style="margin:0;font-family:{SANS};font-size:11.5px;line-height:1.6;color:{MID};">
-              Meu Atelier · <a href="https://meuateliersistema.com.br" style="color:{MID};text-decoration:underline;">meuateliersistema.com.br</a><br>
+              Meu Atelier Sistema · <a href="https://meuateliersistema.com.br" style="color:{MID};text-decoration:underline;">meuateliersistema.com.br</a><br>
               Dúvidas? Responda este e-mail: falamos com você em contato@meuateliersistema.com.br
             </p>
           </td>
@@ -174,18 +174,18 @@ EMAILS = {}
 
 # ── 1. Confirmar e-mail (modelo do Supabase) ────────────────────────────────
 EMAILS['01-confirmar-email'] = dict(
-    assunto='Confirme seu e-mail — Meu Atelier',
+    assunto='Confirme seu e-mail — Meu Atelier Sistema',
     preheader='Um clique e sua conta está pronta.',
     corpo=h1('Falta um ponto para fechar', 'um ponto')
     + p('Clique no botão abaixo para confirmar seu e-mail e abrir o seu ateliê no sistema.')
     + botao('Confirmar meu e-mail', '{{ .ConfirmationURL }}')
     + nota('O link vale por 24 horas. Se o botão não funcionar, copie e cole este endereço no navegador:<br><span style="word-break:break-all;color:%s;">{{ .ConfirmationURL }}</span>' % TERRA_T),
-    rodape='Você recebeu este e-mail porque alguém usou este endereço para criar uma conta no Meu Atelier. Se não foi você, é só ignorar: a conta não é ativada sem esta confirmação.',
+    rodape='Você recebeu este e-mail porque alguém usou este endereço para criar uma conta no Meu Atelier Sistema. Se não foi você, é só ignorar: a conta não é ativada sem esta confirmação.',
 )
 
 # ── 2. Redefinir senha (modelo do Supabase) ─────────────────────────────────
 EMAILS['02-redefinir-senha'] = dict(
-    assunto='Redefinir sua senha — Meu Atelier',
+    assunto='Redefinir sua senha — Meu Atelier Sistema',
     preheader='Link para criar uma senha nova.',
     corpo=h1('Vamos trocar sua senha')
     + p('Clique no botão para criar uma senha nova. Enquanto você não fizer isso, a senha atual continua valendo.')
@@ -196,7 +196,7 @@ EMAILS['02-redefinir-senha'] = dict(
 
 # ── 3. Confirmar novo e-mail (modelo do Supabase) ───────────────────────────
 EMAILS['03-trocar-email'] = dict(
-    assunto='Confirme seu novo e-mail — Meu Atelier',
+    assunto='Confirme seu novo e-mail — Meu Atelier Sistema',
     preheader='Confirme o endereço novo para concluir a troca.',
     corpo=h1('Confirme o endereço novo')
     + p('Você pediu para trocar o e-mail da sua conta para <strong style="color:%s;">{{ .Email }}</strong>. Confirme para concluir.' % INK)
@@ -207,7 +207,7 @@ EMAILS['03-trocar-email'] = dict(
 
 # ── 4. Boas-vindas ──────────────────────────────────────────────────────────
 EMAILS['04-boas-vindas'] = dict(
-    assunto='Bem-vinda ao Meu Atelier',
+    assunto='Bem-vinda ao Meu Atelier Sistema',
     preheader='Três passos e seu ateliê já está rodando.',
     corpo=h1('Seu ateliê está pronto, {{nome}}')
     + p('Que bom ter você aqui. Para o sistema começar a trabalhar por você hoje mesmo, faça estes três passos — leva uns dez minutos:')
@@ -218,7 +218,7 @@ EMAILS['04-boas-vindas'] = dict(
     ])
     + botao('Abrir meu painel', APP)
     + nota('Ficou com dúvida em algum passo? Responda este e-mail que a gente ajuda.'),
-    rodape='Você recebeu este e-mail porque criou uma conta no Meu Atelier.',
+    rodape='Você recebeu este e-mail porque criou uma conta no Meu Atelier Sistema.',
 )
 
 # ── 5. Convite para a equipe ────────────────────────────────────────────────
@@ -226,7 +226,7 @@ EMAILS['05-convite-equipe'] = dict(
     assunto='{{dona}} convidou você para o {{atelie}}',
     preheader='Crie sua senha e entre no ateliê.',
     corpo=h1('Você foi convidada para o {{atelie}}')
-    + p('<strong style="color:%s;">{{dona}}</strong> criou um acesso para você no Meu Atelier, o sistema onde o ateliê controla clientes, ordens de serviço e entregas.' % INK)
+    + p('<strong style="color:%s;">{{dona}}</strong> criou um acesso para você no Meu Atelier Sistema, o sistema onde o ateliê controla clientes, ordens de serviço e entregas.' % INK)
     + caixa([('Ateliê', '{{atelie}}'), ('Seu acesso', '{{email}}'), ('Permissão', '{{papel}}')])
     + botao('Criar minha senha', '{{url_convite}}')
     + nota('O convite vale por 7 dias. Depois disso, peça para {{dona}} enviar outro.'),
@@ -248,12 +248,12 @@ EMAILS['06-pagamento-confirmado'] = dict(
     ], titulo='Recibo')
     + botao('Começar a usar', APP)
     + nota('O comprovante oficial vem do Asaas, que processa o pagamento. Para cancelar, é em Configurações › Assinatura, sem precisar falar com ninguém.'),
-    rodape='Você recebeu este e-mail porque assinou o plano Pro do Meu Atelier.',
+    rodape='Você recebeu este e-mail porque assinou o plano Pro do Meu Atelier Sistema.',
 )
 
 # ── 7. PIX aguardando pagamento ─────────────────────────────────────────────
 EMAILS['07-pix-aguardando'] = dict(
-    assunto='Seu PIX está esperando — Meu Atelier',
+    assunto='Seu PIX está esperando — Meu Atelier Sistema',
     preheader='Assim que o pagamento cair, o Pro é ativado sozinho.',
     corpo=h1('Seu PIX está esperando')
     + p('Falta só o pagamento para liberar o plano Pro. Assim que o PIX cair, a conta vira Pro sozinha — você não precisa avisar ninguém.')
@@ -261,7 +261,7 @@ EMAILS['07-pix-aguardando'] = dict(
     + botao('Pagar agora', '{{url_pagamento}}')
     + f'<p style="margin:18px 0 6px;font-family:{SANS};font-size:13px;font-weight:700;color:{INK};">Ou use o código copia e cola:</p>'
     + f'<p style="margin:0;padding:12px 14px;border:1px solid {LINE};border-radius:2px;font-family:Menlo,Consolas,monospace;font-size:12px;line-height:1.5;color:{MID};word-break:break-all;">{{{{pix_copia_cola}}}}</p>',
-    rodape='Você recebeu este e-mail porque iniciou uma assinatura no Meu Atelier. Se desistiu, é só não pagar: nada é cobrado.',
+    rodape='Você recebeu este e-mail porque iniciou uma assinatura no Meu Atelier Sistema. Se desistiu, é só não pagar: nada é cobrado.',
 )
 
 # ── 8. Pagamento atrasado ───────────────────────────────────────────────────
@@ -274,7 +274,7 @@ EMAILS['08-pagamento-atrasado'] = dict(
     + p('Seu acesso continua liberado até <strong style="color:%s;">{{prazo}}</strong>. Depois disso a conta volta para o plano Free e os módulos de financeiro e estoque ficam bloqueados — seus dados continuam todos guardados.' % INK)
     + botao('Regularizar agora', '{{url_pagamento}}')
     + nota('Se já pagou nas últimas horas, pode ignorar: a confirmação do banco às vezes demora.'),
-    rodape='Você recebeu este e-mail porque tem uma assinatura ativa no Meu Atelier.',
+    rodape='Você recebeu este e-mail porque tem uma assinatura ativa no Meu Atelier Sistema.',
 )
 
 # ── 9. Limite do plano Free ─────────────────────────────────────────────────
@@ -302,7 +302,7 @@ EMAILS['10-assinatura-cancelada'] = dict(
     + p('Tudo que você cadastrou continua no lugar: clientes, ordens, histórico. O que muda são os limites do plano Free e o acesso ao financeiro e ao estoque.')
     + botao('Voltar para o Pro', APP + '/configuracoes?tab=assinatura')
     + nota('Se cancelou porque faltava alguma coisa no sistema, responda contando o quê. A gente lê tudo.'),
-    rodape='Você recebeu este e-mail porque cancelou a assinatura do Meu Atelier.',
+    rodape='Você recebeu este e-mail porque cancelou a assinatura do Meu Atelier Sistema.',
 )
 
 

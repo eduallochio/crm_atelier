@@ -1,4 +1,4 @@
-# E-mails do Meu Atelier
+# E-mails do Meu Atelier Sistema
 
 Dez modelos em HTML, prontos para enviar. Tudo em tabela com estilo inline, que é o que
 funciona em Gmail, Outlook, Apple Mail e nos aplicativos de celular. Sem imagem: o topo é
@@ -30,20 +30,20 @@ Em `09`, `pct_*` é a largura da barra (`"92%"`) e `cor_*` é a cor dela:
 
 ## Assuntos
 
-1. Confirme seu e-mail — Meu Atelier
-2. Redefinir sua senha — Meu Atelier
-3. Confirme seu novo e-mail — Meu Atelier
-4. Bem-vinda ao Meu Atelier
+1. Confirme seu e-mail — Meu Atelier Sistema
+2. Redefinir sua senha — Meu Atelier Sistema
+3. Confirme seu novo e-mail — Meu Atelier Sistema
+4. Bem-vinda ao Meu Atelier Sistema
 5. {{dona}} convidou você para o {{atelie}}
 6. Pagamento confirmado — seu plano Pro está ativo
-7. Seu PIX está esperando — Meu Atelier
+7. Seu PIX está esperando — Meu Atelier Sistema
 8. Não conseguimos confirmar seu pagamento
 9. Você já usou {{percentual}} do plano Free
 10. Sua assinatura foi cancelada
 
 ## Remetentes
 
-- **De:** `Meu Atelier <nao-responda@meuateliersistema.com.br>`
+- **De:** `Meu Atelier Sistema <nao-responda@meuateliersistema.com.br>`
 - **Responder para:** `contato@meuateliersistema.com.br`
 - Nos e-mails de cobrança (`06`, `07`, `08`), o remetente pode ser `financeiro@`.
 
