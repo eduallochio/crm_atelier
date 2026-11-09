@@ -237,6 +237,22 @@ export async function POST(request: Request) {
         })
         .returning({ lastNumero: orgOrderSequences.lastNumero })
 
+      // Resolve forma de pagamento — forma_pagamento agora é o UUID do método
+      let resolvedPaymentMethodId: string | null = null
+      let resolvedFormaPagamento: string | null = null
+      if (body.forma_pagamento) {
+        const [pm] = await tx
+          .select({ id: orgPaymentMethods.id, nome: orgPaymentMethods.nome })
+          .from(orgPaymentMethods)
+          .where(and(
+            eq(orgPaymentMethods.organizationId, user.organizationId),
+            eq(orgPaymentMethods.id, body.forma_pagamento)
+          ))
+          .limit(1)
+        resolvedPaymentMethodId = pm?.id ?? null
+        resolvedFormaPagamento = pm?.nome ?? null
+      }
+
       const [newOrder] = await tx
         .insert(orgServiceOrders)
         .values({
@@ -251,7 +267,7 @@ export async function POST(request: Request) {
           descontoValor:      String(descontoValor),
           descontoPercentual: String(descontoPercentual),
           dataPrevista:       body.data_prevista || null,
-          formaPagamento:     body.forma_pagamento || null,
+          formaPagamento:     resolvedFormaPagamento,
           observacoes:        body.observacoes || null,
           notasInternas:      body.notas_internas || null,
           createdByUserId:    user.id,
@@ -288,18 +304,7 @@ export async function POST(request: Request) {
       if (valor_entrada > 0) {
         const today = new Date().toISOString().split('T')[0]
 
-        let paymentMethodId: string | null = null
-        if (body.forma_pagamento) {
-          const [pm] = await tx
-            .select({ id: orgPaymentMethods.id })
-            .from(orgPaymentMethods)
-            .where(and(
-              eq(orgPaymentMethods.organizationId, user.organizationId),
-              eq(orgPaymentMethods.tipo, body.forma_pagamento)
-            ))
-            .limit(1)
-          paymentMethodId = pm?.id ?? null
-        }
+        const paymentMethodId = resolvedPaymentMethodId
 
         await tx.insert(orgTransactions).values({
           organizationId: user.organizationId,

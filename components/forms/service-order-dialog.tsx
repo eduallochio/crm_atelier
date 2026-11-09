@@ -871,7 +871,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                 >
                   <option value="">Selecione...</option>
                   {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.code}>
+                    <option key={method.id} value={method.id}>
                       {method.name}
                     </option>
                   ))}
