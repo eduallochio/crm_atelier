@@ -806,6 +806,17 @@ export const pageEvents = pgTable('page_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
+// ─── 39. ORG ORDER SEQUENCES ──────────────────────────────────────────────────
+// Contador monotonicamente crescente por org para numeração de OS.
+// Deleções de OS nunca afetam este contador — o número só sobe, eliminando
+// colisões de unique constraint (uq_order_numero_org) após deleção de OS.
+
+export const orgOrderSequences = pgTable('org_order_sequences', {
+  organizationId: uuid('organization_id').primaryKey().references(() => organizations.id, { onDelete: 'cascade' }),
+  lastNumero:     integer('last_numero').notNull().default(0),
+  updatedAt:      timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS INFERIDOS (usar em todo o projeto — não criar interfaces manualmente)
 // ─────────────────────────────────────────────────────────────────────────────

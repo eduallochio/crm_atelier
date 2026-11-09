@@ -10,6 +10,7 @@ import {
   usageMetrics,
   orgTransactions,
   orgPaymentMethods,
+  orgOrderSequences,
 } from '@/lib/db/schema'
 import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
@@ -220,13 +221,27 @@ export async function POST(request: Request) {
 
     // Run in a transaction
     const order = await db.transaction(async (tx) => {
-      // Next order number — subquery atômica no INSERT evita race condition
-      // (FOR UPDATE não funciona com pgBouncer em transaction mode)
+      // Incrementa o contador monotônico para esta org e obtém o próximo número.
+      // UPSERT garante que novas orgs sem registro prévio funcionem.
+      // Deleções de OS nunca afetam este contador — elimina colisões de unique
+      // constraint (uq_order_numero_org) que ocorriam com a abordagem max()+1.
+      const [seq] = await tx
+        .insert(orgOrderSequences)
+        .values({ organizationId: user.organizationId, lastNumero: 1 })
+        .onConflictDoUpdate({
+          target: orgOrderSequences.organizationId,
+          set: {
+            lastNumero: drizzleSql`${orgOrderSequences.lastNumero} + 1`,
+            updatedAt:  drizzleSql`now()`,
+          },
+        })
+        .returning({ lastNumero: orgOrderSequences.lastNumero })
+
       const [newOrder] = await tx
         .insert(orgServiceOrders)
         .values({
           organizationId:     user.organizationId,
-          numero:             drizzleSql`(SELECT coalesce(max(numero), 0) + 1 FROM org_service_orders WHERE organization_id = ${user.organizationId}::uuid)`,
+          numero:             seq.lastNumero,
           clientId:           body.client_id || null,
           status:             body.status,
           valorTotal:         String(valor_total),
