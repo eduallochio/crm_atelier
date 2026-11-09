@@ -56,6 +56,11 @@ function captureHydrationContext(): Record<string, unknown> {
 async function reportError(error: Error, componentStack?: string, errorType = 'boundary', extra?: Record<string, unknown>) {
   try {
     const isHydrationError = /Minified React error #418|Hydration failed/.test(error.message)
+    // Hydration mismatch em PWA instalada é ruído estrutural, não um bug acionável —
+    // o React serializa o HTML no servidor mas o contexto da PWA (service worker,
+    // display-mode: standalone) altera o ambiente de hidratação de forma não
+    // controlável pelo código da app. Silencia para não poluir o painel de erros.
+    if (isHydrationError && window.matchMedia('(display-mode: standalone)').matches) return
     await fetch('/api/admin/errors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
