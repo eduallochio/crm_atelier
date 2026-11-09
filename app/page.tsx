@@ -947,52 +947,71 @@ function Landing() {
           </div>
         </section>
 
-        {/* ── DEPOIMENTO NETE FASHION ── */}
+        {/* ── DEPOIMENTOS ── */}
         <section className="linen" style={{ padding: '0 0 clamp(80px,10vw,128px)' }}>
-          <div className="m-wrap" style={{ maxWidth: 1000 }}>
+          <div className="m-wrap" style={{ maxWidth: 1200 }}>
             <SewnTitle
               className="m-h2"
               style={{ margin: '0 0 40px', fontSize: 'clamp(32px,4vw,52px)', color: 'var(--ink)' }}
               lines={[<>O que dizem nossas <em style={{ color: 'var(--terra)' }}>clientes</em></>]}
             />
-            <figure className="m-quote" style={{ margin: 0, background: 'var(--card)', border: '1px solid rgba(212,168,90,.25)', padding: 'clamp(28px,4vw,48px)' }}>
-              <div style={{ display: 'flex', gap: 4, color: 'var(--terra)' }} role="img" aria-label="5 de 5 estrelas">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                ))}
-              </div>
-              <blockquote className="display m-quote-text" style={{ margin: '22px 0 28px', fontSize: 'clamp(22px,2.4vw,28px)', lineHeight: 1.5, fontStyle: 'italic', color: 'var(--ink)', fontWeight: 400 }}>
-                &ldquo;Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. E a facilidade de enviar a ordem de serviço para o cliente, ele saber exatamente o que vai ser feito e acompanhar, faz toda a diferença. Não imagino trabalhar sem ele.&rdquo;
-              </blockquote>
-              <figcaption style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <Image src="/nete-fashion.jpg" alt="NETE Fashion Atelier" width={56} height={56} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212,168,90,.4)' }} />
-                <span>
-                  <strong style={{ display: 'block', fontSize: 15, color: 'var(--ink)' }}>NETE Fashion Atelier</strong>
-                  <span style={{ fontSize: 13, color: '#8A4B2C' }}>@netefashiion · Vila Velha, ES</span>
-                </span>
-              </figcaption>
-            </figure>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 24 }}>
+              {/* NETE Fashion */}
+              <figure style={{ margin: 0, background: 'var(--card)', border: '1px solid rgba(212,168,90,.25)', padding: '28px 28px 24px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: 3, color: 'var(--terra)', marginBottom: 16 }} role="img" aria-label="5 de 5 estrelas">
+                  {[0,1,2,3,4].map((i) => (
+                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                  ))}
+                </div>
+                <blockquote style={{ margin: '0 0 24px', fontSize: 15, lineHeight: 1.75, fontStyle: 'italic', color: 'var(--ink)', flex: 1 }}>
+                  &ldquo;Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. A facilidade de enviar a ordem de serviço para o cliente faz toda a diferença. Não imagino trabalhar sem ele.&rdquo;
+                </blockquote>
+                <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Image src="/nete-fashion.jpg" alt="NETE Fashion Atelier" width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212,168,90,.4)', flexShrink: 0 }} />
+                  <span>
+                    <strong style={{ display: 'block', fontSize: 14, color: 'var(--ink)' }}>NETE Fashion Atelier</strong>
+                    <a href="https://instagram.com/netefashiion" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#8A4B2C', textDecoration: 'none' }}>@netefashiion · Vila Velha, ES</a>
+                  </span>
+                </figcaption>
+              </figure>
+
+              {/* Line Art Bordados */}
+              <figure style={{ margin: 0, background: 'var(--card)', border: '1px solid rgba(212,168,90,.25)', padding: '28px 28px 24px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: 3, color: 'var(--terra)', marginBottom: 16 }} role="img" aria-label="5 de 5 estrelas">
+                  {[0,1,2,3,4].map((i) => (
+                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                  ))}
+                </div>
+                <blockquote style={{ margin: '0 0 24px', fontSize: 15, lineHeight: 1.75, fontStyle: 'italic', color: 'var(--ink)', flex: 1 }}>
+                  &ldquo;Além de oferecer um sistema incrível, prático e completo, o profissional teve todo o cuidado de ouvir minhas necessidades e adaptar cada detalhe para atender melhor à realidade da minha empresa. Estou encantada com o sistema e, principalmente, com o atendimento! Muito obrigada pelo carinho, paciência e profissionalismo. Recomendo de olhos fechados!&rdquo;
+                </blockquote>
+                <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Image src="https://opulmnlpwiocvuckorfu.supabase.co/storage/v1/object/public/org-assets/logos/3e18ba65-a0d3-4024-beb6-7018362b40de/logo-1793491686037.jpg" alt="Line Art Bordados" width={48} height={48} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(212,168,90,.4)', flexShrink: 0 }} />
+                  <span>
+                    <strong style={{ display: 'block', fontSize: 14, color: 'var(--ink)' }}>Line Art Bordados</strong>
+                    <a href="https://instagram.com/Lineartbordados" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#8A4B2C', textDecoration: 'none' }}>@Lineartbordados · Florianópolis, SC</a>
+                  </span>
+                </figcaption>
+              </figure>
+
+              {/* Depoimentos do CMS */}
+              {testimonials.map((t, i) => (
+                <figure key={i} style={{ margin: 0, background: 'var(--card)', border: '1px solid rgba(212,168,90,.15)', padding: '28px 28px 24px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', gap: 3, color: 'var(--terra)', marginBottom: 16 }} role="img" aria-label="5 de 5 estrelas">
+                    {[0,1,2,3,4].map((j) => (
+                      <svg key={j} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    ))}
+                  </div>
+                  <blockquote style={{ margin: '0 0 24px', fontSize: 15, lineHeight: 1.75, fontStyle: 'italic', color: 'var(--ink)', flex: 1 }}>&ldquo;{t.text}&rdquo;</blockquote>
+                  <figcaption>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', margin: '0 0 2px' }}>{t.name}</p>
+                    <p style={{ fontSize: 12, color: '#8A4B2C', margin: 0 }}>{t.role}</p>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           </div>
         </section>
-
-        {/* ── DEPOIMENTOS (CMS) ── */}
-        {testimonials.length > 0 && (
-          <section className="linen" style={{ padding: '0 0 clamp(80px,10vw,128px)' }}>
-            <div className="m-wrap" style={{ maxWidth: 1100 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24 }}>
-                {testimonials.map((t, i) => (
-                  <figure key={i} style={{ margin: 0, background: 'var(--card)', padding: '32px 28px', border: '1px solid rgba(212,168,90,0.15)' }}>
-                    <blockquote style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--mid)', margin: '0 0 24px', fontStyle: 'italic' }}>&ldquo;{t.text}&rdquo;</blockquote>
-                    <figcaption>
-                      <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', margin: '0 0 2px' }}>{t.name}</p>
-                      <p style={{ fontSize: 12, color: '#8A4B2C', margin: 0 }}>{t.role}</p>
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* ── PLANOS ── */}
         <section id="planos" className="dark-linen m-section">
