@@ -50,7 +50,7 @@ export async function PUT(
       : c.supplierId
 
     const categoryId = body.category_id !== undefined
-      ? (body.category_id || null)
+      ? (body.category_id && body.category_id !== 'sem-categoria' ? body.category_id : null)
       : c.categoryId
 
     const [updated] = await db

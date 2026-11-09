@@ -585,22 +585,25 @@ const aniversariantesDoMes = clientes.filter(cliente => {
 
 ---
 
-## 🚀 Próximos Passos Sugeridos
+## 🚀 Próximos Passos
 
 ### Curto Prazo
-- [ ] Implementar upload de imagens para serviços
-- [ ] Adicionar campo de motivo ao editar preço
-- [ ] Criar relatório de margem de lucro
+- [ ] Upload de imagens para serviços
+- [ ] Campo de motivo ao editar preço de serviço
+- [ ] Relatório de margem de lucro
 
 ### Médio Prazo
-- [ ] Dashboard de materiais (controle de estoque)
-- [ ] Notificações de aniversário automáticas
-- [ ] Exportação de relatórios (PDF/Excel)
+- [ ] Notificações de aniversário automáticas (WhatsApp/email — hoje só exibe badge visual)
+- [ ] Log de atividade por usuário da org — registrar ações de escrita (criação/edição/exclusão de OS, clientes, lançamentos financeiros) por membro, com retenção de 90 dias e tela em Configurações → Usuários. Priorizar deletes (único rastro possível). Ver análise de impacto na conversa de nov/2026.
 
 ### Longo Prazo
 - [ ] App mobile
 - [ ] Sistema de agendamento
-- [ ] Integração com pagamentos online
+
+### ✅ Já implementados (removidos da lista)
+- ~~Dashboard de materiais~~ → módulo Estoque completo (`/estoque`)
+- ~~Exportação de relatórios PDF/Excel~~ → disponível em OS, financeiro, estoque
+- ~~Integração com pagamentos online~~ → Asaas integrado (checkout, webhooks, billing)
 
 ---
 

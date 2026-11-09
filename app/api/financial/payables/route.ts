@@ -88,7 +88,9 @@ export async function POST(request: Request) {
     const supplierId = body.supplier_id && body.supplier_id !== 'sem-fornecedor'
       ? body.supplier_id
       : null
-    const categoryId = body.category_id || null
+    const categoryId = body.category_id && body.category_id !== 'sem-categoria'
+      ? body.category_id
+      : null
 
     let recurringExpenseId: string | null = null
     if (body.recorrente) {

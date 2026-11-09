@@ -322,3 +322,11 @@ Todos os cards de stats usam o padrão gradiente+glow:
 - Tabela: `admin_error_logs` (sem RLS, acessível só via service role)
 - Tela admin: `/admin/errors` — lista, filtra, marca como resolvido
 - Use `/fix-errors` para buscar erros não resolvidos e corrigi-los
+
+---
+
+## Economia de tokens
+
+- `context.md` (~33 KB) repete boa parte deste arquivo: **não ler inteiro**. Usar Grep pelos cabeçalhos `^##`/`^###` e ler só a seção da tarefa (ex.: "### Caixa", "## API Routes").
+- Não varrer `docs/`, `pencil/`, `supabase-migration/`, `drizzle/` nem `public/` sem necessidade.
+- Pedido de código: ir direto aos arquivos citados, sem explorar o repositório inteiro.
