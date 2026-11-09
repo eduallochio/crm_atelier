@@ -126,6 +126,12 @@ export async function signup(formData: FormData) {
     })
   } catch { /* não bloqueia o cadastro */ }
 
+  // Email de boas-vindas — disparo assíncrono, não bloqueia o redirect
+  try {
+    const { sendBoasVindas } = await import('@/lib/email')
+    await sendBoasVindas(email, fullName)
+  } catch { /* não bloqueia o cadastro */ }
+
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }

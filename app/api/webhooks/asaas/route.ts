@@ -6,6 +6,11 @@ import { eq, and, like } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { format, addDays } from 'date-fns'
 import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment, getPayment } from '@/lib/asaas'
+import {
+  sendPagamentoConfirmado,
+  sendPagamentoAtrasado,
+  sendAssinaturaCancelada,
+} from '@/lib/email'
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN ?? ''
 
@@ -196,6 +201,42 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Email de pagamento confirmado
+        try {
+          const [orgData] = await db
+            .select({ email: organizations.email, name: organizations.name })
+            .from(organizations)
+            .where(eq(organizations.id, orgId))
+            .limit(1)
+          if (orgData?.email) {
+            const ciclo = confirmedPayment.subscription ? 'mensal' : 'avulso'
+            const forma = confirmedPayment.billingType === 'PIX' ? 'PIX'
+              : confirmedPayment.billingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : 'Boleto'
+            const dataConfirmacao = confirmedPayment.paymentDate
+              ? format(new Date(`${confirmedPayment.paymentDate}T12:00:00`), 'dd/MM/yyyy')
+              : format(new Date(), 'dd/MM/yyyy')
+            const [orgUpdated] = await db
+              .select({ subscriptionNextDueDate: organizations.subscriptionNextDueDate })
+              .from(organizations)
+              .where(eq(organizations.id, orgId))
+              .limit(1)
+            const proximaRenovacao = orgUpdated?.subscriptionNextDueDate
+              ? format(new Date(`${orgUpdated.subscriptionNextDueDate}T12:00:00`), 'dd/MM/yyyy')
+              : '—'
+            const valor = `R$ ${Number(confirmedPayment.value ?? 0).toFixed(2).replace('.', ',')}`
+            await sendPagamentoConfirmado({
+              to: orgData.email,
+              ciclo,
+              forma,
+              data: dataConfirmacao,
+              proximaRenovacao,
+              valor,
+            }).catch(err => logServerError('[webhook/asaas] email pagamento confirmado', err))
+          }
+        } catch (emailErr) {
+          logServerError('[webhook/asaas] email pagamento confirmado', emailErr)
+        }
+
         // Lançar em contas a pagar se a opção estiver ativa
         try {
           const [settings] = await db
@@ -258,6 +299,30 @@ export async function POST(req: NextRequest) {
           .where(eq(organizations.id, org.id))
 
         console.log(`[webhook/asaas] ${event} → org ${org.id} → status overdue`)
+
+        // Email de pagamento atrasado
+        try {
+          const [orgData] = await db
+            .select({ email: organizations.email, subscriptionNextDueDate: organizations.subscriptionNextDueDate })
+            .from(organizations)
+            .where(eq(organizations.id, org.id))
+            .limit(1)
+          if (orgData?.email) {
+            const vencimento = confirmedSub.nextDueDate
+              ? format(new Date(`${confirmedSub.nextDueDate}T12:00:00`), 'dd/MM/yyyy')
+              : '—'
+            await sendPagamentoAtrasado({
+              to: orgData.email,
+              ciclo: 'mensal',
+              valor: `R$ ${Number(confirmedSub.value ?? 0).toFixed(2).replace('.', ',')}`,
+              vencimento,
+              prazo: '5 dias',
+              urlPagamento: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura`,
+            }).catch(err => logServerError('[webhook/asaas] email pagamento atrasado', err))
+          }
+        } catch (emailErr) {
+          logServerError('[webhook/asaas] email pagamento atrasado', emailErr)
+        }
       }
       return NextResponse.json({ ok: true })
     }
@@ -288,6 +353,27 @@ export async function POST(req: NextRequest) {
           .where(eq(organizations.id, org.id))
 
         console.log(`[webhook/asaas] ${event} → org ${org.id} → rebaixado para free`)
+
+        // Email de assinatura cancelada
+        try {
+          const [orgData] = await db
+            .select({ email: organizations.email })
+            .from(organizations)
+            .where(eq(organizations.id, org.id))
+            .limit(1)
+          if (orgData?.email) {
+            const fimAcesso = confirmedSub.nextDueDate
+              ? format(new Date(`${confirmedSub.nextDueDate}T12:00:00`), 'dd/MM/yyyy')
+              : format(new Date(), 'dd/MM/yyyy')
+            await sendAssinaturaCancelada({
+              to: orgData.email,
+              ciclo: confirmedSub.cycle === 'YEARLY' ? 'anual' : 'mensal',
+              fimAcesso,
+            }).catch(err => logServerError('[webhook/asaas] email assinatura cancelada', err))
+          }
+        } catch (emailErr) {
+          logServerError('[webhook/asaas] email assinatura cancelada', emailErr)
+        }
       }
       return NextResponse.json({ ok: true })
     }
