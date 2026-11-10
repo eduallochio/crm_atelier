@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import fs from 'fs'
 import path from 'path'
+import QRCode from 'qrcode'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -104,12 +105,29 @@ export async function sendPixAguardando(options: {
   validade: string
   urlPagamento: string
   pixCopiaCola: string
+  qrCodeBase64?: string
 }) {
-  const html = fill(loadTemplate('07-pix-aguardando.html'), {
+  // Gerar QR code localmente se não vier do Asaas
+  let qrCodeBase64 = options.qrCodeBase64
+  if (!qrCodeBase64 && options.pixCopiaCola) {
+    try {
+      const dataUrl = await QRCode.toDataURL(options.pixCopiaCola, { width: 200, margin: 1 })
+      qrCodeBase64 = dataUrl.split(',')[1]
+    } catch { /* QR code opcional */ }
+  }
+
+  let template = loadTemplate('07-pix-aguardando.html')
+  if (!qrCodeBase64) {
+    template = template.replace(/\{\{#if qr_code_base64\}\}[\s\S]*?\{\{\/if\}\}/g, '')
+  } else {
+    template = template.replace('{{#if qr_code_base64}}', '').replace('{{/if}}', '')
+  }
+  const html = fill(template, {
     valor: options.valor,
     validade: options.validade,
     url_pagamento: options.urlPagamento,
     pix_copia_cola: options.pixCopiaCola,
+    qr_code_base64: qrCodeBase64 ?? '',
   })
   await send({
     to: options.to,
@@ -153,17 +171,26 @@ export async function sendLimitePlano(options: {
   ordensMax: string
   pctOrdens: string
   corOrdens: string
+  servicosUso: string
+  servicosMax: string
+  pctServicos: string
+  corServicos: string
 }) {
   const html = fill(loadTemplate('09-limite-plano.html'), {
-    percentual: options.percentual,
-    clientes_uso: options.clientesUso,
-    clientes_max: options.clientesMax,
-    pct_clientes: options.pctClientes,
-    cor_clientes: options.corClientes,
-    ordens_uso: options.ordensUso,
-    ordens_max: options.ordensMax,
-    pct_ordens: options.pctOrdens,
-    cor_ordens: options.corOrdens,
+    percentual:    options.percentual,
+    clientes_uso:  options.clientesUso,
+    clientes_max:  options.clientesMax,
+    pct_clientes:  options.pctClientes,
+    cor_clientes:  options.corClientes,
+    ordens_uso:    options.ordensUso,
+    ordens_max:    options.ordensMax,
+    pct_ordens:    options.pctOrdens,
+    cor_ordens:    options.corOrdens,
+    servicos_uso:  options.servicosUso,
+    servicos_max:  options.servicosMax,
+    pct_servicos:  options.pctServicos,
+    cor_servicos:  options.corServicos,
+    url_sistema:   process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br',
   })
   await send({
     to: options.to,
