@@ -49,6 +49,10 @@ export async function signup(formData: FormData) {
   const city       = formData.get('city')        as string | null
   const state      = formData.get('state')       as string | null
 
+  if (!phone || phone.replace(/\D/g, '').length < 10) {
+    return { error: 'Telefone é obrigatório.' }
+  }
+
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,

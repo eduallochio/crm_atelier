@@ -134,9 +134,10 @@ export default function CadastroPage() {
     if (step2.document) {
       if (!validateCpfCnpj(step2.document)) e.document = `${docType || 'CPF/CNPJ'} inválido`
     }
-    if (step2.phone) {
+    {
       const digits = step2.phone.replace(/\D/g, '')
-      if (digits.length < 10) e.phone = 'Telefone inválido'
+      if (!digits) e.phone = 'Telefone é obrigatório'
+      else if (digits.length < 10) e.phone = 'Telefone inválido'
     }
     setErrors(e)
     focusFirstError(e)
@@ -404,11 +405,10 @@ export default function CadastroPage() {
 
               <div className="lp-field">
                 <label className="lp-label" htmlFor="phone">
-                  Telefone / WhatsApp
-                  <span className="lp-optional">(opcional)</span>
+                  Telefone / WhatsApp <span className="lp-req" aria-hidden="true">*</span>
                 </label>
                 <input
-                  id="phone" type="tel" inputMode="tel" className="lp-input" placeholder="(11) 99999-9999" autoComplete="tel-national"
+                  id="phone" type="tel" inputMode="tel" className="lp-input" placeholder="(11) 99999-9999" autoComplete="tel-national" required
                   value={step2.phone}
                   onChange={e => setStep2(p => ({ ...p, phone: formatPhone(e.target.value) }))}
                   maxLength={16}
