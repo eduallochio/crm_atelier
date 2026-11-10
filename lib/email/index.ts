@@ -3,7 +3,11 @@ import fs from 'fs'
 import path from 'path'
 import QRCode from 'qrcode'
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? '')
+let _resend: import('resend').Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? '')
+  return _resend
+}
 
 const FROM_DEFAULT = 'Meu Atelier Sistema <nao-responda@meuateliersistema.com.br>'
 const FROM_FINANCE = 'Meu Atelier Sistema <financeiro@meuateliersistema.com.br>'
@@ -31,7 +35,7 @@ async function send(options: {
     console.warn('[email] RESEND_API_KEY não configurada — email não enviado')
     return
   }
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: options.from ?? FROM_DEFAULT,
     replyTo: REPLY_TO,
     to: options.to,
