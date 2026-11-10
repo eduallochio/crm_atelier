@@ -84,8 +84,29 @@ export async function signup(formData: FormData) {
     const cidade = formData.get('city') as string | null
     const estado = formData.get('state') as string | null
     const localizacao = cidade ? `${cidade}${estado ? '/' + estado : ''}` : null
+    const primeiroNome = fullName.trim().split(/\s+/)[0] || fullName
+
+    const digitsPhone = (phone ?? '').replace(/\D/g, '')
+    let telefoneFormatado = phone ?? ''
+    if (digitsPhone.length === 11) {
+      telefoneFormatado = `(${digitsPhone.slice(0, 2)}) ${digitsPhone.slice(2, 7)}-${digitsPhone.slice(7)}`
+    } else if (digitsPhone.length === 10) {
+      telefoneFormatado = `(${digitsPhone.slice(0, 2)}) ${digitsPhone.slice(2, 6)}-${digitsPhone.slice(6)}`
+    }
+
+    const horaBrasilia = Number(
+      new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date())
+    )
+    const saudacao = horaBrasilia < 12 ? 'bom dia' : horaBrasilia < 18 ? 'boa tarde' : 'boa noite'
+
+    const mensagemWhatsApp = `Olá ${primeiroNome}, ${saudacao}! Aqui é o Eduardo, criador do Meu Atelier Sistema.\n\nVi que você criou sua conta recentemente e queria te dar boas-vindas oficialmente! 🧵✨\n\nConseguiu dar uma olhada nas ferramentas? Se tiver qualquer dúvida sobre como cadastrar seus primeiros clientes ou organizar o ateliê, estou à disposição para ajudar!`
+
+    const linkWhatsApp = digitsPhone.length >= 10
+      ? `https://wa.me/55${digitsPhone}?text=${encodeURIComponent(mensagemWhatsApp)}`
+      : null
+
     await notificarTelegram(
-      `🆕 <b>Nova organização cadastrada</b>\n👤 ${fullName}\n📧 ${email}\n🏪 ${nomeAtelier}${localizacao ? `\n📍 ${localizacao}` : ''}`
+      `🆕 <b>Nova organização cadastrada</b>\n👤 ${fullName}\n📧 ${email}\n📱 ${telefoneFormatado || '—'}\n🏪 ${nomeAtelier}${localizacao ? `\n📍 ${localizacao}` : ''}\n\n<b>Mensagem para WhatsApp:</b>\n<code>${mensagemWhatsApp}</code>${linkWhatsApp ? `\n\n<a href="${linkWhatsApp}">Abrir conversa no WhatsApp</a>` : ''}`
     )
   } catch { /* não bloqueia o cadastro */ }
 
