@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import QRCode from 'qrcode'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY ?? '')
 
 const FROM_DEFAULT = 'Meu Atelier Sistema <nao-responda@meuateliersistema.com.br>'
 const FROM_FINANCE = 'Meu Atelier Sistema <financeiro@meuateliersistema.com.br>'
