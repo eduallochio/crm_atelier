@@ -71,59 +71,18 @@ export async function signup(formData: FormData) {
     return { error: 'Erro ao criar sua conta. Tente novamente.' }
   }
 
-  // Atualiza a organização com os dados extras usando o service role
-  // (funciona mesmo com confirmação de email pendente)
   const userId = signUpData.user?.id
-  if (userId && (atelierName || document || phone || city || state)) {
-    try {
-      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-      const adminSupabase = createServiceClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-      const { db } = await import('@/lib/db')
-      const { organizations, profiles } = await import('@/lib/db/schema')
-      const { eq } = await import('drizzle-orm')
 
-      // Aguarda até 3s o trigger handle_new_user criar o profile
-      let orgId: string | null = null
-      for (let i = 0; i < 6; i++) {
-        const [profile] = await db
-          .select({ organizationId: profiles.organizationId })
-          .from(profiles)
-          .where(eq(profiles.id, userId))
-          .limit(1)
-        if (profile?.organizationId) { orgId = profile.organizationId; break }
-        await new Promise(r => setTimeout(r, 500))
-      }
-
-      if (orgId) {
-        await db
-          .update(organizations)
-          .set({
-            name:      atelierName?.trim() || fullName,
-            cnpj:      document || null,
-            phone:     phone    || null,
-            city:      city     || null,
-            state:     state    || null,
-            updatedAt: new Date(),
-          })
-          .where(eq(organizations.id, orgId))
-      }
-    } catch {
-      // Não bloqueia o cadastro se a atualização falhar
-    }
-  }
-
-  // Grava evento de conversão antes do redirect (Server Action — cliente não executa mais após redirect)
+  // Notificação Telegram — nova organização cadastrada (roda primeiro: não depende do pool do Drizzle)
   try {
-    const { db: dbInst } = await import('@/lib/db')
-    const { pageEvents } = await import('@/lib/db/schema')
-    await dbInst.insert(pageEvents).values({
-      page:  '/cadastro',
-      event: 'signup_completed',
-      data:  { source: 'server_action' },
-    })
+    const { notificarTelegram } = await import('@/lib/telegram')
+    const nomeAtelier = (formData.get('atelierName') as string | null)?.trim() || fullName
+    const cidade = formData.get('city') as string | null
+    const estado = formData.get('state') as string | null
+    const localizacao = cidade ? `${cidade}${estado ? '/' + estado : ''}` : null
+    await notificarTelegram(
+      `🆕 <b>Nova organização cadastrada</b>\n👤 ${fullName}\n📧 ${email}\n🏪 ${nomeAtelier}${localizacao ? `\n📍 ${localizacao}` : ''}`
+    )
   } catch { /* não bloqueia o cadastro */ }
 
   // Email de confirmação via Resend (substituindo o email padrão do Supabase)
@@ -154,16 +113,54 @@ export async function signup(formData: FormData) {
     console.log('[signup] email boas-vindas enviado para', email)
   } catch (err) { console.error('[signup] erro email boas-vindas:', err) }
 
-  // Notificação Telegram — nova organização cadastrada
+  // Atualiza a organização com os dados extras usando o service role
+  // (funciona mesmo com confirmação de email pendente) — roda depois das notificações
+  // porque usa o pool do Drizzle e pode demorar esperando o trigger handle_new_user
+  if (userId && (atelierName || document || phone || city || state)) {
+    try {
+      const { db } = await import('@/lib/db')
+      const { organizations, profiles } = await import('@/lib/db/schema')
+      const { eq } = await import('drizzle-orm')
+
+      // Aguarda até 1.2s o trigger handle_new_user criar o profile
+      let orgId: string | null = null
+      for (let i = 0; i < 4; i++) {
+        const [profile] = await db
+          .select({ organizationId: profiles.organizationId })
+          .from(profiles)
+          .where(eq(profiles.id, userId))
+          .limit(1)
+        if (profile?.organizationId) { orgId = profile.organizationId; break }
+        await new Promise(r => setTimeout(r, 300))
+      }
+
+      if (orgId) {
+        await db
+          .update(organizations)
+          .set({
+            name:      atelierName?.trim() || fullName,
+            cnpj:      document || null,
+            phone:     phone    || null,
+            city:      city     || null,
+            state:     state    || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.id, orgId))
+      }
+    } catch {
+      // Não bloqueia o cadastro se a atualização falhar
+    }
+  }
+
+  // Grava evento de conversão antes do redirect (Server Action — cliente não executa mais após redirect)
   try {
-    const { notificarTelegram } = await import('@/lib/telegram')
-    const nomeAtelier = (formData.get('atelierName') as string | null)?.trim() || fullName
-    const cidade = formData.get('city') as string | null
-    const estado = formData.get('state') as string | null
-    const localizacao = cidade ? `${cidade}${estado ? '/' + estado : ''}` : null
-    await notificarTelegram(
-      `🆕 <b>Nova organização cadastrada</b>\n👤 ${fullName}\n📧 ${email}\n🏪 ${nomeAtelier}${localizacao ? `\n📍 ${localizacao}` : ''}`
-    )
+    const { db: dbInst } = await import('@/lib/db')
+    const { pageEvents } = await import('@/lib/db/schema')
+    await dbInst.insert(pageEvents).values({
+      page:  '/cadastro',
+      event: 'signup_completed',
+      data:  { source: 'server_action' },
+    })
   } catch { /* não bloqueia o cadastro */ }
 
   revalidatePath('/', 'layout')
