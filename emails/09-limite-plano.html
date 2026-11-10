@@ -37,22 +37,9 @@
         <!-- corpo -->
         <tr>
           <td bgcolor="#FDFAF7" class="pad" style="padding:40px 36px 34px;">
-            <!-- ícone: gráfico de barras crescendo -->
-            <div style="text-align:center;margin-bottom:28px;">
-              <svg width="72" height="60" viewBox="0 0 72 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- linha de base -->
-                <line x1="8" y1="52" x2="64" y2="52" stroke="#D4A85A" stroke-width="1.5" stroke-linecap="round"/>
-                <!-- barra 1 (baixa) -->
-                <rect x="12" y="40" width="12" height="12" rx="2" fill="#F7F0E8" stroke="#D4A85A" stroke-width="1.5"/>
-                <!-- barra 2 (média) -->
-                <rect x="30" y="28" width="12" height="24" rx="2" fill="#D4A85A"/>
-                <!-- barra 3 (alta - destaque) -->
-                <rect x="48" y="14" width="12" height="38" rx="2" fill="#A9532F"/>
-                <!-- seta de crescimento -->
-                <path d="M14 34 L28 20 L44 24 L60 8" stroke="#2C1810" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                <path d="M56 6 L62 8 L60 14" stroke="#2C1810" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              </svg>
-            </div>
+
+            <!-- ícone PNG -->
+            <div style="text-align:center;margin-bottom:28px;"><img src="data:image/png;base64,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" width="72" height="60" alt="" style="display:inline-block;border:0;outline:none;text-decoration:none;"></div>
             <p class="h1" style="margin:0 0 14px;font-family:'Cormorant Garamond', Cormorant, Georgia, 'Times New Roman', serif;font-size:34px;line-height:1.1;font-weight:500;color:#2C1810;">Seu ateliê está crescendo</p><p style="margin:0px 0 14px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15.5px;line-height:1.65;color:#6E5E4F;">Boa notícia e um aviso: você já usou boa parte do que o plano Free oferece. Quando o limite fecha, não dá para cadastrar mais — mas nada do que já existe se perde.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:6px 0 18px;">
           <tr><td style="padding:0 0 6px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;color:#6E5E4F;">Clientes · {{clientes_uso}} de {{clientes_max}} <span style="color:#A9532F;font-weight:700;">{{pct_clientes_label}}</span></td></tr>
           <tr><td bgcolor="#E4D6C3" style="border-radius:2px;">

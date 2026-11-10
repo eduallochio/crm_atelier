@@ -37,31 +37,9 @@
         <!-- corpo -->
         <tr>
           <td bgcolor="#FDFAF7" class="pad" style="padding:40px 36px 34px;">
-            <!-- ícone: QR code estilizado com relógio -->
-            <div style="text-align:center;margin-bottom:28px;">
-              <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- quadrado externo QR -->
-                <rect x="6" y="6" width="56" height="56" rx="4" fill="#F7F0E8" stroke="#D4A85A" stroke-width="1.5"/>
-                <!-- blocos QR simulados -->
-                <rect x="14" y="14" width="16" height="16" rx="2" fill="#2C1810"/>
-                <rect x="17" y="17" width="10" height="10" rx="1" fill="#F7F0E8"/>
-                <rect x="20" y="20" width="4" height="4" rx="0.5" fill="#2C1810"/>
-                <rect x="38" y="14" width="16" height="16" rx="2" fill="#2C1810"/>
-                <rect x="41" y="17" width="10" height="10" rx="1" fill="#F7F0E8"/>
-                <rect x="44" y="20" width="4" height="4" rx="0.5" fill="#2C1810"/>
-                <rect x="14" y="38" width="16" height="16" rx="2" fill="#2C1810"/>
-                <rect x="17" y="41" width="10" height="10" rx="1" fill="#F7F0E8"/>
-                <rect x="20" y="44" width="4" height="4" rx="0.5" fill="#2C1810"/>
-                <!-- pontos centrais -->
-                <rect x="34" y="34" width="4" height="4" rx="0.5" fill="#D4A85A"/>
-                <rect x="40" y="34" width="4" height="4" rx="0.5" fill="#D4A85A"/>
-                <rect x="34" y="40" width="4" height="4" rx="0.5" fill="#D4A85A"/>
-                <!-- relógio badge -->
-                <circle cx="56" cy="12" r="10" fill="#A9532F"/>
-                <circle cx="56" cy="12" r="7" fill="none" stroke="#FFF8F0" stroke-width="1"/>
-                <path d="M56 8 L56 12 L59 12" stroke="#FFF8F0" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </div>
+
+            <!-- ícone PNG -->
+            <div style="text-align:center;margin-bottom:28px;"><img src="data:image/png;base64,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" width="68" height="68" alt="" style="display:inline-block;border:0;outline:none;text-decoration:none;"></div>
             <p class="h1" style="margin:0 0 14px;font-family:'Cormorant Garamond', Cormorant, Georgia, 'Times New Roman', serif;font-size:34px;line-height:1.1;font-weight:500;color:#2C1810;">Seu PIX está esperando</p><p style="margin:0px 0 14px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15.5px;line-height:1.65;color:#6E5E4F;">Falta só o pagamento para liberar o plano Pro. Assim que o PIX cair, a conta vira Pro sozinha — você não precisa avisar ninguém.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;background-color:#F7F0E8;border-radius:6px;">
           <tr><td style="padding:18px 20px;">
 

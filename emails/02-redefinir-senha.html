@@ -37,18 +37,9 @@
         <!-- corpo -->
         <tr>
           <td bgcolor="#FDFAF7" class="pad" style="padding:40px 36px 34px;">
-            <!-- ícone: cadeado -->
-            <div style="text-align:center;margin-bottom:28px;">
-              <svg width="56" height="68" viewBox="0 0 56 68" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- arco do cadeado -->
-                <path d="M12 28 L12 18 C12 8 44 8 44 18 L44 28" stroke="#D4A85A" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <!-- corpo do cadeado -->
-                <rect x="4" y="28" width="48" height="36" rx="5" fill="#2C1810"/>
-                <!-- buraco da fechadura -->
-                <circle cx="28" cy="44" r="6" fill="#D4A85A"/>
-                <rect x="25" y="44" width="6" height="10" rx="2" fill="#D4A85A"/>
-              </svg>
-            </div>
+
+            <!-- ícone PNG -->
+            <div style="text-align:center;margin-bottom:28px;"><img src="data:image/png;base64,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" width="56" height="68" alt="" style="display:inline-block;border:0;outline:none;text-decoration:none;"></div>
             <p class="h1" style="margin:0 0 14px;font-family:'Cormorant Garamond', Cormorant, Georgia, 'Times New Roman', serif;font-size:34px;line-height:1.1;font-weight:500;color:#2C1810;">Vamos trocar sua senha</p><p style="margin:0px 0 14px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15.5px;line-height:1.65;color:#6E5E4F;">Clique no botão para criar uma senha nova. Enquanto você não fizer isso, a senha atual continua valendo.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px;">
           <tr>
             <td align="center" bgcolor="#A9532F" style="border-radius:6px;">
