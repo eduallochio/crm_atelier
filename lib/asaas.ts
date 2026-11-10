@@ -122,7 +122,17 @@ export async function createSubscription(data: {
 }): Promise<AsaasSubscription> {
   return asaasFetch<AsaasSubscription>('/subscriptions', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      // Desliga todos os emails do Asaas — usamos Resend para notificações
+      notifications: {
+        sendPaymentCreatedNotification:   false,
+        sendPaymentDueNotification:       false,
+        sendPaymentConfirmedNotification: false,
+        sendPaymentOverdueNotification:   false,
+        sendPaymentReceivedNotification:  false,
+      },
+    }),
   })
 }
 

@@ -289,6 +289,24 @@ export async function POST(req: NextRequest) {
       } catch {
         // QR code opcional — não bloqueia o checkout
       }
+
+      // Enviar email com QR code e copia e cola
+      const emailTo = org.email ?? user.email
+      if (emailTo && pixQrCode) {
+        const validade = pixQrCode.expirationDate
+          ? format(new Date(pixQrCode.expirationDate), "dd/MM/yyyy 'às' HH:mm")
+          : '24 horas'
+        import('@/lib/email').then(({ sendPixAguardando }) =>
+          sendPixAguardando({
+            to: emailTo,
+            valor: `R$ ${basePrice.toFixed(2).replace('.', ',')}`,
+            validade,
+            urlPagamento: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura`,
+            pixCopiaCola: pixQrCode!.payload,
+            qrCodeBase64: pixQrCode!.encodedImage,
+          })
+        ).catch(() => {})
+      }
     }
 
     return NextResponse.json({
