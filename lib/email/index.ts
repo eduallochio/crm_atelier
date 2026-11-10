@@ -46,6 +46,28 @@ async function send(options: {
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
+export async function sendConfirmarEmail(to: string, urlConfirmacao: string) {
+  const html = fill(loadTemplate('01-confirmar-email.html'), {
+    url_confirmacao: urlConfirmacao,
+  })
+  await send({ to, subject: 'Confirme seu e-mail — Meu Atelier Sistema', html })
+}
+
+export async function sendRedefinirSenha(to: string, urlRedefinicao: string) {
+  const html = fill(loadTemplate('02-redefinir-senha.html'), {
+    url_redefinicao: urlRedefinicao,
+  })
+  await send({ to, subject: 'Redefinir sua senha — Meu Atelier Sistema', html })
+}
+
+export async function sendTrocarEmail(to: string, emailNovo: string, urlConfirmacao: string) {
+  const html = fill(loadTemplate('03-trocar-email.html'), {
+    email_novo: emailNovo,
+    url_confirmacao: urlConfirmacao,
+  })
+  await send({ to, subject: 'Confirme seu novo e-mail — Meu Atelier Sistema', html })
+}
+
 export async function sendBoasVindas(to: string, nome: string) {
   const html = fill(loadTemplate('04-boas-vindas.html'), {
     nome,

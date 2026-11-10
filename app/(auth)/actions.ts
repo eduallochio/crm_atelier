@@ -126,6 +126,25 @@ export async function signup(formData: FormData) {
     })
   } catch { /* não bloqueia o cadastro */ }
 
+  // Email de confirmação via Resend (substituindo o email padrão do Supabase)
+  try {
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+    const adminSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    const { data: linkData } = await adminSupabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${siteUrl}/dashboard` },
+    })
+    if (linkData?.properties?.action_link) {
+      const { sendConfirmarEmail } = await import('@/lib/email')
+      await sendConfirmarEmail(email, linkData.properties.action_link)
+    }
+  } catch { /* não bloqueia o cadastro */ }
+
   // Email de boas-vindas — disparo assíncrono, não bloqueia o redirect
   try {
     const { sendBoasVindas } = await import('@/lib/email')
@@ -144,18 +163,30 @@ export async function logout() {
 }
 
 export async function forgotPassword(formData: FormData) {
-  const supabase = await createClient()
   const email = formData.get('email') as string
 
   if (!email) return { error: 'Informe seu e-mail.' }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/redefinir-senha`,
-  })
-
-  if (error) return { error: 'Erro ao enviar e-mail. Tente novamente.' }
+  try {
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+    const adminSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    const { data: linkData, error } = await adminSupabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${siteUrl}/redefinir-senha` },
+    })
+    if (error) return { error: 'Erro ao enviar e-mail. Tente novamente.' }
+    if (linkData?.properties?.action_link) {
+      const { sendRedefinirSenha } = await import('@/lib/email')
+      await sendRedefinirSenha(email, linkData.properties.action_link)
+    }
+  } catch {
+    return { error: 'Erro ao enviar e-mail. Tente novamente.' }
+  }
 
   return { success: true }
 }
@@ -179,22 +210,30 @@ export async function resetPassword(formData: FormData) {
 }
 
 export async function resendConfirmation(formData: FormData) {
-  const supabase = await createClient()
   const email = formData.get('email') as string
 
   if (!email) return { error: 'Informe seu e-mail.' }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email,
-    options: {
-      emailRedirectTo: `${siteUrl}/dashboard`,
-    },
-  })
-
-  if (error) return { error: 'Erro ao reenviar e-mail. Tente novamente.' }
+  try {
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+    const adminSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    const { data: linkData, error } = await adminSupabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${siteUrl}/dashboard` },
+    })
+    if (error) return { error: 'Erro ao reenviar e-mail. Tente novamente.' }
+    if (linkData?.properties?.action_link) {
+      const { sendConfirmarEmail } = await import('@/lib/email')
+      await sendConfirmarEmail(email, linkData.properties.action_link)
+    }
+  } catch {
+    return { error: 'Erro ao reenviar e-mail. Tente novamente.' }
+  }
 
   return { success: true }
 }
