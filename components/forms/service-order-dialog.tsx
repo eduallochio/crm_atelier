@@ -291,7 +291,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       data_prevista: data.data_prevista || null,
       data_conclusao: null,
       observacoes: data.observacoes || null,
-      forma_pagamento: data.forma_pagamento || null,
+      forma_pagamento: data.forma_pagamento
+        ? (paymentMethods.find(m => m.id === data.forma_pagamento)?.name ?? data.forma_pagamento)
+        : null,
       fotos: null,
       notas_internas: data.notas_internas || null,
       created_at: new Date().toISOString(),
