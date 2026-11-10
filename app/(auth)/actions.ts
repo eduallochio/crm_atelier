@@ -87,7 +87,6 @@ export async function signup(formData: FormData) {
 
   // Email de confirmação via Resend (substituindo o email padrão do Supabase)
   try {
-    console.log('[signup] RESEND_API_KEY presente:', !!process.env.RESEND_API_KEY)
     const { createClient: createServiceClient } = await import('@supabase/supabase-js')
     const adminSupabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +101,6 @@ export async function signup(formData: FormData) {
     if (linkData?.properties?.action_link) {
       const { sendConfirmarEmail } = await import('@/lib/email')
       await sendConfirmarEmail(email, linkData.properties.action_link)
-      console.log('[signup] email confirmação enviado para', email)
     }
   } catch (err) { console.error('[signup] erro email confirmação:', err) }
 
@@ -110,7 +108,6 @@ export async function signup(formData: FormData) {
   try {
     const { sendBoasVindas } = await import('@/lib/email')
     await sendBoasVindas(email, fullName)
-    console.log('[signup] email boas-vindas enviado para', email)
   } catch (err) { console.error('[signup] erro email boas-vindas:', err) }
 
   // Atualiza a organização com os dados extras usando o service role
