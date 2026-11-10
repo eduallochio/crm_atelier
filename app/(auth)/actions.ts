@@ -151,6 +151,18 @@ export async function signup(formData: FormData) {
     await sendBoasVindas(email, fullName)
   } catch { /* não bloqueia o cadastro */ }
 
+  // Notificação Telegram — nova organização cadastrada
+  try {
+    const { notificarTelegram } = await import('@/lib/telegram')
+    const nomeAtelier = (formData.get('atelierName') as string | null)?.trim() || fullName
+    const cidade = formData.get('city') as string | null
+    const estado = formData.get('state') as string | null
+    const localizacao = cidade ? `${cidade}${estado ? '/' + estado : ''}` : null
+    await notificarTelegram(
+      `🆕 <b>Nova organização cadastrada</b>\n👤 ${fullName}\n📧 ${email}\n🏪 ${nomeAtelier}${localizacao ? `\n📍 ${localizacao}` : ''}`
+    )
+  } catch { /* não bloqueia o cadastro */ }
+
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }

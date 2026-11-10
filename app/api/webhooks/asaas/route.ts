@@ -237,6 +237,22 @@ export async function POST(req: NextRequest) {
           logServerError('[webhook/asaas] email pagamento confirmado', emailErr)
         }
 
+        // Notificação Telegram — pagamento confirmado
+        try {
+          const [orgTel] = await db
+            .select({ name: organizations.name, email: organizations.email })
+            .from(organizations)
+            .where(eq(organizations.id, orgId))
+            .limit(1)
+          if (orgTel) {
+            const valorTel = `R$ ${Number(confirmedPayment.value ?? 0).toFixed(2).replace('.', ',')}`
+            const { notificarTelegram } = await import('@/lib/telegram')
+            await notificarTelegram(
+              `💰 <b>Pagamento confirmado</b>\n🏪 ${orgTel.name}\n📧 ${orgTel.email}\n💵 ${valorTel}\n📋 Plano Pro`
+            )
+          }
+        } catch { /* best-effort */ }
+
         // Lançar em contas a pagar se a opção estiver ativa
         try {
           const [settings] = await db
