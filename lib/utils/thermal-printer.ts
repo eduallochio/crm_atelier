@@ -85,12 +85,14 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     y += 3
   }
 
-  // Função auxiliar para adicionar texto centralizado
+  // Função auxiliar para adicionar texto centralizado — quebra em múltiplas
+  // linhas quando não cabe na largura do cupom, em vez de estourar a margem
   const addCenteredText = (text: string, fontSize: number = 10, bold: boolean = false) => {
     doc.setFontSize(fontSize)
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
-    doc.text(text, width / 2, y, { align: 'center' })
-    y += fontSize / 2 + 2
+    const lines = doc.splitTextToSize(text, contentWidth)
+    doc.text(lines, width / 2, y, { align: 'center' })
+    y += lines.length * (fontSize / 2 + 1) + 1
   }
 
   // Função auxiliar para adicionar texto normal
@@ -459,7 +461,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
       <!-- Cabeçalho -->
       <div style="text-align: center; margin-bottom: 16px;">
         ${orgData?.logo_data_url ? `<img src="${orgData.logo_data_url}" alt="" style="max-width: 48px; max-height: 48px; width: auto; height: auto; margin: 0 auto 6px; display: block; object-fit: contain;" />` : ''}
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${escapeHtml(organizationName)}</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px; word-break: break-word;">${escapeHtml(organizationName)}</div>
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ORDEM DE SERVIÇO</div>
         <div style="font-size: 13px; font-weight: bold;">${order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`}</div>
       </div>
