@@ -119,8 +119,11 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   if (orgData?.logo_data_url) {
     try {
       const props = doc.getImageProperties(orgData.logo_data_url)
-      const logoWidth = 20
-      const logoHeight = (props.height / props.width) * logoWidth
+      const maxWidth = 12
+      const maxHeight = 12
+      const scale = Math.min(maxWidth / props.width, maxHeight / props.height)
+      const logoWidth = props.width * scale
+      const logoHeight = props.height * scale
       doc.addImage(orgData.logo_data_url, props.fileType, (width - logoWidth) / 2, y, logoWidth, logoHeight)
       y += logoHeight + 3
     } catch {
@@ -455,7 +458,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
     <div style="width: 300px; font-family: 'Courier New', monospace; font-size: 12px; padding: 16px; background: white; border: 2px dashed #ccc; margin: 0 auto;">
       <!-- Cabeçalho -->
       <div style="text-align: center; margin-bottom: 16px;">
-        ${orgData?.logo_data_url ? `<img src="${orgData.logo_data_url}" alt="" style="max-width: 80px; max-height: 60px; margin: 0 auto 6px; display: block;" />` : ''}
+        ${orgData?.logo_data_url ? `<img src="${orgData.logo_data_url}" alt="" style="max-width: 48px; max-height: 48px; width: auto; height: auto; margin: 0 auto 6px; display: block; object-fit: contain;" />` : ''}
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${escapeHtml(organizationName)}</div>
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ORDEM DE SERVIÇO</div>
         <div style="font-size: 13px; font-weight: bold;">${order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`}</div>
