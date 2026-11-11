@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -11,9 +11,9 @@ import {
 import { toast } from 'sonner'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useCreateOrderNote, useOrderHistory, useOrderNotes } from '@/hooks/use-order-notes'
-import { useOrganizationSettings, useSystemPreferences } from '@/hooks/use-settings'
+import { useOrganizationSettings, useSystemPreferences, useOrderSettings } from '@/hooks/use-settings'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
-import { generateThermalPDF } from '@/lib/utils/thermal-printer'
+import { generateThermalPDF, loadLogoAsDataUrl } from '@/lib/utils/thermal-printer'
 import type { ServiceOrder, ServiceOrderHistory, ServiceOrderNote } from '@/lib/validations/service-order'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -55,15 +55,25 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   const deleteOrder = useDeleteServiceOrder()
   const { data: org } = useOrganizationSettings()
   const { data: systemPrefs } = useSystemPreferences()
+  const { data: orderSettings } = useOrderSettings()
   const { data: paymentMethods = [] } = useActivePaymentMethods()
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
   const usaEmbalagem = !!systemPrefs?.usa_embalagem
+  const showLogo = !!orderSettings?.show_logo_on_print
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [preview, setPreview] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [editingItems, setEditingItems] = useState(false)
   const [editingEmbalagens, setEditingEmbalagens] = useState(false)
+
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!showLogo || !org?.logo_url) { setLogoDataUrl(null); return }
+    let cancelled = false
+    loadLogoAsDataUrl(org.logo_url).then(url => { if (!cancelled) setLogoDataUrl(url) })
+    return () => { cancelled = true }
+  }, [showLogo, org?.logo_url])
 
   const orgName = org?.name || 'Meu Atelier'
   const total = Number(order.valor_total) || 0
@@ -81,7 +91,10 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
   }
 
   const printPDF = () => {
-    try { generateThermalPDF(order, orgName, undefined, destacarEmbalagem); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') }
+    try {
+      generateThermalPDF(order, orgName, { name: orgName, logo_data_url: showLogo ? logoDataUrl : null }, destacarEmbalagem)
+      toast.success('PDF gerado!')
+    } catch { toast.error('Erro ao gerar PDF') }
   }
 
   const registerInCashier = async () => {

@@ -17,6 +17,7 @@ const DEFAULTS = {
   default_delivery_days: 7,
   printer_width:         '80mm',
   auto_generate_pdf:     true,
+  show_logo_on_print:    false,
 }
 
 function mapRow(row: {
@@ -33,6 +34,7 @@ function mapRow(row: {
   defaultDeliveryDays: number
   printerWidth: string
   autoGeneratePdf: boolean
+  showLogoOnPrint: boolean
   updatedAt: Date | null
 }) {
   return {
@@ -49,6 +51,7 @@ function mapRow(row: {
     default_delivery_days:  row.defaultDeliveryDays,
     printer_width:          row.printerWidth ?? '80mm',
     auto_generate_pdf:      row.autoGeneratePdf ?? true,
+    show_logo_on_print:     row.showLogoOnPrint ?? false,
     updated_at:             row.updatedAt,
   }
 }
@@ -104,6 +107,7 @@ export async function PUT(request: Request) {
       defaultDeliveryDays:  body.default_delivery_days ?? 7,
       printerWidth:         body.printer_width === '58mm' ? '58mm' : '80mm',
       autoGeneratePdf:      body.auto_generate_pdf !== false,
+      showLogoOnPrint:      !!body.show_logo_on_print,
     }
 
     await db
@@ -123,6 +127,7 @@ export async function PUT(request: Request) {
           defaultDeliveryDays:  values.defaultDeliveryDays,
           printerWidth:         values.printerWidth,
           autoGeneratePdf:      values.autoGeneratePdf,
+          showLogoOnPrint:      values.showLogoOnPrint,
           updatedAt:            new Date(),
         },
       })

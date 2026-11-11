@@ -13,7 +13,7 @@ import { useServices } from '@/hooks/use-services'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import { useSystemPreferences, useNotificationSettings, useOrganizationSettings, useFinancialSettings, useOrderSettings } from '@/hooks/use-settings'
 import type { Product } from '@/hooks/use-inventory'
-import { generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
+import { generateThermalPDF, generateWhatsAppText, loadLogoAsDataUrl } from '@/lib/utils/thermal-printer'
 import { toast } from 'sonner'
 import { OrderPreviewDialog } from '@/components/dashboard/order-preview-dialog'
 import {
@@ -97,11 +97,20 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const requireService       = orderSettings?.require_service       ?? true
   const requireDeliveryDate  = orderSettings?.require_delivery_date ?? true
   const requirePaymentMethod = orderSettings?.require_payment_method ?? false
+  const showLogo = !!orderSettings?.show_logo_on_print
 
   const serviceOrderSchema = useMemo(
     () => buildServiceOrderSchema({ requireClient, requireService, requireDeliveryDate, requirePaymentMethod }),
     [requireClient, requireService, requireDeliveryDate, requirePaymentMethod]
   )
+
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!showLogo || !orgSettings?.logo_url) { setLogoDataUrl(null); return }
+    let cancelled = false
+    loadLogoAsDataUrl(orgSettings.logo_url).then(url => { if (!cancelled) setLogoDataUrl(url) })
+    return () => { cancelled = true }
+  }, [showLogo, orgSettings?.logo_url])
 
   const orgData = orgSettings ? {
     name: orgSettings.name,
@@ -112,6 +121,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
     kwai: orgSettings.kwai,
     pix_key: financialSettings?.pix_key || null,
     show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
+    logo_data_url: showLogo ? logoDataUrl : null,
   } : undefined
   // Só busca produtos quando embalagem está ativa (evita 403 para planos
   // free e requests desnecessários) — materiais não são mais escolhidos

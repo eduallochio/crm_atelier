@@ -3,7 +3,7 @@
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { orderSettingsSchema, type OrderSettingsInput } from '@/lib/validations/settings'
-import { useOrderSettings, useUpdateOrderSettings } from '@/hooks/use-settings'
+import { useOrderSettings, useUpdateOrderSettings, useOrganizationSettings } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,7 +14,9 @@ import { useEffect } from 'react'
 
 export function OrderSettingsForm() {
   const { data: settings, isLoading, error } = useOrderSettings()
+  const { data: orgSettings } = useOrganizationSettings()
   const updateSettings = useUpdateOrderSettings()
+  const hasLogo = !!orgSettings?.logo_url
 
   const form = useForm({
     resolver: zodResolver(orderSettingsSchema),
@@ -30,6 +32,7 @@ export function OrderSettingsForm() {
       default_delivery_days: 7,
       printer_width: '80mm' as const,
       auto_generate_pdf: true,
+      show_logo_on_print: false,
     },
   })
 
@@ -53,6 +56,7 @@ export function OrderSettingsForm() {
         default_delivery_days: settings.default_delivery_days,
         printer_width: (settings.printer_width === '58mm' ? '58mm' : '80mm') as '58mm' | '80mm',
         auto_generate_pdf: settings.auto_generate_pdf !== false,
+        show_logo_on_print: !!settings.show_logo_on_print,
       })
     }
   }, [settings, form])
@@ -265,6 +269,25 @@ export function OrderSettingsForm() {
               id="auto_generate_pdf"
               checked={form.watch('auto_generate_pdf') ?? true}
               onCheckedChange={(checked) => form.setValue('auto_generate_pdf', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="show_logo_on_print" className={hasLogo ? 'cursor-pointer' : 'cursor-not-allowed text-muted-foreground'}>
+                Incluir logo da organização na impressão
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {hasLogo
+                  ? 'Exibe a logo cadastrada no topo do cupom/PDF e no texto enviado por WhatsApp'
+                  : 'Cadastre uma logo em Configurações → Organização para habilitar esta opção'}
+              </p>
+            </div>
+            <Switch
+              id="show_logo_on_print"
+              checked={hasLogo && (form.watch('show_logo_on_print') ?? false)}
+              disabled={!hasLogo}
+              onCheckedChange={(checked) => form.setValue('show_logo_on_print', checked)}
             />
           </div>
         </div>

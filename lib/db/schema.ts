@@ -475,6 +475,7 @@ export const orgOrderSettings = pgTable('org_order_settings', {
   defaultMessage:       text('default_message'),
   printerWidth:         text('printer_width').notNull().default('80mm'),
   autoGeneratePdf:      boolean('auto_generate_pdf').notNull().default(true),
+  showLogoOnPrint:      boolean('show_logo_on_print').notNull().default(false),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 

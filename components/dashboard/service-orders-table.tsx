@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Trash2, Eye, User, Calendar, MessageCircle, AlertCircle, Clock, Square, CheckSquare, Printer, Banknote, CheckCircle2, ReceiptText, Send, Landmark, CircleDashed } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { useDeleteServiceOrder, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import { Button } from '@/components/ui/button'
-import { generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
-import { useOrganizationSettings, useSystemPreferences } from '@/hooks/use-settings'
+import { generateThermalPDF, generateWhatsAppText, loadLogoAsDataUrl } from '@/lib/utils/thermal-printer'
+import { useOrganizationSettings, useSystemPreferences, useOrderSettings } from '@/hooks/use-settings'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -61,7 +61,27 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const { data: paymentMethods = [] } = useActivePaymentMethods()
   const { data: orgSettings } = useOrganizationSettings()
   const { data: systemPrefs } = useSystemPreferences()
+  const { data: orderSettings } = useOrderSettings()
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
+  const showLogo = !!orderSettings?.show_logo_on_print
+
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!showLogo || !orgSettings?.logo_url) { setLogoDataUrl(null); return }
+    let cancelled = false
+    loadLogoAsDataUrl(orgSettings.logo_url).then(url => { if (!cancelled) setLogoDataUrl(url) })
+    return () => { cancelled = true }
+  }, [showLogo, orgSettings?.logo_url])
+
+  const orgData = orgSettings ? {
+    name: orgSettings.name,
+    instagram: orgSettings.instagram,
+    facebook: orgSettings.facebook,
+    twitter: orgSettings.twitter,
+    tiktok: orgSettings.tiktok,
+    kwai: orgSettings.kwai,
+    logo_data_url: showLogo ? logoDataUrl : null,
+  } : undefined
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -104,7 +124,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     }
     const telefone = order.client.telefone.replace(/\D/g, '')
     const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`
-    const msg = generateWhatsAppText(order, orgSettings?.name || 'Meu Atelier', undefined, destacarEmbalagem)
+    const msg = generateWhatsAppText(order, orgSettings?.name || 'Meu Atelier', orgData, destacarEmbalagem)
     window.open(`https://wa.me/${telefoneFormatado}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
@@ -425,7 +445,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               {/* Ações */}
               <div className="flex flex-wrap items-center gap-1 border-t border-border pt-3 mt-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                  onClick={() => { try { generateThermalPDF(order, orgSettings?.name, undefined, destacarEmbalagem); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
+                  onClick={() => { try { generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
                   title="Gerar PDF">
                   <Printer className="h-4 w-4" />
                 </Button>
@@ -615,7 +635,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         size="icon"
                         onClick={() => {
                           try {
-                            generateThermalPDF(order, orgSettings?.name, undefined, destacarEmbalagem)
+                            generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem)
                             toast.success('PDF gerado com sucesso!')
                           } catch (error) {
                             toast.error('Erro ao gerar PDF')

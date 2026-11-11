@@ -12,6 +12,31 @@ export interface OrganizationData {
   kwai?: string | null
   pix_key?: string | null
   show_pix_key_on_order?: boolean
+  /** Data URL (base64) da logo já carregada — ver loadLogoAsDataUrl() */
+  logo_data_url?: string | null
+}
+
+/**
+ * Busca a logo da organização e converte para Data URL (base64), para uso
+ * em generateThermalPDF/generateThermalPreview — jsPDF e <img> não podem
+ * depender de uma requisição de rede no meio da geração do documento.
+ * Retorna null em qualquer falha (CORS, 404, etc.) — a impressão segue sem logo.
+ */
+export async function loadLogoAsDataUrl(logoUrl: string | null | undefined): Promise<string | null> {
+  if (!logoUrl) return null
+  try {
+    const res = await fetch(logoUrl)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
 }
 
 /** Soma o valor das embalagens da OS (quantidade × preço unitário snapshot) */
@@ -91,6 +116,17 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
   }
 
   // CABEÇALHO
+  if (orgData?.logo_data_url) {
+    try {
+      const props = doc.getImageProperties(orgData.logo_data_url)
+      const logoWidth = 20
+      const logoHeight = (props.height / props.width) * logoWidth
+      doc.addImage(orgData.logo_data_url, props.fileType, (width - logoWidth) / 2, y, logoWidth, logoHeight)
+      y += logoHeight + 3
+    } catch {
+      // logo inválida/corrompida — segue sem ela
+    }
+  }
   addCenteredText(organizationName, 14, true)
   addCenteredText('ORDEM DE SERVIÇO', 12, true)
   addCenteredText(order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`, 11, true)
@@ -419,6 +455,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
     <div style="width: 300px; font-family: 'Courier New', monospace; font-size: 12px; padding: 16px; background: white; border: 2px dashed #ccc; margin: 0 auto;">
       <!-- Cabeçalho -->
       <div style="text-align: center; margin-bottom: 16px;">
+        ${orgData?.logo_data_url ? `<img src="${orgData.logo_data_url}" alt="" style="max-width: 80px; max-height: 60px; margin: 0 auto 6px; display: block;" />` : ''}
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${escapeHtml(organizationName)}</div>
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ORDEM DE SERVIÇO</div>
         <div style="font-size: 13px; font-weight: bold;">${order.numero === 0 ? '#PRÉVIA' : `#${order.numero.toString().padStart(6, '0')}`}</div>

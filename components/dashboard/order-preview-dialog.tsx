@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X, MessageCircle, Loader2 } from 'lucide-react'
 import type { ServiceOrder } from '@/lib/validations/service-order'
-import { generateThermalPreview, generateThermalPDF, generateWhatsAppText } from '@/lib/utils/thermal-printer'
+import { generateThermalPreview, generateThermalPDF, generateWhatsAppText, loadLogoAsDataUrl } from '@/lib/utils/thermal-printer'
 import { usePaymentMethods } from '@/hooks/use-payment-methods'
 import { useOrganizationSettings, useFinancialSettings, useOrderSettings, useSystemPreferences } from '@/hooks/use-settings'
 import { Button } from '@/components/ui/button'
@@ -38,9 +38,18 @@ export function OrderPreviewDialog({
   const { data: systemPrefs } = useSystemPreferences()
   const printerWidth = orderSettings?.printer_width ?? '80mm'
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
+  const showLogo = !!orderSettings?.show_logo_on_print
 
   // Identifica PIX pelo código original (estável), não pelo nome customizável exibido
   const isPixPayment = order?.forma_pagamento?.toLowerCase() === 'pix'
+
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!showLogo || !orgSettings?.logo_url) { setLogoDataUrl(null); return }
+    let cancelled = false
+    loadLogoAsDataUrl(orgSettings.logo_url).then(url => { if (!cancelled) setLogoDataUrl(url) })
+    return () => { cancelled = true }
+  }, [showLogo, orgSettings?.logo_url])
 
   const orgData = orgSettings ? {
     name: orgSettings.name || organizationName,
@@ -51,6 +60,7 @@ export function OrderPreviewDialog({
     kwai: orgSettings.kwai,
     pix_key: isPixPayment ? (financialSettings?.pix_key || null) : null,
     show_pix_key_on_order: financialSettings?.show_pix_key_on_order || false,
+    logo_data_url: showLogo ? logoDataUrl : null,
   } : undefined
 
   // Converter código da forma de pagamento para nome

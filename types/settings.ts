@@ -101,6 +101,7 @@ export interface OrderSettings {
   // Impressora
   printer_width: '58mm' | '80mm'
   auto_generate_pdf: boolean
+  show_logo_on_print: boolean
   updated_at: string
 }
 
