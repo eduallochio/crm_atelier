@@ -7,7 +7,11 @@ import { DM_Sans } from 'next/font/google'
  */
 export const dmSans = DM_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
+  // Apenas os pesos realmente usados na landing (400 texto, 500 destaques) —
+  // Turbopack no Next.js 16.1 quebra o build com múltiplos weights numa
+  // única declaração next/font/google (mesmo bug contornado para a
+  // Cormorant Garamond em app/layout.tsx)
+  weight: ['400', '500'],
   variable: '--font-dm-sans',
   display: 'swap',
 })
