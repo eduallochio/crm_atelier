@@ -37,6 +37,7 @@ export async function GET() {
     const orgId = user.organizationId
     const canSeeOrders = user.isOwner || user.isMaster || user.permissions.ordens_servico === true
     const canSeeClients = user.isOwner || user.isMaster || user.permissions.clientes === true
+    const canSeeFinance = user.isOwner || user.isMaster || user.permissions.financeiro === true
 
     // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
     const [clientsCount, ordersCount, usersCount] = await Promise.all([
@@ -75,7 +76,7 @@ export async function GET() {
         )
       )
 
-    const monthlyRevenue = parseFloat(revenueResult[0]?.revenue ?? '0')
+    const monthlyRevenue = !canSeeOrders ? 0 : parseFloat(revenueResult[0]?.revenue ?? '0')
 
     // ── Plano da organização ─────────────────────────────────────────────────
     const [orgResult, lifetime] = await Promise.all([
@@ -234,7 +235,7 @@ export async function GET() {
         timestamp: h.createdAt?.toISOString() ?? '',
       })),
 
-      ...recentPayments.map((t) => ({
+      ...(!canSeeFinance ? [] : recentPayments).map((t) => ({
         id: `payment-${t.id}`,
         type: 'payment' as const,
         title: 'Pagamento recebido',
@@ -242,7 +243,7 @@ export async function GET() {
         timestamp: t.createdAt?.toISOString() ?? '',
       })),
 
-      ...recentCashierSessions.map((s) => ({
+      ...(!canSeeFinance ? [] : recentCashierSessions).map((s) => ({
         id: `cashier-${s.id}`,
         type: s.status === 'fechado' ? 'cashier_close' as const : 'cashier_open' as const,
         title: s.status === 'fechado' ? 'Caixa fechado' : 'Caixa aberto',
@@ -276,7 +277,7 @@ export async function GET() {
         timestamp: s.createdAt?.toISOString() ?? '',
       })),
 
-      ...recentPayables.map((p) => ({
+      ...(!canSeeFinance ? [] : recentPayables).map((p) => ({
         id: `payable-${p.id}`,
         type: 'payable' as const,
         title: 'Conta a pagar lançada',
@@ -367,14 +368,16 @@ export async function GET() {
     ])
 
     const financialHealth = {
-      receivables_pending: parseFloat(receivablesPending[0]?.total ?? '0'),
-      receivables_overdue: parseFloat(receivablesOverdue[0]?.total ?? '0'),
-      payables_pending: parseFloat(payablesPending[0]?.total ?? '0'),
-      payables_overdue: parseFloat(payablesOverdue[0]?.total ?? '0'),
-      receivables_7d: parseFloat(receivables7d[0]?.total ?? '0'),
-      payables_7d: parseFloat(payables7d[0]?.total ?? '0'),
-      pipeline_value: parseFloat(pipelineValue[0]?.total ?? '0'),
-      prev_month_revenue: parseFloat(prevMonthRevenue[0]?.total ?? '0'),
+      receivables_pending: !canSeeFinance ? 0 : parseFloat(receivablesPending[0]?.total ?? '0'),
+      receivables_overdue: !canSeeFinance ? 0 : parseFloat(receivablesOverdue[0]?.total ?? '0'),
+      payables_pending: !canSeeFinance ? 0 : parseFloat(payablesPending[0]?.total ?? '0'),
+      payables_overdue: !canSeeFinance ? 0 : parseFloat(payablesOverdue[0]?.total ?? '0'),
+      receivables_7d: !canSeeFinance ? 0 : parseFloat(receivables7d[0]?.total ?? '0'),
+      payables_7d: !canSeeFinance ? 0 : parseFloat(payables7d[0]?.total ?? '0'),
+      // pipeline_value e prev_month_revenue vêm de orgServiceOrders — pertencem a
+      // ordens_servico, não a financeiro, apesar de estarem neste mesmo objeto
+      pipeline_value: !canSeeOrders ? 0 : parseFloat(pipelineValue[0]?.total ?? '0'),
+      prev_month_revenue: !canSeeOrders ? 0 : parseFloat(prevMonthRevenue[0]?.total ?? '0'),
     }
 
     // ── Top clientes por receita ─────────────────────────────────────────────

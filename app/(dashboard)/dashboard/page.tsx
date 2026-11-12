@@ -126,7 +126,9 @@ export default function DashboardPage() {
           </>
         )}
 
-        <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
+        {canSeeOrders && (
+          <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
+        )}
 
         {isPro && subscriptionNextDueDate && (
           <SubscriptionCard nextDueDate={subscriptionNextDueDate} />
