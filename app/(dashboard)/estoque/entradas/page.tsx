@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowLeft, FileSpreadsheet, FileText, PackageOpen, Plus, Search, SearchX } from 'lucide-react'
+import { ArrowLeft, FileDown, FileSpreadsheet, PackageOpen, Plus, Search, SearchX } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
@@ -94,8 +94,8 @@ function Entradas() {
         action={
           <>
             <span className="hidden gap-2 sm:flex">
-              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} title="Exportar Excel" aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4" aria-hidden="true" /></button>
-              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} title="Exportar PDF" aria-label="Exportar PDF"><FileText className="h-4 w-4" aria-hidden="true" /></button>
+              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} title="Exportar Excel" aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" /></button>
+              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} title="Exportar PDF" aria-label="Exportar PDF"><FileDown className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" /></button>
             </span>
             <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Nova entrada</span><span className="sm:hidden">Nova</span></button>
           </>

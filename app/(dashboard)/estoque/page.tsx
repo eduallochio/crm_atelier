@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import {
-  AlertTriangle, ArrowDownLeft, ArrowLeft, ArrowUpRight, Barcode, Ellipsis, FileSpreadsheet, FileText, Package, PackageOpen,
+  AlertTriangle, ArrowDownLeft, ArrowLeft, ArrowUpRight, Barcode, Ellipsis, FileDown, FileSpreadsheet, Package, PackageOpen,
   Pencil, Plus, Power, Search, SearchX,
 } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -127,8 +127,8 @@ function Produtos() {
         action={
           <>
             <span className="hidden gap-2 sm:flex">
-              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} title="Exportar Excel" aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4" aria-hidden="true" /></button>
-              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} title="Exportar PDF" aria-label="Exportar PDF"><FileText className="h-4 w-4" aria-hidden="true" /></button>
+              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} title="Exportar Excel" aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" /></button>
+              <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} title="Exportar PDF" aria-label="Exportar PDF"><FileDown className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" /></button>
               <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={() => setEntryFor(null)}><PackageOpen className="h-4 w-4" aria-hidden="true" />Nova entrada</button>
             </span>
             <button type="button" className="cli-primary" onClick={handleNew}>
