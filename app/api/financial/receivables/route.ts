@@ -5,12 +5,15 @@ import { orgReceivables, orgPaymentMethods } from '@/lib/db/schema'
 import { eq, desc, sql as drizzleSql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { requireProPlan } from '@/lib/plan-limits'
+import { syncReceivablesFromOpenOrders } from '@/lib/financial/sync-receivables'
 
 export async function GET() {
   try {
     const user = await requireAuth()
     assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
+
+    await syncReceivablesFromOpenOrders(user.organizationId)
 
     const rows = await db
       .select({

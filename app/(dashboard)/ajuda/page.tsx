@@ -440,7 +440,7 @@ export default function AjudaPage() {
             {/* 6.2 Contas */}
             <section className="page-break">
               <SectionHeader icon={ReceiptText} n="6.2" title="Contas a receber e a pagar" />
-              <P>As duas telas funcionam igual. <strong>A receber</strong> junta o que as clientes devem (muitas contas nascem sozinhas ao concluir uma ordem sem pagamento). <strong>A pagar</strong> junta as despesas do ateliê, inclusive as que se repetem todo mês.</P>
+              <P>As duas telas funcionam igual. <strong>A receber</strong> junta o que as clientes devem — toda ordem de serviço com saldo pendente (mesmo ainda em andamento) aparece aqui sozinha, sem precisar lançar nada à mão. <strong>A pagar</strong> junta as despesas do ateliê, inclusive as que se repetem todo mês.</P>
               <Shot src="/manual/receber.webp" alt="Tela de contas a receber com a lista e o detalhe da conta" pins={PINS.receber} onZoom={onZoom} legend={[
                 <><strong>Filtros</strong>: atrasadas, vencem em 7 dias, em aberto, recebidas (ou pagas) e canceladas.</>,
                 <><strong>Data, forma de pagamento e ordem</strong> da lista. Acima dela, o total em aberto e em atraso.</>,

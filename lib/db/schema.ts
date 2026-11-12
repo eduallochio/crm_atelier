@@ -314,6 +314,9 @@ export const orgReceivables = pgTable('org_receivables', {
   index('idx_receivables_status').on(t.status),
   index('idx_receivables_venc').on(t.dataVencimento),
   index('idx_receivables_org_status').on(t.organizationId, t.status),
+  // Garante no máximo 1 receivable por OS — evita duplicata em corrida de
+  // requisições concorrentes ao sincronizar OS pendentes (ver sync-receivables.ts)
+  uniqueIndex('uq_receivables_service_order').on(t.serviceOrderId).where(sql`service_order_id IS NOT NULL`),
 ])
 
 // ─── 16. ORG PAYABLES ─────────────────────────────────────────────────────────
