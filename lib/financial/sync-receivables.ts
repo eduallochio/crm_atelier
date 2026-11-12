@@ -36,16 +36,22 @@ export async function syncReceivablesFromOpenOrders(organizationId: string): Pro
 
   const hojeStr = new Date().toISOString().split('T')[0]
 
-  await db.insert(orgReceivables).values(
-    toCreate.map(o => ({
-      organizationId,
-      serviceOrderId: o.id,
-      clientId:       o.clientId || null,
-      descricao:      `OS #${o.numero} - ${o.clienteNome || 'Cliente'}`,
-      valor:          String((Number(o.valorTotal) || 0) - (Number(o.valorPago) || 0)),
-      dataVencimento: o.dataPrevista || hojeStr,
-      status:         'pendente',
-      observacoes:    'Gerado automaticamente a partir do saldo em aberto da ordem de serviço',
-    }))
-  ).onConflictDoNothing({ target: orgReceivables.serviceOrderId })
+  // ON CONFLICT precisa repetir o WHERE do índice parcial uq_receivables_service_order
+  // (Drizzle não tem API para isso em onConflictDoNothing) — sem o WHERE aqui,
+  // o Postgres não reconhece o índice como alvo do conflito e a query falha
+  for (const o of toCreate) {
+    await db.execute(sql`
+      INSERT INTO org_receivables (
+        organization_id, service_order_id, client_id, descricao, valor,
+        data_vencimento, status, observacoes
+      ) VALUES (
+        ${organizationId}, ${o.id}, ${o.clientId || null},
+        ${`OS #${o.numero} - ${o.clienteNome || 'Cliente'}`},
+        ${String((Number(o.valorTotal) || 0) - (Number(o.valorPago) || 0))},
+        ${o.dataPrevista || hojeStr}, 'pendente',
+        'Gerado automaticamente a partir do saldo em aberto da ordem de serviço'
+      )
+      ON CONFLICT (service_order_id) WHERE service_order_id IS NOT NULL DO NOTHING
+    `)
+  }
 }
