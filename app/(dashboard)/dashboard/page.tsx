@@ -47,6 +47,7 @@ export default function DashboardPage() {
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null } })
   const canSeeOrders = !me || me.isOwner || me.isMaster || me.permissions?.ordens_servico === true
+  const canSeeServices = !me || me.isOwner || me.isMaster || me.permissions?.servicos === true
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => { const r = await fetch('/api/dashboard/stats'); return r.ok ? r.json() : null },
@@ -55,7 +56,11 @@ export default function DashboardPage() {
   })
   const { data: orders = [], isLoading: ordersLoading } = useServiceOrders({ enabled: canSeeOrders })
   const { data: clients = [] } = useClients()
-  const { data: services = [] } = useQuery({ queryKey: ['services'], queryFn: async () => { const r = await fetch('/api/services'); return r.ok ? r.json() : [] } })
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: async () => { const r = await fetch('/api/services'); return r.ok ? r.json() : [] },
+    enabled: canSeeServices,
+  })
 
   // Calculado só após montar no cliente — ler a hora durante o render (SSR)
   // diverge do cliente se cruzar meia-noite ou hora, causando hydration mismatch (#418)
