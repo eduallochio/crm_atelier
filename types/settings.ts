@@ -102,6 +102,7 @@ export interface OrderSettings {
   printer_width: '58mm' | '80mm'
   auto_generate_pdf: boolean
   show_logo_on_print: boolean
+  usa_horario_retirada: boolean
   updated_at: string
 }
 

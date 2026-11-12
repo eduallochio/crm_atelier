@@ -47,6 +47,7 @@ export async function GET(
         descontoPercentual: orgServiceOrders.descontoPercentual,
         dataAbertura:       orgServiceOrders.dataAbertura,
         dataPrevista:       orgServiceOrders.dataPrevista,
+        horaRetirada:       orgServiceOrders.horaRetirada,
         dataConclusao:      orgServiceOrders.dataConclusao,
         formaPagamento:     orgServiceOrders.formaPagamento,
         observacoes:        orgServiceOrders.observacoes,
@@ -89,6 +90,7 @@ export async function GET(
       desconto_percentual: Number(orderRow.descontoPercentual ?? 0),
       data_abertura:       orderRow.dataAbertura,
       data_prevista:       orderRow.dataPrevista,
+      hora_retirada:       orderRow.horaRetirada,
       data_conclusao:      orderRow.dataConclusao,
       forma_pagamento:     orderRow.formaPagamento,
       observacoes:         orderRow.observacoes,
@@ -156,6 +158,7 @@ export async function PUT(
           valorPago:     orgServiceOrders.valorPago,
           clientId:      orgServiceOrders.clientId,
           dataPrevista:  orgServiceOrders.dataPrevista,
+          horaRetirada:  orgServiceOrders.horaRetirada,
           observacoes:   orgServiceOrders.observacoes,
           notasInternas: orgServiceOrders.notasInternas,
           formaPagamento: orgServiceOrders.formaPagamento,
@@ -183,6 +186,7 @@ export async function PUT(
       const finalDataPrevista = 'data_prevista' in body
         ? (body.data_prevista || null)
         : toDateStr(order.dataPrevista)
+      const finalHoraRetirada = 'hora_retirada' in body ? (body.hora_retirada || null) : order.horaRetirada
       const finalObservacoes = 'observacoes' in body ? (body.observacoes ?? null) : order.observacoes
       const finalNotasInternas = 'notas_internas' in body ? (body.notas_internas ?? null) : order.notasInternas
       const finalFormaPagamento = 'forma_pagamento' in body ? (body.forma_pagamento ?? null) : (order.formaPagamento ?? null)
@@ -199,6 +203,7 @@ export async function PUT(
         .set({
           status:            finalStatus,
           dataPrevista:      finalDataPrevista,
+          horaRetirada:      finalHoraRetirada,
           observacoes:       finalObservacoes,
           notasInternas:     finalNotasInternas,
           formaPagamento:    finalFormaPagamento,

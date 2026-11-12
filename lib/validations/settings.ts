@@ -73,6 +73,7 @@ export const orderSettingsSchema = z.object({
   printer_width: z.enum(['58mm', '80mm']).default('80mm'),
   auto_generate_pdf: z.boolean().default(true),
   show_logo_on_print: z.boolean().default(false),
+  usa_horario_retirada: z.boolean().default(false),
 })
 
 export const systemPreferencesSchema = z.object({

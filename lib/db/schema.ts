@@ -170,6 +170,9 @@ export const orgServiceOrders = pgTable('org_service_orders', {
   descontoPercentual: numeric('desconto_percentual', { precision: 5, scale: 2 }).notNull().default('0'),
   dataAbertura:       timestamp('data_abertura', { withTimezone: true }).defaultNow(),
   dataPrevista:       date('data_prevista'),
+  // Horário de retirada (HH:MM), opcional — exibido só quando o toggle
+  // usa_horario_retirada estiver ligado em org_order_settings
+  horaRetirada:       text('hora_retirada'),
   dataConclusao:      timestamp('data_conclusao', { withTimezone: true }),
   formaPagamento:     text('forma_pagamento'),
   observacoes:        text('observacoes'),
@@ -479,6 +482,7 @@ export const orgOrderSettings = pgTable('org_order_settings', {
   printerWidth:         text('printer_width').notNull().default('80mm'),
   autoGeneratePdf:      boolean('auto_generate_pdf').notNull().default(true),
   showLogoOnPrint:      boolean('show_logo_on_print').notNull().default(false),
+  usaHorarioRetirada:   boolean('usa_horario_retirada').notNull().default(false),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 

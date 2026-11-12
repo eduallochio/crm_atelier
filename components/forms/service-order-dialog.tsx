@@ -98,6 +98,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const requireDeliveryDate  = orderSettings?.require_delivery_date ?? true
   const requirePaymentMethod = orderSettings?.require_payment_method ?? false
   const showLogo = !!orderSettings?.show_logo_on_print
+  const usaHorarioRetirada = !!orderSettings?.usa_horario_retirada
 
   const serviceOrderSchema = useMemo(
     () => buildServiceOrderSchema({ requireClient, requireService, requireDeliveryDate, requirePaymentMethod }),
@@ -153,6 +154,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       client_id: '',
       status: 'pendente' as const,
       data_prevista: undefined,
+      hora_retirada: undefined,
       forma_pagamento: undefined,
       observacoes: undefined,
       valor_entrada: undefined,
@@ -195,6 +197,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
         client_id: defaultClientId ?? '',
         status: 'pendente' as const,
         data_prevista: undefined,
+        hora_retirada: undefined,
         forma_pagamento: undefined,
         observacoes: avisoInicial,
         valor_entrada: undefined,
@@ -299,6 +302,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       desconto_percentual: data.desconto_percentual || 0,
       data_abertura: new Date().toISOString(),
       data_prevista: data.data_prevista || null,
+      hora_retirada: data.hora_retirada || null,
       data_conclusao: null,
       observacoes: data.observacoes || null,
       forma_pagamento: data.forma_pagamento
@@ -406,7 +410,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       // Gerar PDF se opção estiver marcada
       if (gerarPDF && completeOrder) {
         try {
-          generateThermalPDF(orderForPreview, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo)
+          generateThermalPDF(orderForPreview, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo, usaHorarioRetirada)
         } catch (error) {
           console.error('Erro ao gerar PDF:', error)
         }
@@ -419,7 +423,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       const telefone = orderForMsg.client?.telefone
       if (enviarWhatsApp && telefone) {
         const phone = formatPhoneForWhatsApp(telefone)
-        const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo)
+        const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo, usaHorarioRetirada)
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
         window.open(url, '_blank')
         toast.success('Ordem criada! WhatsApp aberto com a mensagem.')
@@ -531,8 +535,8 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             )}
           </div>
 
-          {/* Status e Data Prevista */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Status, Data Prevista e Horário de Retirada */}
+          <div className={`grid gap-3 ${usaHorarioRetirada ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <select
@@ -561,6 +565,18 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
                 <p className="text-sm text-destructive">{errors.data_prevista.message}</p>
               )}
             </div>
+
+            {usaHorarioRetirada && (
+              <div className="space-y-2">
+                <Label htmlFor="hora_retirada">Horário de Retirada</Label>
+                <Input
+                  id="hora_retirada"
+                  type="time"
+                  {...register('hora_retirada')}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
           </div>
 
           {/* Adicionar Serviços */}

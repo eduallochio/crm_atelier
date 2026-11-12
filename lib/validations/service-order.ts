@@ -32,6 +32,7 @@ export function buildServiceOrderSchema(req: OrderRequirements = {}) {
     data_prevista: requireDeliveryDate
       ? z.string().min(1, 'Data prevista é obrigatória')
       : z.string().optional().default(''),
+    hora_retirada: z.string().optional().default(''),
     // Forma de pagamento da entrada — só é obrigatória quando há valor de
     // entrada informado (a regra em si é aplicada com .refine() abaixo,
     // pois depende de outro campo do mesmo objeto)
@@ -113,6 +114,7 @@ export interface ServiceOrder {
   desconto_percentual: number
   data_abertura: string
   data_prevista: string | null
+  hora_retirada: string | null
   data_conclusao: string | null
   forma_pagamento: string | null
   observacoes: string | null

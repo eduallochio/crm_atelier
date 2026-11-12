@@ -39,6 +39,7 @@ export function OrderPreviewDialog({
   const printerWidth = orderSettings?.printer_width ?? '80mm'
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
   const showLogo = !!orderSettings?.show_logo_on_print
+  const mostrarHorarioRetirada = !!orderSettings?.usa_horario_retirada
 
   // Identifica PIX pelo código original (estável), não pelo nome customizável exibido
   const isPixPayment = order?.forma_pagamento?.toLowerCase() === 'pix'
@@ -85,11 +86,11 @@ export function OrderPreviewDialog({
       if (isMobile) {
         // Mobile/Bluetooth: gera PDF para download — o Android abre no leitor de PDF
         // que consegue enviar para impressoras Bluetooth/WiFi
-        generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
+        generateThermalPDF(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem, mostrarHorarioRetirada)
         toast.success('PDF gerado! Abra o arquivo e imprima pela impressora Bluetooth.')
       } else {
         // Desktop: abre janela de impressão do sistema
-        const html = generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
+        const html = generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem, mostrarHorarioRetirada)
         const win = window.open('', '_blank', 'width=400,height=600')
         if (!win) { toast.error('Permita pop-ups para imprimir'); return }
         win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>OS</title><style>
@@ -121,7 +122,7 @@ export function OrderPreviewDialog({
       const phoneWithCountry = whatsappNumber(orderWithPaymentName.client.telefone)
 
       // Gerar mensagem formatada igual ao cupom
-      const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem)
+      const message = generateWhatsAppText(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem, mostrarHorarioRetirada)
 
       // Abrir WhatsApp Web com a OS completa
       const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`
@@ -176,7 +177,7 @@ export function OrderPreviewDialog({
         {orderWithPaymentName && (
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
             <div
-              dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem) }}
+              dangerouslySetInnerHTML={{ __html: generateThermalPreview(orderWithPaymentName, orgData?.name || organizationName, orgData, destacarEmbalagem, mostrarHorarioRetirada) }}
             />
           </div>
         )}

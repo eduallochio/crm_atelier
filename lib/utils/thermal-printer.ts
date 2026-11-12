@@ -65,7 +65,7 @@ function normalizeOrder(order: ServiceOrder): ServiceOrder {
   }
 }
 
-export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false) {
+export function generateThermalPDF(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false, mostrarHorarioRetirada: boolean = false) {
   order = normalizeOrder(order)
   // Impressora térmica 80mm = ~75mm útil
   const doc = new jsPDF({
@@ -181,6 +181,10 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
 
   if (order.data_prevista) {
     addKeyValue('Previsão:', format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR }))
+  }
+
+  if (mostrarHorarioRetirada && order.hora_retirada) {
+    addKeyValue('Retirada:', order.hora_retirada)
   }
 
   if (order.data_conclusao) {
@@ -428,7 +432,7 @@ function escapeHtml(value: unknown): string {
 /**
  * Gera preview HTML da ordem para impressora térmica
  */
-export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false): string {
+export function generateThermalPreview(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false, mostrarHorarioRetirada: boolean = false): string {
   order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
@@ -493,6 +497,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
         <div style="margin-left: 4px; font-size: 11px;">
           <div>Status: ${statusLabels[order.status]}</div>
           ${order.data_prevista ? `<div>Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
+          ${mostrarHorarioRetirada && order.hora_retirada ? `<div>Retirada: ${escapeHtml(order.hora_retirada)}</div>` : ''}
           ${order.data_conclusao ? `<div>Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}</div>` : ''}
           ${order.forma_pagamento ? `<div>Pagamento: ${escapeHtml(order.forma_pagamento)}</div>` : '<div style="color: #999;">Pagamento: Não informado</div>'}
           ${(orgData?.show_pix_key_on_order && orgData?.pix_key && order.forma_pagamento?.toLowerCase().includes('pix')) ? `<div style="font-size: 10px; margin-top: 2px; padding: 4px 6px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; color: #166534;">Chave PIX: ${escapeHtml(orgData.pix_key)}</div>` : ''}
@@ -624,7 +629,7 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
  * Gera texto formatado para envio via WhatsApp
  * Usa formatação suportada pelo WhatsApp (*negrito*, _itálico_)
  */
-export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false): string {
+export function generateWhatsAppText(order: ServiceOrder, organizationName: string = 'Meu Atelier', orgData?: OrganizationData, destacarEmbalagem: boolean = false, mostrarHorarioRetirada: boolean = false): string {
   order = normalizeOrder(order)
   const statusLabels: Record<string, string> = {
     pendente: 'Pendente',
@@ -677,6 +682,9 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   lines.push(`Status: ${statusLabels[order.status]}`)
   if (order.data_prevista) {
     lines.push(`Previsão: ${format(new Date(order.data_prevista), 'dd/MM/yyyy', { locale: ptBR })}`)
+  }
+  if (mostrarHorarioRetirada && order.hora_retirada) {
+    lines.push(`Retirada: ${order.hora_retirada}`)
   }
   if (order.data_conclusao) {
     lines.push(`Conclusão: ${format(new Date(order.data_conclusao), 'dd/MM/yyyy', { locale: ptBR })}`)

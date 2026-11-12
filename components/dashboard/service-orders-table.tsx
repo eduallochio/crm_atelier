@@ -64,6 +64,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
   const { data: orderSettings } = useOrderSettings()
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
   const showLogo = !!orderSettings?.show_logo_on_print
+  const mostrarHorarioRetirada = !!orderSettings?.usa_horario_retirada
 
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   useEffect(() => {
@@ -124,7 +125,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
     }
     const telefone = order.client.telefone.replace(/\D/g, '')
     const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`
-    const msg = generateWhatsAppText(order, orgSettings?.name || 'Meu Atelier', orgData, destacarEmbalagem)
+    const msg = generateWhatsAppText(order, orgSettings?.name || 'Meu Atelier', orgData, destacarEmbalagem, mostrarHorarioRetirada)
     window.open(`https://wa.me/${telefoneFormatado}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
@@ -445,7 +446,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
               {/* Ações */}
               <div className="flex flex-wrap items-center gap-1 border-t border-border pt-3 mt-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                  onClick={() => { try { generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
+                  onClick={() => { try { generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem, mostrarHorarioRetirada); toast.success('PDF gerado!') } catch { toast.error('Erro ao gerar PDF') } }}
                   title="Gerar PDF">
                   <Printer className="h-4 w-4" />
                 </Button>
@@ -635,7 +636,7 @@ export function ServiceOrdersTable({ orders, onView, onBulkAction }: ServiceOrde
                         size="icon"
                         onClick={() => {
                           try {
-                            generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem)
+                            generateThermalPDF(order, orgSettings?.name, orgData, destacarEmbalagem, mostrarHorarioRetirada)
                             toast.success('PDF gerado com sucesso!')
                           } catch (error) {
                             toast.error('Erro ao gerar PDF')

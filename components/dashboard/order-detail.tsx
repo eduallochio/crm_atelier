@@ -92,7 +92,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
 
   const printPDF = () => {
     try {
-      generateThermalPDF(order, orgName, { name: orgName, logo_data_url: showLogo ? logoDataUrl : null }, destacarEmbalagem)
+      generateThermalPDF(order, orgName, { name: orgName, logo_data_url: showLogo ? logoDataUrl : null }, destacarEmbalagem, !!orderSettings?.usa_horario_retirada)
       toast.success('PDF gerado!')
     } catch { toast.error('Erro ao gerar PDF') }
   }
@@ -288,6 +288,9 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             <dt className="text-muted-foreground">Abertura</dt><dd>{formatDayMonthYear(order.data_abertura)}</dd>
             <dt className="text-muted-foreground">Previsão</dt><dd>{formatDayMonthYear(order.data_prevista)}</dd>
+            {!!orderSettings?.usa_horario_retirada && order.hora_retirada && (
+              <><dt className="text-muted-foreground">Retirada</dt><dd>{order.hora_retirada}</dd></>
+            )}
             {order.data_conclusao && <><dt className="text-muted-foreground">Conclusão</dt><dd className="text-emerald-700 dark:text-emerald-300">{formatDayMonthYear(order.data_conclusao)}</dd></>}
           </dl>
         </div>

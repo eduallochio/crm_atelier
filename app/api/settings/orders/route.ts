@@ -18,6 +18,7 @@ const DEFAULTS = {
   printer_width:         '80mm',
   auto_generate_pdf:     true,
   show_logo_on_print:    false,
+  usa_horario_retirada:  false,
 }
 
 function mapRow(row: {
@@ -35,6 +36,7 @@ function mapRow(row: {
   printerWidth: string
   autoGeneratePdf: boolean
   showLogoOnPrint: boolean
+  usaHorarioRetirada: boolean
   updatedAt: Date | null
 }) {
   return {
@@ -52,6 +54,7 @@ function mapRow(row: {
     printer_width:          row.printerWidth ?? '80mm',
     auto_generate_pdf:      row.autoGeneratePdf ?? true,
     show_logo_on_print:     row.showLogoOnPrint ?? false,
+    usa_horario_retirada:   row.usaHorarioRetirada ?? false,
     updated_at:             row.updatedAt,
   }
 }
@@ -108,6 +111,7 @@ export async function PUT(request: Request) {
       printerWidth:         body.printer_width === '58mm' ? '58mm' : '80mm',
       autoGeneratePdf:      body.auto_generate_pdf !== false,
       showLogoOnPrint:      !!body.show_logo_on_print,
+      usaHorarioRetirada:   !!body.usa_horario_retirada,
     }
 
     await db
@@ -128,6 +132,7 @@ export async function PUT(request: Request) {
           printerWidth:         values.printerWidth,
           autoGeneratePdf:      values.autoGeneratePdf,
           showLogoOnPrint:      values.showLogoOnPrint,
+          usaHorarioRetirada:   values.usaHorarioRetirada,
           updatedAt:            new Date(),
         },
       })

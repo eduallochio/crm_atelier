@@ -33,6 +33,7 @@ export function OrderSettingsForm() {
       printer_width: '80mm' as const,
       auto_generate_pdf: true,
       show_logo_on_print: false,
+      usa_horario_retirada: false,
     },
   })
 
@@ -57,6 +58,7 @@ export function OrderSettingsForm() {
         printer_width: (settings.printer_width === '58mm' ? '58mm' : '80mm') as '58mm' | '80mm',
         auto_generate_pdf: settings.auto_generate_pdf !== false,
         show_logo_on_print: !!settings.show_logo_on_print,
+        usa_horario_retirada: !!settings.usa_horario_retirada,
       })
     }
   }, [settings, form])
@@ -222,6 +224,22 @@ export function OrderSettingsForm() {
             <p className="text-xs text-muted-foreground">
               Número padrão de dias entre abertura e entrega da ordem
             </p>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="usa_horario_retirada" className="cursor-pointer">
+                Usar horário de retirada na OS
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Exibe um campo de horário (além da data) ao lado da previsão de entrega
+              </p>
+            </div>
+            <Switch
+              id="usa_horario_retirada"
+              checked={form.watch('usa_horario_retirada') ?? false}
+              onCheckedChange={(checked) => form.setValue('usa_horario_retirada', checked)}
+            />
           </div>
         </div>
 

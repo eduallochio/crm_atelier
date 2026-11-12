@@ -529,7 +529,7 @@ export default function AjudaPage() {
                   ['Empresa', 'Nome, CNPJ (com busca automática), logo, endereço e contatos que saem nas ordens e comprovantes.'],
                   ['Usuários', 'Quem acessa o sistema e o cargo de cada pessoa: Administrador ou Membro.'],
                   ['Financeiro', 'Formas de pagamento aceitas, chave PIX e taxas.'],
-                  ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão, impressora e se a logo da empresa aparece na impressão.'],
+                  ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão, o campo de horário de retirada, impressora e se a logo da empresa aparece na impressão.'],
                   ['Notificações', 'Lembretes para você e a mensagem padrão das ordens.'],
                   ['Sistema', 'Formato de data e moeda, caixa e os módulos ligados, como o controle de estoque.'],
                   ['Assinatura', 'O seu plano, o uso dos recursos, o upgrade e a data da próxima renovação.'],
