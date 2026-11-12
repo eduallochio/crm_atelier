@@ -39,6 +39,7 @@ export async function GET() {
     const canSeeClients = user.isOwner || user.isMaster || user.permissions.clientes === true
     const canSeeFinance = user.isOwner || user.isMaster || user.permissions.financeiro === true
     const canSeeStock = user.isOwner || user.isMaster || user.permissions.estoque === true
+    const canSeeSuppliers = user.isOwner || user.isMaster || user.permissions.fornecedores === true
 
     // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
     const [clientsCount, ordersCount, usersCount] = await Promise.all([
@@ -270,7 +271,7 @@ export async function GET() {
         timestamp: e.createdAt?.toISOString() ?? '',
       })),
 
-      ...recentSuppliers.map((s) => ({
+      ...(!canSeeSuppliers ? [] : recentSuppliers).map((s) => ({
         id: `supplier-${s.id}`,
         type: 'supplier' as const,
         title: 'Fornecedor cadastrado',
