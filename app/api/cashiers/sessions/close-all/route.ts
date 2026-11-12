@@ -11,7 +11,7 @@ import { calcularSaldoEsperado } from '@/lib/cashier-balance'
 export async function POST() {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'ordens_servico')
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
 
     // Verifica se fechamento automático está habilitado

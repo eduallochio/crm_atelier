@@ -9,7 +9,7 @@ import { requireProPlan } from '@/lib/plan-limits'
 export async function GET() {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'ordens_servico')
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
 
     const rows = await db
@@ -44,7 +44,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'ordens_servico')
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const body = await request.json()
 

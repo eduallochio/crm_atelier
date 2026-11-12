@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'ordens_servico')
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const { id } = await params
 
@@ -87,7 +87,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'ordens_servico')
+    assertPermission(user, 'financeiro')
     await requireProPlan(user.organizationId)
     const body = await request.json()
     const { id } = await params
