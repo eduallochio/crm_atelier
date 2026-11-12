@@ -14,6 +14,8 @@ type ImpersonationPayload = {
   organizationId: string
   organizationName: string
   masterUserId: string // quem iniciou — auditoria e proteção contra cookie forjado
+  userName?: string | null
+  userEmail?: string | null
 }
 
 export async function setImpersonationCookie(payload: ImpersonationPayload) {

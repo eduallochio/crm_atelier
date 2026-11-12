@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Users, Mail, Shield, Ban, Eye, Trash2 } from 'lucide-react'
+import { Users, Mail, Shield, Ban, Eye, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface User {
   id: string
@@ -24,6 +25,7 @@ interface UsersTabProps {
 export function UsersTab({ organizationId }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -42,6 +44,23 @@ export function UsersTab({ organizationId }: UsersTabProps) {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  async function impersonateUser(userId: string) {
+    setImpersonatingId(userId)
+    try {
+      const res = await fetch(`/api/admin/organizations/${organizationId}/impersonate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao gerar acesso')
+      window.location.href = '/dashboard'
+    } catch (err) {
+      toast.error((err as Error).message)
+      setImpersonatingId(null)
+    }
+  }
 
   const PROVIDER_LABEL: Record<string, string> = { email: 'Email', google: 'Google' }
 
@@ -222,8 +241,16 @@ export function UsersTab({ organizationId }: UsersTabProps) {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm" title="Visualizar">
-                        <Eye className="w-4 h-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Entrar como este usuário"
+                        disabled={impersonatingId === user.id}
+                        onClick={() => impersonateUser(user.id)}
+                      >
+                        {impersonatingId === user.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Eye className="w-4 h-4" />}
                       </Button>
                       <Button variant="ghost" size="sm" title="Enviar Email">
                         <Mail className="w-4 h-4" />

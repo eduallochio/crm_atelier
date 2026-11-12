@@ -9,6 +9,8 @@ export async function GET() {
   return NextResponse.json({
     active: !!payload,
     organizationName: payload?.organizationName ?? null,
+    userName: payload?.userName ?? null,
+    userEmail: payload?.userEmail ?? null,
   })
 }
 

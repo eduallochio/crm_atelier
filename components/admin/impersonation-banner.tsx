@@ -11,8 +11,13 @@ export function ImpersonationBanner() {
     queryKey: ['impersonation-status'],
     queryFn: async () => {
       const res = await fetch('/api/admin/impersonation')
-      if (!res.ok) return { active: false, organizationName: null }
-      return res.json() as Promise<{ active: boolean; organizationName: string | null }>
+      if (!res.ok) return { active: false, organizationName: null, userName: null, userEmail: null }
+      return res.json() as Promise<{
+        active: boolean
+        organizationName: string | null
+        userName: string | null
+        userEmail: string | null
+      }>
     },
     staleTime: 30_000,
   })
@@ -29,7 +34,8 @@ export function ImpersonationBanner() {
     <div className="flex items-center justify-center gap-3 bg-[#D4A85A] px-4 py-2 text-[13px] font-medium text-[#1a0f00]">
       <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span>
-        Vendo como <b className="font-semibold">{data.organizationName}</b>
+        Vendo como <b className="font-semibold">{data.userName || data.userEmail || 'usuário'}</b>
+        {' '}· {data.organizationName}
       </span>
       <button
         type="button"

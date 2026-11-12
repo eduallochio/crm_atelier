@@ -8,12 +8,14 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const master = await requireMasterFast()
     const { id: orgId } = await params
+    const body = await request.json().catch(() => ({}))
+    const requestedUserId = typeof body.user_id === 'string' ? body.user_id : null
 
     const [org] = await db
       .select({ name: organizations.name })
@@ -25,22 +27,41 @@ export async function POST(
       return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
     }
 
-    // Prioriza o owner; cai para o profile mais antigo se não houver owner marcado
-    const [owner] = await db
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(and(eq(profiles.organizationId, orgId), eq(profiles.isOwner, true)))
-      .orderBy(profiles.createdAt)
-      .limit(1)
+    let targetUserId: string | undefined
+    let targetUserName: string | null = null
 
-    const [fallback] = owner ? [] : await db
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(eq(profiles.organizationId, orgId))
-      .orderBy(profiles.createdAt)
-      .limit(1)
+    if (requestedUserId) {
+      // Impersonar um membro específico — confirma que pertence a esta org
+      const [requested] = await db
+        .select({ id: profiles.id, fullName: profiles.fullName })
+        .from(profiles)
+        .where(and(eq(profiles.id, requestedUserId), eq(profiles.organizationId, orgId)))
+        .limit(1)
+      targetUserId = requested?.id
+      targetUserName = requested?.fullName ?? null
+      if (!targetUserId) {
+        return NextResponse.json({ error: 'Usuário não encontrado nesta organização' }, { status: 404 })
+      }
+    } else {
+      // Sem usuário especificado: prioriza o owner; cai para o profile mais antigo
+      const [owner] = await db
+        .select({ id: profiles.id, fullName: profiles.fullName })
+        .from(profiles)
+        .where(and(eq(profiles.organizationId, orgId), eq(profiles.isOwner, true)))
+        .orderBy(profiles.createdAt)
+        .limit(1)
 
-    const targetUserId = owner?.id ?? fallback?.id
+      const [fallback] = owner ? [] : await db
+        .select({ id: profiles.id, fullName: profiles.fullName })
+        .from(profiles)
+        .where(eq(profiles.organizationId, orgId))
+        .orderBy(profiles.createdAt)
+        .limit(1)
+
+      targetUserId = owner?.id ?? fallback?.id
+      targetUserName = owner?.fullName ?? fallback?.fullName ?? null
+    }
+
     if (!targetUserId) {
       return NextResponse.json({ error: 'Organização sem usuários' }, { status: 404 })
     }
@@ -85,6 +106,8 @@ export async function POST(
       organizationId:   orgId,
       organizationName: org.name,
       masterUserId:     master.id,
+      userName:         targetUserName,
+      userEmail:        email,
     })
 
     return NextResponse.json({ ok: true })
