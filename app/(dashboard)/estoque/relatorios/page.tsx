@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import {
-  Download, AlertTriangle, FileSpreadsheet, Package, PackageOpen,
+  AlertTriangle, FileDown, FileSpreadsheet, Package, PackageOpen,
   TrendingUp,
 } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
@@ -275,8 +275,8 @@ export default function RelatoriosEstoquePage() {
         description="Relatórios para conferir e exportar"
         action={
           <>
-            <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel}><FileSpreadsheet className="h-4 w-4" aria-hidden="true" />Excel</button>
-            <button type="button" className="cli-primary" onClick={exportPDF}><Download className="h-4 w-4" aria-hidden="true" />PDF</button>
+            <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel}><FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />Excel</button>
+            <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportPDF}><FileDown className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" />PDF</button>
           </>
         }
       />
