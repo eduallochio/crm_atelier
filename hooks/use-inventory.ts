@@ -50,7 +50,7 @@ export interface StockEntry {
   itens: StockEntryItem[]
 }
 
-export function useProducts() {
+export function useProducts({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: async () => {
@@ -58,6 +58,7 @@ export function useProducts() {
       if (!res.ok) throw new Error('Erro ao buscar produtos')
       return res.json()
     },
+    enabled,
   })
 }
 

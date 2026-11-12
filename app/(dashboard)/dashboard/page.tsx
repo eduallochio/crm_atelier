@@ -48,6 +48,8 @@ export default function DashboardPage() {
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null } })
   const canSeeOrders = !me || me.isOwner || me.isMaster || me.permissions?.ordens_servico === true
   const canSeeServices = !me || me.isOwner || me.isMaster || me.permissions?.servicos === true
+  const canSeeFinance = !me || me.isOwner || me.isMaster || me.permissions?.financeiro === true
+  const canSeeStock = !me || me.isOwner || me.isMaster || me.permissions?.estoque === true
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => { const r = await fetch('/api/dashboard/stats'); return r.ok ? r.json() : null },
@@ -144,10 +146,10 @@ export default function DashboardPage() {
         )}
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_1.4fr]">
-          <CashCard />
+          {canSeeFinance && <CashCard />}
           <Reminders clients={clients} orders={orders} inactive={Number(stats?.inactive_clients_count) || 0}
             plan={stats?.plan} clientsCount={Number(stats?.metrics?.clients_count) || 0}
-            undecidedOrders={stats?.undecided_orders ?? []} />
+            undecidedOrders={stats?.undecided_orders ?? []} canSeeStock={canSeeStock} />
         </div>
 
         <DayLine activities={(stats?.recent_activities ?? []) as Activity[]} isLoading={statsLoading} />
@@ -223,11 +225,12 @@ function CashCard() {
 }
 
 /** lembretes que pedem uma ação: aniversários, ordens a receber, clientes sumidas, material acabando, pagamentos não decididos */
-function Reminders({ clients, orders, inactive, plan, clientsCount, undecidedOrders }: {
+function Reminders({ clients, orders, inactive, plan, clientsCount, undecidedOrders, canSeeStock }: {
   clients: Client[]; orders: ReturnType<typeof useServiceOrders>['data'] & object; inactive: number; plan?: string; clientsCount: number
   undecidedOrders: { id: string; numero: number; saldo: number }[]
+  canSeeStock: boolean
 }) {
-  const { data: products = [] } = useProducts()
+  const { data: products = [] } = useProducts({ enabled: canSeeStock })
   const bdays = useMemo(() => clients
     .map((c) => ({ c, d: daysToBirthday(c) }))
     .filter((x): x is { c: Client; d: number } => x.d !== null && x.d <= 7)

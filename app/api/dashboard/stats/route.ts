@@ -38,6 +38,7 @@ export async function GET() {
     const canSeeOrders = user.isOwner || user.isMaster || user.permissions.ordens_servico === true
     const canSeeClients = user.isOwner || user.isMaster || user.permissions.clientes === true
     const canSeeFinance = user.isOwner || user.isMaster || user.permissions.financeiro === true
+    const canSeeStock = user.isOwner || user.isMaster || user.permissions.estoque === true
 
     // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
     const [clientsCount, ordersCount, usersCount] = await Promise.all([
@@ -253,7 +254,7 @@ export async function GET() {
         timestamp: s.updatedAt?.toISOString() ?? s.dataAbertura?.toISOString() ?? '',
       })),
 
-      ...recentProducts.map((p) => ({
+      ...(!canSeeStock ? [] : recentProducts).map((p) => ({
         id: `product-${p.id}`,
         type: 'product' as const,
         title: 'Produto cadastrado',
@@ -261,7 +262,7 @@ export async function GET() {
         timestamp: p.createdAt?.toISOString() ?? '',
       })),
 
-      ...recentStockEntries.map((e) => ({
+      ...(!canSeeStock ? [] : recentStockEntries).map((e) => ({
         id: `stock-${e.id}`,
         type: 'stock' as const,
         title: 'Entrada de estoque',
