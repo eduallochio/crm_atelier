@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, Check, CircleCheck, Ellipsis, FileSpreadsheet, FileText, Pencil, Plus, ReceiptText, Repeat, Search, SearchX, Trash2,
+  ArrowLeft, Check, CircleCheck, Ellipsis, FileDown, FileSpreadsheet, Pencil, Plus, ReceiptText, Repeat, Search, SearchX, Trash2,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
@@ -220,7 +220,7 @@ export function BillsBoard({ kind }: { kind: Kind }) {
             </button>
             <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar PDF'} aria-label="Exportar PDF">
-              <FileText className="h-4 w-4" aria-hidden="true" />
+              <FileDown className="h-4 w-4" aria-hidden="true" />
             </button>
             </span>
             <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>

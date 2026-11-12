@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, FileSpreadsheet, FileText, Plus, Search, SearchX, Trash2 } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, FileDown, FileSpreadsheet, Plus, Search, SearchX, Trash2 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -116,7 +116,7 @@ export default function FluxoCaixaPage() {
             <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar Excel'} aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4" aria-hidden="true" /></button>
             <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} disabled={isFree}
-              title={isFree ? 'Disponível no plano Pro' : 'Exportar PDF'} aria-label="Exportar PDF"><FileText className="h-4 w-4" aria-hidden="true" /></button>
+              title={isFree ? 'Disponível no plano Pro' : 'Exportar PDF'} aria-label="Exportar PDF"><FileDown className="h-4 w-4" aria-hidden="true" /></button>
             </span>
             <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Lançamento</span><span className="sm:hidden">Novo</span>
