@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/session'
+import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { organizations, profiles, adminSystemSettings } from '@/lib/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
@@ -28,6 +28,7 @@ async function getMaxUsersFree(): Promise<number> {
 export async function GET() {
   try {
     const user = await requireAuth()
+    assertPermission(user, 'configuracoes')
     const orgId = user.organizationId
 
     const supabase = createServiceClient(
@@ -77,6 +78,9 @@ export async function GET() {
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    if ((error as Error).message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
     logServerError('[GET /api/users]', error); console.error('[GET /api/users]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
