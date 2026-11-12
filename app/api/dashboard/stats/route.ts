@@ -36,6 +36,7 @@ export async function GET() {
     const user = await requireAuth()
     const orgId = user.organizationId
     const canSeeOrders = user.isOwner || user.isMaster || user.permissions.ordens_servico === true
+    const canSeeClients = user.isOwner || user.isMaster || user.permissions.clientes === true
 
     // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
     const [clientsCount, ordersCount, usersCount] = await Promise.all([
@@ -207,7 +208,7 @@ export async function GET() {
     }
 
     const activities = [
-      ...recentClients.map((c) => ({
+      ...(!canSeeClients ? [] : recentClients).map((c) => ({
         id: `client-${c.id}`,
         type: 'client' as const,
         title: 'Novo cliente cadastrado',
@@ -377,7 +378,7 @@ export async function GET() {
     }
 
     // ── Top clientes por receita ─────────────────────────────────────────────
-    const topClients = await db
+    const topClients = (!canSeeClients || !canSeeOrders) ? [] : await db
       .select({
         id: orgClients.id,
         nome: orgClients.nome,
