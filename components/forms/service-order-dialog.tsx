@@ -886,34 +886,38 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
               </p>
             </div>
 
-            {valorEntrada > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="forma_pagamento">
-                  Forma de pagamento da entrada {requirePaymentMethod && <span className="text-destructive">*</span>}
-                </Label>
-                <select
-                  id="forma_pagamento"
-                  {...register('forma_pagamento')}
-                  disabled={isLoading}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione...</option>
-                  {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.forma_pagamento && (
-                  <p className="text-sm text-destructive">{errors.forma_pagamento.message}</p>
-                )}
-                {paymentMethods.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Configure formas de pagamento em Configurações → Financeiro
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="forma_pagamento">
+                {valorEntrada > 0 ? 'Forma de pagamento da entrada' : 'Forma de pagamento prevista'}
+                {requirePaymentMethod && valorEntrada > 0 && <span className="text-destructive">*</span>}
+              </Label>
+              <select
+                id="forma_pagamento"
+                {...register('forma_pagamento')}
+                disabled={isLoading}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Selecione...</option>
+                {paymentMethods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name}
+                  </option>
+                ))}
+              </select>
+              {errors.forma_pagamento && (
+                <p className="text-sm text-destructive">{errors.forma_pagamento.message}</p>
+              )}
+              {valorEntrada <= 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Como não houve entrada, serve só de referência — pode ser alterada ao concluir a ordem
+                </p>
+              )}
+              {paymentMethods.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Configure formas de pagamento em Configurações → Financeiro
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Observações */}
