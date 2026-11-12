@@ -46,13 +46,14 @@ export default function DashboardPage() {
   const [orderOpen, setOrderOpen] = useState(false)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null } })
+  const canSeeOrders = !me || me.isOwner || me.isMaster || me.permissions?.ordens_servico === true
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => { const r = await fetch('/api/dashboard/stats'); return r.ok ? r.json() : null },
     staleTime: 2 * 60 * 1000,
     refetchInterval: 2 * 60 * 1000,
   })
-  const { data: orders = [], isLoading: ordersLoading } = useServiceOrders()
+  const { data: orders = [], isLoading: ordersLoading } = useServiceOrders({ enabled: canSeeOrders })
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useQuery({ queryKey: ['services'], queryFn: async () => { const r = await fetch('/api/services'); return r.ok ? r.json() : [] } })
 
@@ -86,7 +87,13 @@ export default function DashboardPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{dateStr}</p>
             <h1 className="font-serif-display mt-1 text-[34px] leading-none text-foreground sm:text-[44px]">{greeting}</h1>
             <p className="mt-2 text-[14.5px] leading-relaxed text-foreground/80">
-              {ordersLoading ? 'Carregando o seu dia...' : todayCount + lateCount === 0 && recOverdue === 0 ? (
+              {!canSeeOrders ? (
+                recOverdue > 0 ? (
+                  <>Você tem <b className="fin-late font-semibold">{formatBRL(recOverdue)}</b> a receber em atraso.</>
+                ) : (
+                  <>Nada em atraso no financeiro.</>
+                )
+              ) : ordersLoading ? 'Carregando o seu dia...' : todayCount + lateCount === 0 && recOverdue === 0 ? (
                 <>Dia tranquilo: <b className="font-semibold text-foreground">nenhuma entrega hoje</b> e nada em atraso.</>
               ) : (
                 <>Hoje tem <b className="font-semibold text-foreground">{todayCount} {todayCount === 1 ? 'entrega' : 'entregas'}</b>
@@ -98,15 +105,21 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center gap-2 sm:mr-52 lg:mr-56 lg:flex-nowrap">
             <div className="w-full sm:w-60"><GlobalSearch clients={clients} orders={orders} services={services} /></div>
             <button type="button" className="cli-ghost flex-1 justify-center sm:flex-none" onClick={() => setClientOpen(true)}><UserPlus className="h-4 w-4" aria-hidden="true" />Novo cliente</button>
-            <button type="button" className="cli-primary flex-1 justify-center sm:flex-none" style={{ minHeight: 44 }} onClick={() => setOrderOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" />Nova ordem</button>
+            {canSeeOrders && (
+              <button type="button" className="cli-primary flex-1 justify-center sm:flex-none" style={{ minHeight: 44 }} onClick={() => setOrderOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" />Nova ordem</button>
+            )}
           </div>
         </div>
       </header>
 
       <div className="space-y-4 p-3 sm:p-6 lg:p-8">
-        <DeliveryBoard orders={orders} isLoading={ordersLoading} />
+        {canSeeOrders && (
+          <>
+            <DeliveryBoard orders={orders} isLoading={ordersLoading} />
 
-        <ReadyOrders orders={orders} isLoading={ordersLoading} />
+            <ReadyOrders orders={orders} isLoading={ordersLoading} />
+          </>
+        )}
 
         <RevenueGoal revenue={Number(stats?.monthly_revenue) || 0} prev={Number(stats?.financial_health?.prev_month_revenue) || 0} isLoading={statsLoading} />
 

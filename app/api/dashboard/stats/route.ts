@@ -35,6 +35,7 @@ export async function GET() {
   try {
     const user = await requireAuth()
     const orgId = user.organizationId
+    const canSeeOrders = user.isOwner || user.isMaster || user.permissions.ordens_servico === true
 
     // ── Métricas reais contadas diretamente nas tabelas ──────────────────────
     const [clientsCount, ordersCount, usersCount] = await Promise.all([
@@ -423,7 +424,7 @@ export async function GET() {
     const deadline = new Date()
     deadline.setDate(deadline.getDate() + 7)
 
-    const urgentOrders = await db
+    const urgentOrders = !canSeeOrders ? [] : await db
       .select({
         id: orgServiceOrders.id,
         numero: orgServiceOrders.numero,
@@ -449,7 +450,7 @@ export async function GET() {
     // status_pagamento != 'pago' e sem conta a receber pendente associada —
     // diferencia de quem escolheu "gerar conta a receber" (essa já aparece em
     // Contas a Receber) das que ficaram sem nenhuma decisão financeira
-    const undecidedOrders = await db
+    const undecidedOrders = !canSeeOrders ? [] : await db
       .select({
         id:         orgServiceOrders.id,
         numero:     orgServiceOrders.numero,

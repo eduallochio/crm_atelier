@@ -5,7 +5,7 @@ import type { ServiceOrder, ServiceOrderInput, ServiceOrderItem, ServiceOrderIte
 import { toast } from 'sonner'
 import { getErrorMessage, isPlanLimitError } from '@/lib/utils/error-message'
 
-export function useServiceOrders() {
+export function useServiceOrders({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['service-orders'],
     queryFn: async () => {
@@ -13,6 +13,7 @@ export function useServiceOrders() {
       if (!res.ok) throw new Error('Erro ao buscar ordens de serviço')
       return res.json() as Promise<ServiceOrder[]>
     },
+    enabled,
   })
 }
 
