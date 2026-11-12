@@ -216,11 +216,11 @@ export function BillsBoard({ kind }: { kind: Kind }) {
 <span className="hidden gap-2 sm:flex">
             <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportExcel} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar Excel'} aria-label="Exportar Excel">
-              <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
             </button>
             <button type="button" className="cli-ghost" style={{ minHeight: 42, padding: '0 12px' }} onClick={exportPDF} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar PDF'} aria-label="Exportar PDF">
-              <FileDown className="h-4 w-4" aria-hidden="true" />
+              <FileDown className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" />
             </button>
             </span>
             <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>
