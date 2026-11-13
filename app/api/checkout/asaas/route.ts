@@ -13,7 +13,7 @@ import {
   getSubscriptionPayments,
   getPixQrCode,
 } from '@/lib/asaas'
-import { format, addDays, addMonths, addYears } from 'date-fns'
+import { format, addMonths, addYears } from 'date-fns'
 
 // POST /api/checkout/asaas
 // Cria (ou reutiliza) cliente no Asaas e gera assinatura
@@ -218,8 +218,11 @@ export async function POST(req: NextRequest) {
         .where(eq(organizations.id, org.id))
     }
 
-    // Criar assinatura
-    const nextDueDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+    // Criar assinatura — o Asaas só processa a 1ª cobrança imediatamente quando
+    // nextDueDate é a data de hoje; qualquer data futura adia a cobrança real
+    // para aquele dia (confirmado na documentação do Asaas), mesmo que o
+    // usuário pague na hora
+    const nextDueDate = format(new Date(), 'yyyy-MM-dd')
 
     const forwardedFor = req.headers.get('x-forwarded-for')
     const remoteIp = forwardedFor?.split(',')[0]?.trim() ?? '127.0.0.1'
