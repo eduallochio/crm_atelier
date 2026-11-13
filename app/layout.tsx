@@ -21,6 +21,7 @@ const cormorantItalic = Cormorant_Garamond({
   style: ["italic"],
   variable: "--font-cormorant-italic",
 });
+// nudge para invalidar cache de build da Vercel com módulo de fonte Turbopack obsoleto
 
 export const metadata: Metadata = {
   title: "Meu Atelier - Sistema de Gestão para Ateliês de Costura e Artesanato",
