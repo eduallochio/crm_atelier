@@ -95,6 +95,22 @@ export async function hasLifetimeLicense(organizationId: string): Promise<boolea
   }
 }
 
+/**
+ * Embalagem, Horário de Retirada e Taxa de Urgência são exclusivas Pro/Enterprise.
+ * Único lugar que define "org é Free" para esse gate — usado nas rotas de
+ * settings/system, settings/orders e orders/[id]/taxa-urgencia, para a regra
+ * de negócio não divergir entre elas se o critério de plano mudar no futuro.
+ */
+export async function isFreePlanForFeatureGate(organizationId: string): Promise<boolean> {
+  const [org] = await db
+    .select({ plan: organizations.plan })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1)
+  if (org?.plan !== 'free') return false
+  return !(await hasLifetimeLicense(organizationId))
+}
+
 /** Retorna uma resposta de erro 403 padronizada para limite atingido. */
 export function limitExceededResponse(resource: string, limit: number) {
   return {

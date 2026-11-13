@@ -168,6 +168,12 @@ export const orgServiceOrders = pgTable('org_service_orders', {
   statusPagamento:    text('status_pagamento').notNull().default('pendente'),
   descontoValor:      numeric('desconto_valor', { precision: 10, scale: 2 }).notNull().default('0'),
   descontoPercentual: numeric('desconto_percentual', { precision: 5, scale: 2 }).notNull().default('0'),
+  // Taxa de urgência de entrega, opcional — exibida só quando o toggle
+  // usa_taxa_urgencia estiver ligado em org_system_preferences; soma ao
+  // subtotal da OS antes do desconto (mesma regra de Embalagem)
+  taxaUrgenciaTipo:       text('taxa_urgencia_tipo'), // 'percentual' | 'valor'
+  taxaUrgenciaPercentual: numeric('taxa_urgencia_percentual', { precision: 5, scale: 2 }),
+  taxaUrgenciaValor:      numeric('taxa_urgencia_valor', { precision: 10, scale: 2 }),
   dataAbertura:       timestamp('data_abertura', { withTimezone: true }).defaultNow(),
   dataPrevista:       date('data_prevista'),
   // Horário de retirada (HH:MM), opcional — exibido só quando o toggle
@@ -483,6 +489,7 @@ export const orgOrderSettings = pgTable('org_order_settings', {
   autoGeneratePdf:      boolean('auto_generate_pdf').notNull().default(true),
   showLogoOnPrint:      boolean('show_logo_on_print').notNull().default(false),
   usaHorarioRetirada:   boolean('usa_horario_retirada').notNull().default(false),
+  usaTaxaUrgencia:      boolean('usa_taxa_urgencia').notNull().default(false),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 

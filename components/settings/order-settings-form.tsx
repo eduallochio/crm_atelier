@@ -4,6 +4,8 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { orderSettingsSchema, type OrderSettingsInput } from '@/lib/validations/settings'
 import { useOrderSettings, useUpdateOrderSettings, useOrganizationSettings } from '@/hooks/use-settings'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
+import { PlanLockedToggle } from '@/components/ui/plan-locked-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +19,8 @@ export function OrderSettingsForm() {
   const { data: orgSettings } = useOrganizationSettings()
   const updateSettings = useUpdateOrderSettings()
   const hasLogo = !!orgSettings?.logo_url
+  const { data: planUsage } = usePlanUsage()
+  const isFree = planUsage?.plan === 'free'
 
   const form = useForm({
     resolver: zodResolver(orderSettingsSchema),
@@ -34,6 +38,7 @@ export function OrderSettingsForm() {
       auto_generate_pdf: true,
       show_logo_on_print: false,
       usa_horario_retirada: false,
+      usa_taxa_urgencia: false,
     },
   })
 
@@ -59,6 +64,7 @@ export function OrderSettingsForm() {
         auto_generate_pdf: settings.auto_generate_pdf !== false,
         show_logo_on_print: !!settings.show_logo_on_print,
         usa_horario_retirada: !!settings.usa_horario_retirada,
+        usa_taxa_urgencia: !!settings.usa_taxa_urgencia,
       })
     }
   }, [settings, form])
@@ -226,21 +232,55 @@ export function OrderSettingsForm() {
             </p>
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div>
-              <Label htmlFor="usa_horario_retirada" className="cursor-pointer">
-                Usar horário de retirada na OS
-              </Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Exibe um campo de horário (além da data) ao lado da previsão de entrega
-              </p>
+          {isFree ? (
+            <div className="mt-4 pt-4 border-t">
+              <PlanLockedToggle
+                title="Usar horário de retirada na OS"
+                description="Exibe um campo de horário (além da data) ao lado da previsão de entrega."
+              />
             </div>
-            <Switch
-              id="usa_horario_retirada"
-              checked={form.watch('usa_horario_retirada') ?? false}
-              onCheckedChange={(checked) => form.setValue('usa_horario_retirada', checked)}
-            />
-          </div>
+          ) : (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div>
+                <Label htmlFor="usa_horario_retirada" className="cursor-pointer">
+                  Usar horário de retirada na OS
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Exibe um campo de horário (além da data) ao lado da previsão de entrega
+                </p>
+              </div>
+              <Switch
+                id="usa_horario_retirada"
+                checked={form.watch('usa_horario_retirada') ?? false}
+                onCheckedChange={(checked) => form.setValue('usa_horario_retirada', checked)}
+              />
+            </div>
+          )}
+
+          {isFree ? (
+            <div className="mt-4 pt-4 border-t">
+              <PlanLockedToggle
+                title="Taxa de urgência de entrega"
+                description="Habilita um campo na ordem de serviço para marcar “Entrega urgente” e cobrar uma taxa extra, em percentual ou em valor fixo."
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div>
+                <Label htmlFor="usa_taxa_urgencia" className="cursor-pointer">
+                  Taxa de urgência de entrega
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Habilita o checkbox &quot;Entrega urgente&quot; na ordem, com taxa em % ou R$ somada ao total antes do desconto
+                </p>
+              </div>
+              <Switch
+                id="usa_taxa_urgencia"
+                checked={form.watch('usa_taxa_urgencia') ?? false}
+                onCheckedChange={(checked) => form.setValue('usa_taxa_urgencia', checked)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t">

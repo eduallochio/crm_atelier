@@ -112,6 +112,9 @@ export interface ServiceOrder {
   status_pagamento: 'pendente' | 'parcial' | 'pago'
   desconto_valor: number
   desconto_percentual: number
+  taxa_urgencia_tipo: 'percentual' | 'valor' | null
+  taxa_urgencia_percentual: number | null
+  taxa_urgencia_valor: number | null
   data_abertura: string
   data_prevista: string | null
   hora_retirada: string | null

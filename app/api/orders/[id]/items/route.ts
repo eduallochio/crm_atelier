@@ -133,7 +133,14 @@ export async function PUT(
       // sem que esta transação percebesse, gravando um statusPagamento ou
       // bloqueio de edição baseado em dados já obsoletos
       const [order] = await tx
-        .select({ id: orgServiceOrders.id, valorPago: orgServiceOrders.valorPago, status: orgServiceOrders.status })
+        .select({
+          id:                     orgServiceOrders.id,
+          valorPago:              orgServiceOrders.valorPago,
+          status:                 orgServiceOrders.status,
+          taxaUrgenciaTipo:       orgServiceOrders.taxaUrgenciaTipo,
+          taxaUrgenciaPercentual: orgServiceOrders.taxaUrgenciaPercentual,
+          taxaUrgenciaValor:      orgServiceOrders.taxaUrgenciaValor,
+        })
         .from(orgServiceOrders)
         .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
 
@@ -169,7 +176,17 @@ export async function PUT(
         subtotalEmbalagens = embalagens.reduce((sum, e) => sum + Number(e.quantidade) * Number(e.precoUnitario ?? 0), 0)
       }
 
-      const subtotal = subtotalItens + subtotalEmbalagens
+      // Recalcula a taxa de urgência já salva na OS (se houver) sobre o novo
+      // subtotal — igual embalagens, não "perder" esse valor ao editar só os
+      // itens. Percentual é dinâmico (recalculado sobre o novo subtotal);
+      // valor fixo se mantém igual ao que já estava salvo.
+      const valorUrgencia = order.taxaUrgenciaTipo === 'percentual'
+        ? (subtotalItens + subtotalEmbalagens) * (Number(order.taxaUrgenciaPercentual ?? 0) / 100)
+        : order.taxaUrgenciaTipo === 'valor'
+          ? Number(order.taxaUrgenciaValor ?? 0)
+          : 0
+
+      const subtotal = subtotalItens + subtotalEmbalagens + valorUrgencia
       const { descontoPercentual, descontoValor, valorTotal: novoValorTotal } =
         calcularDesconto(subtotal, body.desconto_percentual, body.desconto_valor)
 
@@ -220,6 +237,10 @@ export async function PUT(
           descontoValor:      String(descontoValor),
           descontoPercentual: String(descontoPercentual),
           statusPagamento,
+          // taxaUrgenciaValor reflete o valor em R$ atual mesmo quando o tipo
+          // é percentual — o subtotal de itens mudou, então o valor em R$
+          // precisa acompanhar para exibição/PDF não ficarem desatualizados
+          ...(order.taxaUrgenciaTipo === 'percentual' ? { taxaUrgenciaValor: String(valorUrgencia) } : {}),
         })
         .where(and(
           eq(orgServiceOrders.id, id),

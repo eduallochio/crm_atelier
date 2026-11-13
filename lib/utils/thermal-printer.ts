@@ -326,6 +326,17 @@ export function generateThermalPDF(order: ServiceOrder, organizationName: string
     y += 5
   }
 
+  // Taxa de urgência — sempre destacada quando ativa (sem toggle, diferente
+  // de embalagem), já somada em order.valor_total pelo backend
+  if (order.taxa_urgencia_tipo && order.taxa_urgencia_valor) {
+    const label = order.taxa_urgencia_tipo === 'percentual'
+      ? `Taxa de urgência (${order.taxa_urgencia_percentual}%):`
+      : 'Taxa de urgência:'
+    doc.text(label, margin, y)
+    doc.text(`R$ ${order.taxa_urgencia_valor.toFixed(2)}`, width - margin, y, { align: 'right' })
+    y += 5
+  }
+
   // Desconto
   let valorDesconto = 0
   if (order.desconto_percentual && order.desconto_percentual > 0) {
@@ -570,6 +581,12 @@ export function generateThermalPreview(order: ServiceOrder, organizationName: st
             <span>R$ ${subtotalEmbalagens.toFixed(2)}</span>
           </div>
         ` : ''}
+        ${order.taxa_urgencia_tipo && order.taxa_urgencia_valor ? `
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+            <span>Taxa de urgência${order.taxa_urgencia_tipo === 'percentual' ? ` (${order.taxa_urgencia_percentual}%)` : ''}:</span>
+            <span>R$ ${order.taxa_urgencia_valor.toFixed(2)}</span>
+          </div>
+        ` : ''}
         ${valorDesconto > 0 ? `
           <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
             <span>Desconto${order.desconto_percentual ? ` (${order.desconto_percentual}%)` : ''}:</span>
@@ -753,6 +770,10 @@ export function generateWhatsAppText(order: ServiceOrder, organizationName: stri
   lines.push(`Subtotal: R$ ${subtotal.toFixed(2)}`)
   if (mostrarEmbalagem) {
     lines.push(`Embalagem: R$ ${subtotalEmbalagens.toFixed(2)}`)
+  }
+  if (order.taxa_urgencia_tipo && order.taxa_urgencia_valor) {
+    const label = order.taxa_urgencia_tipo === 'percentual' ? ` (${order.taxa_urgencia_percentual}%)` : ''
+    lines.push(`Taxa de urgência${label}: R$ ${order.taxa_urgencia_valor.toFixed(2)}`)
   }
   if (valorDesconto > 0) {
     const descontoLabel = order.desconto_percentual ? ` (${order.desconto_percentual}%)` : ''

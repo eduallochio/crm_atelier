@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSystemPreferences, useUpdateSystemPreferences } from '@/hooks/use-settings'
+import { usePlanUsage } from '@/hooks/use-plan-usage'
+import { PlanLockedToggle } from '@/components/ui/plan-locked-toggle'
 import { Loader2, Monitor, Package, Clock } from 'lucide-react'
 import { useWatch } from 'react-hook-form'
 import { useEffect } from 'react'
@@ -80,6 +82,9 @@ export function SystemSettingsForm() {
       embalagem_destacar_recibo: false,
     },
   })
+
+  const { data: planUsage } = usePlanUsage()
+  const isFree = planUsage?.plan === 'free'
 
   useEffect(() => {
     if (settings) {
@@ -352,91 +357,98 @@ export function SystemSettingsForm() {
             )}
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/30 p-4 mt-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Embalagem</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Habilita o campo Embalagem nas ordens de serviço, separado de Materiais. Use produtos
-                  marcados como &quot;Este produto é embalagem&quot; no cadastro de Estoque.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={usaEmbalagem}
-                onClick={() => form.setValue('usa_embalagem', !usaEmbalagem, { shouldDirty: true })}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  usaEmbalagem ? 'bg-primary' : 'bg-input'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                    usaEmbalagem ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-            {usaEmbalagem && (
-              <div className="mt-3 pt-3 border-t border-border/60 space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  ✓ Seção &quot;Embalagem&quot; visível nas ordens de serviço, com baixa automática de estoque
-                </p>
-
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-foreground">Somar valor da embalagem ao total da OS</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Usa o preço de custo do produto como valor cobrado e soma ao total do pedido.
-                      Quando desligado, a embalagem só controla estoque, sem afetar o valor cobrado.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={embalagemSomaTotal}
-                    onClick={() => form.setValue('embalagem_soma_total', !embalagemSomaTotal, { shouldDirty: true })}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      embalagemSomaTotal ? 'bg-primary' : 'bg-input'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                        embalagemSomaTotal ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+          {isFree ? (
+            <PlanLockedToggle
+              title="Embalagem"
+              description="Habilita o campo Embalagem nas ordens de serviço, separado de Materiais, com baixa automática de estoque e destaque opcional no recibo."
+            />
+          ) : (
+            <div className="rounded-lg border border-border bg-muted/30 p-4 mt-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Embalagem</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Habilita o campo Embalagem nas ordens de serviço, separado de Materiais. Use produtos
+                    marcados como &quot;Este produto é embalagem&quot; no cadastro de Estoque.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={usaEmbalagem}
+                  onClick={() => form.setValue('usa_embalagem', !usaEmbalagem, { shouldDirty: true })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    usaEmbalagem ? 'bg-primary' : 'bg-input'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                      usaEmbalagem ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              {usaEmbalagem && (
+                <div className="mt-3 pt-3 border-t border-border/60 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    ✓ Seção &quot;Embalagem&quot; visível nas ordens de serviço, com baixa automática de estoque
+                  </p>
 
-                {embalagemSomaTotal && (
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-foreground">Destacar embalagem no recibo do cliente</p>
+                      <p className="text-xs font-medium text-foreground">Somar valor da embalagem ao total da OS</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Mostra uma linha separada &quot;Embalagem: R$ X&quot; no PDF/recibo enviado ao cliente,
-                        em vez de somar o valor de forma invisível ao total dos serviços.
+                        Usa o preço de custo do produto como valor cobrado e soma ao total do pedido.
+                        Quando desligado, a embalagem só controla estoque, sem afetar o valor cobrado.
                       </p>
                     </div>
                     <button
                       type="button"
                       role="switch"
-                      aria-checked={embalagemDestacarRecibo}
-                      onClick={() => form.setValue('embalagem_destacar_recibo', !embalagemDestacarRecibo, { shouldDirty: true })}
+                      aria-checked={embalagemSomaTotal}
+                      onClick={() => form.setValue('embalagem_soma_total', !embalagemSomaTotal, { shouldDirty: true })}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        embalagemDestacarRecibo ? 'bg-primary' : 'bg-input'
+                        embalagemSomaTotal ? 'bg-primary' : 'bg-input'
                       }`}
                     >
                       <span
                         className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                          embalagemDestacarRecibo ? 'translate-x-5' : 'translate-x-0'
+                          embalagemSomaTotal ? 'translate-x-5' : 'translate-x-0'
                         }`}
                       />
                     </button>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+
+                  {embalagemSomaTotal && (
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-foreground">Destacar embalagem no recibo do cliente</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Mostra uma linha separada &quot;Embalagem: R$ X&quot; no PDF/recibo enviado ao cliente,
+                          em vez de somar o valor de forma invisível ao total dos serviços.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={embalagemDestacarRecibo}
+                        onClick={() => form.setValue('embalagem_destacar_recibo', !embalagemDestacarRecibo, { shouldDirty: true })}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          embalagemDestacarRecibo ? 'bg-primary' : 'bg-input'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                            embalagemDestacarRecibo ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Botões de Ação */}

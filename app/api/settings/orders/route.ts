@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgOrderSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { isFreePlanForFeatureGate } from '@/lib/plan-limits'
 
 const DEFAULTS = {
   order_prefix:          'OS',
@@ -19,6 +20,7 @@ const DEFAULTS = {
   auto_generate_pdf:     true,
   show_logo_on_print:    false,
   usa_horario_retirada:  false,
+  usa_taxa_urgencia:     false,
 }
 
 function mapRow(row: {
@@ -37,6 +39,7 @@ function mapRow(row: {
   autoGeneratePdf: boolean
   showLogoOnPrint: boolean
   usaHorarioRetirada: boolean
+  usaTaxaUrgencia: boolean
   updatedAt: Date | null
 }) {
   return {
@@ -55,6 +58,7 @@ function mapRow(row: {
     auto_generate_pdf:      row.autoGeneratePdf ?? true,
     show_logo_on_print:     row.showLogoOnPrint ?? false,
     usa_horario_retirada:   row.usaHorarioRetirada ?? false,
+    usa_taxa_urgencia:      row.usaTaxaUrgencia ?? false,
     updated_at:             row.updatedAt,
   }
 }
@@ -97,6 +101,9 @@ export async function PUT(request: Request) {
     assertPermission(user, 'configuracoes')
     const body = await request.json()
 
+    // Ignora silenciosamente tentativa de ligar via API direta quando a org é Free
+    const freePlan = await isFreePlanForFeatureGate(user.organizationId)
+
     const values = {
       organizationId:       user.organizationId,
       orderPrefix:          body.order_prefix          ?? 'OS',
@@ -111,7 +118,8 @@ export async function PUT(request: Request) {
       printerWidth:         body.printer_width === '58mm' ? '58mm' : '80mm',
       autoGeneratePdf:      body.auto_generate_pdf !== false,
       showLogoOnPrint:      !!body.show_logo_on_print,
-      usaHorarioRetirada:   !!body.usa_horario_retirada,
+      usaHorarioRetirada:   freePlan ? false : !!body.usa_horario_retirada,
+      usaTaxaUrgencia:      freePlan ? false : !!body.usa_taxa_urgencia,
     }
 
     await db
@@ -133,6 +141,7 @@ export async function PUT(request: Request) {
           autoGeneratePdf:      values.autoGeneratePdf,
           showLogoOnPrint:      values.showLogoOnPrint,
           usaHorarioRetirada:   values.usaHorarioRetirada,
+          usaTaxaUrgencia:      values.usaTaxaUrgencia,
           updatedAt:            new Date(),
         },
       })

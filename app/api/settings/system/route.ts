@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { orgSystemPreferences } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
+import { isFreePlanForFeatureGate } from '@/lib/plan-limits'
 
 const DEFAULTS = {
   dateFormat:   'dd/MM/yyyy',
@@ -91,6 +92,11 @@ export async function PUT(request: Request) {
     assertPermission(user, 'configuracoes')
     const body = await request.json()
 
+    // Embalagem (e Horário de Retirada/Taxa de Urgência, em /api/settings/orders)
+    // é exclusiva Pro/Enterprise — ignora silenciosamente tentativa de ligar
+    // via API direta quando a org é Free, mesmo que o valor enviado seja true
+    const freePlan = await isFreePlanForFeatureGate(user.organizationId)
+
     const values = {
       organizationId:            user.organizationId,
       dateFormat:                body.date_format ?? 'dd/MM/yyyy',
@@ -103,9 +109,9 @@ export async function PUT(request: Request) {
       showTooltips:              body.show_tooltips !== false,
       controlaEstoque:           !!body.controla_estoque,
       fechamentoAutomaticoCaixa: body.fechamento_automatico_caixa !== false,
-      usaEmbalagem:              !!body.usa_embalagem,
-      embalagemSomaTotal:        !!body.embalagem_soma_total,
-      embalagemDestacarRecibo:   !!body.embalagem_destacar_recibo,
+      usaEmbalagem:              freePlan ? false : !!body.usa_embalagem,
+      embalagemSomaTotal:        freePlan ? false : !!body.embalagem_soma_total,
+      embalagemDestacarRecibo:   freePlan ? false : !!body.embalagem_destacar_recibo,
     }
 
     await db

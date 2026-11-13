@@ -103,6 +103,7 @@ export interface OrderSettings {
   auto_generate_pdf: boolean
   show_logo_on_print: boolean
   usa_horario_retirada: boolean
+  usa_taxa_urgencia: boolean
   updated_at: string
 }
 

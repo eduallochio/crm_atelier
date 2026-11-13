@@ -74,6 +74,7 @@ export const orderSettingsSchema = z.object({
   auto_generate_pdf: z.boolean().default(true),
   show_logo_on_print: z.boolean().default(false),
   usa_horario_retirada: z.boolean().default(false),
+  usa_taxa_urgencia: z.boolean().default(false),
 })
 
 export const systemPreferencesSchema = z.object({

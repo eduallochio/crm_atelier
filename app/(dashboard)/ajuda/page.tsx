@@ -369,10 +369,19 @@ export default function AjudaPage() {
               <H3>Embalagem na ordem</H3>
               <P>Se o ateliê usa caixas, papel de seda, fitas ou sacolas na entrega, dá para cadastrar esses itens como produto (em Estoque → Novo produto, marcando “Este produto é embalagem”) e adicioná-los na ordem, num campo próprio, separado dos serviços.</P>
               <List items={[
-                <>O campo “Embalagem” só aparece na ordem depois de ligado em <strong>Configurações → Sistema</strong>.</>,
+                <>O campo “Embalagem” só aparece na ordem depois de ligado em <strong>Configurações → Sistema</strong> — disponível a partir do plano <strong>Pro</strong>.</>,
                 <>Lá também é possível escolher se o valor da embalagem <strong>soma no total</strong> da ordem (usando o preço de custo do produto) e se aparece como <strong>linha separada</strong> no PDF/recibo da cliente.</>,
                 <>A lista de embalagens aparece no preview, no PDF e na mensagem de WhatsApp da ordem, junto com os serviços.</>,
                 <>Ao concluir a ordem, a embalagem usada dá baixa no estoque do produto, do mesmo jeito que os materiais do serviço.</>,
+              ]} />
+
+              <H3>Taxa de urgência de entrega</H3>
+              <P>Para cobrar um valor extra quando a cliente pede pressa na entrega, ative “Taxa de urgência de entrega” em <strong>Configurações → Ordens de Serviço</strong> — disponível a partir do plano <strong>Pro</strong>.</P>
+              <List items={[
+                <>Com o toggle ligado, aparece um checkbox “Entrega urgente” na janela de nova ordem.</>,
+                <>Ao marcar, escolha se a taxa é em <strong>percentual</strong> (sobre o valor dos serviços) ou em <strong>valor fixo</strong> (R$) — não dá para usar os dois juntos na mesma ordem.</>,
+                <>A taxa soma no total da ordem antes do desconto, e aparece como linha separada (“Taxa de urgência”) no preview, no PDF e na mensagem de WhatsApp.</>,
+                <>Só é possível ligar ou ajustar a taxa enquanto a ordem está <strong>pendente</strong> ou <strong>em andamento</strong>, com a mesma regra de não deixar o total ficar menor que o valor já pago.</>,
               ]} />
 
               <H3>Editando os serviços de uma ordem já criada</H3>
@@ -529,7 +538,7 @@ export default function AjudaPage() {
                   ['Empresa', 'Nome, CNPJ (com busca automática), logo, endereço e contatos que saem nas ordens e comprovantes.'],
                   ['Usuários', 'Quem acessa o sistema e o cargo de cada pessoa: Administrador ou Membro.'],
                   ['Financeiro', 'Formas de pagamento aceitas, chave PIX e taxas.'],
-                  ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão, o campo de horário de retirada, impressora e se a logo da empresa aparece na impressão.'],
+                  ['Ordens de serviço', 'Prefixo e número inicial, status inicial, campos obrigatórios, prazo padrão, o campo de horário de retirada e a taxa de urgência de entrega (ambos plano Pro), impressora e se a logo da empresa aparece na impressão.'],
                   ['Notificações', 'Lembretes para você e a mensagem padrão das ordens.'],
                   ['Sistema', 'Formato de data e moeda, caixa e os módulos ligados, como o controle de estoque.'],
                   ['Assinatura', 'O seu plano, o uso dos recursos, o upgrade e a data da próxima renovação.'],

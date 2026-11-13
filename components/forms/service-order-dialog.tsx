@@ -81,6 +81,11 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const [openEmbalagemCombo, setOpenEmbalagemCombo] = useState(false)
   const [embalagemSearchValue, setEmbalagemSearchValue] = useState('')
 
+  const [entregaUrgente, setEntregaUrgente] = useState(false)
+  const [urgenciaTipo, setUrgenciaTipo] = useState<'percentual' | 'valor'>('percentual')
+  const [urgenciaPercentual, setUrgenciaPercentual] = useState<number | ''>('')
+  const [urgenciaValor, setUrgenciaValor] = useState<number | ''>('')
+
   const createOrder = useCreateServiceOrder()
   const planLimit = usePlanLimit('orders')
   const { data: clients = [] } = useClients()
@@ -92,6 +97,7 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const { data: financialSettings } = useFinancialSettings()
   const { data: orderSettings } = useOrderSettings()
   const usaEmbalagem = !!systemPrefs?.usa_embalagem
+  const usaTaxaUrgencia = !!orderSettings?.usa_taxa_urgencia
 
   const requireClient        = orderSettings?.require_client        ?? true
   const requireService       = orderSettings?.require_service       ?? true
@@ -216,6 +222,10 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       setEmbalagens([])
       setSelectedEmbalagemProductId('')
       setEmbalagemQtd(1)
+      setEntregaUrgente(false)
+      setUrgenciaTipo('percentual')
+      setUrgenciaPercentual('')
+      setUrgenciaValor('')
       setEmbalagemSearchValue('')
     }
   }, [open, reset, notifSettings, defaultClientId])
@@ -262,16 +272,28 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   }
 
   const total = items.reduce((sum, item) => sum + Number(item.valor_total), 0)
-  
+
+  // Estimativa de exibição no formulário/preview — o valor definitivo
+  // (somado a embalagens já salvas) é recalculado pelo backend em
+  // PUT /api/orders/[id]/taxa-urgencia depois da OS criada, mesmo padrão
+  // de embalagens
+  const valorUrgenciaEstimado = !entregaUrgente
+    ? 0
+    : urgenciaTipo === 'percentual'
+      ? (total * (Number(urgenciaPercentual) || 0)) / 100
+      : Number(urgenciaValor) || 0
+
+  const subtotalComUrgencia = total + valorUrgenciaEstimado
+
   // Calcular desconto
   let valorDesconto = 0
   if (descontoPercentual > 0) {
-    valorDesconto = (total * descontoPercentual) / 100
+    valorDesconto = (subtotalComUrgencia * descontoPercentual) / 100
   } else if (descontoValor > 0) {
     valorDesconto = descontoValor
   }
-  
-  const totalComDesconto = Math.max(0, total - valorDesconto)
+
+  const totalComDesconto = Math.max(0, subtotalComUrgencia - valorDesconto)
   const saldoRestante = Math.max(0, totalComDesconto - valorEntrada)
 
   const isLoading = createOrder.isPending
@@ -284,6 +306,14 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
 
     if (requireClient && !selectedClient) {
       toast.error('Cliente não encontrado')
+      return
+    }
+
+    // Evita salvar "Entrega urgente" ligado com taxa zerada por esquecimento
+    // (campo deixado em branco) — a linha de taxa no PDF/recibo só aparece
+    // quando o valor é maior que zero, então isso ficaria silenciosamente sem efeito
+    if (entregaUrgente && valorUrgenciaEstimado <= 0) {
+      toast.error('Informe o percentual ou o valor da taxa de urgência')
       return
     }
 
@@ -300,6 +330,9 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
       status_pagamento: 'pendente' as const,
       desconto_valor: data.desconto_valor || 0,
       desconto_percentual: data.desconto_percentual || 0,
+      taxa_urgencia_tipo: entregaUrgente ? urgenciaTipo : null,
+      taxa_urgencia_percentual: entregaUrgente && urgenciaTipo === 'percentual' ? (Number(urgenciaPercentual) || 0) : null,
+      taxa_urgencia_valor: entregaUrgente ? valorUrgenciaEstimado : null,
       data_abertura: new Date().toISOString(),
       data_prevista: data.data_prevista || null,
       hora_retirada: data.hora_retirada || null,
@@ -381,6 +414,28 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             toast.error(data?.error || 'Erro ao salvar embalagem da ordem')
           }
         } catch { toast.error('Erro ao salvar embalagem da ordem') }
+      }
+
+      // Salvar taxa de urgência se marcada — recalcula o valor_total da OS
+      // (itens + embalagens já salvas + taxa) antes do desconto, refletido
+      // no completeOrder buscado logo abaixo. Mesmo padrão de embalagens.
+      if (result?.id && usaTaxaUrgencia && entregaUrgente) {
+        try {
+          const res = await fetch(`/api/orders/${result.id}/taxa-urgencia`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ativa: true,
+              tipo: urgenciaTipo,
+              percentual: urgenciaTipo === 'percentual' ? Number(urgenciaPercentual) || 0 : undefined,
+              valor: urgenciaTipo === 'valor' ? Number(urgenciaValor) || 0 : undefined,
+            }),
+          })
+          if (!res.ok) {
+            const data = await res.json().catch(() => null)
+            toast.error(data?.error || 'Erro ao salvar taxa de urgência da ordem')
+          }
+        } catch { toast.error('Erro ao salvar taxa de urgência da ordem') }
       }
 
       // Buscar OS completa (com número, itens e dados do cliente)
@@ -836,10 +891,77 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
             )}
           </div>
 
+          {/* Taxa de urgência */}
+          {usaTaxaUrgencia && (
+            <div className="space-y-3 border-t border-dashed pt-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="entrega_urgente" className="cursor-pointer">Entrega urgente</Label>
+                <button
+                  type="button"
+                  role="switch"
+                  id="entrega_urgente"
+                  aria-checked={entregaUrgente}
+                  onClick={() => setEntregaUrgente(!entregaUrgente)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    entregaUrgente ? 'bg-primary' : 'bg-input'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                      entregaUrgente ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              {entregaUrgente && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="urgencia_percentual">Taxa (%)</Label>
+                    <Input
+                      id="urgencia_percentual"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="0"
+                      value={urgenciaPercentual}
+                      disabled={isLoading || urgenciaTipo === 'valor'}
+                      onChange={(e) => {
+                        setUrgenciaTipo('percentual')
+                        setUrgenciaPercentual(e.target.value === '' ? '' : Number(e.target.value))
+                        setUrgenciaValor('')
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="urgencia_valor">Taxa (R$)</Label>
+                    <Input
+                      id="urgencia_valor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={urgenciaValor}
+                      disabled={isLoading || urgenciaTipo === 'percentual'}
+                      onChange={(e) => {
+                        setUrgenciaTipo('valor')
+                        setUrgenciaValor(e.target.value === '' ? '' : Number(e.target.value))
+                        setUrgenciaPercentual('')
+                      }}
+                    />
+                  </div>
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    Taxa de urgência: R$ {valorUrgenciaEstimado.toFixed(2)} — somada ao subtotal antes do desconto
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Descontos e Pagamento */}
           <div className="space-y-3 border-t border-dashed pt-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pagamento</h3>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="desconto_valor">Desconto (R$)</Label>
