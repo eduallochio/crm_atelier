@@ -17,7 +17,13 @@ export async function GET() {
   let organizationId: string | undefined
   try {
     const user = await requireAuth()
-    assertPermission(user, 'configuracoes')
+    // Leitura também é permitida com a permissão de OS (não só "configuracoes")
+    // — a chave Pix e a preferência de exibi-la são usadas no recibo da
+    // ordem, mesmo para quem não administra Configurações.
+    // Escrita (PUT abaixo) continua exigindo "configuracoes".
+    if (!user.isOwner && !user.isMaster && user.permissions.configuracoes !== true && user.permissions.ordens_servico !== true) {
+      throw new Error('FORBIDDEN')
+    }
     organizationId = user.organizationId
 
     const result = await db
