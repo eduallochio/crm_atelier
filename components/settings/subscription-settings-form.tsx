@@ -109,6 +109,18 @@ export function SubscriptionSettingsForm() {
   const [celebrate, setCelebrate] = useState(false)
   // cartão aprovado: espera o Asaas confirmar para comemorar
   const [confirmingCard, setConfirmingCard] = useState(false)
+  const [confirmingCardSlow, setConfirmingCardSlow] = useState(false)
+
+  // Se a confirmação do Asaas demorar demais (cartão recusado silenciosamente,
+  // instabilidade), avisa o usuário em vez de deixar girando pra sempre
+  useEffect(() => {
+    if (!confirmingCard) {
+      setConfirmingCardSlow(false)
+      return
+    }
+    const timer = setTimeout(() => setConfirmingCardSlow(true), 3 * 60_000)
+    return () => clearTimeout(timer)
+  }, [confirmingCard])
 
   // Detecta retorno após autenticação 3DS do banco
   useEffect(() => {
@@ -163,6 +175,9 @@ export function SubscriptionSettingsForm() {
       if (!res.ok) return null
       return res.json()
     },
+    // Enquanto espera o Asaas confirmar o cartão, verifica periodicamente —
+    // sem isso, a tela só saberia que o plano virou Pro se o usuário recarregar
+    refetchInterval: confirmingCard ? 5_000 : false,
   })
 
   const { data: subscriptionInfo } = useQuery<{ plan: string; status: string | null; next_due_date: string | null; cycle?: string; value?: number; first_payment_confirmed_at?: string | null; in_bonus_window?: boolean }>({
@@ -666,10 +681,21 @@ export function SubscriptionSettingsForm() {
       )}
 
       {/* Cartão aprovado: aguardando a confirmação do Asaas (a comemoração aparece sozinha) */}
-      {confirmingCard && !isPro && (
+      {confirmingCard && !isPro && !confirmingCardSlow && (
         <div role="status" className="flex items-center gap-3 rounded-2xl border border-dashed border-[#c8714a]/60 bg-card px-4 py-3.5 text-sm text-foreground">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#c8714a]" aria-hidden="true" />
           Confirmando o pagamento com o cartão… Em instantes seu plano Pro é ativado.
+        </div>
+      )}
+
+      {/* Confirmação demorando muito mais que o normal — orienta em vez de girar pra sempre */}
+      {confirmingCard && !isPro && confirmingCardSlow && (
+        <div role="status" className="flex items-start gap-3 rounded-2xl border border-dashed border-amber-500/60 bg-card px-4 py-3.5 text-sm text-foreground">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" aria-hidden="true" />
+          <div>
+            A confirmação está demorando mais que o normal. Isso pode acontecer se o cartão foi recusado ou houve instabilidade no banco.
+            Verifique com seu banco se a cobrança passou ou entre em contato com nosso suporte.
+          </div>
         </div>
       )}
 
