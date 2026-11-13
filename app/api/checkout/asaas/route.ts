@@ -9,6 +9,7 @@ import {
   findCustomerByCpfCnpj,
   createSubscription,
   updateSubscription,
+  getSubscription,
   getSubscriptionPayments,
   getPixQrCode,
 } from '@/lib/asaas'
@@ -81,6 +82,22 @@ export async function POST(req: NextRequest) {
 
     if (org.plan === plan) {
       return NextResponse.json({ error: 'Organização já possui este plano' }, { status: 400 })
+    }
+
+    // Evita criar uma segunda assinatura no Asaas quando já existe uma ativa
+    // (ex: plano local ficou desatualizado por falha de webhook) — o Asaas
+    // rejeita a criação com erro genérico "invalid_billingType" nesse caso
+    if (org.asaasSubscriptionId) {
+      try {
+        const existingSub = await getSubscription(org.asaasSubscriptionId)
+        if (existingSub.status === 'ACTIVE') {
+          return NextResponse.json({
+            error: 'Você já possui uma assinatura ativa. Cancele-a antes de criar uma nova, ou entre em contato com o suporte.',
+          }, { status: 409 })
+        }
+      } catch {
+        // Assinatura não encontrada no Asaas (ex: removida manualmente) — segue o checkout normalmente
+      }
     }
 
     // Preço base do plano — lido da tabela plans para consistência com a UI
