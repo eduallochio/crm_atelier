@@ -56,49 +56,66 @@ export async function GET() {
     // Top referrers — agrupado por domínio (não pela URL completa), para
     // "chatgpt.com/c/abc123" e "chatgpt.com/c/xyz789" somarem no mesmo
     // canal em vez de diluir a contagem em dezenas de linhas distintas.
-    // Para cada sessão (data->>'session_id'), usa o referrer do primeiro
-    // page_view — é o que define por onde aquele visitante chegou — e
-    // junta com os eventos de conversão da mesma sessão (mesmo navegador,
-    // via localStorage) para saber quantos desses visitantes de cada canal
-    // avançaram no funil, não só quantos clicaram.
-    const referrersResult = await db.execute(drizzleSql`
-      WITH first_view AS (
-        SELECT DISTINCT ON (data->>'session_id')
-          data->>'session_id' AS session_id,
-          lower(regexp_replace(data->>'referrer', '^https?://(www\.)?([^/]+).*$', '\2')) AS domain,
-          created_at
-        FROM page_events
-        WHERE event = 'page_view'
-          AND created_at >= ${thirtyDaysAgo}
-          AND data->>'referrer' IS NOT NULL
-          AND data->>'referrer' != ''
-          AND data->>'referrer' NOT ILIKE '%localhost%'
-          AND data->>'referrer' NOT ILIKE '%meuateliersistema.com.br%'
-          AND data->>'session_id' IS NOT NULL
-        ORDER BY data->>'session_id', created_at ASC
-      ),
-      session_events AS (
-        SELECT
-          data->>'session_id' AS session_id,
-          bool_or(event = 'cta_click') AS clicked_cta,
-          bool_or(event = 'signup_completed') AS completed_signup
-        FROM page_events
-        WHERE created_at >= ${thirtyDaysAgo}
-          AND data->>'session_id' IS NOT NULL
-        GROUP BY data->>'session_id'
-      )
-      SELECT
-        fv.domain,
-        COUNT(*)::int AS visitors,
-        COUNT(*) FILTER (WHERE se.clicked_cta)::int AS cta_clicks,
-        COUNT(*) FILTER (WHERE se.completed_signup)::int AS signups
-      FROM first_view fv
-      LEFT JOIN session_events se ON se.session_id = fv.session_id
-      WHERE fv.domain IS NOT NULL AND fv.domain != ''
-      GROUP BY fv.domain
-      ORDER BY visitors DESC
-      LIMIT 15
-    `)
+    // Para cada sessão, usa o referrer do primeiro page_view — é o que
+    // define por onde aquele visitante chegou — e junta com os eventos de
+    // conversão da mesma sessão (mesmo navegador, via localStorage) para
+    // saber quantos desses visitantes de cada canal avançaram no funil,
+    // não só quantos chegaram.
+    //
+    // Processado em JS (não em SQL raw com regexp_replace) para extrair o
+    // domínio — mais simples de revisar e evita depender de escape de
+    // regex dentro de template literal SQL.
+    const rawEventsRows = await db
+      .select({
+        event:     pageEvents.event,
+        sessionId: drizzleSql<string | null>`data->>'session_id'`,
+        referrer:  drizzleSql<string | null>`data->>'referrer'`,
+        createdAt: pageEvents.createdAt,
+      })
+      .from(pageEvents)
+      .where(gte(pageEvents.createdAt, thirtyDaysAgo))
+
+    function extractDomain(referrer: string): string | null {
+      try {
+        const host = new URL(referrer).hostname.toLowerCase()
+        return host.startsWith('www.') ? host.slice(4) : host
+      } catch {
+        return null
+      }
+    }
+
+    const ownDomain = 'meuateliersistema.com.br'
+    const firstDomainBySession = new Map<string, string>()
+    const ctaBySession = new Map<string, boolean>()
+    const signupBySession = new Map<string, boolean>()
+
+    // Ordena por data para pegar o PRIMEIRO page_view de cada sessão (igual
+    // ao DISTINCT ON ... ORDER BY created_at ASC da versão anterior em SQL)
+    const sortedRows = [...rawEventsRows].sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))
+
+    for (const row of sortedRows) {
+      const sessionId = row.sessionId
+      if (!sessionId) continue
+
+      if (row.event === 'cta_click') ctaBySession.set(sessionId, true)
+      if (row.event === 'signup_completed') signupBySession.set(sessionId, true)
+
+      if (row.event === 'page_view' && row.referrer && !firstDomainBySession.has(sessionId)) {
+        const domain = extractDomain(row.referrer)
+        if (domain && !domain.includes('localhost') && domain !== ownDomain) {
+          firstDomainBySession.set(sessionId, domain)
+        }
+      }
+    }
+
+    const statsByDomain = new Map<string, { visitors: number; ctaClicks: number; signups: number }>()
+    for (const [sessionId, domain] of firstDomainBySession) {
+      const stats = statsByDomain.get(domain) ?? { visitors: 0, ctaClicks: 0, signups: 0 }
+      stats.visitors += 1
+      if (ctaBySession.get(sessionId)) stats.ctaClicks += 1
+      if (signupBySession.get(sessionId)) stats.signups += 1
+      statsByDomain.set(domain, stats)
+    }
 
     // Assistentes de IA que geram link clicável nas respostas — visitante
     // real clicando num link sugerido pela IA, não a IA "acessando" o site
@@ -107,15 +124,15 @@ export async function GET() {
       'claude.ai', 'copilot.microsoft.com', 'bing.com',
     ])
 
-    const referrersRows = Array.from(referrersResult) as Array<{ domain: string; visitors: number; cta_clicks: number; signups: number }>
-
-    const top_referrers = referrersRows
-      .map((r) => ({
-        referrer:   r.domain,
-        count:      Number(r.visitors),
-        cta_clicks: Number(r.cta_clicks),
-        signups:    Number(r.signups),
-        is_ai:      AI_ASSISTANT_DOMAINS.has(r.domain),
+    const top_referrers = [...statsByDomain.entries()]
+      .sort((a, b) => b[1].visitors - a[1].visitors)
+      .slice(0, 15)
+      .map(([domain, stats]) => ({
+        referrer:   domain,
+        count:      stats.visitors,
+        cta_clicks: stats.ctaClicks,
+        signups:    stats.signups,
+        is_ai:      AI_ASSISTANT_DOMAINS.has(domain),
       }))
 
     // Top UTM sources — stored in data->>'utm_source'
