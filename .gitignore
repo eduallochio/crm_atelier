@@ -63,3 +63,6 @@ docs-banco/
 # Supabase migration workspace (SQL drafts, dumps, segredos)
 supabase-migration/
 supabase/migrations/
+
+# Backups/referências manuais de .env e notas antigas (nunca versionar)
+env-backups/
