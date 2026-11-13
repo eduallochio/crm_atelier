@@ -85,12 +85,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Evita criar uma segunda assinatura no Asaas quando já existe uma ativa
-    // (ex: plano local ficou desatualizado por falha de webhook) — o Asaas
-    // rejeita a criação com erro genérico "invalid_billingType" nesse caso
+    // (ex: usuário tentou pagar de novo antes da 1ª cobrança confirmar) — o
+    // Asaas rejeita a criação com erro genérico "invalid_billingType" nesse caso
     if (org.asaasSubscriptionId) {
       try {
         const existingSub = await getSubscription(org.asaasSubscriptionId)
         if (existingSub.status === 'ACTIVE') {
+          const { notificarTelegram } = await import('@/lib/telegram')
+          await notificarTelegram(
+            `⚠️ <b>Checkout bloqueado — assinatura duplicada</b>\n🏪 ${org.name}\n🆔 ${org.id}\n📋 Assinatura existente: ${org.asaasSubscriptionId}`
+          ).catch(() => {})
           return NextResponse.json({
             error: 'Você já possui uma assinatura ativa. Cancele-a antes de criar uma nova, ou entre em contato com o suporte.',
           }, { status: 409 })
