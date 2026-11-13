@@ -66,7 +66,13 @@ function mapRow(row: {
 export async function GET() {
   try {
     const user = await requireAuth()
-    assertPermission(user, 'configuracoes')
+    // Leitura também é permitida com a permissão de OS (não só "configuracoes")
+    // — o formulário de nova OS precisa saber se horário de retirada/taxa de
+    // urgência estão ligados, mesmo para quem não administra Configurações.
+    // Escrita (PUT abaixo) continua exigindo "configuracoes".
+    if (!user.isOwner && !user.isMaster && user.permissions.configuracoes !== true && user.permissions.ordens_servico !== true) {
+      throw new Error('FORBIDDEN')
+    }
 
     const result = await db
       .select()
