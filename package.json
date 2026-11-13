@@ -1,6 +1,6 @@
 {
   "name": "crm_atelier",
-  "version": "1.22.16",
+  "version": "1.22.17",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -15,3 +15,4 @@ export const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   display: 'swap',
 })
+// nudge para invalidar cache de build da Vercel com módulo de fonte Turbopack obsoleto
