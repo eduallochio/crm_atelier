@@ -18,15 +18,15 @@ import { format, addDays, addMonths, addYears } from 'date-fns'
 // Cria (ou reutiliza) cliente no Asaas e gera assinatura
 export async function POST(req: NextRequest) {
   let organizationId: string | undefined
+  let billing_type: string = ''
+  let cycle: string = 'MONTHLY'
+  let plan: string = 'pro'
   try {
     const user = await requireAuth()
     organizationId = user.organizationId
 
     const body = await req.json()
     const {
-      billing_type,      // 'CREDIT_CARD' | 'PIX'
-      cycle = 'MONTHLY', // 'MONTHLY' | 'YEARLY'
-      plan = 'pro',
       coupon_code,
       installment_count,  // número de parcelas (apenas cartão anual)
       installment_value,  // valor por parcela
@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
       card_holder_postal_code,
       card_holder_address_number,
     } = body
+    billing_type = body.billing_type      // 'CREDIT_CARD' | 'PIX'
+    cycle = body.cycle ?? 'MONTHLY'       // 'MONTHLY' | 'YEARLY'
+    plan = body.plan ?? 'pro'
 
     const ALLOWED_BILLING_TYPES = ['PIX', 'CREDIT_CARD']
     if (!billing_type || !ALLOWED_BILLING_TYPES.includes(billing_type)) {
@@ -322,7 +325,7 @@ export async function POST(req: NextRequest) {
     if ((error as Error).message === 'UNAUTHORIZED') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    logServerError('[POST /api/checkout/asaas]', error, undefined, organizationId)
+    logServerError('[POST /api/checkout/asaas]', error, { billing_type, cycle, plan }, organizationId)
     console.error('[POST /api/checkout/asaas]', error)
     // Expõe a mensagem do Asaas para facilitar diagnóstico
     const msg = (error as Error).message ?? ''
