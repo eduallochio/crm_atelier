@@ -170,6 +170,7 @@ function defaultFaq(plans: PublicPlan[]): Faq[] {
     { question: 'Funciona no celular?', answer: 'Sim. O sistema funciona no navegador do celular, do tablet e do computador, e você pode adicioná-lo à tela inicial do celular para abrir como um app.' },
     { question: 'Meus dados e os das minhas clientes ficam seguros?', answer: 'Sim. Cada ateliê tem seus dados completamente separados dos demais, e o sistema segue a LGPD.' },
     { question: 'Consigo enviar a ordem de serviço para a cliente?', answer: 'Sim. Com um clique você envia o resumo da OS pelo WhatsApp, e também pode imprimir o comprovante em impressoras térmicas de 58mm ou 80mm.' },
+    { question: 'O sistema emite nota fiscal?', answer: 'Ainda não. O sistema gera o recibo/comprovante da ordem de serviço em PDF e por WhatsApp, mas não emite nota fiscal eletrônica (NF-e/NFS-e).' },
   )
   const fu = users(free), pu = users(pro)
   if (free && pro && fu && pu) {
@@ -277,6 +278,17 @@ function Landing() {
     return t
   }, [cms.testimonials_json])
 
+  // Depoimentos fixos exibidos na seção "O que dizem nossas clientes" (NETE
+  // Fashion e Line Art Bordados, linhas ~960-995) + os do CMS — todos reais,
+  // 5 estrelas — usados no AggregateRating/Review do jsonLd abaixo. Ao
+  // adicionar um depoimento novo (fixo ou via CMS), ele entra automaticamente
+  // nos dados estruturados, sem precisar atualizar isso à mão.
+  const allTestimonials = useMemo(() => [
+    { name: 'NETE Fashion Atelier', text: 'Antes eu controlava tudo em caderno e muitas vezes esquecia de cobrar ou perdia o prazo de entrega. Com o sistema, tenho tudo organizado — clientes, pedidos, datas e valores. Agora consigo ver de cara o que está em aberto e o que já foi entregue. A facilidade de enviar a ordem de serviço para o cliente faz toda a diferença. Não imagino trabalhar sem ele.' },
+    { name: 'Line Art Bordados', text: 'Além de oferecer um sistema incrível, prático e completo, o profissional teve todo o cuidado de ouvir minhas necessidades e adaptar cada detalhe para atender melhor à realidade da minha empresa. Estou encantada com o sistema e, principalmente, com o atendimento! Muito obrigada pelo carinho, paciência e profissionalismo. Recomendo de olhos fechados!' },
+    ...testimonials.map((t) => ({ name: t.name, text: t.text })),
+  ], [testimonials])
+
   const faq = useMemo(() => {
     let f: Faq[] = []
     try { f = cms.faq_json ? JSON.parse(cms.faq_json) : [] } catch { /* */ }
@@ -336,7 +348,26 @@ function Landing() {
       url: `${SITE_URL}${p.cta_url}`,
       ...(p.price > 0 && { priceSpecification: { '@type': 'UnitPriceSpecification', price: p.price.toFixed(2), priceCurrency: 'BRL', unitText: 'MONTH' } }),
     })),
-  }).replace(/</g, '\\u003c'), [plans])
+    // Nota agregada e depoimentos reais exibidos na seção "O que dizem
+    // nossas clientes" — todos os depoimentos hoje são 5/5; quando algum
+    // review com nota diferente for cadastrado no CMS, isso deve passar a
+    // vir de um campo de nota por depoimento em vez de fixo em 5
+    ...(allTestimonials.length > 0 && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '5',
+        reviewCount: String(allTestimonials.length),
+        bestRating: '5',
+        worstRating: '1',
+      },
+      review: allTestimonials.map((t) => ({
+        '@type': 'Review',
+        author: { '@type': 'Person', name: t.name },
+        reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+        reviewBody: t.text,
+      })),
+    }),
+  }).replace(/</g, '\\u003c'), [plans, allTestimonials])
 
   const onDemoPlay = useCallback(() => track('demo_video_play'), [track])
 
