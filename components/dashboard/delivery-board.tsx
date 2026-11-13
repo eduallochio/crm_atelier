@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Check, MessageCircle } from 'lucide-react'
 import { useUpdateServiceOrder } from '@/hooks/use-service-orders'
-import { useOrganizationSettings, useSystemPreferences } from '@/hooks/use-settings'
+import { useOrganizationSettings, useSystemPreferences, useOrderSettings } from '@/hooks/use-settings'
 import type { ServiceOrder } from '@/lib/validations/service-order'
 import { OrderPaymentDialog } from './order-payment-dialog'
 import { formatBRL } from './client-utils'
@@ -23,7 +23,9 @@ export function DeliveryBoard({ orders, isLoading }: { orders: ServiceOrder[]; i
   const update = useUpdateServiceOrder()
   const { data: org } = useOrganizationSettings()
   const { data: systemPrefs } = useSystemPreferences()
+  const { data: orderSettings } = useOrderSettings()
   const destacarEmbalagem = !!systemPrefs?.embalagem_destacar_recibo
+  const usaHorarioRetirada = !!orderSettings?.usa_horario_retirada
   const [openId, setOpenId] = useState<string | null>(null)
   const [paying, setPaying] = useState<ServiceOrder | null>(null)
 
@@ -79,7 +81,7 @@ export function DeliveryBoard({ orders, isLoading }: { orders: ServiceOrder[]; i
                       {expanded && (
                         <div className="dlv-more">
                           {o.client?.telefone && (
-                            <button type="button" className="dlv-mini" onClick={() => sendOrderWhatsApp(o, org?.name || 'Meu Atelier', destacarEmbalagem)}>
+                            <button type="button" className="dlv-mini" onClick={() => sendOrderWhatsApp(o, org?.name || 'Meu Atelier', destacarEmbalagem, usaHorarioRetirada)}>
                               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />Avisar
                             </button>
                           )}

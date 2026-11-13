@@ -39,8 +39,8 @@ export function useCreateServiceOrder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao criar ordem de serviço')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Erro ao criar ordem de serviço')
       return data as ServiceOrder
     },
     onSuccess: () => {
@@ -48,6 +48,10 @@ export function useCreateServiceOrder() {
       queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Ordem de serviço criada com sucesso!')
     },
+    // Nota: embalagem/taxa de urgência são salvas em chamadas separadas
+    // (useUpdateOrderEmbalagens/useUpdateOrderTaxaUrgencia) DEPOIS da OS
+    // criada aqui — essas mutations já invalidam ['service-orders'] de
+    // novo ao terminar, então o cache da lista fica correto no final.
     onError: (error: Error) => {
       if (isPlanLimitError(error)) {
         toast.error('Limite de ordens de serviço atingido no plano gratuito.', {
@@ -71,12 +75,13 @@ export function useUpdateServiceOrder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar ordem de serviço')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Erro ao atualizar ordem de serviço')
       return data as ServiceOrder & { no_cashier_session?: boolean }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-order', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['receivables'] })
       queryClient.invalidateQueries({ queryKey: ['cashier-sessions'] })
       queryClient.invalidateQueries({ queryKey: ['cashier-movements'] })
@@ -113,12 +118,13 @@ export function useUpdateOrderItems() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items, desconto_valor, desconto_percentual }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar itens da ordem de serviço')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Erro ao atualizar itens da ordem de serviço')
       return data as { valor_total: number; desconto_valor: number; desconto_percentual: number; status_pagamento: string; items: ServiceOrderItem[] }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-order', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Itens da ordem de serviço atualizados!')
     },
@@ -140,23 +146,63 @@ export function useUpdateOrderEmbalagens() {
     mutationFn: async ({ id, embalagens }: {
       id: string
       embalagens: Array<{ product_id?: string | null; nome: string; quantidade: number; unidade?: string }>
+      /** true durante a criação da OS — evita toast "Embalagem atualizada!" soando como edição de uma ordem já existente */
+      silent?: boolean
     }) => {
       const res = await fetch(`/api/orders/${id}/embalagens`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ embalagens }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar embalagem da ordem de serviço')
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Erro ao atualizar embalagem da ordem de serviço')
       return data as ServiceOrderEmbalagem[]
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-order', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast.success('Embalagem da ordem de serviço atualizada!')
+      if (!variables.silent) toast.success('Embalagem da ordem de serviço atualizada!')
     },
-    onError: (error: Error) => {
-      toast.error(getErrorMessage(error))
+    onError: (error: Error, variables) => {
+      if (!variables.silent) toast.error(getErrorMessage(error))
+    },
+  })
+}
+
+/**
+ * Define/remove a taxa de urgência de uma OS já lançada. Se ativa, o
+ * backend recalcula valor_total — ver PUT /api/orders/[id]/taxa-urgencia.
+ */
+export function useUpdateOrderTaxaUrgencia() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, ativa, tipo, percentual, valor, silent }: {
+      id: string
+      ativa: boolean
+      tipo?: 'percentual' | 'valor'
+      percentual?: number
+      valor?: number
+      /** true durante a criação da OS — evita toast de erro duplicado (o caller já trata) */
+      silent?: boolean
+    }) => {
+      const res = await fetch(`/api/orders/${id}/taxa-urgencia`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativa, tipo, percentual, valor }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Erro ao atualizar taxa de urgência da ordem de serviço')
+      return data as { taxa_urgencia_tipo: string | null; taxa_urgencia_percentual: number | null; taxa_urgencia_valor: number | null; valor_total: number }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-order', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+    onError: (error: Error, variables) => {
+      if (!variables.silent) toast.error(getErrorMessage(error))
     },
   })
 }
@@ -172,8 +218,9 @@ export function useDeleteServiceOrder() {
         throw new Error(data.error || 'Erro ao remover ordem de serviço')
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.removeQueries({ queryKey: ['service-order', id] })
       queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       toast.success('Ordem de serviço removida com sucesso!')
     },

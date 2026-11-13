@@ -5,7 +5,7 @@ import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { buildServiceOrderSchema, type ServiceOrderInput, type ServiceOrderItemInput, type ServiceOrder } from '@/lib/validations/service-order'
 import { useQuery } from '@tanstack/react-query'
-import { useCreateServiceOrder } from '@/hooks/use-service-orders'
+import { useCreateServiceOrder, useUpdateOrderEmbalagens, useUpdateOrderTaxaUrgencia } from '@/hooks/use-service-orders'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { PlanLimitBanner } from '@/components/ui/plan-limit-banner'
 import { useClients } from '@/hooks/use-clients'
@@ -87,6 +87,8 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
   const [urgenciaValor, setUrgenciaValor] = useState<number | ''>('')
 
   const createOrder = useCreateServiceOrder()
+  const updateEmbalagens = useUpdateOrderEmbalagens()
+  const updateTaxaUrgencia = useUpdateOrderTaxaUrgencia()
   const planLimit = usePlanLimit('orders')
   const { data: clients = [] } = useClients()
   const { data: services = [] } = useServices()
@@ -401,40 +403,29 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
 
       // Salvar embalagens se o campo estiver ativo — se embalagem_soma_total
       // estiver ligado no backend, essa chamada já recalcula o valor_total da
-      // OS, refletido no completeOrder buscado logo abaixo
+      // OS, refletido no completeOrder buscado logo abaixo. O hook já invalida
+      // ['service-orders'] E ['service-order', id] ao terminar — a OS recém
+      // criada pelo POST já havia disparado um refetch da lista antes dessa
+      // chamada terminar de salvar, então sem essa invalidação de novo aqui
+      // o cache ficaria com valor_total desatualizado em outras telas
+      // (Enviar OS, delivery-board etc.) até a página ser recarregada.
       if (result?.id && usaEmbalagem && embalagens.length > 0) {
         try {
-          const res = await fetch(`/api/orders/${result.id}/embalagens`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ embalagens }),
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => null)
-            toast.error(data?.error || 'Erro ao salvar embalagem da ordem')
-          }
+          await updateEmbalagens.mutateAsync({ id: result.id, embalagens, silent: true })
         } catch { toast.error('Erro ao salvar embalagem da ordem') }
       }
 
-      // Salvar taxa de urgência se marcada — recalcula o valor_total da OS
-      // (itens + embalagens já salvas + taxa) antes do desconto, refletido
-      // no completeOrder buscado logo abaixo. Mesmo padrão de embalagens.
+      // Salvar taxa de urgência se marcada — mesmo motivo acima
       if (result?.id && usaTaxaUrgencia && entregaUrgente) {
         try {
-          const res = await fetch(`/api/orders/${result.id}/taxa-urgencia`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ativa: true,
-              tipo: urgenciaTipo,
-              percentual: urgenciaTipo === 'percentual' ? Number(urgenciaPercentual) || 0 : undefined,
-              valor: urgenciaTipo === 'valor' ? Number(urgenciaValor) || 0 : undefined,
-            }),
+          await updateTaxaUrgencia.mutateAsync({
+            id: result.id,
+            ativa: true,
+            tipo: urgenciaTipo,
+            percentual: urgenciaTipo === 'percentual' ? Number(urgenciaPercentual) || 0 : undefined,
+            valor: urgenciaTipo === 'valor' ? Number(urgenciaValor) || 0 : undefined,
+            silent: true,
           })
-          if (!res.ok) {
-            const data = await res.json().catch(() => null)
-            toast.error(data?.error || 'Erro ao salvar taxa de urgência da ordem')
-          }
         } catch { toast.error('Erro ao salvar taxa de urgência da ordem') }
       }
 

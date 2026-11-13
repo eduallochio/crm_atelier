@@ -67,10 +67,10 @@ function phoneOf(o: ServiceOrder) {
 }
 
 /** manda a OS completa por WhatsApp */
-export function sendOrderWhatsApp(o: ServiceOrder, orgName = 'Meu Atelier', destacarEmbalagem = false) {
+export function sendOrderWhatsApp(o: ServiceOrder, orgName = 'Meu Atelier', destacarEmbalagem = false, mostrarHorarioRetirada = false) {
   const tel = phoneOf(o)
   if (!tel) return
-  const msg = generateWhatsAppText(o, orgName, undefined, destacarEmbalagem)
+  const msg = generateWhatsAppText(o, orgName, undefined, destacarEmbalagem, mostrarHorarioRetirada)
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 

@@ -195,7 +195,7 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
           </button>
         )}
         {tel && (
-          <button type="button" onClick={() => sendOrderWhatsApp(order, orgName, destacarEmbalagem)} className="cli-ghost">
+          <button type="button" onClick={() => sendOrderWhatsApp(order, orgName, destacarEmbalagem, !!orderSettings?.usa_horario_retirada)} className="cli-ghost">
             <MessageCircle className="h-4 w-4" aria-hidden="true" /> Enviar OS
           </button>
         )}
