@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { GrowthChart } from '@/components/admin/growth-chart'
 import { ChurnAnalysis } from '@/components/admin/churn-analysis'
 import { TopClients } from '@/components/admin/top-clients'
-import { MousePointerClick, Users, UserCheck, TrendingDown, ArrowRight } from 'lucide-react'
+import { MousePointerClick, Users, UserCheck, TrendingDown, ArrowRight, Sparkles } from 'lucide-react'
 
 interface EventsData {
   funnel: {
@@ -15,7 +15,7 @@ interface EventsData {
     conversion_rate: number
   }
   daily_visitors: { date: string; visitors: number; signups: number }[]
-  top_referrers: { referrer: string; count: number }[]
+  top_referrers: { referrer: string; count: number; cta_clicks: number; signups: number; is_ai: boolean }[]
   top_sources: { source: string; count: number }[]
   signup_abandonment: {
     started: number
@@ -149,8 +149,8 @@ export default function AdminAnalyticsPage() {
             </div>
           </div>
 
-          {/* Abandono + Referrers + Sources */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Abandono + Sources */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Abandono */}
             <div className="border border-gray-100 dark:border-gray-800 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -168,21 +168,6 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
 
-            {/* Top Referrers */}
-            <div className="border border-gray-100 dark:border-gray-800 rounded-lg p-4">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-3">Top Referrers</span>
-              {events.top_referrers.length > 0 ? (
-                <div className="space-y-2">
-                  {events.top_referrers.slice(0, 5).map((r) => (
-                    <div key={r.referrer} className="flex justify-between text-sm">
-                      <span className="text-gray-500 truncate max-w-[140px]" title={r.referrer}>{r.referrer || 'Direto'}</span>
-                      <span className="font-medium ml-2">{r.count}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="text-xs text-gray-400">Nenhum dado ainda</p>}
-            </div>
-
             {/* Top Sources */}
             <div className="border border-gray-100 dark:border-gray-800 rounded-lg p-4">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-3">Top UTM Sources</span>
@@ -197,6 +182,36 @@ export default function AdminAnalyticsPage() {
                 </div>
               ) : <p className="text-xs text-gray-400">Nenhum dado ainda</p>}
             </div>
+          </div>
+
+          {/* Top Referrers — agrupado por domínio, com conversão por canal */}
+          <div className="border border-gray-100 dark:border-gray-800 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">De onde vêm os visitantes</span>
+              <span className="text-xs text-gray-400">Últimos 30 dias</span>
+            </div>
+            {events.top_referrers.length > 0 ? (
+              <>
+                {events.top_referrers.some((r) => r.is_ai) && (
+                  <div className="mb-3 pb-3 border-b border-dashed border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Sparkles size={12} className="text-violet-500" />
+                      <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wide">Assistentes de IA</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {events.top_referrers.filter((r) => r.is_ai).map((r) => (
+                        <ReferrerRow key={r.referrer} r={r} accent="violet" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  {events.top_referrers.filter((r) => !r.is_ai).slice(0, 8).map((r) => (
+                    <ReferrerRow key={r.referrer} r={r} accent="gray" />
+                  ))}
+                </div>
+              </>
+            ) : <p className="text-xs text-gray-400">Nenhum dado ainda</p>}
           </div>
         </div>
       )}
@@ -286,6 +301,37 @@ export default function AdminAnalyticsPage() {
           </div>
         ) : (
           <p className="text-center text-gray-400 py-8">Nenhuma organizacao encontrada</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Linha de um referrer: domínio + visitantes + quantos clicaram no CTA/se cadastraram */
+function ReferrerRow({
+  r,
+  accent,
+}: {
+  r: { referrer: string; count: number; cta_clicks: number; signups: number }
+  accent: 'violet' | 'gray'
+}) {
+  const conversionPct = r.count > 0 ? Math.min(100, Math.round((r.signups / r.count) * 100)) : 0
+  const dotColor = accent === 'violet' ? 'bg-violet-500' : 'bg-gray-400'
+  return (
+    <div className="flex items-center justify-between text-sm gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+        <span className="text-gray-600 dark:text-gray-300 truncate max-w-[160px]" title={r.referrer}>
+          {r.referrer || 'Direto'}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 shrink-0 text-xs">
+        <span className="text-gray-400" title="Visitantes">{r.count} visita{r.count === 1 ? '' : 's'}</span>
+        {r.cta_clicks > 0 && <span className="text-amber-600 dark:text-amber-400" title="Cliques no CTA">{r.cta_clicks} clique{r.cta_clicks === 1 ? '' : 's'}</span>}
+        {r.signups > 0 && (
+          <span className="font-semibold text-green-600 dark:text-green-400" title="Cadastros completados">
+            {r.signups} cadastro{r.signups === 1 ? '' : 's'} ({conversionPct}%)
+          </span>
         )}
       </div>
     </div>
