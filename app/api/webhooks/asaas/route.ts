@@ -163,14 +163,23 @@ export async function POST(req: NextRequest) {
                 // O Asaas já gera a cobrança seguinte (ex.: vencimento daqui 1 mês)
                 // antes do webhook rodar — como o próximo vencimento real vira
                 // +60 dias, essa cobrança intermediária fica obsoleta e precisa
-                // ser cancelada pra não cobrar o cliente de novo antes da hora
+                // ser cancelada pra não cobrar o cliente de novo antes da hora.
+                // Se o delete falhar aqui, o handler de PAYMENT_CREATED abaixo é
+                // a segunda tentativa (compara dueDate com subscriptionNextDueDate
+                // já persistido) — por isso o log precisa de IDs suficientes para
+                // rastrear o caso sem precisar vasculhar o banco manualmente.
                 const pendentes = await getSubscriptionPayments(subscriptionId)
                 const intermediarias = pendentes.filter(p => p.status === 'PENDING' && p.id !== payment.id)
                 for (const p of intermediarias) {
                   try {
                     await deletePayment(p.id)
                   } catch (delErr) {
-                    logServerError('[webhook/asaas] cancelar cobrança intermediária', delErr)
+                    logServerError(
+                      '[webhook/asaas] cancelar cobrança intermediária',
+                      delErr,
+                      { subscriptionId, paymentId: p.id, paymentDueDate: p.dueDate, confirmedPaymentId: payment.id },
+                      orgId,
+                    )
                   }
                 }
 
@@ -441,12 +450,52 @@ export async function POST(req: NextRequest) {
     // Nova cobrança gerada (renovação da assinatura)
     if (PAYMENT_CREATED.has(event) && payment?.subscription) {
       const [org] = await db
-        .select({ id: organizations.id, name: organizations.name })
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          firstPaymentConfirmedAt: organizations.firstPaymentConfirmedAt,
+          subscriptionNextDueDate: organizations.subscriptionNextDueDate,
+        })
         .from(organizations)
         .where(eq(organizations.asaasSubscriptionId, payment.subscription))
         .limit(1)
 
       if (org) {
+        // Rede de segurança do bônus de 60 dias: se a cobrança intermediária
+        // (~1 mês) que o Asaas gera ao criar a assinatura escapou do
+        // cancelamento feito no handler de PAYMENT_CONFIRMED (ver bloco acima
+        // — deletePayment pode falhar), ela chega aqui como um PAYMENT_CREATED
+        // comum. Detecta pelo vencimento: se já houve bônus concedido
+        // (firstPaymentConfirmedAt preenchido) e essa cobrança nova vence
+        // ANTES do vencimento real já persistido (subscriptionNextDueDate,
+        // esticado para +60 dias), é a cobrança fantasma — cancela em vez de
+        // sincronizar a data, senão o cliente seria cobrado de novo antes da hora.
+        const isPhantomIntermediateCharge =
+          !!org.firstPaymentConfirmedAt &&
+          !!org.subscriptionNextDueDate &&
+          !!payment.dueDate &&
+          payment.dueDate < org.subscriptionNextDueDate
+
+        if (isPhantomIntermediateCharge) {
+          try {
+            await deletePayment(payment.id)
+            console.log(`[webhook/asaas] PAYMENT_CREATED → org ${org.id} (${org.name}) → cobrança intermediária fantasma cancelada (dueDate ${payment.dueDate} < esperado ${org.subscriptionNextDueDate})`)
+            return NextResponse.json({ ok: true })
+          } catch (delErr) {
+            logServerError(
+              '[webhook/asaas] cancelar cobrança fantasma (2ª tentativa)',
+              delErr,
+              { subscriptionId: payment.subscription, paymentId: payment.id, paymentDueDate: payment.dueDate, expectedDueDate: org.subscriptionNextDueDate },
+              org.id,
+            )
+            // 503 (em vez de 200) faz o Asaas reenviar este webhook depois —
+            // sem isso, uma falha transitória aqui deixaria a cobrança
+            // fantasma permanentemente ativa, sem nenhuma 3ª chance de
+            // correção automática
+            return NextResponse.json({ ok: false, error: 'Não foi possível cancelar cobrança intermediária' }, { status: 503 })
+          }
+        }
+
         if (payment.dueDate) {
           await db
             .update(organizations)
