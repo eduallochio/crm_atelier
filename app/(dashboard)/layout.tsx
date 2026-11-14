@@ -32,9 +32,11 @@ export default async function DashboardLayout({
   const maintenanceMode = await getMaintenanceMode()
   if (maintenanceMode) redirect('/manutencao')
 
-  // Organização suspensa pelo admin: bloqueia o acesso ao dashboard. Não
-  // aplica durante impersonation — o admin precisa poder entrar numa org
-  // suspensa (ex: pra investigar antes de reativar)
+  // Organização suspensa pelo admin, ou sem telefone (login/cadastro via
+  // Google não passa pela validação de telefone obrigatório do signup()
+  // tradicional — ver app/completar-perfil): bloqueia o acesso ao
+  // dashboard. Não aplica durante impersonation — o admin precisa poder
+  // entrar numa org suspensa/incompleta (ex: pra investigar antes de reativar)
   const impersonation = await getImpersonationPayload()
   if (!impersonation) {
     const [profile] = await db
@@ -45,13 +47,16 @@ export default async function DashboardLayout({
 
     if (profile) {
       const [org] = await db
-        .select({ subscriptionStatus: organizations.subscriptionStatus })
+        .select({ subscriptionStatus: organizations.subscriptionStatus, phone: organizations.phone })
         .from(organizations)
         .where(eq(organizations.id, profile.organizationId))
         .limit(1)
 
       if (org?.subscriptionStatus === 'suspended') {
         redirect('/suspenso')
+      }
+      if (!org?.phone) {
+        redirect('/completar-perfil')
       }
     }
   }

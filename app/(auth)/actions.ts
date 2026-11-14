@@ -196,6 +196,40 @@ export async function logout() {
   redirect('/login')
 }
 
+/**
+ * Completa o telefone da organização quando ela não veio preenchido —
+ * caso do login/cadastro via Google, que não passa pela validação de
+ * telefone obrigatório do signup() tradicional (o Google não fornece esse
+ * dado, e o trigger handle_new_user cria a organização sem ele).
+ */
+export async function completarPerfil(formData: FormData) {
+  const phone = formData.get('phone') as string | null
+
+  if (!phone || phone.replace(/\D/g, '').length < 10) {
+    return { error: 'Telefone é obrigatório.' }
+  }
+
+  const { requireAuth } = await import('@/lib/auth/session')
+  const user = await requireAuth()
+
+  const { db } = await import('@/lib/db')
+  const { organizations } = await import('@/lib/db/schema')
+  const { eq } = await import('drizzle-orm')
+
+  const updated = await db
+    .update(organizations)
+    .set({ phone: phone.replace(/\D/g, ''), updatedAt: new Date() })
+    .where(eq(organizations.id, user.organizationId))
+    .returning({ id: organizations.id })
+
+  if (updated.length === 0) {
+    return { error: 'Não foi possível salvar o telefone. Tente novamente.' }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/dashboard')
+}
+
 export async function forgotPassword(formData: FormData) {
   const email = formData.get('email') as string
 
