@@ -6,13 +6,41 @@ import { redirect } from 'next/navigation'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
+  const email = formData.get('email') as string
 
   const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get('email') as string,
+    email,
     password: formData.get('password') as string,
   })
 
   if (error) {
+    // Conta criada via "Entrar com Google" não tem senha própria — tentar
+    // logar com email/senha sempre falha, e a pessoa não entende por quê
+    // (confirmado em caso real: tentava de novo achando que esqueceu a
+    // senha, batia em "email já cadastrado" ao tentar se cadastrar de
+    // novo). Só avisa quando o provider confirmado é exclusivamente
+    // Google — não revela se o email existe nos demais casos, pra não
+    // abrir um vetor de enumeração de contas.
+    try {
+      const { db } = await import('@/lib/db')
+      const { sql } = await import('drizzle-orm')
+      const [row] = await db.execute<{ providers: unknown }>(
+        sql`SELECT raw_app_meta_data->'providers' AS providers FROM auth.users WHERE email = ${email} LIMIT 1`
+      )
+      // postgres.js desserializa jsonb como array nativo, mas trata como
+      // string também caso o driver não converta nesse caminho de query raw
+      const rawProviders = row?.providers
+      const providers: string[] = Array.isArray(rawProviders)
+        ? rawProviders
+        : typeof rawProviders === 'string'
+          ? (() => { try { return JSON.parse(rawProviders) } catch { return [] } })()
+          : []
+      if (providers.length > 0 && providers.every((p) => p !== 'email')) {
+        return { error: 'Esta conta usa login com Google. Clique em "Entrar com Google" abaixo.' }
+      }
+    } catch {
+      // Falha na checagem não deve impedir a mensagem de erro padrão
+    }
     return { error: 'Email ou senha incorretos.' }
   }
 
