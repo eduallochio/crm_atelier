@@ -278,6 +278,7 @@ export default function AjudaPage() {
                 </div>
               </div>
               <Note title="Promoção">Na primeira assinatura mensal do plano Pro (PIX ou cartão), o ateliê ganha 2 meses pelo preço de 1 — 60 dias de acesso contados a partir da aprovação do pagamento, em vez dos 30 dias normais. É só na primeira vez; nas renovações seguintes, o ciclo volta ao normal.</Note>
+              <Note title="Renovação via PIX">No cartão, a cobrança é automática a cada ciclo. No PIX, não — cada renovação gera um novo QR code, enviado por email alguns dias antes do vencimento, que precisa ser pago manualmente para manter o plano Pro ativo.</Note>
             </section>
 
             {/* 2. Dashboard */}

@@ -18,11 +18,41 @@ export async function GET() {
         plan:                    organizations.plan,
         subscriptionStatus:      organizations.subscriptionStatus,
         asaasSubscriptionId:     organizations.asaasSubscriptionId,
+        asaasBillingType:        organizations.asaasBillingType,
+        asaasCycle:              organizations.asaasCycle,
+        subscriptionNextDueDate: organizations.subscriptionNextDueDate,
         firstPaymentConfirmedAt: organizations.firstPaymentConfirmedAt,
       })
       .from(organizations)
       .where(eq(organizations.id, user.organizationId))
       .limit(1)
+
+    // PIX não tem subscription no Asaas para consultar — usa o que já está
+    // persistido na organização (mantido sincronizado pelo webhook/cron)
+    if (org?.asaasBillingType === 'PIX') {
+      const [planRow] = await db
+        .select({ price: plans.price, priceAnnual: plans.priceAnnual })
+        .from(plans).where(eq(plans.slug, org.plan)).limit(1)
+      const pixCycle = org.asaasCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY'
+      const pixValue = pixCycle === 'YEARLY'
+        ? parseFloat(planRow?.priceAnnual ?? '0') || parseFloat(planRow?.price ?? '0') * 10
+        : parseFloat(planRow?.price ?? '0')
+      const inBonusWindowPix = Boolean(
+        org.firstPaymentConfirmedAt &&
+        pixCycle === 'MONTHLY' &&
+        org.subscriptionNextDueDate &&
+        new Date(`${org.subscriptionNextDueDate}T12:00:00`) < addDays(new Date(org.firstPaymentConfirmedAt), 60)
+      )
+      return NextResponse.json({
+        plan:                      org.plan,
+        status:                    org.subscriptionStatus,
+        next_due_date:             org.subscriptionNextDueDate,
+        cycle:                     pixCycle,
+        value:                     pixValue,
+        first_payment_confirmed_at: org.firstPaymentConfirmedAt,
+        in_bonus_window:           inBonusWindowPix,
+      })
+    }
 
     if (!org?.asaasSubscriptionId) {
       return NextResponse.json({ plan: org?.plan ?? 'free', next_due_date: null, status: org?.subscriptionStatus ?? 'inactive' })

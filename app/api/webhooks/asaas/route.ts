@@ -275,6 +275,64 @@ export async function POST(req: NextRequest) {
           } catch (syncErr) {
             logServerError('[webhook/asaas] sincronizar nextDueDate', syncErr)
           }
+        } else {
+          // Pagamento avulso (PIX) — não há subscription no Asaas para
+          // consultar nextDueDate; o próximo vencimento é calculado a partir
+          // do ciclo persistido no checkout (organizations.asaasCycle). A
+          // cobrança do ciclo seguinte é gerada pelo cron em
+          // app/api/cron/generate-pix-renewal, não por updateSubscription.
+          try {
+            const [orgRow] = await db
+              .select({
+                firstPaymentConfirmedAt: organizations.firstPaymentConfirmedAt,
+                asaasCycle: organizations.asaasCycle,
+              })
+              .from(organizations)
+              .where(eq(organizations.id, orgId))
+              .limit(1)
+
+            const isFirstConfirmedPayment = !orgRow?.firstPaymentConfirmedAt
+            const confirmedAt = confirmedPayment.confirmedDate ?? confirmedPayment.paymentDate ?? format(new Date(), 'yyyy-MM-dd')
+            const pixCycle = orgRow?.asaasCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY'
+
+            const [couponUsage] = await db
+              .select({ id: couponUsages.id, bonusCycles: coupons.bonusCycles })
+              .from(couponUsages)
+              .innerJoin(coupons, eq(coupons.id, couponUsages.couponId))
+              .where(and(
+                eq(couponUsages.organizationId, orgId),
+                isNull(couponUsages.asaasSubscriptionId),
+                isNull(couponUsages.appliedAt),
+              ))
+              .orderBy(desc(couponUsages.usedAt))
+              .limit(1)
+
+            const autoBonusCycles = isFirstConfirmedPayment && pixCycle === 'MONTHLY' ? 1 : 0
+            const couponBonusCycles = couponUsage?.bonusCycles ?? 0
+            // +1 porque o próximo vencimento já avança 1 ciclo normal, mais
+            // os ciclos de bônus por cima
+            const cyclesToAdd = 1 + Math.max(autoBonusCycles, couponBonusCycles)
+            const addCycle = pixCycle === 'YEARLY' ? addYears : addMonths
+            const nextDueDateStr = format(addCycle(new Date(`${confirmedAt}T12:00:00`), cyclesToAdd), 'yyyy-MM-dd')
+
+            await db
+              .update(organizations)
+              .set({
+                subscriptionNextDueDate: nextDueDateStr,
+                ...(isFirstConfirmedPayment ? { firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) } : {}),
+              })
+              .where(eq(organizations.id, orgId))
+
+            if (couponUsage) {
+              await db
+                .update(couponUsages)
+                .set({ appliedAt: new Date() })
+                .where(eq(couponUsages.id, couponUsage.id))
+            }
+            console.log(`[webhook/asaas] PIX avulso confirmado → org ${orgId} → próximo vencimento ${nextDueDateStr}`)
+          } catch (syncErr) {
+            logServerError('[webhook/asaas] sincronizar nextDueDate (PIX avulso)', syncErr, undefined, orgId)
+          }
         }
 
         // Email de pagamento confirmado
@@ -365,6 +423,52 @@ export async function POST(req: NextRequest) {
     }
 
     // Pagamento atrasado → manter pro mas marcar como inadimplente (não rebaixar imediatamente)
+    if (PAYMENT_OVERDUE.has(event) && payment?.id && !payment.subscription) {
+      // Cobrança avulsa (PIX) vencida — não há subscription para corroborar;
+      // corrobora o próprio pagamento, igual ao branch PAYMENT_CONFIRMED
+      let confirmedPix
+      try {
+        confirmedPix = await getPayment(payment.id)
+      } catch (corroborationErr) {
+        logServerError('[webhook/asaas] falha ao corroborar pagamento avulso (overdue) com a API do Asaas', corroborationErr)
+        return NextResponse.json({ ok: false, error: 'Não foi possível confirmar o pagamento' }, { status: 503 })
+      }
+
+      const orgIdPix = confirmedPix.externalReference ?? null
+      if (orgIdPix) {
+        await db
+          .update(organizations)
+          .set({ subscriptionStatus: 'overdue' })
+          .where(eq(organizations.id, orgIdPix))
+
+        console.log(`[webhook/asaas] ${event} → org ${orgIdPix} (PIX avulso) → status overdue`)
+
+        try {
+          const [orgData] = await db
+            .select({ email: organizations.email })
+            .from(organizations)
+            .where(eq(organizations.id, orgIdPix))
+            .limit(1)
+          if (orgData?.email) {
+            const vencimentoPix = confirmedPix.dueDate
+              ? format(new Date(`${confirmedPix.dueDate}T12:00:00`), 'dd/MM/yyyy')
+              : '—'
+            await sendPagamentoAtrasado({
+              to: orgData.email,
+              ciclo: 'avulso',
+              valor: `R$ ${Number(confirmedPix.value ?? 0).toFixed(2).replace('.', ',')}`,
+              vencimento: vencimentoPix,
+              prazo: '5 dias',
+              urlPagamento: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura`,
+            }).catch(err => logServerError('[webhook/asaas] email pagamento atrasado (PIX avulso)', err))
+          }
+        } catch (emailErr) {
+          logServerError('[webhook/asaas] email pagamento atrasado (PIX avulso)', emailErr)
+        }
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     if (PAYMENT_OVERDUE.has(event) && payment?.subscription) {
       // Corrobora contra a API do Asaas antes de confiar no subscription.id do
       // body — mesmo vetor de spoofing do branch PAYMENT_CONFIRMED: qualquer um

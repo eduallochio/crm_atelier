@@ -8,8 +8,9 @@ import {
   createCustomer,
   findCustomerByCpfCnpj,
   createSubscription,
+  createPayment,
   getSubscription,
-  getSubscriptionPayments,
+  getCustomerPayments,
   getPixQrCode,
 } from '@/lib/asaas'
 import { format } from 'date-fns'
@@ -70,6 +71,8 @@ export async function POST(req: NextRequest) {
         plan:                organizations.plan,
         asaasCustomerId:     organizations.asaasCustomerId,
         asaasSubscriptionId: organizations.asaasSubscriptionId,
+        asaasBillingType:    organizations.asaasBillingType,
+        subscriptionStatus:  organizations.subscriptionStatus,
       })
       .from(organizations)
       .where(eq(organizations.id, user.organizationId))
@@ -81,6 +84,15 @@ export async function POST(req: NextRequest) {
 
     if (org.plan === plan) {
       return NextResponse.json({ error: 'Organização já possui este plano' }, { status: 400 })
+    }
+
+    // Evita gerar uma 2ª cobrança/assinatura PIX enquanto a 1ª ainda não
+    // confirmou (ex: usuário clicou duas vezes) — PIX não tem subscription
+    // no Asaas para checar status, então usa o status já persistido aqui
+    if (org.asaasBillingType === 'PIX' && org.subscriptionStatus === 'active') {
+      return NextResponse.json({
+        error: 'Você já possui uma assinatura ativa. Entre em contato com o suporte para alterá-la.',
+      }, { status: 409 })
     }
 
     // Evita criar uma segunda assinatura no Asaas quando já existe uma ativa
@@ -217,25 +229,109 @@ export async function POST(req: NextRequest) {
         .where(eq(organizations.id, org.id))
     }
 
-    // Criar assinatura — o Asaas só processa a 1ª cobrança imediatamente quando
-    // nextDueDate é a data de hoje; qualquer data futura adia a cobrança real
-    // para aquele dia (confirmado na documentação do Asaas), mesmo que o
-    // usuário pague na hora
+    // nextDueDate de hoje — o Asaas só processa a 1ª cobrança imediatamente
+    // quando a data é hoje; qualquer data futura adia a cobrança real para
+    // aquele dia (confirmado na documentação do Asaas), mesmo pagando na hora
     const nextDueDate = format(new Date(), 'yyyy-MM-dd')
+    const description = `Meu Atelier Sistema — Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`
 
-    const forwardedFor = req.headers.get('x-forwarded-for')
-    const remoteIp = forwardedFor?.split(',')[0]?.trim() ?? '127.0.0.1'
+    let pixQrCode: { encodedImage: string; payload: string; expirationDate: string } | null = null
+    let subscriptionId: string | null = null
+    let responseStatus = ''
+    let responseNextDueDate = nextDueDate
 
-    const subscription = await createSubscription({
-      customer:          asaasCustomerId,
-      billingType:       billing_type,
-      value:             basePrice,
-      nextDueDate,
-      cycle,
-      description:       `Meu Atelier Sistema — Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${cycle === 'MONTHLY' ? 'Mensal' : 'Anual'})`,
-      discount,
-      externalReference: org.id,
-      ...(billing_type === 'CREDIT_CARD' && {
+    if (billing_type === 'PIX') {
+      // Bloqueia clique duplo no checkout antes da 1ª cobrança confirmar —
+      // a checagem de org.subscriptionStatus === 'active' acima só pega o
+      // caso de já ter uma assinatura PIX ativa; aqui ainda não há nenhuma,
+      // então sem isso o usuário poderia gerar duas cobranças avulsas
+      // simultâneas clicando duas vezes
+      const pendingPayments = await getCustomerPayments(asaasCustomerId)
+      if (pendingPayments.some(p => p.status === 'PENDING' && p.billingType === 'PIX')) {
+        return NextResponse.json({
+          error: 'Já existe uma cobrança PIX pendente. Verifique seu email ou a tela de assinatura.',
+        }, { status: 409 })
+      }
+
+      // O Asaas rejeita billingType PIX em /subscriptions (erro
+      // invalid_billingType — "A forma de pagamento não é permitida para
+      // assinaturas"), confirmado em produção: PIX só é aceito em cobrança
+      // avulsa (/payments). Cada ciclo vira uma cobrança avulsa nova — a 1ª
+      // aqui, as seguintes geradas pelo cron em
+      // app/api/cron/generate-pix-renewal.
+      const payment = await createPayment({
+        customer:          asaasCustomerId,
+        billingType:       'PIX',
+        value:             basePrice,
+        dueDate:           nextDueDate,
+        description,
+        discount,
+        externalReference: org.id,
+      })
+
+      responseStatus = payment.status
+      responseNextDueDate = payment.dueDate
+
+      await db
+        .update(organizations)
+        .set({
+          asaasBillingType: 'PIX',
+          asaasCycle: cycle,
+          subscriptionNextDueDate: payment.dueDate,
+        })
+        .where(eq(organizations.id, org.id))
+
+      if (couponRow) {
+        // Sem asaasSubscriptionId — não há assinatura no caminho PIX. O
+        // bônus de cupom em PIX é aplicado pelo webhook ao confirmar esta
+        // cobrança avulsa (ver app/api/webhooks/asaas), que localiza o uso
+        // pendente por organizationId quando asaasSubscriptionId é null.
+        await db.insert(couponUsages).values({
+          couponId:       couponRow.id,
+          organizationId: org.id,
+          cpfCnpj:        payerCpfCnpj,
+        })
+        await db
+          .update(coupons)
+          .set({ usesCount: sql`coalesce(${coupons.usesCount}, 0) + 1` })
+          .where(eq(coupons.id, couponRow.id))
+      }
+
+      try {
+        pixQrCode = await getPixQrCode(payment.id)
+      } catch {
+        // QR code opcional — não bloqueia o checkout
+      }
+
+      const emailTo = org.email ?? user.email
+      if (emailTo && pixQrCode) {
+        const validade = pixQrCode.expirationDate
+          ? format(new Date(pixQrCode.expirationDate), "dd/MM/yyyy 'às' HH:mm")
+          : '24 horas'
+        import('@/lib/email').then(({ sendPixAguardando }) =>
+          sendPixAguardando({
+            to: emailTo,
+            valor: `R$ ${basePrice.toFixed(2).replace('.', ',')}`,
+            validade,
+            urlPagamento: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura`,
+            pixCopiaCola: pixQrCode!.payload,
+            qrCodeBase64: pixQrCode!.encodedImage,
+          })
+        ).catch(() => {})
+      }
+    } else {
+      const forwardedFor = req.headers.get('x-forwarded-for')
+      const remoteIp = forwardedFor?.split(',')[0]?.trim() ?? '127.0.0.1'
+
+      const subscription = await createSubscription({
+        customer:          asaasCustomerId,
+        billingType:       'CREDIT_CARD',
+        value:             basePrice,
+        nextDueDate,
+        cycle,
+        description,
+        discount,
+        externalReference: org.id,
         callback: {
           successUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura&payment=confirmed`,
           autoRedirect: true,
@@ -260,80 +356,51 @@ export async function POST(req: NextRequest) {
           installmentCount: installment_count,
           installmentValue: installment_value,
         }),
-      }),
-    })
-
-    // Salvar subscription_id e data do próximo vencimento na organização — usada
-    // pelo contador de dias até a renovação no dashboard/sidebar
-    await db
-      .update(organizations)
-      .set({
-        asaasSubscriptionId: subscription.id,
-        subscriptionNextDueDate: subscription.nextDueDate,
       })
-      .where(eq(organizations.id, org.id))
 
-    // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses pelo preço
-    // de 1"): NÃO mexe na assinatura aqui — fazer isso antes da 1ª cobrança
-    // confirmar é a mesma race condition que já causou uma cobrança fantasma no
-    // bônus automático de 60 dias (webhook pode processar PAYMENT_CONFIRMED
-    // enquanto este updateSubscription ainda está em voo). O esticamento da
-    // assinatura passa a acontecer só no webhook (PAYMENT_CONFIRMED), que já
-    // consulta couponUsages para saber se há bônus de cupom a aplicar — ver
-    // app/api/webhooks/asaas/route.ts. Aqui só registramos o uso do cupom.
+      subscriptionId = subscription.id
+      responseStatus = subscription.status
+      responseNextDueDate = subscription.nextDueDate
 
-    // Registrar uso do cupom — vinculado a esta assinatura específica, para
-    // o webhook não aplicar o bônus numa assinatura futura sem cupom caso
-    // a organização reassine depois de cancelar
-    if (couponRow) {
-      await db.insert(couponUsages).values({
-        couponId:            couponRow.id,
-        organizationId:      org.id,
-        cpfCnpj:             payerCpfCnpj,
-        asaasSubscriptionId: subscription.id,
-      })
+      // Salvar subscription_id e data do próximo vencimento na organização —
+      // usada pelo contador de dias até a renovação no dashboard/sidebar
       await db
-        .update(coupons)
-        .set({ usesCount: sql`coalesce(${coupons.usesCount}, 0) + 1` })
-        .where(eq(coupons.id, couponRow.id))
-    }
+        .update(organizations)
+        .set({
+          asaasSubscriptionId: subscription.id,
+          asaasBillingType: 'CREDIT_CARD',
+          asaasCycle: cycle,
+          subscriptionNextDueDate: subscription.nextDueDate,
+        })
+        .where(eq(organizations.id, org.id))
 
-    // Para PIX: buscar o primeiro pagamento da assinatura e retornar o QR code
-    let pixQrCode: { encodedImage: string; payload: string; expirationDate: string } | null = null
-    if (billing_type === 'PIX') {
-      try {
-        const payments = await getSubscriptionPayments(subscription.id)
-        const firstPayment = payments.find(p => p.status === 'PENDING')
-        if (firstPayment?.pixQrCodeId || firstPayment?.id) {
-          pixQrCode = await getPixQrCode(firstPayment.id)
-        }
-      } catch {
-        // QR code opcional — não bloqueia o checkout
-      }
-
-      // Enviar email com QR code e copia e cola
-      const emailTo = org.email ?? user.email
-      if (emailTo && pixQrCode) {
-        const validade = pixQrCode.expirationDate
-          ? format(new Date(pixQrCode.expirationDate), "dd/MM/yyyy 'às' HH:mm")
-          : '24 horas'
-        import('@/lib/email').then(({ sendPixAguardando }) =>
-          sendPixAguardando({
-            to: emailTo,
-            valor: `R$ ${basePrice.toFixed(2).replace('.', ',')}`,
-            validade,
-            urlPagamento: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br'}/configuracoes?tab=assinatura`,
-            pixCopiaCola: pixQrCode!.payload,
-            qrCodeBase64: pixQrCode!.encodedImage,
-          })
-        ).catch(() => {})
+      // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses
+      // pelo preço de 1"): NÃO mexe na assinatura aqui — fazer isso antes
+      // da 1ª cobrança confirmar é a mesma race condition que já causou uma
+      // cobrança fantasma no bônus automático de 60 dias (webhook pode
+      // processar PAYMENT_CONFIRMED enquanto este updateSubscription ainda
+      // está em voo). O esticamento da assinatura passa a acontecer só no
+      // webhook (PAYMENT_CONFIRMED), que já consulta couponUsages para
+      // saber se há bônus de cupom a aplicar — ver
+      // app/api/webhooks/asaas/route.ts. Aqui só registramos o uso do cupom.
+      if (couponRow) {
+        await db.insert(couponUsages).values({
+          couponId:            couponRow.id,
+          organizationId:      org.id,
+          cpfCnpj:             payerCpfCnpj,
+          asaasSubscriptionId: subscription.id,
+        })
+        await db
+          .update(coupons)
+          .set({ usesCount: sql`coalesce(${coupons.usesCount}, 0) + 1` })
+          .where(eq(coupons.id, couponRow.id))
       }
     }
 
     return NextResponse.json({
-      subscription_id: subscription.id,
-      status:          subscription.status,
-      next_due_date:   subscription.nextDueDate,
+      subscription_id: subscriptionId,
+      status:          responseStatus,
+      next_due_date:   responseNextDueDate,
       billing_type,
       value:           basePrice,
       discount,

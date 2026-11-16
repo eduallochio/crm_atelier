@@ -48,6 +48,17 @@ export const organizations = pgTable('organizations', {
   // bônus de 60 dias (2 meses pelo preço de 1) já foi aplicado, pra não
   // reaplicar nas renovações seguintes; também exibido na tela de Assinatura
   firstPaymentConfirmedAt: timestamp('first_payment_confirmed_at', { withTimezone: true }),
+  // Meio de pagamento da assinatura — o Asaas rejeita billingType PIX em
+  // assinaturas recorrentes (só aceita em cobrança avulsa), então PIX nunca
+  // tem asaasSubscriptionId: cada ciclo é uma cobrança avulsa nova, gerada
+  // pelo cron em app/api/cron/generate-pix-renewal. Este campo é o que
+  // diferencia os dois fluxos (ver app/api/checkout/asaas e o webhook).
+  asaasBillingType:   text('asaas_billing_type'), // 'PIX' | 'CREDIT_CARD' | null
+  // Ciclo da assinatura PIX avulsa (mensal/anual) — para cartão o ciclo vem
+  // da subscription no Asaas; para PIX não existe subscription, então
+  // precisa ser persistido aqui para o cron saber de quanto em quanto
+  // tempo gerar a próxima cobrança
+  asaasCycle:         text('asaas_cycle'), // 'MONTHLY' | 'YEARLY' | null
   instagram:          text('instagram'),
   facebook:           text('facebook'),
   twitter:            text('twitter'),

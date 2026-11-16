@@ -158,12 +158,47 @@ export async function updateSubscription(id: string, data: {
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
 
+// Cobrança avulsa (fora de subscription) — necessária para PIX em
+// assinaturas: o Asaas rejeita billingType PIX em /subscriptions (só aceita
+// em /payments, ou via Pix Automático, recurso separado não habilitado).
+// Cada ciclo de uma assinatura PIX é uma chamada nova a esta função, feita
+// pelo checkout (1ª cobrança) ou pelo cron de renovação (ciclos seguintes).
+export async function createPayment(data: {
+  customer: string
+  billingType: 'PIX' | 'CREDIT_CARD' | 'BOLETO'
+  value: number
+  dueDate: string // YYYY-MM-DD
+  description: string
+  discount?: { value: number; type: 'FIXED' | 'PERCENTAGE' }
+  externalReference?: string
+}): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>('/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...data,
+      // Desliga todos os emails do Asaas — usamos Resend para notificações
+      notifications: {
+        sendPaymentCreatedNotification:   false,
+        sendPaymentDueNotification:       false,
+        sendPaymentConfirmedNotification: false,
+        sendPaymentOverdueNotification:   false,
+        sendPaymentReceivedNotification:  false,
+      },
+    }),
+  })
+}
+
 export async function getPayment(id: string): Promise<AsaasPayment> {
   return asaasFetch<AsaasPayment>(`/payments/${id}`)
 }
 
 export async function getSubscriptionPayments(subscriptionId: string): Promise<AsaasPayment[]> {
   const res = await asaasFetch<{ data: AsaasPayment[] }>(`/payments?subscription=${subscriptionId}`)
+  return res.data
+}
+
+export async function getCustomerPayments(customerId: string): Promise<AsaasPayment[]> {
+  const res = await asaasFetch<{ data: AsaasPayment[] }>(`/payments?customer=${customerId}`)
   return res.data
 }
 

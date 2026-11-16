@@ -11,16 +11,25 @@ export async function POST() {
     const user = await requireAuth()
 
     const [org] = await db
-      .select({ id: organizations.id, asaasSubscriptionId: organizations.asaasSubscriptionId })
+      .select({
+        id: organizations.id,
+        asaasSubscriptionId: organizations.asaasSubscriptionId,
+        asaasBillingType: organizations.asaasBillingType,
+      })
       .from(organizations)
       .where(eq(organizations.id, user.organizationId))
       .limit(1)
 
-    if (!org?.asaasSubscriptionId) {
-      return NextResponse.json({ error: 'Nenhuma assinatura ativa encontrada.' }, { status: 404 })
+    // PIX não tem subscription real no Asaas (cada ciclo é cobrança avulsa,
+    // gerada pelo cron em app/api/cron/generate-pix-renewal) — "cancelar"
+    // aqui é só parar de gerar a próxima cobrança, feito rebaixando o plano
+    // abaixo; não há nada no Asaas para chamar cancelSubscription
+    if (org?.asaasBillingType !== 'PIX') {
+      if (!org?.asaasSubscriptionId) {
+        return NextResponse.json({ error: 'Nenhuma assinatura ativa encontrada.' }, { status: 404 })
+      }
+      await cancelSubscription(org.asaasSubscriptionId)
     }
-
-    await cancelSubscription(org.asaasSubscriptionId)
 
     // Rebaixa imediatamente — o webhook SUBSCRIPTION_DELETED também fará isso,
     // mas adiantamos para o usuário ver o efeito na hora
