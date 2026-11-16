@@ -260,7 +260,15 @@ export async function sendReengajamento(to: string, nome: string) {
     if (row?.value) {
       const mensagem = encodeURIComponent('Olá! Criei uma conta no Meu Atelier Sistema e preciso de uma ajuda para começar.')
       const urlWhatsapp = `https://wa.me/${row.value}?text=${mensagem}`
-      whatsappHtml = `<p style="margin:10px 0 0;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E5E4F;">Prefere falar por WhatsApp? <a href="${urlWhatsapp}" style="color:#8A4B2C;font-weight:700;text-decoration:underline;">Chame a gente aqui</a>.</p>`
+      whatsappHtml = `
+            <p style="margin:18px 0 10px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E5E4F;">Prefere falar por WhatsApp?</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 4px;">
+              <tr>
+                <td align="center" bgcolor="#25D366" style="border-radius:6px;">
+                  <a href="${urlWhatsapp}" style="display:inline-block;padding:13px 30px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF;text-decoration:none;border-radius:6px;">Chamar no WhatsApp</a>
+                </td>
+              </tr>
+            </table>`
     }
   } catch { /* link opcional — não bloqueia o envio */ }
 
