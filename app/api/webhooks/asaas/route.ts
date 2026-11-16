@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
-import { organizations, orgFinancialSettings, orgPayables } from '@/lib/db/schema'
-import { eq, and, like } from 'drizzle-orm'
+import { organizations, orgFinancialSettings, orgPayables, coupons, couponUsages } from '@/lib/db/schema'
+import { eq, and, like, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
-import { format, addDays } from 'date-fns'
+import { format, addMonths, addYears } from 'date-fns'
 import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment, getPayment } from '@/lib/asaas'
 import {
   sendPagamentoConfirmado,
@@ -140,10 +140,11 @@ export async function POST(req: NextRequest) {
           try {
             const sub = await getSubscription(subscriptionId)
 
-            // Bônus da 1ª assinatura mensal: 2 meses pelo preço de 1 (60 dias a
-            // partir da aprovação, não do checkout). Só aplica uma vez por
-            // organização — firstPaymentConfirmedAt ainda null é o que marca
-            // "este é o primeiro pagamento confirmado desta assinatura"
+            // Bônus de assinatura (automático da 1ª mensal e/ou cupom com
+            // bonusCycles) — calculado a partir da data de aprovação do
+            // pagamento, não do checkout. Só aplica uma vez por organização —
+            // firstPaymentConfirmedAt ainda null é o que marca "este é o
+            // primeiro pagamento confirmado desta assinatura"
             const [orgRow] = await db
               .select({ firstPaymentConfirmedAt: organizations.firstPaymentConfirmedAt })
               .from(organizations)
@@ -153,17 +154,44 @@ export async function POST(req: NextRequest) {
             const isFirstConfirmedPayment = !orgRow?.firstPaymentConfirmedAt
             // Usa a data corroborada pela API do Asaas, não o corpo da
             // requisição — esse valor alimenta o cálculo da data de bônus
-            // (+60 dias) persistida em firstPaymentConfirmedAt, então
-            // confiar no body permitiria manipular a janela de renovação
+            // persistida em firstPaymentConfirmedAt, então confiar no body
+            // permitiria manipular a janela de renovação
             const confirmedAt = confirmedPayment.confirmedDate ?? confirmedPayment.paymentDate ?? format(new Date(), 'yyyy-MM-dd')
 
-            if (isFirstConfirmedPayment && sub.cycle === 'MONTHLY') {
-              const bonusDueDateStr = format(addDays(new Date(`${confirmedAt}T12:00:00`), 60), 'yyyy-MM-dd')
+            // Único ponto de decisão do bônus de assinatura — unifica o bônus
+            // automático ("2 meses pelo preço de 1" na 1ª assinatura mensal) e
+            // o bônus de cupom com bonusCycles (ex: PROMO50), que antes era
+            // aplicado no checkout logo após criar a assinatura, antes de
+            // qualquer confirmação de pagamento — mesma race condition que já
+            // causou uma cobrança fantasma aqui. Quando os dois bônus se
+            // aplicam, vale o maior, nunca a soma.
+            const autoBonusCycles = sub.cycle === 'MONTHLY' ? 1 : 0
+            // Filtra por esta assinatura específica (não só a organização) —
+            // sem isso, um uso de cupom de uma assinatura anterior já
+            // cancelada seria encontrado e aplicaria o bônus indevidamente
+            // numa assinatura nova sem cupom
+            const [couponUsage] = await db
+              .select({ bonusCycles: coupons.bonusCycles })
+              .from(couponUsages)
+              .innerJoin(coupons, eq(coupons.id, couponUsages.couponId))
+              .where(and(
+                eq(couponUsages.organizationId, orgId),
+                eq(couponUsages.asaasSubscriptionId, subscriptionId),
+              ))
+              .orderBy(desc(couponUsages.usedAt))
+              .limit(1)
+            const couponBonusCycles = couponUsage?.bonusCycles ?? 0
+            const effectiveBonusCycles = Math.max(autoBonusCycles, couponBonusCycles)
+
+            if (isFirstConfirmedPayment && effectiveBonusCycles > 0) {
+              const addCycle = sub.cycle === 'YEARLY' ? addYears : addMonths
+              const bonusDueDateStr = format(addCycle(new Date(`${confirmedAt}T12:00:00`), effectiveBonusCycles), 'yyyy-MM-dd')
               try {
                 // O Asaas já gera a cobrança seguinte (ex.: vencimento daqui 1 mês)
                 // antes do webhook rodar — como o próximo vencimento real vira
-                // +60 dias, essa cobrança intermediária fica obsoleta e precisa
-                // ser cancelada pra não cobrar o cliente de novo antes da hora.
+                // +effectiveBonusCycles ciclos, essa cobrança intermediária fica
+                // obsoleta e precisa ser cancelada pra não cobrar o cliente de
+                // novo antes da hora.
                 // Se o delete falhar aqui, o handler de PAYMENT_CREATED abaixo é
                 // a segunda tentativa (compara dueDate com subscriptionNextDueDate
                 // já persistido) — por isso o log precisa de IDs suficientes para
@@ -188,9 +216,9 @@ export async function POST(req: NextRequest) {
                   .update(organizations)
                   .set({ subscriptionNextDueDate: updated.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
                   .where(eq(organizations.id, orgId))
-                console.log(`[webhook/asaas] bônus 1ª assinatura aplicado → org ${orgId} → próximo vencimento ${updated.nextDueDate}`)
+                console.log(`[webhook/asaas] bônus de assinatura aplicado (${effectiveBonusCycles} ciclo(s)) → org ${orgId} → próximo vencimento ${updated.nextDueDate}`)
               } catch (bonusErr) {
-                logServerError('[webhook/asaas] aplicar bônus 60 dias', bonusErr)
+                logServerError('[webhook/asaas] aplicar bônus de assinatura', bonusErr, { subscriptionId, effectiveBonusCycles }, orgId)
                 await db
                   .update(organizations)
                   .set({ subscriptionNextDueDate: sub.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
@@ -461,15 +489,16 @@ export async function POST(req: NextRequest) {
         .limit(1)
 
       if (org) {
-        // Rede de segurança do bônus de 60 dias: se a cobrança intermediária
-        // (~1 mês) que o Asaas gera ao criar a assinatura escapou do
-        // cancelamento feito no handler de PAYMENT_CONFIRMED (ver bloco acima
-        // — deletePayment pode falhar), ela chega aqui como um PAYMENT_CREATED
-        // comum. Detecta pelo vencimento: se já houve bônus concedido
-        // (firstPaymentConfirmedAt preenchido) e essa cobrança nova vence
-        // ANTES do vencimento real já persistido (subscriptionNextDueDate,
-        // esticado para +60 dias), é a cobrança fantasma — cancela em vez de
-        // sincronizar a data, senão o cliente seria cobrado de novo antes da hora.
+        // Rede de segurança do bônus de assinatura (automático ou de cupom):
+        // se a cobrança intermediária (~1 ciclo) que o Asaas gera ao criar a
+        // assinatura escapou do cancelamento feito no handler de
+        // PAYMENT_CONFIRMED (ver bloco acima — deletePayment pode falhar), ela
+        // chega aqui como um PAYMENT_CREATED comum. Detecta pelo vencimento:
+        // se já houve bônus concedido (firstPaymentConfirmedAt preenchido) e
+        // essa cobrança nova vence ANTES do vencimento real já persistido
+        // (subscriptionNextDueDate, esticado pelo bônus), é a cobrança
+        // fantasma — cancela em vez de sincronizar a data, senão o cliente
+        // seria cobrado de novo antes da hora.
         const isPhantomIntermediateCharge =
           !!org.firstPaymentConfirmedAt &&
           !!org.subscriptionNextDueDate &&

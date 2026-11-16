@@ -724,6 +724,12 @@ export const couponUsages = pgTable('coupon_usages', {
   couponId:       uuid('coupon_id').notNull().references(() => coupons.id),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id),
   cpfCnpj:        text('cpf_cnpj'), // CPF/CNPJ do pagador (normalizado, só dígitos) — usado para bloquear reuso do mesmo cupom por pessoa, mesmo em outra conta
+  // Assinatura Asaas à qual este uso do cupom se refere — sem isso, o webhook
+  // que aplica o bônus de cupom (ver app/api/webhooks/asaas) encontraria o
+  // uso mais recente da ORGANIZAÇÃO, mesmo que fosse de uma assinatura
+  // anterior já cancelada, aplicando o bônus indevidamente numa assinatura
+  // nova sem cupom
+  asaasSubscriptionId: text('asaas_subscription_id'),
   usedAt:         timestamp('used_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_coupon_usages_coupon').on(t.couponId),

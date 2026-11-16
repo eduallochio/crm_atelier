@@ -8,12 +8,11 @@ import {
   createCustomer,
   findCustomerByCpfCnpj,
   createSubscription,
-  updateSubscription,
   getSubscription,
   getSubscriptionPayments,
   getPixQrCode,
 } from '@/lib/asaas'
-import { format, addMonths, addYears } from 'date-fns'
+import { format } from 'date-fns'
 
 // POST /api/checkout/asaas
 // Cria (ou reutiliza) cliente no Asaas e gera assinatura
@@ -274,29 +273,24 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(organizations.id, org.id))
 
-    // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses pelo preço de
-    // 1"): adia a PRÓXIMA cobrança, sem alterar o valor — a 1ª cobrança sai no preço
-    // cheio normal, só a data da 2ª cobrança é empurrada pra depois do período bônus
-    if (couponRow?.bonusCycles && couponRow.bonusCycles > 0) {
-      const addCycle = cycle === 'YEARLY' ? addYears : addMonths
-      const bonusNextDueDate = addCycle(new Date(subscription.nextDueDate), couponRow.bonusCycles)
-      const bonusDueDateStr = format(bonusNextDueDate, 'yyyy-MM-dd')
-      await updateSubscription(subscription.id, {
-        value: basePrice,
-        nextDueDate: bonusDueDateStr,
-      })
-      await db
-        .update(organizations)
-        .set({ subscriptionNextDueDate: bonusDueDateStr })
-        .where(eq(organizations.id, org.id))
-    }
+    // Cupom com ciclos de bônus (ex: PROMO50 = 1 ciclo extra → "2 meses pelo preço
+    // de 1"): NÃO mexe na assinatura aqui — fazer isso antes da 1ª cobrança
+    // confirmar é a mesma race condition que já causou uma cobrança fantasma no
+    // bônus automático de 60 dias (webhook pode processar PAYMENT_CONFIRMED
+    // enquanto este updateSubscription ainda está em voo). O esticamento da
+    // assinatura passa a acontecer só no webhook (PAYMENT_CONFIRMED), que já
+    // consulta couponUsages para saber se há bônus de cupom a aplicar — ver
+    // app/api/webhooks/asaas/route.ts. Aqui só registramos o uso do cupom.
 
-    // Registrar uso do cupom
+    // Registrar uso do cupom — vinculado a esta assinatura específica, para
+    // o webhook não aplicar o bônus numa assinatura futura sem cupom caso
+    // a organização reassine depois de cancelar
     if (couponRow) {
       await db.insert(couponUsages).values({
-        couponId:       couponRow.id,
-        organizationId: org.id,
-        cpfCnpj:        payerCpfCnpj,
+        couponId:            couponRow.id,
+        organizationId:      org.id,
+        cpfCnpj:             payerCpfCnpj,
+        asaasSubscriptionId: subscription.id,
       })
       await db
         .update(coupons)
