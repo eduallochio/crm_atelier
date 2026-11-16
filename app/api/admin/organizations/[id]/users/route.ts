@@ -5,6 +5,7 @@ import { profiles } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
+import { listAllUsers } from '@/lib/supabase/list-all-users'
 
 export async function GET(
   _request: Request,
@@ -30,21 +31,19 @@ export async function GET(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    const { data } = await supabase.auth.admin.listUsers()
+    const users = await listAllUsers(supabase)
     const authMap: Record<string, { email: string; lastSignInAt: string | null; isActive: boolean; providers: string[] }> = {}
-    if (data?.users) {
-      for (const u of data.users) {
-        // app_metadata.providers reflete os métodos de login vinculados
-        // (email/senha, Google, etc.) — mesma fonte usada em
-        // /api/admin/all-users, para as duas telas mostrarem o mesmo dado
-        const providers = (u.app_metadata?.providers as string[] | undefined)
-          ?? (u.app_metadata?.provider ? [u.app_metadata.provider] : [])
-        authMap[u.id] = {
-          email:        u.email ?? '',
-          lastSignInAt: u.last_sign_in_at ?? null,
-          isActive:     !u.banned_until || new Date(u.banned_until) < new Date(),
-          providers:    providers.length > 0 ? providers : ['email'],
-        }
+    for (const u of users) {
+      // app_metadata.providers reflete os métodos de login vinculados
+      // (email/senha, Google, etc.) — mesma fonte usada em
+      // /api/admin/all-users, para as duas telas mostrarem o mesmo dado
+      const providers = (u.app_metadata?.providers as string[] | undefined)
+        ?? (u.app_metadata?.provider ? [u.app_metadata.provider] : [])
+      authMap[u.id] = {
+        email:        u.email ?? '',
+        lastSignInAt: u.last_sign_in_at ?? null,
+        isActive:     !u.banned_until || new Date(u.banned_until) < new Date(),
+        providers:    providers.length > 0 ? providers : ['email'],
       }
     }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Send, Loader2, Mail, Search, Eye, Users, TrendingUp, MousePointerClick, History } from 'lucide-react'
+import { Send, Loader2, Mail, Search, Eye, Users, TrendingUp, MousePointerClick, History, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -9,6 +9,16 @@ import { Badge } from '@/components/ui/badge'
 import { AdminTableSkeleton } from '@/components/admin/admin-skeleton'
 import { AdminMetricsCard } from '@/components/admin/admin-metrics-card'
 import { EmailPreviewDialog } from '@/components/admin/email-preview-dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -33,6 +43,13 @@ interface Run {
   created_at: string
 }
 
+interface SendResult {
+  organization_id: string
+  organization_name: string
+  status: 'sent' | 'failed'
+  error?: string
+}
+
 const AGE_OPTIONS = [
   { value: 'all', label: 'Cadastro: todos', days: 0 },
   { value: '3', label: 'Há mais de 3 dias', days: 3 },
@@ -52,6 +69,8 @@ export default function AdminCampaignsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [sendResults, setSendResults] = useState<SendResult[] | null>(null)
 
   const [runs, setRuns] = useState<Run[]>([])
   const [runsLoading, setRunsLoading] = useState(true)
@@ -162,6 +181,7 @@ export default function AdminCampaignsPage() {
 
   const handleSend = async () => {
     if (selectedVisible.length === 0) return
+    setConfirmOpen(false)
     setSending(true)
     try {
       const res = await fetch('/api/admin/campaigns/reengagement', {
@@ -172,6 +192,7 @@ export default function AdminCampaignsPage() {
       if (!res.ok) throw new Error()
       const data = await res.json()
       toast.success(`${data.sent} email(s) enviado(s)${data.skipped ? ` · ${data.skipped} pulado(s)` : ''}`)
+      setSendResults(data.results ?? null)
       fetchCandidates()
       fetchRuns()
     } catch {
@@ -190,14 +211,14 @@ export default function AdminCampaignsPage() {
             Reengajamento — organizações que criaram conta e nunca cadastraram um cliente ou uma ordem de serviço
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setPreviewOpen(true)} className="flex-1 sm:flex-none">
             <Eye className="w-4 h-4 mr-2" />
             Visualizar email
           </Button>
-          <Button onClick={handleSend} disabled={sending || selectedVisible.length === 0}>
-            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-            Disparar para {selectedVisible.length} organizaç{selectedVisible.length === 1 ? 'ão' : 'ões'}
+          <Button onClick={() => setConfirmOpen(true)} disabled={sending || selectedVisible.length === 0} className="flex-1 sm:flex-none">
+            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" /> : <Send className="w-4 h-4 mr-2 shrink-0" />}
+            <span className="truncate">Disparar para {selectedVisible.length}</span>
           </Button>
         </div>
       </div>
@@ -233,32 +254,45 @@ export default function AdminCampaignsPage() {
         />
       </div>
 
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input placeholder="Buscar por organização, nome ou email..."
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3">
+        <div className="relative sm:col-span-2 lg:flex-1 lg:min-w-[240px]">
+          <label htmlFor="campaign-search" className="sr-only">Buscar organizações</label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
+          <Input id="campaign-search" placeholder="Buscar por organização, nome ou email..."
             value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <select value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white">
-          {ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <select value={ageFilter} onChange={(e) => setAgeFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white">
-          {AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <select value={paidFilter} onChange={(e) => setPaidFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white">
-          <option value="all">Assinatura: todas</option>
-          <option value="never">Nunca assinou</option>
-          <option value="churned">Já assinou e cancelou</option>
-        </select>
-        <select value={sentFilter} onChange={(e) => setSentFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white">
-          <option value="all">Campanha: todas</option>
-          <option value="never">Nunca recebeu</option>
-          <option value="already">Já recebeu</option>
-        </select>
+        <div>
+          <label htmlFor="campaign-activity-filter" className="sr-only">Filtrar por status da organização</label>
+          <select id="campaign-activity-filter" value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+            {ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="campaign-age-filter" className="sr-only">Filtrar por tempo desde o cadastro</label>
+          <select id="campaign-age-filter" value={ageFilter} onChange={(e) => setAgeFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+            {AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="campaign-paid-filter" className="sr-only">Filtrar por status da assinatura</label>
+          <select id="campaign-paid-filter" value={paidFilter} onChange={(e) => setPaidFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+            <option value="all">Assinatura: todas</option>
+            <option value="never">Nunca assinou</option>
+            <option value="churned">Já assinou e cancelou</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="campaign-sent-filter" className="sr-only">Filtrar por recebimento da campanha</label>
+          <select id="campaign-sent-filter" value={sentFilter} onChange={(e) => setSentFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+            <option value="all">Campanha: todas</option>
+            <option value="never">Nunca recebeu</option>
+            <option value="already">Já recebeu</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -281,9 +315,9 @@ export default function AdminCampaignsPage() {
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Organização</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Cadastro</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Último envio</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">Email</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">Cadastro</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">Último envio</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
@@ -295,6 +329,7 @@ export default function AdminCampaignsPage() {
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900 dark:text-white">{c.organization_name}</p>
                       <p className="text-xs text-gray-400">{c.owner_name || '—'}{c.ever_paid && <span className="ml-1.5 text-amber-600 dark:text-amber-400">· já assinou</span>}</p>
+                      <p className="text-xs text-gray-400 sm:hidden mt-0.5 truncate max-w-[160px]">{c.owner_email}</p>
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant="outline" className={cn(
@@ -305,11 +340,11 @@ export default function AdminCampaignsPage() {
                         {c.is_inactive ? 'Candidata' : 'Ativa'}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{c.owner_email}</td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{c.owner_email}</td>
+                    <td className="py-3 px-4 text-gray-500 text-xs hidden md:table-cell">
                       {new Date(c.created_at).toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">
+                    <td className="py-3 px-4 text-gray-500 text-xs hidden md:table-cell">
                       {c.last_campaign_sent_at ? new Date(c.last_campaign_sent_at).toLocaleDateString('pt-BR') : '—'}
                     </td>
                   </tr>
@@ -366,6 +401,63 @@ export default function AdminCampaignsPage() {
         onOpenChange={setPreviewOpen}
         fetchUrl="/api/admin/campaigns/reengagement/preview"
       />
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Enviar campanha para {selectedVisible.length} organizaç{selectedVisible.length === 1 ? 'ão' : 'ões'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Um email de reengajamento será enviado agora para:</p>
+                <ul className="list-disc list-inside text-sm">
+                  {selectedVisible.slice(0, 3).map((c) => (
+                    <li key={c.organization_id}>{c.organization_name}</li>
+                  ))}
+                </ul>
+                {selectedVisible.length > 3 && (
+                  <p className="text-sm">e mais {selectedVisible.length - 3} organizaç{selectedVisible.length - 3 === 1 ? 'ão' : 'ões'}.</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSend}>
+              Enviar agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={sendResults !== null} onOpenChange={(open) => !open && setSendResults(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resultado do disparo</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="max-h-[50vh] overflow-y-auto space-y-1.5">
+                {sendResults?.map((r) => (
+                  <div key={r.organization_id} className="flex items-start gap-2 text-sm">
+                    {r.status === 'sent' ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    )}
+                    <span>
+                      <span className="text-foreground">{r.organization_name}</span>
+                      {r.status === 'failed' && r.error && <span className="text-muted-foreground"> — {r.error}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSendResults(null)}>Fechar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

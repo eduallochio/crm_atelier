@@ -5,6 +5,7 @@ import { profiles, organizations } from '@/lib/db/schema'
 import { eq, desc, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { logServerError } from '@/lib/log-error'
+import { listAllUsers } from '@/lib/supabase/list-all-users'
 
 export async function GET() {
   try {
@@ -32,18 +33,16 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    const { data } = await supabase.auth.admin.listUsers()
+    const users = await listAllUsers(supabase)
     const emailMap: Record<string, string> = {}
     // provider vem de app_metadata.provider ('google' | 'email') — é o provedor
     // usado no cadastro; se o usuário vinculou os dois depois, listamos todos
     const providerMap: Record<string, string> = {}
-    if (data?.users) {
-      for (const u of data.users) {
-        emailMap[u.id] = u.email ?? ''
-        providerMap[u.id] = (u.app_metadata?.providers as string[] | undefined)?.join(', ')
-          ?? u.app_metadata?.provider
-          ?? 'email'
-      }
+    for (const u of users) {
+      emailMap[u.id] = u.email ?? ''
+      providerMap[u.id] = (u.app_metadata?.providers as string[] | undefined)?.join(', ')
+        ?? u.app_metadata?.provider
+        ?? 'email'
     }
 
     const result = profileRows.map((p) => ({

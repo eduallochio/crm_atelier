@@ -172,7 +172,7 @@ export default function AdminPlansPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{dialog.plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Slug *</Label>
                 <Input placeholder="free, pro" value={form.slug} onChange={(e) => setForm(p => ({ ...p, slug: e.target.value }))} />
@@ -186,7 +186,7 @@ export default function AdminPlansPage() {
               <Label>Descrição</Label>
               <Input value={form.description ?? ''} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Preço mensal (R$)</Label>
                 <Input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm(p => ({ ...p, price: Number(e.target.value) }))} />
@@ -200,7 +200,7 @@ export default function AdminPlansPage() {
               <Label>Nota do preço anual</Label>
               <Input placeholder="Ex: ou R$ 479/ano — 2 meses grátis" value={form.annual_note ?? ''} onChange={(e) => setForm(p => ({ ...p, annual_note: e.target.value || null }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Badge</Label>
                 <Input placeholder="Popular, Recomendado..." value={form.badge ?? ''} onChange={(e) => setForm(p => ({ ...p, badge: e.target.value || null }))} />
@@ -210,7 +210,7 @@ export default function AdminPlansPage() {
                 <Input type="number" min="0" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: Number(e.target.value) }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Texto do CTA</Label>
                 <Input value={form.cta_text} onChange={(e) => setForm(p => ({ ...p, cta_text: e.target.value }))} />

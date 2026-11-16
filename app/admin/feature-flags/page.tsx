@@ -245,6 +245,7 @@ export default function FeatureFlagsPage() {
 
       {/* Tabela de flags */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
             <tr>
@@ -291,6 +292,7 @@ export default function FeatureFlagsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Resumo por plano */}

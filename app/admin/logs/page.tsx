@@ -61,7 +61,7 @@ function LogDetailModal({ log, onClose }: { log: AdminLog; onClose: () => void }
           <button onClick={onClose} className="text-zinc-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <div className="p-5 space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-zinc-500 mb-1">Ação</p>
               <ActionBadge action={log.action} />

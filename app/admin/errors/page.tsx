@@ -205,7 +205,7 @@ export default function AdminErrorsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Total',      value: errors.length,              color: 'text-gray-700 dark:text-gray-200' },
           { label: 'Em aberto',  value: openCount,                  color: 'text-red-600 dark:text-red-400'   },

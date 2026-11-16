@@ -316,7 +316,7 @@ export default function AdminCouponsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Código *</Label>
                 <Input
@@ -339,7 +339,7 @@ export default function AdminCouponsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>
                   Valor do Desconto * {form.discount_type === 'percentage' ? '(%)' : '(R$)'}

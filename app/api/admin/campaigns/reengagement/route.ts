@@ -6,6 +6,7 @@ import { sql, inArray, eq, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { sendReengajamento } from '@/lib/email'
 import { logServerError } from '@/lib/log-error'
+import { listAllUsers } from '@/lib/supabase/list-all-users'
 
 const CAMPAIGN = 'reengagement'
 
@@ -54,9 +55,9 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    const { data } = await supabase.auth.admin.listUsers()
+    const users = await listAllUsers(supabase)
     const emailMap: Record<string, string> = {}
-    if (data?.users) for (const u of data.users) emailMap[u.id] = u.email ?? ''
+    for (const u of users) emailMap[u.id] = u.email ?? ''
 
     const result = orgs.map((org) => {
       const owner = owners.find((p) => p.organizationId === org.id)
@@ -111,21 +112,35 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    const { data } = await supabase.auth.admin.listUsers()
+    const users = await listAllUsers(supabase)
     const emailMap: Record<string, string> = {}
-    if (data?.users) for (const u of data.users) emailMap[u.id] = u.email ?? ''
+    for (const u of users) emailMap[u.id] = u.email ?? ''
+
+    // Nome da organização pro resultado detalhado (ver results abaixo) —
+    // já temos isso em orgs, sem precisar de outra query
+    const orgNameById = new Map(orgs.map((o) => [o.id, o.name]))
 
     // Um registro por execução do disparo — histórico de campanhas (ver
     // GET /runs). Atualizado com os totais reais ao final do loop.
     const [run] = await db.insert(campaignRuns).values({ campaign: CAMPAIGN }).returning({ id: campaignRuns.id })
 
+    // Resultado por organização — permite a tela mostrar exatamente quem
+    // falhou e por quê, em vez de só o total agregado (ex: "3 enviados, 1
+    // pulado" sem dizer qual dos 4 foi o pulado)
+    const results: Array<{ organization_id: string; organization_name: string; status: 'sent' | 'failed'; error?: string }> = []
+
     let sent = 0
     for (const owner of owners) {
+      const orgName = orgNameById.get(owner.organizationId) ?? 'Organização'
       const email = emailMap[owner.id]
-      if (!email) continue
+      if (!email) {
+        results.push({ organization_id: owner.organizationId, organization_name: orgName, status: 'failed', error: 'Email do dono não encontrado' })
+        continue
+      }
       try {
         const { id: resendEmailId } = await sendReengajamento(email, owner.fullName ?? 'por aí')
         sent++
+        results.push({ organization_id: owner.organizationId, organization_name: orgName, status: 'sent' })
         try {
           await db.insert(campaignSends).values({
             organizationId: owner.organizationId,
@@ -138,13 +153,25 @@ export async function POST(request: Request) {
         }
       } catch (err) {
         logServerError('[campaigns/reengagement] enviar email', err, { organizationId: owner.organizationId })
+        results.push({ organization_id: owner.organizationId, organization_name: orgName, status: 'failed', error: 'Falha ao enviar o email' })
+      }
+    }
+
+    // Organizações válidas que não têm nenhum profile com is_owner=true (dado
+    // inconsistente, ex: profile deletado) nunca entram no loop acima — sem
+    // isso, elas contariam como "puladas" no total agregado sem aparecer na
+    // lista detalhada de results, fazendo os dois números não baterem
+    const ownerOrgIds = new Set(owners.map((o) => o.organizationId))
+    for (const id of validIds) {
+      if (!ownerOrgIds.has(id)) {
+        results.push({ organization_id: id, organization_name: orgNameById.get(id) ?? 'Organização', status: 'failed', error: 'Nenhum responsável encontrado' })
       }
     }
 
     const skipped = organization_ids.length - sent
     await db.update(campaignRuns).set({ sentCount: sent, skippedCount: skipped }).where(eq(campaignRuns.id, run.id))
 
-    return NextResponse.json({ sent, skipped })
+    return NextResponse.json({ sent, skipped, results })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
