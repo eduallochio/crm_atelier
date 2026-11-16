@@ -241,3 +241,33 @@ export async function sendAssinaturaCancelada(options: {
     html,
   })
 }
+
+// Campanha de reengajamento — organizações que criaram conta mas nunca
+// cadastraram cliente nem ordem de serviço (ver /api/admin/campaigns/reengagement)
+export async function sendReengajamento(to: string, nome: string) {
+  // Mesma configuração usada em app/suspenso (whatsapp_support_phone) — texto
+  // pré-preenchido específico do contexto de reengajamento
+  let whatsappHtml = ''
+  try {
+    const { db } = await import('@/lib/db')
+    const { adminSystemSettings } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
+    const [row] = await db
+      .select({ value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(eq(adminSystemSettings.key, 'whatsapp_support_phone'))
+      .limit(1)
+    if (row?.value) {
+      const mensagem = encodeURIComponent('Olá! Criei uma conta no Meu Atelier Sistema e preciso de uma ajuda para começar.')
+      const urlWhatsapp = `https://wa.me/${row.value}?text=${mensagem}`
+      whatsappHtml = `<p style="margin:10px 0 0;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E5E4F;">Prefere falar por WhatsApp? <a href="${urlWhatsapp}" style="color:#8A4B2C;font-weight:700;text-decoration:underline;">Chame a gente aqui</a>.</p>`
+    }
+  } catch { /* link opcional — não bloqueia o envio */ }
+
+  const html = fill(loadTemplate('11-reengajamento.html'), {
+    nome,
+    url_sistema: process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br',
+    whatsapp_block: whatsappHtml,
+  })
+  await send({ to, subject: 'Sentimos sua falta no Meu Atelier', html })
+}

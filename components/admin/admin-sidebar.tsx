@@ -20,6 +20,7 @@ import {
   Bug,
   Mail,
   Receipt,
+  Send,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,7 @@ const menuGroups = [
       { label: 'Faturamento', icon: Receipt, href: '/admin/billing' },
       { label: 'Cupons', icon: Tag, href: '/admin/coupons' },
       { label: 'Leads /promo', icon: Mail, href: '/admin/leads' },
+      { label: 'Campanhas', icon: Send, href: '/admin/campaigns' },
     ],
   },
   {

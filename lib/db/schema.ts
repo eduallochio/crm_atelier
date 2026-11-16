@@ -772,6 +772,20 @@ export const asaasProcessedWebhooks = pgTable('asaas_processed_webhooks', {
   uniqueIndex('uq_asaas_processed_webhooks_payment_event').on(t.paymentId, t.event),
 ])
 
+// ─── 33b. CAMPAIGN SENDS ────────────────────────────────────────────────────────
+// Histórico de envio de campanhas de email (ex: reengajamento de org inativa,
+// ver app/api/admin/campaigns). `campaign` identifica qual campanha, permitindo
+// reusar esta tabela para campanhas futuras sem criar uma tabela por campanha.
+export const campaignSends = pgTable('campaign_sends', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  campaign:       text('campaign').notNull(),
+  sentAt:         timestamp('sent_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_campaign_sends_org').on(t.organizationId),
+  index('idx_campaign_sends_campaign').on(t.campaign),
+])
+
 // ─── 34. ORG MONTHLY GOALS ────────────────────────────────────────────────────
 
 export const orgMonthlyGoals = pgTable('org_monthly_goals', {
