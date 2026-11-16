@@ -1,11 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Send, Loader2, Mail, Search } from 'lucide-react'
+import { Send, Loader2, Mail, Search, Eye, Users, TrendingUp, MousePointerClick, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { AdminTableSkeleton } from '@/components/admin/admin-skeleton'
+import { AdminMetricsCard } from '@/components/admin/admin-metrics-card'
+import { EmailPreviewDialog } from '@/components/admin/email-preview-dialog'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Candidate {
@@ -18,6 +22,15 @@ interface Candidate {
   ever_paid: boolean
   last_campaign_sent_at: string | null
   is_inactive: boolean
+}
+
+interface Run {
+  id: string
+  sent_count: number
+  skipped_count: number
+  opened_count: number
+  clicked_count: number
+  created_at: string
 }
 
 const AGE_OPTIONS = [
@@ -38,12 +51,29 @@ export default function AdminCampaignsPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  const [runs, setRuns] = useState<Run[]>([])
+  const [runsLoading, setRunsLoading] = useState(true)
 
   const [search, setSearch] = useState('')
   const [ageFilter, setAgeFilter] = useState('all')
   const [paidFilter, setPaidFilter] = useState('all') // all | never | churned
   const [sentFilter, setSentFilter] = useState('all') // all | never | already
   const [activityFilter, setActivityFilter] = useState('inactive') // all | inactive | active — default mantém o comportamento original (só candidatas)
+
+  const fetchRuns = useCallback(async () => {
+    setRunsLoading(true)
+    try {
+      const res = await fetch('/api/admin/campaigns/reengagement/runs')
+      if (!res.ok) throw new Error()
+      setRuns(await res.json())
+    } catch {
+      // histórico é informativo — falha aqui não bloqueia o resto da tela
+    } finally {
+      setRunsLoading(false)
+    }
+  }, [])
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true)
@@ -60,6 +90,7 @@ export default function AdminCampaignsPage() {
   }, [])
 
   useEffect(() => { fetchCandidates() }, [fetchCandidates])
+  useEffect(() => { fetchRuns() }, [fetchRuns])
 
   // Seleciona só as candidatas (inativas) vindas do servidor, só quando a
   // lista muda de verdade (carga inicial, ou depois de disparar a campanha)
@@ -124,6 +155,11 @@ export default function AdminCampaignsPage() {
     })
   }
 
+  const lastRun = runs[0] ?? null
+  const openRate = lastRun && lastRun.sent_count > 0 ? Math.round((lastRun.opened_count / lastRun.sent_count) * 100) : null
+  const clickRate = lastRun && lastRun.sent_count > 0 ? Math.round((lastRun.clicked_count / lastRun.sent_count) * 100) : null
+  const hasAnyTrackingData = runs.some((r) => r.opened_count > 0 || r.clicked_count > 0)
+
   const handleSend = async () => {
     if (selectedVisible.length === 0) return
     setSending(true)
@@ -137,6 +173,7 @@ export default function AdminCampaignsPage() {
       const data = await res.json()
       toast.success(`${data.sent} email(s) enviado(s)${data.skipped ? ` · ${data.skipped} pulado(s)` : ''}`)
       fetchCandidates()
+      fetchRuns()
     } catch {
       toast.error('Erro ao disparar a campanha')
     } finally {
@@ -150,13 +187,50 @@ export default function AdminCampaignsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campanhas</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Candidatas à campanha: quem criou conta e nunca cadastrou um cliente ou uma ordem de serviço — {filtered.length} de {candidates.length} organizações
+            Reengajamento — organizações que criaram conta e nunca cadastraram um cliente ou uma ordem de serviço
           </p>
         </div>
-        <Button onClick={handleSend} disabled={sending || selectedVisible.length === 0}>
-          {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-          Disparar para {selectedVisible.length} organizaç{selectedVisible.length === 1 ? 'ão' : 'ões'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Eye className="w-4 h-4 mr-2" />
+            Visualizar email
+          </Button>
+          <Button onClick={handleSend} disabled={sending || selectedVisible.length === 0}>
+            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Disparar para {selectedVisible.length} organizaç{selectedVisible.length === 1 ? 'ão' : 'ões'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <AdminMetricsCard
+          title="Candidatas agora"
+          value={String(candidates.filter((c) => c.is_inactive).length)}
+          icon={Users}
+          subtext={`de ${candidates.length} organizações no total`}
+          color="blue"
+        />
+        <AdminMetricsCard
+          title="Último disparo"
+          value={lastRun ? String(lastRun.sent_count) : '—'}
+          icon={Send}
+          subtext={lastRun ? new Date(lastRun.created_at).toLocaleDateString('pt-BR') : 'nenhum disparo ainda'}
+          color="purple"
+        />
+        <AdminMetricsCard
+          title="Taxa de abertura"
+          value={openRate !== null ? `${openRate}%` : '—'}
+          icon={TrendingUp}
+          subtext={hasAnyTrackingData ? 'do último disparo' : 'ative o tracking no Resend'}
+          color="green"
+        />
+        <AdminMetricsCard
+          title="Taxa de clique"
+          value={clickRate !== null ? `${clickRate}%` : '—'}
+          icon={MousePointerClick}
+          subtext={hasAnyTrackingData ? 'do último disparo' : 'ative o tracking no Resend'}
+          color="indigo"
+        />
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -223,11 +297,13 @@ export default function AdminCampaignsPage() {
                       <p className="text-xs text-gray-400">{c.owner_name || '—'}{c.ever_paid && <span className="ml-1.5 text-amber-600 dark:text-amber-400">· já assinou</span>}</p>
                     </td>
                     <td className="py-3 px-4">
-                      {c.is_inactive ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400">Candidata</span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-400">Ativa</span>
-                      )}
+                      <Badge variant="outline" className={cn(
+                        c.is_inactive
+                          ? 'border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400'
+                          : 'border-green-300 dark:border-green-700 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400'
+                      )}>
+                        {c.is_inactive ? 'Candidata' : 'Ativa'}
+                      </Badge>
                     </td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{c.owner_email}</td>
                     <td className="py-3 px-4 text-gray-500 text-xs">
@@ -243,6 +319,53 @@ export default function AdminCampaignsPage() {
           </div>
         )}
       </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+          <History className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Histórico de disparos</h2>
+        </div>
+        {runsLoading ? (
+          <AdminTableSkeleton rows={3} cols={5} />
+        ) : runs.length === 0 ? (
+          <div className="py-8 text-center text-sm text-gray-400">Nenhum disparo realizado ainda.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 dark:text-gray-400">Data</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 dark:text-gray-400">Enviados</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 dark:text-gray-400">Pulados</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 dark:text-gray-400">Abertura</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 dark:text-gray-400">Clique</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
+                {runs.map((r) => (
+                  <tr key={r.id}>
+                    <td className="py-2.5 px-4 text-gray-500 text-xs">{new Date(r.created_at).toLocaleString('pt-BR')}</td>
+                    <td className="py-2.5 px-4 text-gray-900 dark:text-white font-medium">{r.sent_count}</td>
+                    <td className="py-2.5 px-4 text-gray-500">{r.skipped_count}</td>
+                    <td className="py-2.5 px-4 text-gray-500">
+                      {r.sent_count > 0 ? `${Math.round((r.opened_count / r.sent_count) * 100)}%` : '—'}
+                    </td>
+                    <td className="py-2.5 px-4 text-gray-500">
+                      {r.sent_count > 0 ? `${Math.round((r.clicked_count / r.sent_count) * 100)}%` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <EmailPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        fetchUrl="/api/admin/campaigns/reengagement/preview"
+      />
     </div>
   )
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireMasterFast } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { organizations, orgClients, orgServiceOrders, profiles, campaignSends } from '@/lib/db/schema'
-import { sql, inArray } from 'drizzle-orm'
+import { organizations, orgClients, orgServiceOrders, profiles, campaignSends, campaignRuns } from '@/lib/db/schema'
+import { sql, inArray, eq, and } from 'drizzle-orm'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { sendReengajamento } from '@/lib/email'
 import { logServerError } from '@/lib/log-error'
@@ -42,10 +42,13 @@ export async function GET() {
     if (orgs.length === 0) return NextResponse.json([])
 
     const orgIds = orgs.map((o) => o.id)
+    // Só o owner — uma organização pode ter outros profiles (membros da
+    // equipe), e o email de reengajamento deve ir sempre para quem criou a
+    // conta, não para o primeiro profile encontrado
     const owners = await db
       .select({ id: profiles.id, organizationId: profiles.organizationId, fullName: profiles.fullName })
       .from(profiles)
-      .where(inArray(profiles.organizationId, orgIds))
+      .where(and(inArray(profiles.organizationId, orgIds), eq(profiles.isOwner, true)))
 
     const supabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +105,7 @@ export async function POST(request: Request) {
     const owners = await db
       .select({ id: profiles.id, organizationId: profiles.organizationId, fullName: profiles.fullName })
       .from(profiles)
-      .where(inArray(profiles.organizationId, [...validIds]))
+      .where(and(inArray(profiles.organizationId, [...validIds]), eq(profiles.isOwner, true)))
 
     const supabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,15 +115,24 @@ export async function POST(request: Request) {
     const emailMap: Record<string, string> = {}
     if (data?.users) for (const u of data.users) emailMap[u.id] = u.email ?? ''
 
+    // Um registro por execução do disparo — histórico de campanhas (ver
+    // GET /runs). Atualizado com os totais reais ao final do loop.
+    const [run] = await db.insert(campaignRuns).values({ campaign: CAMPAIGN }).returning({ id: campaignRuns.id })
+
     let sent = 0
     for (const owner of owners) {
       const email = emailMap[owner.id]
       if (!email) continue
       try {
-        await sendReengajamento(email, owner.fullName ?? 'por aí')
+        const { id: resendEmailId } = await sendReengajamento(email, owner.fullName ?? 'por aí')
         sent++
         try {
-          await db.insert(campaignSends).values({ organizationId: owner.organizationId, campaign: CAMPAIGN })
+          await db.insert(campaignSends).values({
+            organizationId: owner.organizationId,
+            campaign: CAMPAIGN,
+            runId: run.id,
+            resendEmailId,
+          })
         } catch (err) {
           logServerError('[campaigns/reengagement] registrar envio', err, { organizationId: owner.organizationId })
         }
@@ -129,7 +141,10 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ sent, skipped: organization_ids.length - sent })
+    const skipped = organization_ids.length - sent
+    await db.update(campaignRuns).set({ sentCount: sent, skippedCount: skipped }).where(eq(campaignRuns.id, run.id))
+
+    return NextResponse.json({ sent, skipped })
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })

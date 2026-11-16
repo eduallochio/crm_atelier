@@ -30,12 +30,12 @@ async function send(options: {
   subject: string
   html: string
   from?: string
-}) {
+}): Promise<{ id: string | null }> {
   if (!process.env.RESEND_API_KEY) {
     console.warn('[email] RESEND_API_KEY não configurada — email não enviado')
-    return
+    return { id: null }
   }
-  const { error } = await getResend().emails.send({
+  const { data, error } = await getResend().emails.send({
     from: options.from ?? FROM_DEFAULT,
     replyTo: REPLY_TO,
     to: options.to,
@@ -46,6 +46,7 @@ async function send(options: {
     console.error('[email] Erro ao enviar:', error)
     throw new Error(`Falha ao enviar email: ${error.message}`)
   }
+  return { id: data?.id ?? null }
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────
@@ -244,7 +245,9 @@ export async function sendAssinaturaCancelada(options: {
 
 // Campanha de reengajamento — organizações que criaram conta mas nunca
 // cadastraram cliente nem ordem de serviço (ver /api/admin/campaigns/reengagement)
-export async function sendReengajamento(to: string, nome: string) {
+// Separada de sendReengajamento para reaproveitar no endpoint de preview
+// (/api/admin/campaigns/reengagement/preview), que mostra o HTML sem enviar.
+export async function buildReengajamentoHtml(nome: string): Promise<string> {
   // Mesma configuração usada em app/suspenso (whatsapp_support_phone) — texto
   // pré-preenchido específico do contexto de reengajamento
   let whatsappHtml = ''
@@ -272,10 +275,14 @@ export async function sendReengajamento(to: string, nome: string) {
     }
   } catch { /* link opcional — não bloqueia o envio */ }
 
-  const html = fill(loadTemplate('11-reengajamento.html'), {
+  return fill(loadTemplate('11-reengajamento.html'), {
     nome,
     url_sistema: process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br',
     whatsapp_block: whatsappHtml,
   })
-  await send({ to, subject: 'Sentimos sua falta no Meu Atelier', html })
+}
+
+export async function sendReengajamento(to: string, nome: string): Promise<{ id: string | null }> {
+  const html = await buildReengajamentoHtml(nome)
+  return send({ to, subject: 'Sentimos sua falta no Meu Atelier', html })
 }

@@ -772,7 +772,20 @@ export const asaasProcessedWebhooks = pgTable('asaas_processed_webhooks', {
   uniqueIndex('uq_asaas_processed_webhooks_payment_event').on(t.paymentId, t.event),
 ])
 
-// ─── 33b. CAMPAIGN SENDS ────────────────────────────────────────────────────────
+// ─── 33b. CAMPAIGN RUNS ─────────────────────────────────────────────────────────
+// Uma linha por execução de disparo (clique em "Disparar"), não por campanha-tipo
+// — permite histórico de várias execuções da mesma campanha ao longo do tempo.
+export const campaignRuns = pgTable('campaign_runs', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  campaign:     text('campaign').notNull(),
+  sentCount:    integer('sent_count').notNull().default(0),
+  skippedCount: integer('skipped_count').notNull().default(0),
+  createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_campaign_runs_campaign').on(t.campaign),
+])
+
+// ─── 33c. CAMPAIGN SENDS ────────────────────────────────────────────────────────
 // Histórico de envio de campanhas de email (ex: reengajamento de org inativa,
 // ver app/api/admin/campaigns). `campaign` identifica qual campanha, permitindo
 // reusar esta tabela para campanhas futuras sem criar uma tabela por campanha.
@@ -780,10 +793,22 @@ export const campaignSends = pgTable('campaign_sends', {
   id:             uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   campaign:       text('campaign').notNull(),
+  runId:          uuid('run_id').references(() => campaignRuns.id, { onDelete: 'set null' }),
+  // data.id retornado por resend.emails.send() — chave de correlação com os
+  // eventos de abertura/clique recebidos pelo webhook do Resend (ver
+  // app/api/webhooks/resend). Null se o envio falhou antes de obter o id.
+  resendEmailId:  text('resend_email_id'),
+  // Só a primeira ocorrência é gravada (coalesce no UPDATE do webhook) — uma
+  // reabertura/recliques não deve mudar a data já registrada, já que a
+  // métrica de taxa de abertura/clique conta pessoas, não eventos
+  openedAt:       timestamp('opened_at', { withTimezone: true }),
+  clickedAt:      timestamp('clicked_at', { withTimezone: true }),
   sentAt:         timestamp('sent_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_campaign_sends_org').on(t.organizationId),
   index('idx_campaign_sends_campaign').on(t.campaign),
+  index('idx_campaign_sends_run').on(t.runId),
+  index('idx_campaign_sends_resend_email_id').on(t.resendEmailId),
 ])
 
 // ─── 34. ORG MONTHLY GOALS ────────────────────────────────────────────────────
