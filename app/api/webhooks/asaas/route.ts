@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
-import { organizations, orgFinancialSettings, orgPayables, coupons, couponUsages } from '@/lib/db/schema'
-import { eq, and, like, desc } from 'drizzle-orm'
+import { organizations, orgFinancialSettings, orgPayables, coupons, couponUsages, asaasProcessedWebhooks } from '@/lib/db/schema'
+import { eq, and, desc, isNull } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { format, addMonths, addYears } from 'date-fns'
 import { getSubscription, updateSubscription, getSubscriptionPayments, deletePayment, getPayment } from '@/lib/asaas'
@@ -93,6 +93,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: 'Pagamento não confirmado' }, { status: 200 })
       }
 
+      // Trava atômica de idempotência — INSERT com constraint única em
+      // (payment_id, event) funciona como um "primeiro a chegar, vence":
+      // duas requisições concorrentes do mesmo evento (reenvio do Asaas ou
+      // dois PAYMENT_CONFIRMED quase simultâneos) nunca passam as duas, porque
+      // o banco rejeita a segunda inserção por violação de unicidade antes de
+      // qualquer uma delas tocar em organizations/couponUsages/orgPayables.
+      // Isso substitui a antiga checagem via "LIKE em orgPayables.observacoes",
+      // que só protegia depois que o primeiro lançamento financeiro já tivesse
+      // sido criado — e esse lançamento só acontece se autoLaunchSubscription
+      // estiver ligado, então a checagem antiga podia nunca existir.
+      try {
+        await db.insert(asaasProcessedWebhooks).values({ paymentId: String(payment.id), event })
+      } catch (claimErr) {
+        const isUniqueViolation = (claimErr as { code?: string })?.code === '23505'
+        if (isUniqueViolation) {
+          console.log(`[webhook/asaas] ${event} → payment ${payment.id} já processado (claim duplicado), ignorando`)
+          return NextResponse.json({ ok: true, duplicate: true })
+        }
+        throw claimErr
+      }
+
       // Usa exclusivamente o externalReference corroborado pela API do Asaas —
       // nunca o do corpo da requisição, que é a fonte não confiável que essa
       // corroboração inteira existe para neutralizar
@@ -108,24 +129,6 @@ export async function POST(req: NextRequest) {
       }
 
       if (orgId) {
-        // Idempotência — um evento reenviado/duplicado pelo Asaas não deve
-        // lançar o mesmo pagamento duas vezes no financeiro. Escapa % e _
-        // (caracteres curinga do LIKE) antes de interpolar o payment.id —
-        // sem isso, um id contendo esses caracteres poderia casar com outras
-        // linhas por acidente
-        // Escapa primeiro o backslash (escape char padrão do LIKE no Postgres),
-        // depois % e _ — ordem importa, senão os backslashes inseridos para
-        // escapar % e _ seriam re-escapados incorretamente
-        const escapedPaymentId = String(payment.id).replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&')
-        const [already] = await db
-          .select({ id: orgPayables.id })
-          .from(orgPayables)
-          .where(and(eq(orgPayables.organizationId, orgId), like(orgPayables.observacoes, `%ID: ${escapedPaymentId}%`)))
-          .limit(1)
-        if (already) {
-          console.log(`[webhook/asaas] ${event} → payment ${payment.id} já processado, ignorando`)
-          return NextResponse.json({ ok: true, duplicate: true })
-        }
         await db
           .update(organizations)
           .set({ plan: 'pro', subscriptionStatus: 'active' })
@@ -165,25 +168,31 @@ export async function POST(req: NextRequest) {
             // qualquer confirmação de pagamento — mesma race condition que já
             // causou uma cobrança fantasma aqui. Quando os dois bônus se
             // aplicam, vale o maior, nunca a soma.
-            const autoBonusCycles = sub.cycle === 'MONTHLY' ? 1 : 0
-            // Filtra por esta assinatura específica (não só a organização) —
-            // sem isso, um uso de cupom de uma assinatura anterior já
-            // cancelada seria encontrado e aplicaria o bônus indevidamente
-            // numa assinatura nova sem cupom
+            //
+            // As duas regras de elegibilidade são independentes: o bônus
+            // automático só vale na 1ª assinatura da vida da organização
+            // (isFirstConfirmedPayment), enquanto o bônus de cupom vale uma
+            // única vez por uso de cupom (appliedAt ainda null) — sem essa
+            // segunda condição, o mesmo registro de couponUsages seria
+            // encontrado em TODA renovação da assinatura (a linha nunca é
+            // "consumida"), reaplicando o bônus indefinidamente e o cliente
+            // nunca mais pagaria depois da 1ª renovação.
+            const autoBonusCycles = isFirstConfirmedPayment && sub.cycle === 'MONTHLY' ? 1 : 0
             const [couponUsage] = await db
-              .select({ bonusCycles: coupons.bonusCycles })
+              .select({ id: couponUsages.id, bonusCycles: coupons.bonusCycles })
               .from(couponUsages)
               .innerJoin(coupons, eq(coupons.id, couponUsages.couponId))
               .where(and(
                 eq(couponUsages.organizationId, orgId),
                 eq(couponUsages.asaasSubscriptionId, subscriptionId),
+                isNull(couponUsages.appliedAt),
               ))
               .orderBy(desc(couponUsages.usedAt))
               .limit(1)
             const couponBonusCycles = couponUsage?.bonusCycles ?? 0
             const effectiveBonusCycles = Math.max(autoBonusCycles, couponBonusCycles)
 
-            if (isFirstConfirmedPayment && effectiveBonusCycles > 0) {
+            if (effectiveBonusCycles > 0) {
               const addCycle = sub.cycle === 'YEARLY' ? addYears : addMonths
               const bonusDueDateStr = format(addCycle(new Date(`${confirmedAt}T12:00:00`), effectiveBonusCycles), 'yyyy-MM-dd')
               try {
@@ -214,15 +223,45 @@ export async function POST(req: NextRequest) {
                 const updated = await updateSubscription(subscriptionId, { nextDueDate: bonusDueDateStr })
                 await db
                   .update(organizations)
-                  .set({ subscriptionNextDueDate: updated.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
+                  .set({
+                    subscriptionNextDueDate: updated.nextDueDate,
+                    // Só grava firstPaymentConfirmedAt na 1ª confirmação da vida
+                    // da organização — numa reassinatura com bônus de cupom,
+                    // isFirstConfirmedPayment já é false e esse campo não deve
+                    // ser sobrescrito com a data de agora
+                    ...(isFirstConfirmedPayment ? { firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) } : {}),
+                  })
                   .where(eq(organizations.id, orgId))
+                // Marca o uso do cupom como consumido — essa é a única
+                // confirmação de pagamento desta cobrança, então não há uma
+                // "próxima tentativa" natural; sem marcar aqui, a mesma linha
+                // seria encontrada de novo em toda renovação futura
+                if (couponUsage) {
+                  await db
+                    .update(couponUsages)
+                    .set({ appliedAt: new Date() })
+                    .where(eq(couponUsages.id, couponUsage.id))
+                }
                 console.log(`[webhook/asaas] bônus de assinatura aplicado (${effectiveBonusCycles} ciclo(s)) → org ${orgId} → próximo vencimento ${updated.nextDueDate}`)
               } catch (bonusErr) {
                 logServerError('[webhook/asaas] aplicar bônus de assinatura', bonusErr, { subscriptionId, effectiveBonusCycles }, orgId)
                 await db
                   .update(organizations)
-                  .set({ subscriptionNextDueDate: sub.nextDueDate, firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) })
+                  .set({
+                    subscriptionNextDueDate: sub.nextDueDate,
+                    ...(isFirstConfirmedPayment ? { firstPaymentConfirmedAt: new Date(`${confirmedAt}T12:00:00`) } : {}),
+                  })
                   .where(eq(organizations.id, orgId))
+                // Mesmo tendo falhado, marca como consumido — não há uma
+                // próxima confirmação de pagamento desta mesma cobrança que
+                // daria outra chance; o erro já ficou registrado acima com
+                // os IDs necessários para correção manual
+                if (couponUsage) {
+                  await db
+                    .update(couponUsages)
+                    .set({ appliedAt: new Date() })
+                    .where(eq(couponUsages.id, couponUsage.id))
+                }
               }
             } else {
               await db

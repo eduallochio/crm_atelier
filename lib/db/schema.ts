@@ -730,11 +730,35 @@ export const couponUsages = pgTable('coupon_usages', {
   // anterior já cancelada, aplicando o bônus indevidamente numa assinatura
   // nova sem cupom
   asaasSubscriptionId: text('asaas_subscription_id'),
+  // Quando o bônus deste uso foi efetivamente aplicado na assinatura (webhook
+  // PAYMENT_CONFIRMED) — null até lá. Sem isso, o bônus de cupom seria
+  // reaplicado em TODA renovação da mesma assinatura (a linha nunca é
+  // consumida), e o cliente nunca mais pagaria depois da 1ª renovação
+  appliedAt:      timestamp('applied_at', { withTimezone: true }),
   usedAt:         timestamp('used_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_coupon_usages_coupon').on(t.couponId),
   index('idx_coupon_usages_org').on(t.organizationId),
   index('idx_coupon_usages_cpf_cnpj').on(t.cpfCnpj),
+  // Consultado em todo PAYMENT_CONFIRMED do webhook (ver app/api/webhooks/asaas)
+  index('idx_coupon_usages_subscription').on(t.asaasSubscriptionId),
+])
+
+// ─── 33a. ASAAS PROCESSED WEBHOOKS ─────────────────────────────────────────────
+// Idempotência do webhook do Asaas, independente de qualquer efeito colateral
+// (ex: orgPayables só é criado se autoLaunchSubscription estiver ligado, o que
+// não protegeria contra dois PAYMENT_CONFIRMED concorrentes do mesmo pagamento
+// se a organização tiver essa opção desligada). O insert com constraint única
+// abaixo funciona como uma trava atômica: a primeira requisição a inserir
+// "vence" e segue o processamento; a segunda recebe erro de conflito e para
+// cedo — sem select-then-act, que teria a mesma race condition.
+export const asaasProcessedWebhooks = pgTable('asaas_processed_webhooks', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  paymentId: text('payment_id').notNull(),
+  event:     text('event').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  uniqueIndex('uq_asaas_processed_webhooks_payment_event').on(t.paymentId, t.event),
 ])
 
 // ─── 34. ORG MONTHLY GOALS ────────────────────────────────────────────────────
