@@ -13,17 +13,25 @@ export async function GET() {
   try {
     await requireMasterFast()
 
+    // LEFT JOIN + GROUP BY em vez de subquery correlacionada: campaign_runs
+    // e campaign_sends têm as duas uma coluna "id" — numa subquery sql`...`
+    // com ${campaignRuns.id} dentro do WHERE, o Postgres resolve "id" pelo
+    // escopo mais interno (campaign_sends.id, não campaign_runs.id), porque
+    // o Drizzle não qualifica a coluna com o nome da tabela nesse contexto.
+    // Isso fazia a comparação virar sempre falsa e a contagem sempre zero.
     const runs = await db
       .select({
         id:           campaignRuns.id,
         sentCount:    campaignRuns.sentCount,
         skippedCount: campaignRuns.skippedCount,
         createdAt:    campaignRuns.createdAt,
-        openedCount:  sql<number>`(select count(*) from ${campaignSends} where ${campaignSends.runId} = ${campaignRuns.id} and ${campaignSends.openedAt} is not null)`,
-        clickedCount: sql<number>`(select count(*) from ${campaignSends} where ${campaignSends.runId} = ${campaignRuns.id} and ${campaignSends.clickedAt} is not null)`,
+        openedCount:  sql<number>`count(*) filter (where ${campaignSends.openedAt} is not null)`,
+        clickedCount: sql<number>`count(*) filter (where ${campaignSends.clickedAt} is not null)`,
       })
       .from(campaignRuns)
+      .leftJoin(campaignSends, eq(campaignSends.runId, campaignRuns.id))
       .where(eq(campaignRuns.campaign, CAMPAIGN))
+      .groupBy(campaignRuns.id, campaignRuns.sentCount, campaignRuns.skippedCount, campaignRuns.createdAt)
       .orderBy(desc(campaignRuns.createdAt))
       .limit(20)
 
