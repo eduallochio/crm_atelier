@@ -34,9 +34,15 @@ export async function GET() {
     )
     const { data } = await supabase.auth.admin.listUsers()
     const emailMap: Record<string, string> = {}
+    // provider vem de app_metadata.provider ('google' | 'email') — é o provedor
+    // usado no cadastro; se o usuário vinculou os dois depois, listamos todos
+    const providerMap: Record<string, string> = {}
     if (data?.users) {
       for (const u of data.users) {
         emailMap[u.id] = u.email ?? ''
+        providerMap[u.id] = (u.app_metadata?.providers as string[] | undefined)?.join(', ')
+          ?? u.app_metadata?.provider
+          ?? 'email'
       }
     }
 
@@ -52,6 +58,7 @@ export async function GET() {
       org_name: p.orgName,
       org_plan: p.orgPlan,
       org_state: p.orgState,
+      auth_provider: providerMap[p.id] ?? 'email',
     }))
 
     return NextResponse.json(result)

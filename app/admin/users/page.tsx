@@ -23,6 +23,7 @@ interface User {
   org_plan: string
   org_state: string
   org_id: string
+  auth_provider: string
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [providerFilter, setProviderFilter] = useState('all')
   const [resetDialog, setResetDialog] = useState<{ open: boolean; user: User | null }>({ open: false, user: null })
   const [newPassword, setNewPassword] = useState('')
   const [saving, setSaving] = useState(false)
@@ -84,7 +86,9 @@ export default function AdminUsersPage() {
       (u.full_name ?? '').toLowerCase().includes(q) ||
       u.org_name.toLowerCase().includes(q)
     const matchRole = roleFilter === 'all' || u.role === roleFilter
-    return matchSearch && matchRole
+    const matchProvider = providerFilter === 'all' ||
+      (providerFilter === 'google' ? u.auth_provider.includes('google') : !u.auth_provider.includes('google'))
+    return matchSearch && matchRole && matchProvider
   })
 
   return (
@@ -117,6 +121,12 @@ export default function AdminUsersPage() {
           <option value="member">Member</option>
           <option value="deactivated">Desativados</option>
         </select>
+        <select value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)}
+          className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white">
+          <option value="all">Login: todos</option>
+          <option value="google">Login: Google</option>
+          <option value="email">Login: Email/senha</option>
+        </select>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -139,9 +149,15 @@ export default function AdminUsersPage() {
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="py-3 px-4">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
                           {user.full_name || '—'}
-                          {user.is_master && <span className="ml-2 text-xs text-purple-500 font-mono">[master]</span>}
+                          {user.is_master && <span className="text-xs text-purple-500 font-mono">[master]</span>}
+                          {user.auth_provider.includes('google') && (
+                            <span title="Login via Google" className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-medium">
+                              <svg viewBox="0 0 24 24" className="w-2.5 h-2.5" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+                              Google
+                            </span>
+                          )}
                         </p>
                         <p className="text-xs text-gray-400">{user.email}</p>
                       </div>

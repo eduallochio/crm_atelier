@@ -34,9 +34,11 @@ export async function GET(
     const authMap: Record<string, { email: string; lastSignInAt: string | null; isActive: boolean; providers: string[] }> = {}
     if (data?.users) {
       for (const u of data.users) {
-        // identities reflete os métodos de login vinculados (email/senha,
-        // Google, etc.) — um usuário pode ter mais de um
-        const providers = [...new Set((u.identities ?? []).map((i) => i.provider))]
+        // app_metadata.providers reflete os métodos de login vinculados
+        // (email/senha, Google, etc.) — mesma fonte usada em
+        // /api/admin/all-users, para as duas telas mostrarem o mesmo dado
+        const providers = (u.app_metadata?.providers as string[] | undefined)
+          ?? (u.app_metadata?.provider ? [u.app_metadata.provider] : [])
         authMap[u.id] = {
           email:        u.email ?? '',
           lastSignInAt: u.last_sign_in_at ?? null,
