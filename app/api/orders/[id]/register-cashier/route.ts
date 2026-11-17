@@ -45,7 +45,10 @@ export async function POST(
       return NextResponse.json({ error: 'OS ainda não foi marcada como paga' }, { status: 422 })
     }
 
-    // Verificar se já existe movimento para esta OS
+    // Verificar se a quitação desta OS já foi lançada — 'ordem_servico' é o
+    // tipo usado aqui; o sinal lançado na criação da OS (ver POST
+    // /api/orders) usa 'ordem_servico_entrada', um lançamento diferente, que
+    // não deve bloquear o lançamento do saldo restante
     const [existingMovement] = await db
       .select({ id: orgCashierMovements.id })
       .from(orgCashierMovements)

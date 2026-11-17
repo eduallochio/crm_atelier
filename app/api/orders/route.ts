@@ -11,8 +11,11 @@ import {
   orgTransactions,
   orgPaymentMethods,
   orgOrderSequences,
+  orgCashierSessions,
+  orgCashierMovements,
+  orgCashiers,
 } from '@/lib/db/schema'
-import { eq, and, inArray, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, inArray, isNull, desc, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { getPlanLimits, hasLifetimeLicense, limitExceededResponse } from '@/lib/plan-limits'
 import { calcularDesconto } from '@/lib/order-discount'
@@ -325,6 +328,41 @@ export async function POST(request: Request) {
           serviceOrderId: newOrder.id,
           observacoes:    'Entrada recebida na criação da OS',
         })
+
+        // Lança o sinal também na gaveta do caixa físico — sem isso, o valor
+        // aparecia no relatório financeiro mas nunca somava no saldo da
+        // sessão de caixa. referenciaTipo 'ordem_servico_entrada' (diferente
+        // de 'ordem_servico', usado no lançamento da quitação em
+        // register-cashier/route.ts) — são dois lançamentos da mesma OS em
+        // momentos diferentes, e usar o mesmo tipo faria o check de "já
+        // lançada" do register-cashier bloquear o lançamento do saldo
+        // restante na conclusão. Se não houver caixa aberto, segue sem
+        // lançar — igual já acontecia antes, dá pra lançar manualmente depois.
+        const [openSession] = await tx
+          .select({ id: orgCashierSessions.id })
+          .from(orgCashierSessions)
+          .leftJoin(orgCashiers, eq(orgCashiers.id, orgCashierSessions.caixaId))
+          .where(and(
+            eq(orgCashierSessions.organizationId, user.organizationId),
+            eq(orgCashierSessions.status, 'aberto'),
+            isNull(orgCashierSessions.dataFechamento),
+          ))
+          .orderBy(desc(orgCashiers.isDefault), orgCashierSessions.dataAbertura)
+          .limit(1)
+
+        if (openSession) {
+          await tx.insert(orgCashierMovements).values({
+            organizationId:   user.organizationId,
+            sessaoId:         openSession.id,
+            tipo:             'entrada',
+            descricao:        `Entrada OS #${String(newOrder.numero).padStart(6, '0')}${resolvedFormaPagamento ? ` — ${resolvedFormaPagamento}` : ''}`,
+            valor:            String(valor_entrada),
+            referenciaId:     newOrder.id,
+            referenciaTipo:   'ordem_servico_entrada',
+            metodoPagamentoId: paymentMethodId,
+            usuarioId:        user.id,
+          })
+        }
       }
 
       return newOrder
