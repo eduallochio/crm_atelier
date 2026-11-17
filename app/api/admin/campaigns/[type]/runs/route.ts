@@ -4,14 +4,17 @@ import { db } from '@/lib/db'
 import { campaignRuns, campaignSends } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
-
-const CAMPAIGN = 'reengagement'
+import { isCampaignType } from '@/lib/campaigns/registry'
 
 // GET — histórico de execuções do disparo, com taxa de abertura/clique
 // calculada a partir de campaign_sends daquele run_id
-export async function GET() {
+export async function GET(_request: Request, { params }: { params: Promise<{ type: string }> }) {
   try {
     await requireMasterFast()
+    const { type } = await params
+    if (!isCampaignType(type)) {
+      return NextResponse.json({ error: 'Tipo de campanha inválido' }, { status: 400 })
+    }
 
     // LEFT JOIN + GROUP BY em vez de subquery correlacionada: campaign_runs
     // e campaign_sends têm as duas uma coluna "id" — numa subquery sql`...`
@@ -30,7 +33,7 @@ export async function GET() {
       })
       .from(campaignRuns)
       .leftJoin(campaignSends, eq(campaignSends.runId, campaignRuns.id))
-      .where(eq(campaignRuns.campaign, CAMPAIGN))
+      .where(eq(campaignRuns.campaign, type))
       .groupBy(campaignRuns.id, campaignRuns.sentCount, campaignRuns.skippedCount, campaignRuns.createdAt)
       .orderBy(desc(campaignRuns.createdAt))
       .limit(20)
@@ -49,7 +52,7 @@ export async function GET() {
     if ((error as Error).message === 'UNAUTHORIZED' || (error as Error).message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
-    logServerError('[GET /api/admin/campaigns/reengagement/runs]', error)
+    logServerError('[GET /api/admin/campaigns/[type]/runs]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

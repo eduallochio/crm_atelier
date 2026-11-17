@@ -286,3 +286,90 @@ export async function sendReengajamento(to: string, nome: string): Promise<{ id:
   const html = await buildReengajamentoHtml(nome)
   return send({ to, subject: 'Sentimos sua falta no Meu Atelier', html })
 }
+
+// Mesmo bloco de WhatsApp usado no reengajamento — reaproveitado nas outras
+// campanhas de retenção (lib/campaigns/*) pra manter a mesma saída de ajuda
+async function buildWhatsappBlock(mensagem: string): Promise<string> {
+  try {
+    const { db } = await import('@/lib/db')
+    const { adminSystemSettings } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
+    const [row] = await db
+      .select({ value: adminSystemSettings.value })
+      .from(adminSystemSettings)
+      .where(eq(adminSystemSettings.key, 'whatsapp_support_phone'))
+      .limit(1)
+    if (!row?.value) return ''
+    const urlWhatsapp = `https://wa.me/${row.value}?text=${encodeURIComponent(mensagem)}`
+    return `
+          <p style="margin:18px 0 10px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.6;color:#6E5E4F;">Prefere falar por WhatsApp?</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 4px;">
+            <tr>
+              <td align="center" bgcolor="#25D366" style="border-radius:6px;">
+                <a href="${urlWhatsapp}" style="display:inline-block;padding:13px 30px;font-family:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF;text-decoration:none;border-radius:6px;">Chamar no WhatsApp</a>
+              </td>
+            </tr>
+          </table>`
+  } catch {
+    return '' // link opcional — não bloqueia o envio
+  }
+}
+
+// Campanha "uso baixo" — organizações que já usaram de verdade (cliente ou
+// OS cadastrado) mas sem atividade recente (ver lib/campaigns/low-usage.ts)
+export async function buildUsoBaixoHtml(nome: string): Promise<string> {
+  const whatsappHtml = await buildWhatsappBlock('Olá! Uso o Meu Atelier Sistema e preciso de uma ajuda para continuar usando.')
+  return fill(loadTemplate('12-uso-baixo.html'), {
+    nome,
+    url_sistema: process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br',
+    whatsapp_block: whatsappHtml,
+  })
+}
+
+export async function sendUsoBaixo(to: string, nome: string): Promise<{ id: string | null }> {
+  const html = await buildUsoBaixoHtml(nome)
+  return send({ to, subject: 'Seu ateliê continua esperando por você', html })
+}
+
+// Campanha "bônus acabando" — organizações pagantes perto do fim do bônus
+// promocional de 60 dias (ver lib/campaigns/bonus-ending.ts)
+export async function buildBonusAcabandoHtml(nome: string, dataFim: string): Promise<string> {
+  const whatsappHtml = await buildWhatsappBlock('Olá! Tenho uma dúvida sobre minha assinatura no Meu Atelier Sistema.')
+  return fill(loadTemplate('13-bonus-acabando.html'), {
+    nome,
+    data_fim: dataFim,
+    url_sistema: process.env.NEXT_PUBLIC_APP_URL ?? 'https://meuateliersistema.com.br',
+    whatsapp_block: whatsappHtml,
+  })
+}
+
+export async function sendBonusAcabando(to: string, nome: string, dataFim: string): Promise<{ id: string | null }> {
+  const html = await buildBonusAcabandoHtml(nome, dataFim)
+  return send({ to, subject: 'Seu bônus no Meu Atelier Sistema está acabando', html })
+}
+
+// Campanha "novidades" — conteúdo preenchido na tela a cada disparo, não
+// hardcoded (ver app/admin/campaigns/page.tsx e lib/campaigns/product-news.ts)
+export async function buildNovidadesHtml(
+  nome: string,
+  conteudo: { titulo: string; descricao: string; ctaTexto: string; ctaUrl: string }
+): Promise<string> {
+  const whatsappHtml = await buildWhatsappBlock('Olá! Vi a novidade do Meu Atelier Sistema e tenho uma dúvida.')
+  return fill(loadTemplate('14-novidades.html'), {
+    nome,
+    titulo: conteudo.titulo,
+    descricao: conteudo.descricao,
+    cta_texto: conteudo.ctaTexto,
+    cta_url: conteudo.ctaUrl,
+    whatsapp_block: whatsappHtml,
+  })
+}
+
+export async function sendNovidades(
+  to: string,
+  nome: string,
+  conteudo: { titulo: string; descricao: string; ctaTexto: string; ctaUrl: string }
+): Promise<{ id: string | null }> {
+  const html = await buildNovidadesHtml(nome, conteudo)
+  return send({ to, subject: `Novidade no Meu Atelier Sistema: ${conteudo.titulo}`, html })
+}

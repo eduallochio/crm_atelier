@@ -811,6 +811,18 @@ export const campaignSends = pgTable('campaign_sends', {
   index('idx_campaign_sends_resend_email_id').on(t.resendEmailId),
 ])
 
+// ─── 33d. CAMPAIGN SEGMENTS ─────────────────────────────────────────────────────
+// Filtro nomeado e reutilizável (ex: "Uso baixo, parado há 30 dias"),
+// independente de qual campanha vai usá-lo. `criteria` é JSON livre — cada tipo
+// de campanha interpreta só os campos que fazem sentido pra ele, evitando uma
+// coluna por filtro possível (ver app/admin/campaigns/page.tsx).
+export const campaignSegments = pgTable('campaign_segments', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  name:      text('name').notNull(),
+  criteria:  jsonb('criteria').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
 // ─── 34. ORG MONTHLY GOALS ────────────────────────────────────────────────────
 
 export const orgMonthlyGoals = pgTable('org_monthly_goals', {

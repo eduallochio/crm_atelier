@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Send, Loader2, Mail, Search, Eye, Users, TrendingUp, MousePointerClick, History, CheckCircle2, XCircle } from 'lucide-react'
+import { Send, Loader2, Mail, Search, Eye, Users, TrendingUp, MousePointerClick, History, CheckCircle2, XCircle, Bookmark, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,6 +19,14 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -27,11 +35,13 @@ interface Candidate {
   organization_name: string
   plan: string
   created_at: string
+  owner_id: string | null
   owner_name: string | null
-  owner_email: string
+  owner_email: string | null
   ever_paid: boolean
   last_campaign_sent_at: string | null
-  is_inactive: boolean
+  is_candidate: boolean
+  extra?: Record<string, unknown>
 }
 
 interface Run {
@@ -50,6 +60,22 @@ interface SendResult {
   error?: string
 }
 
+interface Segment {
+  id: string
+  name: string
+  criteria: Record<string, unknown>
+  createdAt: string
+}
+
+type CampaignType = 'reengagement' | 'low-usage' | 'bonus-ending' | 'product-news'
+
+const CAMPAIGN_OPTIONS: { value: CampaignType; label: string; description: string }[] = [
+  { value: 'reengagement', label: 'Reengajamento', description: 'Criaram conta e nunca cadastraram um cliente ou uma ordem de serviço' },
+  { value: 'low-usage', label: 'Uso baixo', description: 'Já usaram de verdade (cliente ou OS cadastrado), mas sem atividade recente' },
+  { value: 'bonus-ending', label: 'Bônus acabando', description: 'Assinantes perto do fim do bônus promocional de 60 dias' },
+  { value: 'product-news', label: 'Novidades', description: 'Comunicado de feature nova para quem já usa o sistema' },
+]
+
 const AGE_OPTIONS = [
   { value: 'all', label: 'Cadastro: todos', days: 0 },
   { value: '3', label: 'Há mais de 3 dias', days: 3 },
@@ -57,13 +83,27 @@ const AGE_OPTIONS = [
   { value: '15', label: 'Há mais de 15 dias', days: 15 },
 ]
 
+const INACTIVE_DAYS_OPTIONS = [
+  { value: '15', label: 'Inativo há 15+ dias' },
+  { value: '30', label: 'Inativo há 30+ dias' },
+  { value: '60', label: 'Inativo há 60+ dias' },
+]
+
+const BONUS_WINDOW_OPTIONS = [
+  { value: '3', label: 'Vence em até 3 dias' },
+  { value: '7', label: 'Vence em até 7 dias' },
+  { value: '15', label: 'Vence em até 15 dias' },
+]
+
 const ACTIVITY_OPTIONS = [
-  { value: 'inactive', label: 'Status: candidatas (inativas)' },
+  { value: 'candidate', label: 'Status: candidatas' },
   { value: 'all', label: 'Status: todas as organizações' },
-  { value: 'active', label: 'Status: só ativas' },
+  { value: 'not-candidate', label: 'Status: só as demais' },
 ]
 
 export default function AdminCampaignsPage() {
+  const [campaignType, setCampaignType] = useState<CampaignType>('reengagement')
+
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -79,12 +119,41 @@ export default function AdminCampaignsPage() {
   const [ageFilter, setAgeFilter] = useState('all')
   const [paidFilter, setPaidFilter] = useState('all') // all | never | churned
   const [sentFilter, setSentFilter] = useState('all') // all | never | already
-  const [activityFilter, setActivityFilter] = useState('inactive') // all | inactive | active — default mantém o comportamento original (só candidatas)
+  const [activityFilter, setActivityFilter] = useState('candidate') // all | candidate | not-candidate
 
-  const fetchRuns = useCallback(async () => {
+  // Filtros extras, específicos de cada tipo de campanha
+  const [minDaysInactive, setMinDaysInactive] = useState('30')
+  const [bonusWithinDays, setBonusWithinDays] = useState('7')
+
+  // Conteúdo da campanha de novidades — preenchido na tela a cada disparo,
+  // não hardcoded no código (ver lib/email/index.ts: buildNovidadesHtml)
+  const [newsTitulo, setNewsTitulo] = useState('')
+  const [newsDescricao, setNewsDescricao] = useState('')
+  const [newsCtaTexto, setNewsCtaTexto] = useState('Ver novidade')
+  const [newsCtaUrl, setNewsCtaUrl] = useState('')
+  const newsContentReady = newsTitulo.trim() && newsDescricao.trim() && newsCtaTexto.trim() && newsCtaUrl.trim()
+  const isProductNews = campaignType === 'product-news'
+
+  // Segmentos salvos
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [saveSegmentOpen, setSaveSegmentOpen] = useState(false)
+  const [segmentName, setSegmentName] = useState('')
+  const [savingSegment, setSavingSegment] = useState(false)
+
+  const fetchSegments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/campaigns/segments')
+      if (!res.ok) throw new Error()
+      setSegments(await res.json())
+    } catch {
+      // segmentos salvos são conveniência — falha aqui não bloqueia a tela
+    }
+  }, [])
+
+  const fetchRuns = useCallback(async (type: CampaignType) => {
     setRunsLoading(true)
     try {
-      const res = await fetch('/api/admin/campaigns/reengagement/runs')
+      const res = await fetch(`/api/admin/campaigns/${type}/runs`)
       if (!res.ok) throw new Error()
       setRuns(await res.json())
     } catch {
@@ -94,30 +163,34 @@ export default function AdminCampaignsPage() {
     }
   }, [])
 
-  const fetchCandidates = useCallback(async () => {
+  const fetchCandidates = useCallback(async (type: CampaignType, opts: { minDaysInactive: string; bonusWithinDays: string }) => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/campaigns/reengagement')
+      const params = new URLSearchParams()
+      if (type === 'low-usage') params.set('minDaysInactive', opts.minDaysInactive)
+      if (type === 'bonus-ending') params.set('withinDays', opts.bonusWithinDays)
+      const qs = params.toString()
+      const res = await fetch(`/api/admin/campaigns/${type}${qs ? `?${qs}` : ''}`)
       if (!res.ok) throw new Error()
       const data: Candidate[] = await res.json()
       setCandidates(data)
     } catch {
-      toast.error('Erro ao carregar organizações inativas')
+      toast.error('Erro ao carregar organizações')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetchCandidates() }, [fetchCandidates])
-  useEffect(() => { fetchRuns() }, [fetchRuns])
+  useEffect(() => { fetchCandidates(campaignType, { minDaysInactive, bonusWithinDays }) }, [campaignType, minDaysInactive, bonusWithinDays, fetchCandidates])
+  useEffect(() => { fetchRuns(campaignType) }, [campaignType, fetchRuns])
+  useEffect(() => { fetchSegments() }, [fetchSegments])
 
-  // Seleciona só as candidatas (inativas) vindas do servidor, só quando a
-  // lista muda de verdade (carga inicial, ou depois de disparar a campanha)
-  // — não a cada filtro local, senão uma desmarcação manual do usuário seria
-  // descartada ao digitar mais uma letra na busca. Organização ativa nunca
-  // entra pré-selecionada — o POST a rejeitaria mesmo, mas evita confusão.
+  // Seleciona só as candidatas vindas do servidor, só quando a lista muda de
+  // verdade (troca de campanha, carga inicial, ou depois de disparar) — não
+  // a cada filtro local, senão uma desmarcação manual seria descartada ao
+  // digitar mais uma letra na busca
   useEffect(() => {
-    setSelected(new Set(candidates.filter((c) => c.is_inactive).map((c) => c.organization_id)))
+    setSelected(new Set(candidates.filter((c) => c.is_candidate).map((c) => c.organization_id)))
   }, [candidates])
 
   const filtered = useMemo(() => {
@@ -129,14 +202,14 @@ export default function AdminCampaignsPage() {
       const matchSearch = !q ||
         c.organization_name.toLowerCase().includes(q) ||
         (c.owner_name ?? '').toLowerCase().includes(q) ||
-        c.owner_email.toLowerCase().includes(q)
+        (c.owner_email ?? '').toLowerCase().includes(q)
       const matchAge = !cutoff || new Date(c.created_at).getTime() <= cutoff
       const matchPaid = paidFilter === 'all' ||
         (paidFilter === 'never' ? !c.ever_paid : c.ever_paid)
       const matchSent = sentFilter === 'all' ||
         (sentFilter === 'never' ? !c.last_campaign_sent_at : !!c.last_campaign_sent_at)
       const matchActivity = activityFilter === 'all' ||
-        (activityFilter === 'inactive' ? c.is_inactive : !c.is_inactive)
+        (activityFilter === 'candidate' ? c.is_candidate : !c.is_candidate)
       return matchSearch && matchAge && matchPaid && matchSent && matchActivity
     })
   }, [candidates, search, ageFilter, paidFilter, sentFilter, activityFilter])
@@ -145,14 +218,14 @@ export default function AdminCampaignsPage() {
   // pode conter itens escondidos pelo filtro atual, mas o botão de disparo e o
   // checkbox "selecionar todos" só devem refletir/agir sobre o que a pessoa vê
   const selectedVisible = useMemo(
-    () => filtered.filter((c) => c.is_inactive && selected.has(c.organization_id)),
+    () => filtered.filter((c) => c.is_candidate && selected.has(c.organization_id)),
     [filtered, selected]
   )
 
-  // Organização ativa nunca pode ser selecionada — o POST a rejeitaria mesmo
-  // (não é candidata real à campanha), então o checkbox nem aparece marcável
+  // Organização não-candidata nunca pode ser selecionada — o POST a
+  // rejeitaria mesmo, então o checkbox nem aparece marcável
   const toggle = (candidate: Candidate) => {
-    if (!candidate.is_inactive) return
+    if (!candidate.is_candidate) return
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(candidate.organization_id)) next.delete(candidate.organization_id)
@@ -162,7 +235,7 @@ export default function AdminCampaignsPage() {
   }
 
   const toggleAll = () => {
-    const selectable = filtered.filter((c) => c.is_inactive)
+    const selectable = filtered.filter((c) => c.is_candidate)
     setSelected((prev) => {
       const next = new Set(prev)
       const allVisibleSelected = selectable.every((c) => next.has(c.organization_id))
@@ -184,17 +257,21 @@ export default function AdminCampaignsPage() {
     setConfirmOpen(false)
     setSending(true)
     try {
-      const res = await fetch('/api/admin/campaigns/reengagement', {
+      const body: Record<string, unknown> = { organization_ids: selectedVisible.map((c) => c.organization_id) }
+      if (isProductNews) {
+        body.content = { titulo: newsTitulo.trim(), descricao: newsDescricao.trim(), ctaTexto: newsCtaTexto.trim(), ctaUrl: newsCtaUrl.trim() }
+      }
+      const res = await fetch(`/api/admin/campaigns/${campaignType}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organization_ids: selectedVisible.map((c) => c.organization_id) }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
       toast.success(`${data.sent} email(s) enviado(s)${data.skipped ? ` · ${data.skipped} pulado(s)` : ''}`)
       setSendResults(data.results ?? null)
-      fetchCandidates()
-      fetchRuns()
+      fetchCandidates(campaignType, { minDaysInactive, bonusWithinDays })
+      fetchRuns(campaignType)
     } catch {
       toast.error('Erro ao disparar a campanha')
     } finally {
@@ -202,31 +279,96 @@ export default function AdminCampaignsPage() {
     }
   }
 
+  const currentCriteria = useMemo(() => ({
+    campaignType, search, ageFilter, paidFilter, sentFilter, activityFilter,
+    minDaysInactive, bonusWithinDays,
+  }), [campaignType, search, ageFilter, paidFilter, sentFilter, activityFilter, minDaysInactive, bonusWithinDays])
+
+  const handleSaveSegment = async () => {
+    if (!segmentName.trim()) return
+    setSavingSegment(true)
+    try {
+      const res = await fetch('/api/admin/campaigns/segments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: segmentName.trim(), criteria: currentCriteria }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success('Segmento salvo')
+      setSaveSegmentOpen(false)
+      setSegmentName('')
+      fetchSegments()
+    } catch {
+      toast.error('Erro ao salvar o segmento')
+    } finally {
+      setSavingSegment(false)
+    }
+  }
+
+  const handleLoadSegment = (segment: Segment) => {
+    const c = segment.criteria as Partial<typeof currentCriteria>
+    if (c.campaignType) setCampaignType(c.campaignType as CampaignType)
+    setSearch(c.search ?? '')
+    setAgeFilter(c.ageFilter ?? 'all')
+    setPaidFilter(c.paidFilter ?? 'all')
+    setSentFilter(c.sentFilter ?? 'all')
+    setActivityFilter(c.activityFilter ?? 'candidate')
+    setMinDaysInactive(c.minDaysInactive ?? '30')
+    setBonusWithinDays(c.bonusWithinDays ?? '7')
+    toast.success(`Segmento "${segment.name}" carregado`)
+  }
+
+  const selectedCampaign = CAMPAIGN_OPTIONS.find((o) => o.value === campaignType)!
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campanhas</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Reengajamento — organizações que criaram conta e nunca cadastraram um cliente ou uma ordem de serviço
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedCampaign.description}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Button variant="outline" onClick={() => setPreviewOpen(true)} className="flex-1 sm:flex-none">
             <Eye className="w-4 h-4 mr-2" />
             Visualizar email
           </Button>
-          <Button onClick={() => setConfirmOpen(true)} disabled={sending || selectedVisible.length === 0} className="flex-1 sm:flex-none">
+          <Button
+            onClick={() => setConfirmOpen(true)}
+            disabled={sending || selectedVisible.length === 0 || (isProductNews && !newsContentReady)}
+            className="flex-1 sm:flex-none"
+          >
             {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" /> : <Send className="w-4 h-4 mr-2 shrink-0" />}
             <span className="truncate">Disparar para {selectedVisible.length}</span>
           </Button>
         </div>
       </div>
 
+      <div>
+        <label htmlFor="campaign-type" className="sr-only">Tipo de campanha</label>
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Tipo de campanha">
+          {CAMPAIGN_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              role="tab"
+              aria-selected={campaignType === o.value}
+              onClick={() => setCampaignType(o.value)}
+              className={cn(
+                'px-4 py-2 rounded-md text-sm font-medium border transition-colors',
+                campaignType === o.value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminMetricsCard
           title="Candidatas agora"
-          value={String(candidates.filter((c) => c.is_inactive).length)}
+          value={String(candidates.filter((c) => c.is_candidate).length)}
           icon={Users}
           subtext={`de ${candidates.length} organizações no total`}
           color="blue"
@@ -254,6 +396,33 @@ export default function AdminCampaignsPage() {
         />
       </div>
 
+      {isProductNews ? (
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+          <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Conteúdo da novidade</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="sm:col-span-2">
+              <label htmlFor="news-titulo" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Título</label>
+              <Input id="news-titulo" placeholder="Ex: Chegou o relatório de comissões" value={newsTitulo} onChange={(e) => setNewsTitulo(e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="news-descricao" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Descrição</label>
+              <Input id="news-descricao" placeholder="Explique em 1-2 frases o que mudou" value={newsDescricao} onChange={(e) => setNewsDescricao(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="news-cta-texto" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Texto do botão</label>
+              <Input id="news-cta-texto" placeholder="Ver novidade" value={newsCtaTexto} onChange={(e) => setNewsCtaTexto(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="news-cta-url" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">URL do botão</label>
+              <Input id="news-cta-url" placeholder="https://meuateliersistema.com.br/..." value={newsCtaUrl} onChange={(e) => setNewsCtaUrl(e.target.value)} />
+            </div>
+          </div>
+          {!newsContentReady && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">Preencha todos os campos para habilitar o disparo.</p>
+          )}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3">
         <div className="relative sm:col-span-2 lg:flex-1 lg:min-w-[240px]">
           <label htmlFor="campaign-search" className="sr-only">Buscar organizações</label>
@@ -268,20 +437,43 @@ export default function AdminCampaignsPage() {
             {ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
-        <div>
-          <label htmlFor="campaign-age-filter" className="sr-only">Filtrar por tempo desde o cadastro</label>
-          <select id="campaign-age-filter" value={ageFilter} onChange={(e) => setAgeFilter(e.target.value)}
-            className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
-            {AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
+
+        {campaignType === 'low-usage' && (
+          <div>
+            <label htmlFor="campaign-inactive-days" className="sr-only">Dias sem atividade</label>
+            <select id="campaign-inactive-days" value={minDaysInactive} onChange={(e) => setMinDaysInactive(e.target.value)}
+              className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+              {INACTIVE_DAYS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
+
+        {campaignType === 'bonus-ending' && (
+          <div>
+            <label htmlFor="campaign-bonus-window" className="sr-only">Janela de vencimento do bônus</label>
+            <select id="campaign-bonus-window" value={bonusWithinDays} onChange={(e) => setBonusWithinDays(e.target.value)}
+              className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+              {BONUS_WINDOW_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
+
+        {campaignType !== 'product-news' && (
+          <div>
+            <label htmlFor="campaign-age-filter" className="sr-only">Filtrar por tempo desde o cadastro</label>
+            <select id="campaign-age-filter" value={ageFilter} onChange={(e) => setAgeFilter(e.target.value)}
+              className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
+              {AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <label htmlFor="campaign-paid-filter" className="sr-only">Filtrar por status da assinatura</label>
           <select id="campaign-paid-filter" value={paidFilter} onChange={(e) => setPaidFilter(e.target.value)}
             className="h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white w-full lg:w-auto">
             <option value="all">Assinatura: todas</option>
             <option value="never">Nunca assinou</option>
-            <option value="churned">Já assinou e cancelou</option>
+            <option value="churned">Já assinou (pagante)</option>
           </select>
         </div>
         <div>
@@ -292,6 +484,32 @@ export default function AdminCampaignsPage() {
             <option value="never">Nunca recebeu</option>
             <option value="already">Já recebeu</option>
           </select>
+        </div>
+
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" size="sm" onClick={() => setSaveSegmentOpen(true)}>
+            <Bookmark className="w-4 h-4 mr-2" />
+            Salvar filtro
+          </Button>
+          {segments.length > 0 && (
+            <div className="relative">
+              <label htmlFor="load-segment" className="sr-only">Carregar segmento salvo</label>
+              <select
+                id="load-segment"
+                defaultValue=""
+                onChange={(e) => {
+                  const segment = segments.find((s) => s.id === e.target.value)
+                  if (segment) handleLoadSegment(segment)
+                  e.target.value = ''
+                }}
+                className="h-9 pl-8 pr-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white"
+              >
+                <option value="" disabled>Carregar segmento...</option>
+                {segments.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <FolderOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -311,7 +529,7 @@ export default function AdminCampaignsPage() {
               <thead className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                   <th className="py-3 px-4 w-10">
-                    <Checkbox checked={filtered.some((c) => c.is_inactive) && selectedVisible.length === filtered.filter((c) => c.is_inactive).length} onCheckedChange={toggleAll} />
+                    <Checkbox checked={filtered.some((c) => c.is_candidate) && selectedVisible.length === filtered.filter((c) => c.is_candidate).length} onCheckedChange={toggleAll} />
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Organização</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Status</th>
@@ -324,7 +542,7 @@ export default function AdminCampaignsPage() {
                 {filtered.map((c) => (
                   <tr key={c.organization_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="py-3 px-4">
-                      <Checkbox checked={c.is_inactive && selected.has(c.organization_id)} disabled={!c.is_inactive} onCheckedChange={() => toggle(c)} />
+                      <Checkbox checked={c.is_candidate && selected.has(c.organization_id)} disabled={!c.is_candidate} onCheckedChange={() => toggle(c)} />
                     </td>
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900 dark:text-white">{c.organization_name}</p>
@@ -333,14 +551,14 @@ export default function AdminCampaignsPage() {
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant="outline" className={cn(
-                        c.is_inactive
+                        c.is_candidate
                           ? 'border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400'
                           : 'border-green-300 dark:border-green-700 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400'
                       )}>
-                        {c.is_inactive ? 'Candidata' : 'Ativa'}
+                        {c.is_candidate ? 'Candidata' : 'Fora do critério'}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{c.owner_email}</td>
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{c.owner_email ?? '—'}</td>
                     <td className="py-3 px-4 text-gray-500 text-xs hidden md:table-cell">
                       {new Date(c.created_at).toLocaleDateString('pt-BR')}
                     </td>
@@ -399,7 +617,11 @@ export default function AdminCampaignsPage() {
       <EmailPreviewDialog
         open={previewOpen}
         onOpenChange={setPreviewOpen}
-        fetchUrl="/api/admin/campaigns/reengagement/preview"
+        fetchUrl={
+          isProductNews
+            ? `/api/admin/campaigns/product-news/preview?${new URLSearchParams({ titulo: newsTitulo, descricao: newsDescricao, ctaTexto: newsCtaTexto, ctaUrl: newsCtaUrl }).toString()}`
+            : `/api/admin/campaigns/${campaignType}/preview`
+        }
       />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -410,7 +632,7 @@ export default function AdminCampaignsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
-                <p>Um email de reengajamento será enviado agora para:</p>
+                <p>Um email de {selectedCampaign.label.toLowerCase()} será enviado agora para:</p>
                 <ul className="list-disc list-inside text-sm">
                   {selectedVisible.slice(0, 3).map((c) => (
                     <li key={c.organization_id}>{c.organization_name}</li>
@@ -458,6 +680,28 @@ export default function AdminCampaignsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={saveSegmentOpen} onOpenChange={setSaveSegmentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar filtro atual como segmento</DialogTitle>
+            <DialogDescription>
+              Salva a campanha e os filtros selecionados agora, para reutilizar depois.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <label htmlFor="segment-name" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome do segmento</label>
+            <Input id="segment-name" placeholder="Ex: Uso baixo, parado há 30 dias" value={segmentName} onChange={(e) => setSegmentName(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveSegmentOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveSegment} disabled={savingSegment || !segmentName.trim()}>
+              {savingSegment ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
