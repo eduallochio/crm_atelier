@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Bell, Building2, CreditCard, DollarSign, FileText, Settings, Users } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { OrganizationSettingsForm } from '@/components/settings/organization-settings-form'
 import { FinancialSettingsForm } from '@/components/settings/financial-settings-form'
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form'
@@ -39,7 +40,7 @@ export default function ConfiguracoesPage() {
   return (
     <div>
       <style>{MASTER_DETAIL_CSS + CFG_CSS}</style>
-      <Header title="Configurações" description="Ajuste o sistema ao jeito do seu ateliê" />
+      <Header title="Configurações" description="Ajuste o sistema ao jeito do seu ateliê" action={<HelpSectionLink section="configuracoes" />} />
 
       <div className="lg:flex lg:items-start">
         {/* ── seções ── */}

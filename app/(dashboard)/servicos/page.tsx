@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Info, Plus, Scissors, Search, SearchX, X } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useServices } from '@/hooks/use-services'
 import { useServiceStats } from '@/hooks/use-service-stats'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
@@ -111,6 +112,7 @@ export default function ServicosPage() {
         description="Gerencie o catálogo de serviços"
         action={
           <>
+            <HelpSectionLink section="servicos" />
             {limitBar}
             <button type="button" onClick={handleNew} disabled={serviceLimit.atLimit}
               title={serviceLimit.atLimit ? `Limite do plano Free atingido (${serviceLimit.limit} serviços). Faça upgrade para continuar.` : undefined}

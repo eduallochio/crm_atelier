@@ -7,6 +7,7 @@ import { Cake, CircleDashed, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wal
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { DeliveryBoard, DELIVERY_CSS } from '@/components/dashboard/delivery-board'
 import { RevenueGoal, REVENUE_CSS } from '@/components/dashboard/revenue-goal'
 import { ReadyOrders, READY_CSS } from '@/components/dashboard/ready-orders'
@@ -111,6 +112,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:mr-52 lg:mr-56 lg:flex-nowrap">
             <div className="w-full sm:w-60"><GlobalSearch clients={clients} orders={orders} services={services} /></div>
+            <HelpSectionLink section="dashboard" />
             <button type="button" className="cli-ghost flex-1 justify-center sm:flex-none" onClick={() => setClientOpen(true)}><UserPlus className="h-4 w-4" aria-hidden="true" />Novo cliente</button>
             {canSeeOrders && (
               <button type="button" className="cli-primary flex-1 justify-center sm:flex-none" style={{ minHeight: 44 }} onClick={() => setOrderOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" />Nova ordem</button>

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, Pencil, Plus, Wallet } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useCashiers, useCashierSessions } from '@/hooks/use-cashier'
 import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 import { FIN_CSS, FinanceTabs, brl, dateTimeOf } from '@/components/financeiro/finance-ui'
@@ -21,9 +22,12 @@ export default function CaixaPage() {
         title="Financeiro"
         description="Caixas e sessões"
         action={
-          <Link href="/financeiro/caixa/cadastro" className="cli-primary">
-            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo caixa</span><span className="sm:hidden">Novo</span>
-          </Link>
+          <>
+            <HelpSectionLink section="caixa" />
+            <Link href="/financeiro/caixa/cadastro" className="cli-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo caixa</span><span className="sm:hidden">Novo</span>
+            </Link>
+          </>
         }
       />
       <FinanceTabs />

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Cake, Plus, Search, SearchX, Users } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useClients } from '@/hooks/use-clients'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ClientDialog } from '@/components/forms/client-dialog'
@@ -90,6 +91,7 @@ export default function ClientesPage() {
         description="Gerencie seus clientes"
         action={
           <>
+            <HelpSectionLink section="clientes" />
             {limitBar}
             <button type="button" onClick={handleNew} disabled={clientLimit.atLimit}
               title={clientLimit.atLimit ? `Limite do plano Free atingido (${clientLimit.limit} clientes). Faça upgrade para continuar.` : undefined}

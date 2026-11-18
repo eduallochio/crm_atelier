@@ -9,6 +9,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useDeleteProduct, useProducts, useStockEntries, useStockExits, type Product } from '@/hooks/use-inventory'
 import { ProductDialog } from '@/components/inventory/product-dialog'
 import { StockEntryDialog } from '@/components/inventory/stock-entry-dialog'
@@ -126,6 +127,7 @@ function Produtos() {
         description={`${counts.active} produtos ativos · ${brl(totalValue)} em estoque`}
         action={
           <>
+            <HelpSectionLink section="estoque" />
             <span className="hidden gap-2 sm:flex">
               <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel} title="Exportar Excel" aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />Excel</button>
               <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportPDF} title="Exportar PDF" aria-label="Exportar PDF"><FileDown className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" />PDF</button>

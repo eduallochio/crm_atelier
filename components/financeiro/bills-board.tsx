@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import {
   useReceivables, usePayables, useUpdateReceivable, useUpdatePayable, useDeleteReceivable, useDeletePayable,
 } from '@/hooks/use-financial'
@@ -213,6 +214,7 @@ export function BillsBoard({ kind }: { kind: Kind }) {
         description={t.title}
         action={
           <>
+            <HelpSectionLink section="receber" />
 <span className="hidden gap-2 sm:flex">
             <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar Excel'} aria-label="Exportar Excel">

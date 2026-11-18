@@ -12,6 +12,7 @@ import { CashDrawer } from '@/components/financeiro/cash-drawer'
 import { WeekBills } from '@/components/financeiro/week-bills'
 import { Info } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 
 type Period = '7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'
 const PERIODS: { key: Period; label: string }[] = [
@@ -41,9 +42,12 @@ export default function FinanceiroPage() {
         title="Financeiro"
         description="O caixa de hoje e as contas da semana"
         action={
-          <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Lançamento</span><span className="sm:hidden">Novo</span>
-          </button>
+          <>
+            <HelpSectionLink section="financeiro" />
+            <button type="button" className="cli-primary" onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Lançamento</span><span className="sm:hidden">Novo</span>
+            </button>
+          </>
         }
       />
       <FinanceTabs />

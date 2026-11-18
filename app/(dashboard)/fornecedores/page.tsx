@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Building2, Ellipsis, Landmark, Mail, MapPin, MessageCircle, Pencil, Phone, Plus, Power, Search, SearchX, Truck, User } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { SupplierDialog } from '@/components/forms/supplier-dialog'
 import { useDeleteSupplier, useSuppliers, type Supplier } from '@/hooks/use-suppliers'
 import { useStockEntries } from '@/hooks/use-inventory'
@@ -61,7 +62,12 @@ export default function FornecedoresPage() {
       <Header
         title="Estoque"
         description="Fornecedores do ateliê"
-        action={<button type="button" className="cli-primary" onClick={handleNew}><Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo fornecedor</span><span className="sm:hidden">Novo</span></button>}
+        action={
+          <>
+            <HelpSectionLink section="fornecedores" />
+            <button type="button" className="cli-primary" onClick={handleNew}><Plus className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Novo fornecedor</span><span className="sm:hidden">Novo</span></button>
+          </>
+        }
       />
       <StockTabs />
 

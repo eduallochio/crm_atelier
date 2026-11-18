@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useTransactions, useDeleteTransaction } from '@/hooks/use-financial'
 import { useCashFlow } from '@/hooks/use-financial-stats'
 import { usePlanUsage } from '@/hooks/use-plan-usage'
@@ -112,6 +113,7 @@ export default function FluxoCaixaPage() {
         description="Fluxo de caixa"
         action={
           <>
+            <HelpSectionLink section="fluxo-caixa" />
 <span className="hidden gap-2 sm:flex">
             <button type="button" className="cli-ghost" style={{ minHeight: 42 }} onClick={exportExcel} disabled={isFree}
               title={isFree ? 'Disponível no plano Pro' : 'Exportar Excel'} aria-label="Exportar Excel"><FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />Excel</button>

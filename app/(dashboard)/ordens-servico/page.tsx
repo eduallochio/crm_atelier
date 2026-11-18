@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { CheckSquare, ClipboardList, Plus, Search, SearchX, Square, Trash2, X } from 'lucide-react'
 import { Header } from '@/components/layouts/header'
+import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { useDeleteServiceOrder, useServiceOrders, useUpdateServiceOrder } from '@/hooks/use-service-orders'
 import { usePlanLimit } from '@/hooks/use-plan-usage'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
@@ -176,6 +177,7 @@ export default function OrdensServicoPage() {
         description="Gerencie as ordens de serviço"
         action={
           <>
+            <HelpSectionLink section="ordens-servico" />
             {limitBar}
             <button type="button" onClick={() => setNewOpen(true)} disabled={orderLimit.atLimit}
               title={orderLimit.atLimit ? `Limite do plano Free atingido (${orderLimit.limit} ordens). Faça upgrade para continuar.` : undefined}
