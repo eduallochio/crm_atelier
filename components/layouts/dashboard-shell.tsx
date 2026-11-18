@@ -1,13 +1,21 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Lock } from 'lucide-react'
 import { AppTour } from '@/components/tour/app-tour'
 import { SessionGuard } from '@/components/layouts/session-guard'
 import { ProCelebrationWatcher } from '@/components/subscription/plan-celebration'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
+import { OpenCashierDialog } from '@/components/financeiro/open-cashier-dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
+const SERIF = { fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }
 
 // ssr: false — tentativa anterior de habilitar SSR aqui (sem esse flag)
 // reproduziu um hydration mismatch NOVO e real: o id="radix-..." gerado por
@@ -80,7 +88,7 @@ function CashierAutomation() {
       const res = await fetch('/api/cashiers/sessions?status=aberto')
       // Caixa é módulo exclusivo do plano Pro+ — requireProPlan() responde 403
       // para organizações Free/sem licença vitalícia. Isso não é um erro nem
-      // "nenhum caixa aberto" (que dispararia o toast abaixo indevidamente),
+      // "nenhum caixa aberto" (que dispararia o aviso abaixo indevidamente),
       // é "módulo não disponível para esta org" — sentinel próprio para o
       // efeito abaixo distinguir dos dois outros casos
       if (res.status === 403) return 'no_access' as const
@@ -91,7 +99,11 @@ function CashierAutomation() {
     staleTime: 60_000,
   })
 
-  // Lembrete diário: exibe uma vez por dia se não há caixa aberto
+  // Lembrete diário centralizado — antes era um toast de canto (pequeno e
+  // some sozinho), agora fica visível até o usuário abrir o caixa ou fechar
+  const [showReminder, setShowReminder] = useState(false)
+  const [opening, setOpening] = useState(false)
+
   useEffect(() => {
     if (!settings?.fechamento_automatico_caixa) return
     if (sessions === 'no_access') return
@@ -104,14 +116,7 @@ function CashierAutomation() {
 
     if (sessions.length === 0) {
       localStorage.setItem(REMINDER_KEY, today)
-      toast.warning('Nenhum caixa aberto', {
-        description: 'Não esqueça de abrir o caixa para registrar os pagamentos do dia.',
-        duration: 10_000,
-        action: {
-          label: 'Ir para Caixa',
-          onClick: () => { window.location.href = '/financeiro/caixa' },
-        },
-      })
+      setShowReminder(true)
     }
   }, [settings, sessions])
 
@@ -120,7 +125,29 @@ function CashierAutomation() {
   // navegador só dispararia se alguém estivesse com o app aberto bem no
   // instante da virada, o que raramente acontece na prática.
 
-  return null
+  return (
+    <>
+      <AlertDialog open={showReminder} onOpenChange={(v) => { if (!v) setShowReminder(false) }}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/50">
+              <Lock className="h-7 w-7 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            </div>
+            <AlertDialogTitle className="text-center text-[26px] font-normal leading-tight" style={SERIF}>Nenhum caixa aberto</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-[15px]">
+              Não esqueça de abrir o caixa para registrar os pagamentos do dia.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogCancel onClick={() => setShowReminder(false)}>Fechar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowReminder(false); setOpening(true) }}>Abrir caixa agora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <OpenCashierDialog open={opening} onClose={() => setOpening(false)} />
+    </>
+  )
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
