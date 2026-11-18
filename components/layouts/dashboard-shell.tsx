@@ -134,8 +134,13 @@ function CashierAutomation() {
               <Lock className="h-7 w-7 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             </div>
             <AlertDialogTitle className="text-center text-[26px] font-normal leading-tight" style={SERIF}>Nenhum caixa aberto</AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-[15px]">
-              Não esqueça de abrir o caixa para registrar os pagamentos do dia.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-center text-[15px]">
+                <p>Não esqueça de abrir o caixa para registrar os pagamentos do dia.</p>
+                <p className="text-[13px] text-muted-foreground">
+                  Sem o caixa aberto, os pagamentos em dinheiro e Pix recebidos nas ordens de serviço não entram na gaveta — o saldo do dia fica incompleto e a conferência no fechamento não bate.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">

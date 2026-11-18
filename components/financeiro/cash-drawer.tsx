@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, HandCoins, Lock, LockOpen, PiggyBank, Plus } from 'lucide-react'
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, HandCoins, Info, Lock, LockOpen, PiggyBank, Plus } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useCashiers, useCashierMovements, useCashierSessions, useCloseCashier } from '@/hooks/use-cashier'
@@ -11,6 +11,7 @@ import { AddMovementDialog } from './add-movement-dialog'
 import { CloseCashierDialog } from './close-cashier-dialog'
 import { OpenCashierDialog } from './open-cashier-dialog'
 import { brl, dayLabel, timeOf } from './finance-ui'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type MoveKind = 'entrada' | 'saida' | 'sangria' | 'reforco'
 
@@ -201,7 +202,19 @@ function ClosedDrawer() {
   return (
     <section aria-label="Caixa de hoje" className="drawer px-5 py-6">
       <LockOpen className="h-7 w-7 text-[#E9C887]" aria-hidden="true" strokeWidth={1.6} />
-      <h2 className="fin-num mt-3 text-[30px] text-[#FFF8F0]">Nenhum caixa aberto</h2>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <h2 className="fin-num mt-3 inline-flex items-center gap-1.5 text-[30px] text-[#FFF8F0] cursor-help">
+              Nenhum caixa aberto
+              <Info className="h-4 w-4 opacity-70" aria-hidden="true" />
+            </h2>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-64 border border-[#D4A85A]/40 bg-[#C8714A] text-[#FFF8F0]">
+            Sem o caixa aberto, os pagamentos em dinheiro e Pix recebidos nas ordens não entram na gaveta — o saldo do dia fica incompleto e a conferência no fechamento não bate.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <p className="dr-soft mt-1.5 text-[13.5px] leading-relaxed">
         Abra um caixa no começo do dia para registrar o dinheiro que entra e sai da gaveta. Os pagamentos das ordens concluídas entram nele.
       </p>
