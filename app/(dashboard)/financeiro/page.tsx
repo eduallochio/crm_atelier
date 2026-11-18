@@ -10,6 +10,8 @@ import { MASTER_DETAIL_CSS } from '@/components/dashboard/master-detail-css'
 import { FIN_CSS, FinanceTabs, brl } from '@/components/financeiro/finance-ui'
 import { CashDrawer } from '@/components/financeiro/cash-drawer'
 import { WeekBills } from '@/components/financeiro/week-bills'
+import { Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Period = '7days' | '30days' | 'thisMonth' | 'lastMonth' | 'all'
 const PERIODS: { key: Period; label: string }[] = [
@@ -58,7 +60,19 @@ export default function FinanceiroPage() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="fin-card px-4 py-3.5">
-              <p className="fin-cap">Saldo · {periodLabel}</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="fin-cap inline-flex items-center gap-1 cursor-help">
+                      Saldo · {periodLabel}
+                      <Info className="h-3 w-3 opacity-60" aria-hidden="true" />
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64 border border-[#D4A85A]/40 bg-[#C8714A] text-[#FFF8F0]">
+                    Dinheiro que entrou e saiu no período — inclui sinais de ordens ainda em andamento. É diferente do &quot;Faturamento&quot; do Dashboard, que só conta o valor de ordens já concluídas.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <p className={`fin-num mt-2 text-[34px] ${saldo < 0 ? 'fin-late' : ''}`}>{value(saldo)}</p>
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
                 Entrou <b className="font-semibold text-foreground tabular-nums">{brl(Number(stats?.entradasMes) || 0)}</b><br />

@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import { Info, TrendingDown, TrendingUp } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { formatBRL } from './client-utils'
 import { parseMoney } from '@/lib/utils/money'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
@@ -55,7 +56,19 @@ export function RevenueGoal({ revenue, prev, isLoading }: { revenue: number; pre
   return (
     <section aria-labelledby="rev-h" className="fin-card grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(280px,380px)_1fr] lg:items-center lg:gap-8">
       <div>
-        <h2 id="rev-h" className="fin-cap">Faturamento de {month}</h2>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h2 id="rev-h" className="fin-cap inline-flex items-center gap-1 cursor-help">
+                Faturamento de {month}
+                <Info className="h-3 w-3 opacity-60" aria-hidden="true" />
+              </h2>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64 border border-[#D4A85A]/40 bg-[#C8714A] text-[#FFF8F0]">
+              Soma o valor total das ordens de serviço concluídas no mês. É diferente do &quot;Saldo&quot; do Financeiro, que conta todo o dinheiro movimentado, incluindo sinais de ordens ainda em andamento.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <p className="fin-num mt-2 whitespace-nowrap text-[44px] sm:text-[56px]">{isLoading ? '—' : formatBRL(revenue)}</p>
         {delta !== null && !isLoading && (
           <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold ${delta >= 0 ? 'bg-emerald-600/12 fin-pos' : 'bg-red-600/10 fin-late'}`}>
