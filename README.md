@@ -1,222 +1,215 @@
-# 🎨 CRM Atelier
+<div align="center">
 
-Sistema de gerenciamento completo para ateliês de costura, personalização e artesanato. Solução multi-tenant SaaS com modelo freemium.
+# Meu Atelier Sistema
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)
-![License](https://img.shields.io/badge/license-MIT-blue)
+**SaaS multi-tenant para gestão de ateliês de costura, personalização e artesanato.**
 
-## 🚀 Funcionalidades
+[meuateliersistema.com.br](https://meuateliersistema.com.br)
 
-### ✅ Implementadas
-- **Autenticação Completa**
-  - Login e cadastro com validação
-  - Proteção de rotas com middleware
-  - Visualização de senha (toggle)
-  - Integração com Supabase Auth
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase&logoColor=white)
+![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
 
-- **Dashboard Inteligente**
-  - Métricas em tempo real
-  - Sidebar responsiva com menu mobile
-  - Contador de clientes e limite de plano
-  - Design moderno e profissional
+</div>
 
-- **Módulo de Clientes** 🎯
-  - CRUD completo (criar, listar, editar, deletar)
-  - Busca por nome, email e telefone
-  - Integração com API ViaCEP para busca automática de endereço
-  - Campos estruturados: CEP, logradouro, número, complemento, bairro, cidade, estado
-  - Validação de limites (50 clientes no plano Free)
-  - Confirmação de exclusão
-  - Formatação automática de dados
+---
 
-- **Arquitetura Multi-Tenant**
-  - Isolamento completo por organização
-  - Row Level Security (RLS) no PostgreSQL
-  - Triggers automáticos para criação de recursos
-  - Controle de limites por plano
+Clientes, serviços, ordens de serviço, caixa, financeiro, estoque e assinaturas — tudo em um só sistema, pensado para quem costura e cuida do próprio negócio ao mesmo tempo. Modelo freemium com planos **Free**, **Pro** e **Enterprise**, cobrança recorrente via Asaas e um painel administrativo completo por trás.
 
-### 🔜 Em Desenvolvimento
-- Módulo de Serviços (catálogo com preços)
-- Módulo de Ordens de Serviço (workflow completo)
-- Gestão Financeira (contas a pagar/receber)
-- Controle de Caixa (fluxo de entrada/saída)
-- Perfil e Configurações do Usuário
-- White-label (personalização visual por organização)
-- Integração Stripe (pagamentos e assinaturas)
+## Sumário
 
-## 🛠️ Tecnologias
+- [Funcionalidades](#funcionalidades)
+- [Stack](#stack)
+- [Arquitetura](#arquitetura)
+- [Rodando localmente](#rodando-localmente)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Planos](#planos)
+- [Scripts](#scripts)
+- [Segurança](#segurança)
 
-### Frontend
-- **Next.js 16** - React framework com App Router e Server Actions
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS v4** - Estilização moderna e responsiva
-- **Shadcn UI** - Componentes acessíveis (Radix UI)
-- **React Hook Form** - Gerenciamento de formulários
-- **Zod** - Validação de schemas
-- **TanStack Query v5** - Cache e sincronização de dados
-- **Lucide React** - Biblioteca de ícones
-- **Sonner** - Notificações toast
+## Funcionalidades
 
-### Backend
-- **Supabase**
-  - PostgreSQL (banco de dados)
-  - Authentication (auth integrado)
-  - Row Level Security (segurança)
-  - Realtime subscriptions (futuro)
-  - Storage (futuro)
+### Operação do dia a dia
+- **Clientes** — cadastro completo, busca de endereço via ViaCEP, histórico de ordens por cliente
+- **Serviços** — catálogo com preço, receita de materiais (consumo automático de estoque na conclusão da OS)
+- **Ordens de serviço** — fluxo completo (pendente → em andamento → concluída), numeração sequencial, pagamento parcial/integral, impressão térmica e PDF, embalagens
+- **Caixa** — múltiplos caixas, sessões de abertura/fechamento com conferência de saldo, sangria/reforço, lançamento automático de pagamentos das OS
+- **Financeiro** — contas a pagar/receber, categorias, fluxo de caixa, relatórios, conciliação
+- **Estoque** — produtos, entradas/saídas, baixa automática por receita de serviço, alertas de estoque mínimo
+- **Fornecedores** — cadastro e vínculo com entradas de estoque
 
-### Integrações
-- **ViaCEP** - Busca automática de endereços por CEP
-- **Stripe** - Pagamentos (configurado)
+### Negócio e crescimento
+- **Assinaturas** — planos Free/Pro/Enterprise, cobrança recorrente via **Asaas** (cartão, Pix, boleto), bônus promocional na primeira assinatura, cupons de desconto
+- **Campanhas de email** — reengajamento, uso baixo, bônus acabando e novidades de produto, com segmentos salvos e tracking de abertura/clique (Resend)
+- **Tour guiado** e central de ajuda/manual dentro do produto
+- **Multi-tenant real** — cada organização só enxerga seus próprios dados, isolado por Row Level Security no Postgres
 
-## 📦 Instalação
+### Painel administrativo (master)
+Operação interna completa em `/admin`: organizações, usuários, assinaturas, faturamento, cupons, planos, feature flags, campanhas, analytics, saúde do sistema, logs e monitoramento de erros em produção — com impersonation segura (entrar como qualquer organização sem perder a sessão master).
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Framework | [Next.js 16](https://nextjs.org) (App Router, Server Actions, `proxy.ts` como middleware) |
+| UI | React 19 · TypeScript · Tailwind CSS v4 · [Shadcn UI](https://ui.shadcn.com) (Radix) |
+| Formulários | React Hook Form + Zod |
+| Dados no cliente | TanStack Query v5 |
+| Banco | Supabase (PostgreSQL + Auth + RLS) via [Drizzle ORM](https://orm.drizzle.team) |
+| Pagamentos | [Asaas](https://www.asaas.com) (assinaturas, Pix, boleto, cartão) |
+| Email transacional | [Resend](https://resend.com) |
+| Gráficos | Recharts + Tremor |
+| Animações | GSAP |
+| Outros | Zustand · react-joyride (tour) · jsPDF · xlsx · qrcode |
+
+## Arquitetura
+
+- **Multi-tenant por `organization_id`**, com Row Level Security ativo nas ~47 tabelas do banco
+- Ao criar a conta, um trigger no Postgres (`handle_new_user`) cria automaticamente a organização, o profile do dono, as métricas de uso e as configurações iniciais
+- Usuário **master** (`app_metadata.is_master`) acessa o painel `/admin`, protegido por `proxy.ts`
+- Planos e limites (clientes, serviços, ordens, usuários) configuráveis pelo admin, aplicados via `lib/plan-limits.ts`
+
+```
+Cliente → Next.js (Vercel) → Drizzle ORM → Supabase Postgres (RLS)
+                           → Supabase Auth
+                           → Asaas (cobranças)
+                           → Resend (emails)
+```
+
+## Rodando localmente
 
 ### Pré-requisitos
-- Node.js 18+ 
-- npm ou pnpm
-- Conta no Supabase
+- Node.js 20+
+- Um projeto no [Supabase](https://supabase.com)
+- (Opcional, para testar cobrança/email de verdade) contas no [Asaas](https://www.asaas.com) e [Resend](https://resend.com)
 
-### 1. Clone o repositório
+### 1. Clone e instale
+
 ```bash
 git clone https://github.com/eduallochio/crm_atelier.git
 cd crm_atelier
-```
-
-### 2. Instale as dependências
-```bash
 npm install
 ```
 
-### 3. Configure as variáveis de ambiente
-Crie um arquivo `.env.local` na raiz do projeto:
+### 2. Configure o `.env.local`
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anon
-SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Banco (Drizzle — usado em migrations/scripts locais)
+DATABASE_URL=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Asaas (cobrança — opcional em dev)
+ASAAS_API_KEY=
+ASAAS_BASE_URL=
+ASAAS_WEBHOOK_TOKEN=
+
+# Resend (email transacional — opcional em dev)
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
+
+# Telegram (notificações internas — opcional)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# Cron / endpoints internos
+CRON_SECRET=
+INTERNAL_ERROR_TOKEN=
+SETUP_SECRET=
 ```
 
-### 4. Configure o banco de dados
-Execute os scripts SQL no Supabase (SQL Editor) na seguinte ordem:
+### 3. Rode as migrations e crie o usuário master
 
-1. `supabase/schema.sql` - Schema completo
-2. `supabase/fix-trigger.sql` - Triggers melhorados
-3. `supabase/fix-rls-insert.sql` - Políticas RLS
-4. `supabase/update-clients-address.sql` - Campos de endereço
+```bash
+npx drizzle-kit push      # aplica o schema no banco
+npm run setup:master      # cria o primeiro usuário com acesso ao /admin
+```
 
-### 5. Configure autenticação no Supabase
-No Supabase Dashboard → Authentication → Settings:
-- **Desabilite** "Enable email confirmations" (para desenvolvimento)
-- Ou configure SMTP para produção
+### 4. Suba o projeto
 
-### 6. Execute o projeto
 ```bash
 npm run dev
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000)
+Acesse [http://localhost:3000](http://localhost:3000).
 
-## 📁 Estrutura do Projeto
+## Estrutura do projeto
 
 ```
-crm_atelier/
-├── app/
-│   ├── (auth)/              # Rotas de autenticação
-│   │   ├── login/
-│   │   ├── cadastro/
-│   │   └── actions.ts       # Server actions
-│   ├── (dashboard)/         # Rotas protegidas
-│   │   ├── dashboard/
-│   │   ├── clientes/
-│   │   ├── servicos/
-│   │   ├── ordens-servico/
-│   │   ├── financeiro/
-│   │   ├── caixa/
-│   │   └── profile/
-│   └── layout.tsx           # Root layout
-├── components/
-│   ├── ui/                  # Componentes Shadcn UI
-│   ├── layouts/             # Header, Sidebar
-│   ├── dashboard/           # Componentes do dashboard
-│   └── forms/               # Formulários
-├── lib/
-│   ├── supabase/            # Cliente Supabase
-│   ├── validations/         # Schemas Zod
-│   ├── services/            # Serviços externos (ViaCEP)
-│   └── utils.ts             # Utilitários
-├── hooks/                   # Hooks personalizados (React Query)
-├── types/                   # Tipos TypeScript
-├── supabase/                # Scripts SQL
-└── docs/                    # Documentação
+app/
+  (auth)/           login, cadastro — Server Actions
+  (dashboard)/      clientes, serviços, ordens de serviço, financeiro,
+                     estoque, fornecedores, configurações, ajuda
+  admin/            painel master (organizações, billing, campanhas, logs...)
+  api/              route handlers (Drizzle ORM)
+  auth/callback/    callback OAuth (login com Google)
+components/
+  ui/               Shadcn UI
+  layouts/          sidebar, header, dashboard shell
+  dashboard/ financeiro/ admin/ forms/ inventory/ ...
+lib/
+  db/               client Drizzle + schema.ts (~47 tabelas)
+  auth/             requireAuth, requireMaster, sessão
+  campaigns/        critérios e disparo das campanhas de email
+  email/            templates e envio via Resend
+  financial/        regras de negócio do módulo financeiro
+  asaas.ts          integração com a API do Asaas
+  plan-limits.ts    limites por plano e licenças vitalícias
+  validations/      schemas Zod
+hooks/              hooks React Query por módulo
+proxy.ts            middleware Next.js (auth, impersonation, redirects)
 ```
 
-## 🎯 Planos e Limites
+## Planos
 
-| Recurso           | Free  | Enterprise |
-|-------------------|-------|------------|
-| Clientes          | 50    | Ilimitado  |
-| Usuários          | 1     | Ilimitado  |
-| Serviços          | 20    | Ilimitado  |
-| Ordens de Serviço | 100   | Ilimitado  |
-| Suporte           | Email | Prioritário|
-| White-label       | ❌     | ✅          |
+| Recurso | Free | Pro | Enterprise |
+|---|---|---|---|
+| Clientes | 50 | Ilimitado | Ilimitado |
+| Serviços | 20 | Ilimitado | Ilimitado |
+| Ordens de serviço | 100 | Ilimitado | Ilimitado |
+| Usuários | 2 | 3 | Ilimitado |
+| Caixa e Financeiro | — | ✅ | ✅ |
+| Estoque | — | ✅ | ✅ |
 
-## 🔐 Segurança
+Limites configuráveis pelo admin em `/admin/settings`.
 
-- Row Level Security (RLS) ativo em todas as tabelas
-- Autenticação via Supabase Auth
-- Isolamento completo por organização
-- Validação de inputs com Zod
-- Server Actions para mutações
-- HTTPS obrigatório em produção
-
-## 🚀 Deploy
-
-### Vercel (Recomendado)
-1. Conecte seu repositório GitHub
-2. Configure as variáveis de ambiente
-3. Deploy automático a cada push
-
-### Outras plataformas
-- Netlify
-- Railway
-- Render
-- Self-hosted
-
-## 📝 Scripts
+## Scripts
 
 ```bash
-npm run dev          # Servidor de desenvolvimento
-npm run build        # Build de produção
-npm run start        # Servidor de produção
-npm run lint         # Linter ESLint
+npm run dev            # servidor de desenvolvimento
+npm run build           # build de produção
+npm run start            # servidor de produção
+npm run lint               # ESLint
+npm run setup:master       # cria o usuário master inicial
+npm run seed:demo          # popula dados de demonstração
+npm run screenshots        # gera screenshots do manual (Playwright)
 ```
 
-## 🤝 Contribuindo
+## Segurança
 
-Contribuições são bem-vindas! Por favor:
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'feat: adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
+- Row Level Security ativo em todas as tabelas, isolando os dados por organização
+- Validação de entrada com Zod em todas as rotas de API
+- Sessão de impersonation (admin "entrando como" uma organização) usa cookie separado da sessão master
+- Páginas de conformidade com a LGPD: `/meus-dados`, `/lgpd`, `/termos`, `/privacidade`
 
-## 📄 Licença
+## Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Projeto proprietário — código fechado, uso restrito ao time do Meu Atelier Sistema.
 
-## 👨‍💻 Autor
+---
 
-**Eduardo Allochio**
-- GitHub: [@eduallochio](https://github.com/eduallochio)
-- Email: eduallochio2@outlook.com
+<div align="center">
 
-## 🙏 Agradecimentos
+Feito por **Eduardo Allochio** — [GitHub](https://github.com/eduallochio)
 
-- [Next.js](https://nextjs.org)
-- [Supabase](https://supabase.com)
-- [Shadcn UI](https://ui.shadcn.com)
-- [ViaCEP](https://viacep.com.br)
-
+</div>
