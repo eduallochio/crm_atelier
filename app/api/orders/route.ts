@@ -347,7 +347,7 @@ export async function POST(request: Request) {
             eq(orgCashierSessions.status, 'aberto'),
             isNull(orgCashierSessions.dataFechamento),
           ))
-          .orderBy(desc(orgCashiers.isDefault), orgCashierSessions.dataAbertura)
+          .orderBy(desc(orgCashiers.isDefault), desc(orgCashierSessions.createdAt))
           .limit(1)
 
         if (openSession) {

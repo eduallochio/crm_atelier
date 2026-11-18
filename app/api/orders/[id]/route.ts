@@ -20,7 +20,7 @@ import {
   orgPaymentMethods,
   orgDeletionLog,
 } from '@/lib/db/schema'
-import { eq, and, desc, inArray, count, sql as drizzleSql } from 'drizzle-orm'
+import { eq, and, desc, inArray, count, isNull, sql as drizzleSql } from 'drizzle-orm'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 
 export async function GET(
@@ -221,6 +221,99 @@ export async function PUT(
         .returning()
 
       let noCashierSession = false
+
+      // Cancela qualquer recebível pendente vinculado a esta OS — sem isso,
+      // uma OS concluída como "a receber" e depois cancelada deixava a
+      // cobrança pendente para sempre na tela "A receber", mesmo a venda
+      // nunca tendo se concretizado
+      if (finalStatus === 'cancelado') {
+        await tx
+          .update(orgReceivables)
+          .set({ status: 'cancelado', updatedAt: new Date() })
+          .where(and(
+            eq(orgReceivables.serviceOrderId, id),
+            eq(orgReceivables.organizationId, user.organizationId),
+            eq(orgReceivables.status, 'pendente'),
+          ))
+      }
+
+      // Estorno ao cancelar — só roda se o usuário confirmou explicitamente
+      // (body.estornar_entrada), e só se havia algo pago. Sem isso, o sinal
+      // recebido numa OS cancelada ficava contando como receita válida pra
+      // sempre no financeiro e no saldo do caixa, mesmo a venda nunca tendo
+      // se concretizado (ver conversa de 2026-11-17 sobre o saldo do caixa
+      // batendo diferente do faturamento do mês)
+      const valorPagoAtual = Number(order.valorPago) || 0
+      if (finalStatus === 'cancelado' && body.estornar_entrada === true && valorPagoAtual > 0) {
+        const dataTransacao = new Date().toISOString().split('T')[0]
+        const descricaoEstorno = `Estorno OS #${order.numero} (cancelada) - ${order.clienteNome || 'Cliente'}`
+
+        await tx.insert(orgTransactions).values({
+          organizationId: user.organizationId,
+          tipo:           'saida',
+          descricao:       descricaoEstorno,
+          valor:           String(valorPagoAtual),
+          dataTransacao,
+          serviceOrderId:  id,
+          observacoes:     'Estorno do valor recebido — OS cancelada',
+        })
+
+        // Só lança a saída no caixa físico se o valor realmente entrou nele
+        // algum dia ('ordem_servico' = quitação, 'ordem_servico_entrada' =
+        // sinal) — sem isso, uma OS cujo sinal nunca foi lançado no caixa
+        // (ex: sem sessão aberta na criação, ver POST /api/orders) geraria
+        // uma saída sem a entrada correspondente, desbalanceando a gaveta
+        const [entradaNoCaixa] = await tx
+          .select({ id: orgCashierMovements.id })
+          .from(orgCashierMovements)
+          .where(and(
+            eq(orgCashierMovements.referenciaId, id),
+            eq(orgCashierMovements.organizationId, user.organizationId),
+            inArray(orgCashierMovements.referenciaTipo, ['ordem_servico', 'ordem_servico_entrada']),
+          ))
+          .limit(1)
+
+        if (entradaNoCaixa) {
+          const [openSession] = await tx
+            .select({ id: orgCashierSessions.id })
+            .from(orgCashierSessions)
+            .leftJoin(orgCashiers, eq(orgCashiers.id, orgCashierSessions.caixaId))
+            .where(and(
+              eq(orgCashierSessions.organizationId, user.organizationId),
+              eq(orgCashierSessions.status, 'aberto'),
+              isNull(orgCashierSessions.dataFechamento),
+            ))
+            .orderBy(desc(orgCashiers.isDefault), desc(orgCashierSessions.createdAt))
+            .limit(1)
+
+          if (openSession) {
+            await tx.insert(orgCashierMovements).values({
+              organizationId: user.organizationId,
+              sessaoId:       openSession.id,
+              tipo:           'saida',
+              descricao:      descricaoEstorno,
+              valor:          String(valorPagoAtual),
+              referenciaId:   id,
+              referenciaTipo: 'ordem_servico_estorno',
+              usuarioId:      user.id,
+            })
+          } else {
+            noCashierSession = true
+          }
+        }
+
+        // Zera o valor pago da OS — o dinheiro foi devolvido, não faz
+        // sentido a ficha continuar mostrando "pago" ou "parcial". Atualiza
+        // updatedOrder também, já que ele foi capturado antes deste bloco
+        // rodar e, sem isso, a resposta devolvida ao frontend mostraria o
+        // valor_pago antigo mesmo com o banco já corrigido
+        const [reverted] = await tx
+          .update(orgServiceOrders)
+          .set({ valorPago: '0', statusPagamento: 'pendente' })
+          .where(and(eq(orgServiceOrders.id, id), eq(orgServiceOrders.organizationId, user.organizationId)))
+          .returning()
+        if (reverted) Object.assign(updatedOrder, reverted)
+      }
 
       // Payment flow on conclusion
       if (finalStatus === 'concluido') {

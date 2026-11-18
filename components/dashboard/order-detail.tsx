@@ -382,12 +382,33 @@ export function OrderDetail({ order, onConclude, onDeleted, onBack }: Props) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar a ordem {numeroOS(order.numero)}?</AlertDialogTitle>
-            <AlertDialogDescription>A ordem fica marcada como cancelada. Você pode reabri-la depois.</AlertDialogDescription>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>A ordem fica marcada como cancelada. Você pode reabri-la depois.</p>
+                {pago > 0 && (
+                  <p>
+                    Essa ordem já recebeu <b className="text-foreground">{formatBRL(pago)}</b>. Ao cancelar, esse valor
+                    será lançado como saída no financeiro e no caixa — como se tivesse sido devolvido ao cliente.
+                    Se você não vai devolver o dinheiro, escolha &quot;Cancelar sem estornar&quot;.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => updateOrder.mutate({ id: order.id, input: { status: 'cancelado' } })}>
-              Cancelar ordem
+            {pago > 0 && (
+              <AlertDialogAction
+                onClick={() => updateOrder.mutate({ id: order.id, input: { status: 'cancelado' } })}
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
+                Cancelar sem estornar
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => updateOrder.mutate({ id: order.id, input: pago > 0 ? { status: 'cancelado', estornar_entrada: true } : { status: 'cancelado' } })}
+            >
+              {pago > 0 ? 'Cancelar e estornar' : 'Cancelar ordem'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

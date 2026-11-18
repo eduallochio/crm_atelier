@@ -69,7 +69,7 @@ export function useUpdateServiceOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: Partial<ServiceOrderInput> & { payment_action?: 'paid' | 'receivable' | 'undecided'; payment_date?: string } }) => {
+    mutationFn: async ({ id, input }: { id: string; input: Partial<ServiceOrderInput> & { payment_action?: 'paid' | 'receivable' | 'undecided'; payment_date?: string; estornar_entrada?: boolean } }) => {
       const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
