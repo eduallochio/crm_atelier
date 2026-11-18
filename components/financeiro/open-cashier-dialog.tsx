@@ -2,10 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { CheckCircle2, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useCashiers, useCashierSessions, useOpenCashier } from '@/hooks/use-cashier'
 import { parseMoney } from '@/lib/utils/money'
+import { formatBRL } from '@/components/dashboard/client-utils'
 
 const SERIF = { fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }
 
@@ -14,17 +19,49 @@ const SERIF = { fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgi
  * informa o dinheiro que já está na gaveta e pronto. Mesma abertura da tela /financeiro/caixa/abrir.
  */
 export function OpenCashierDialog({ open, onClose, caixaId }: { open: boolean; onClose: () => void; caixaId?: string }) {
+  // Confirmação centralizada do caixa aberto — substitui o toast de canto
+  // (pequeno e some sozinho) por algo que fica visível até o usuário fechar.
+  // Fica no componente pai pra poder fechar o Dialog do formulário (abaixo)
+  // antes de abrir o AlertDialog — os dois nunca ficam abertos ao mesmo tempo
+  const [confirmed, setConfirmed] = useState<{ nome: string; saldo: number } | null>(null)
+
+  const handleClose = () => { setConfirmed(null); onClose() }
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      {open && <OpenForm onClose={onClose} caixaId={caixaId} />}
-    </Dialog>
+    <>
+      <Dialog open={open && !confirmed} onOpenChange={(v) => { if (!v) onClose() }}>
+        {open && !confirmed && <OpenForm onClose={onClose} caixaId={caixaId} onConfirmed={setConfirmed} />}
+      </Dialog>
+
+      <AlertDialog open={!!confirmed} onOpenChange={(v) => { if (!v) handleClose() }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            </div>
+            <AlertDialogTitle className="text-center text-[24px] font-normal leading-tight" style={SERIF}>Caixa aberto!</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              {confirmed && (
+                <>
+                  <b className="text-foreground">{confirmed.nome}</b> aberto com{' '}
+                  <b className="tabular-nums text-foreground">{formatBRL(confirmed.saldo)}</b> na gaveta.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction onClick={handleClose}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
-function OpenForm({ onClose, caixaId }: { onClose: () => void; caixaId?: string }) {
+function OpenForm({ onClose, caixaId, onConfirmed }: { onClose: () => void; caixaId?: string; onConfirmed: (v: { nome: string; saldo: number }) => void }) {
   const { data: cashiers = [], isLoading } = useCashiers()
   const { data: openSessions = [] } = useCashierSessions({ status: 'aberto' })
-  const openCashier = useOpenCashier()
+  const openCashier = useOpenCashier({ silent: true })
   const [picked, setPicked] = useState(caixaId)
   const [valor, setValor] = useState('')
   const [obs, setObs] = useState('')
@@ -38,13 +75,20 @@ function OpenForm({ onClose, caixaId }: { onClose: () => void; caixaId?: string 
     e.preventDefault()
     if (!current?.id) return
     try {
-      await openCashier.mutateAsync({
+      const saldo_inicial = parseMoney(valor)
+      const sessao = await openCashier.mutateAsync({
         caixa_id: current.id,
-        saldo_inicial: parseMoney(valor),
+        saldo_inicial,
         observacoes_abertura: obs.trim() || undefined,
         status: 'aberto',
       })
-      onClose()
+      // already_open: já existe sessão aberta para este caixa — o hook já
+      // mostra o toast informativo nesse caso, então só fecha o diálogo em
+      // vez de mostrar a confirmação de "caixa aberto" (que seria enganosa).
+      // Sem sessão retornada (resposta inesperada), também só fecha — não dá
+      // pra confirmar uma abertura que o servidor não confirmou de volta
+      if (!sessao || sessao.already_open) { onClose(); return }
+      onConfirmed({ nome: current.nome, saldo: saldo_inicial })
     } catch { /* o hook já mostra o erro */ }
   }
 

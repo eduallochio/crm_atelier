@@ -144,7 +144,12 @@ export function useActiveCashierSession(caixaId?: string) {
   })
 }
 
-export function useOpenCashier() {
+/**
+ * `silent`: não mostra o toast de sucesso — usado por telas que já exibem
+ * sua própria confirmação (ex: OpenCashierDialog, com um modal centralizado
+ * no lugar do toast de canto, que some rápido demais para o usuário notar)
+ */
+export function useOpenCashier(options: { silent?: boolean } = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -162,7 +167,7 @@ export function useOpenCashier() {
       queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] })
       if (data?.already_open) {
         toast.info('Este caixa já está aberto. Redirecionando para a sessão ativa.')
-      } else {
+      } else if (!options.silent) {
         toast.success('Caixa aberto com sucesso!')
       }
     },
