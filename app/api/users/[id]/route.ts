@@ -85,9 +85,38 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
     // Delete from Supabase Auth first (cascades to profiles via trigger) — só
     // grava o log depois de confirmar que a exclusão realmente aconteceu,
-    // senão uma falha aqui deixaria um registro de auditoria falso
+    // senão uma falha aqui deixaria um registro de auditoria falso.
+    // "User not found" (status 404) é tratado como sucesso: o profile existe
+    // mas o registro correspondente em auth.users já não existe (ex: removido
+    // por fora, ou um estado inconsistente anterior) — sem esse caso, a
+    // exclusão fica travada num loop de "Erro interno" pra sempre, já que o
+    // profile nunca vai ter um auth.users pra deletar. O profile órfão ainda
+    // precisa ser limpo manualmente abaixo, pois sem auth.users o trigger de
+    // cascata nunca dispara.
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(id)
-    if (deleteAuthError) throw deleteAuthError
+    const authErrorInfo = deleteAuthError as { status?: number; code?: string } | null
+    const isAlreadyGone = !!authErrorInfo && (authErrorInfo.status === 404 || authErrorInfo.code === 'user_not_found')
+    if (deleteAuthError && !isAlreadyGone) throw deleteAuthError
+    if (isAlreadyGone) {
+      try {
+        await db
+          .delete(profiles)
+          .where(and(eq(profiles.id, id), eq(profiles.organizationId, user.organizationId)))
+      } catch (profileDeleteError) {
+        // Violação de FK (ex: usuário já abriu/fechou um caixa, registrou
+        // movimento ou concluiu uma OS) — mensagem específica em vez de
+        // "Erro interno" genérico, já que não há como resolver sozinho pela
+        // tela: precisa de intervenção manual pra desvincular esses registros.
+        // Loga o estado (profile órfão que não pôde ser limpo) pra ficar
+        // rastreável em /admin/errors — não grava em orgDeletionLog porque a
+        // exclusão de fato não aconteceu
+        logServerError('[DELETE /api/users/[id]] profile órfão com FK pendente', profileDeleteError, undefined, organizationId)
+        return NextResponse.json(
+          { error: 'Este usuário tem registros vinculados (ex: caixa ou ordens de serviço) que impedem a remoção completa. Fale com o suporte.' },
+          { status: 409 }
+        )
+      }
+    }
 
     await db.insert(orgDeletionLog).values({
       organizationId: user.organizationId,
