@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Cake, CircleDashed, Lock, LockOpen, Package, Plus, UserPlus, UserX, Wallet } from 'lucide-react'
+import { Cake, Check, CircleDashed, Lock, LockOpen, Package, Plus, Scissors, UserPlus, UserX, Wallet } from 'lucide-react'
 import { ClientDialog } from '@/components/forms/client-dialog'
 import { ServiceOrderDialog } from '@/components/forms/service-order-dialog'
+import { ServiceDialog } from '@/components/forms/service-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { HelpSectionLink } from '@/components/layouts/help-section-link'
 import { DeliveryBoard, DELIVERY_CSS } from '@/components/dashboard/delivery-board'
@@ -45,6 +46,7 @@ function daysToBirthday(c: Client, now = new Date()) {
 export default function DashboardPage() {
   const [clientOpen, setClientOpen] = useState(false)
   const [orderOpen, setOrderOpen] = useState(false)
+  const [serviceOpen, setServiceOpen] = useState(false)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => { const r = await fetch('/api/me'); return r.ok ? r.json() : null } })
   const canSeeOrders = !me || me.isOwner || me.isMaster || me.permissions?.ordens_servico === true
@@ -122,6 +124,17 @@ export default function DashboardPage() {
       </header>
 
       <div className="space-y-4 p-3 sm:p-6 lg:p-8">
+        <ActivationChecklist
+          hasServices={services.length > 0}
+          hasClients={clients.length > 0}
+          hasOrders={orders.length > 0}
+          onNewService={() => setServiceOpen(true)}
+          onNewClient={() => setClientOpen(true)}
+          onNewOrder={() => setOrderOpen(true)}
+          canSeeServices={canSeeServices}
+          canSeeOrders={canSeeOrders}
+        />
+
         {canSeeOrders && (
           <>
             <DeliveryBoard orders={orders} isLoading={ordersLoading} />
@@ -159,6 +172,7 @@ export default function DashboardPage() {
 
       <ClientDialog open={clientOpen} onOpenChange={setClientOpen} />
       <ServiceOrderDialog open={orderOpen} onOpenChange={setOrderOpen} />
+      <ServiceDialog open={serviceOpen} onOpenChange={setServiceOpen} />
     </div>
   )
 }
@@ -313,6 +327,51 @@ function DayLine({ activities, isLoading }: { activities: Activity[]; isLoading:
   )
 }
 
+/**
+ * Checklist de ativação — o tour (AppTour) é um passeio passivo pelo menu,
+ * sem forçar nenhuma ação real. Isso some assim que os 3 passos relevantes
+ * pra esse usuário estiverem completos, e não some de novo depois (não
+ * precisa persistir estado: se os 3 já existem, a condição nunca mais bate).
+ */
+function ActivationChecklist({
+  hasServices, hasClients, hasOrders, onNewService, onNewClient, onNewOrder, canSeeServices, canSeeOrders,
+}: {
+  hasServices: boolean; hasClients: boolean; hasOrders: boolean
+  onNewService: () => void; onNewClient: () => void; onNewOrder: () => void
+  canSeeServices: boolean; canSeeOrders: boolean
+}) {
+  const steps = [
+    canSeeServices && { key: 'service', label: 'Cadastre seu primeiro serviço', desc: 'O que seu ateliê oferece, com preço', done: hasServices, onClick: onNewService, icon: Scissors },
+    { key: 'client', label: 'Cadastre sua primeira cliente', desc: 'Nome e telefone já bastam', done: hasClients, onClick: onNewClient, icon: UserPlus },
+    canSeeOrders && { key: 'order', label: 'Crie sua primeira ordem de serviço', desc: 'Escolha a cliente e os serviços', done: hasOrders, onClick: onNewOrder, icon: Plus },
+  ].filter((s): s is Exclude<typeof s, false> => s !== false)
+
+  const doneCount = steps.filter((s) => s.done).length
+  if (doneCount === steps.length) return null
+
+  return (
+    <section className="activ-card" aria-label="Primeiros passos">
+      <div className="activ-head">
+        <p className="activ-tag">Primeiros passos</p>
+        <p className="activ-title">Faltam {steps.length - doneCount} de {steps.length} pra você começar a usar de verdade</p>
+      </div>
+      <ol className="activ-list">
+        {steps.map((s) => (
+          <li key={s.key} className={s.done ? 'is-done' : ''}>
+            <button type="button" onClick={s.onClick} disabled={s.done} className="activ-step">
+              <span className="activ-check" aria-hidden="true">{s.done ? <Check className="h-3.5 w-3.5" /> : <s.icon className="h-3.5 w-3.5" />}</span>
+              <span className="activ-step-text">
+                <b>{s.label}</b>
+                <small>{s.desc}</small>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 function ProNudgeCard({ clientsUsed, clientsMax, ordersUsed, ordersMax }: {
   clientsUsed: number; clientsMax: number; ordersUsed: number; ordersMax: number
 }) {
@@ -377,4 +436,18 @@ const HOME_CSS = `
 .nudge-warn { color: #C8714A; font-weight: 600; }
 .nudge-bar-track { height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .nudge-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.activ-card { padding: 18px 22px; border-radius: 14px; background: var(--card); border: 1px solid rgba(200,113,74,.2); }
+.activ-head { margin-bottom: 14px; }
+.activ-tag { margin: 0 0 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #C8714A; }
+.activ-title { margin: 0; font-size: 14.5px; font-weight: 500; color: var(--foreground); }
+.activ-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.activ-step { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--background); text-align: left; transition: border-color .15s, background-color .15s; }
+.activ-step:hover:not(:disabled) { border-color: #C8714A; background: rgba(200,113,74,.05); }
+.activ-step:disabled { cursor: default; opacity: .6; }
+.activ-check { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(200,113,74,.12); color: #C8714A; flex-shrink: 0; }
+.is-done .activ-check { background: #C8714A; color: #fff; }
+.activ-step-text { display: flex; flex-direction: column; min-width: 0; }
+.activ-step-text b { font-size: 13px; font-weight: 600; color: var(--foreground); }
+.is-done .activ-step-text b { text-decoration: line-through; color: var(--muted-foreground); }
+.activ-step-text small { font-size: 11.5px; color: var(--muted-foreground); }
 `
