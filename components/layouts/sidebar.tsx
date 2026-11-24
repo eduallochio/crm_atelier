@@ -55,7 +55,7 @@ type MenuItem = {
   icon: LucideIcon
   tourId?: string
   permission?: string
-  subitems?: { name: string; href: string; icon: LucideIcon }[]
+  subitems?: { name: string; href: string; icon: LucideIcon; permission?: string }[]
 }
 
 type NavigationSection = {
@@ -107,7 +107,7 @@ const navigation: NavigationSection[] = [
           { name: 'Saídas', href: '/estoque/saidas', icon: PackageMinus },
           { name: 'Categorias', href: '/estoque/categorias', icon: Tag },
           { name: 'Relatórios', href: '/estoque/relatorios', icon: BarChart3 },
-          { name: 'Fornecedores', href: '/fornecedores', icon: Truck },
+          { name: 'Fornecedores', href: '/fornecedores', icon: Truck, permission: 'fornecedores' },
         ],
       },
     ],
@@ -321,9 +321,34 @@ export function Sidebar() {
           <div key={group.section} className="sb-sec">
             <p className="sb-sec-l">{group.section}</p>
             <ul className="sb-list">
-              {group.items.filter(item =>
-                !item.permission || !meData || isOwner || isMaster || permissions[item.permission] === true
-              ).map((item) => {
+              {group.items
+                .map(item => {
+                  const hasOwnAccess = !item.permission || !meData || isOwner || isMaster || permissions[item.permission] === true
+                  // Subitem com permissão própria (ex: Fornecedores dentro de
+                  // Estoque) é filtrado por ela, independente do pai — sem
+                  // isso, um usuário com acesso a Fornecedores mas não a
+                  // Estoque nunca via o link, mesmo a API já liberando o
+                  // acesso. Subitem SEM permissão própria (ex: Caixa dentro
+                  // de Financeiro) sempre herda a do pai — não pode "vazar"
+                  // e aparecer só porque não tem uma permissão própria pra
+                  // checar.
+                  const visibleSubitems = item.subitems?.filter(sub =>
+                    sub.permission
+                      ? (!meData || isOwner || isMaster || permissions[sub.permission] === true)
+                      : hasOwnAccess
+                  )
+                  return { ...item, subitems: visibleSubitems, hasOwnAccess }
+                })
+                .filter(item => {
+                  // Pai sem subitems segue só pela própria permissão; pai
+                  // com subitems aparece se tiver acesso próprio OU pelo
+                  // menos um subitem visível (caso de um subitem com
+                  // permissão própria liberando o pai que, sozinho, estaria
+                  // bloqueado)
+                  if (item.subitems !== undefined) return item.hasOwnAccess || item.subitems.length > 0
+                  return item.hasOwnAccess
+                })
+                .map((item) => {
                 const isActive    = isOn(item.href) && !item.subitems
                 const isSubActive = item.subitems?.some(s => pathname === s.href || pathname.startsWith(s.href + '/')) ?? false
                 const highlighted = isActive || isSubActive
