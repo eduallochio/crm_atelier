@@ -111,8 +111,16 @@ export async function GET() {
       },
     })
 
-    // Cache privado por 60s — evita 5 queries ao banco por navegação
-    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=30')
+    // Cache privado por 60s — evita 5 queries ao banco por navegação. Durante
+    // impersonation, NÃO cacheia: o navegador trataria /api/me como a mesma
+    // URL para organizações/usuários diferentes, servindo a resposta de quem
+    // o admin impersonou antes mesmo depois de trocar de organização (o
+    // cookie já muda corretamente no servidor — o problema era só o cache
+    // HTTP do navegador ignorando essa troca por até 60s)
+    response.headers.set(
+      'Cache-Control',
+      user.impersonating ? 'no-store' : 'private, max-age=60, stale-while-revalidate=30'
+    )
     return response
   } catch (error) {
     if ((error as Error).message === 'UNAUTHORIZED') {
