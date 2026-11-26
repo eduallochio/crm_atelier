@@ -43,9 +43,26 @@ export async function GET(request: Request) {
       .where(and(...conditions))
       .orderBy(desc(orgCashierSessions.dataAbertura))
 
+    // snake_case para bater com o formato de GET /api/cashiers/sessions/[id] --
+    // componentes como cash-drawer.tsx leem session.saldo_inicial (não
+    // saldoInicial) e, sem essa conversão, caem silenciosamente em 0
     const mapped = rows.map((r) => ({
-      ...r,
-      org_cashiers: { nome: r.caixa_nome },
+      id:                    r.id,
+      organization_id:       r.organizationId,
+      caixa_id:              r.caixaId,
+      usuario_abertura_id:   r.usuarioAberturaId,
+      data_abertura:         r.dataAbertura,
+      data_fechamento:       r.dataFechamento,
+      saldo_inicial:         r.saldoInicial,
+      saldo_real:            r.saldoReal,
+      saldo_esperado:        r.saldoEsperado,
+      diferenca:             r.diferenca,
+      status:                r.status,
+      observacoes_abertura:  r.observacoesAbertura,
+      observacoes_fechamento: r.observacoesFechamento,
+      created_at:            r.createdAt,
+      updated_at:            r.updatedAt,
+      org_cashiers:          { nome: r.caixa_nome },
     }))
 
     return NextResponse.json(mapped)
