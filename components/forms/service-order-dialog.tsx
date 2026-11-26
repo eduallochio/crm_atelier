@@ -471,8 +471,18 @@ export function ServiceOrderDialog({ open, onOpenChange, defaultClientId }: Serv
         const phone = formatPhoneForWhatsApp(telefone)
         const msg = generateWhatsAppText(orderForMsg, orgData?.name, orgData, !!systemPrefs?.embalagem_destacar_recibo, usaHorarioRetirada)
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-        window.open(url, '_blank')
-        toast.success('Ordem criada! WhatsApp aberto com a mensagem.')
+        const win = window.open(url, '_blank')
+        if (win) {
+          toast.success('Ordem criada! WhatsApp aberto com a mensagem.')
+        } else {
+          // Navegador bloqueou o pop-up (comum após o await da busca da OS
+          // completa, que faz o window.open não contar mais como resposta
+          // direta a um clique) — oferece o link pra abrir manualmente.
+          toast.warning('Ordem criada! Seu navegador bloqueou a aba do WhatsApp.', {
+            action: { label: 'Abrir WhatsApp', onClick: () => window.open(url, '_blank') },
+            duration: 15000,
+          })
+        }
       } else {
         toast.success(gerarPDF ? 'Ordem criada e PDF gerado!' : 'Ordem criada com sucesso!')
       }
