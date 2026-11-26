@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgTransactions } from '@/lib/db/schema'
+import { orgTransactions, orgCashierMovements } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { requireProPlan } from '@/lib/plan-limits'
@@ -40,9 +40,18 @@ export async function DELETE(
       )
     }
 
-    await db
-      .delete(orgTransactions)
-      .where(and(eq(orgTransactions.id, id), eq(orgTransactions.organizationId, user.organizationId)))
+    // Remove o movimento de caixa físico gerado junto (ver POST) e a transação
+    // na mesma transação de banco — sem isso, uma falha no segundo delete
+    // deixaria a gaveta com um lançamento órfão de uma transação já apagada
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(orgCashierMovements)
+        .where(and(eq(orgCashierMovements.referenciaId, id), eq(orgCashierMovements.referenciaTipo, 'lancamento_avulso')))
+
+      await tx
+        .delete(orgTransactions)
+        .where(and(eq(orgTransactions.id, id), eq(orgTransactions.organizationId, user.organizationId)))
+    })
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { transactionSchema, TransactionInput } from '@/lib/validations/financial'
 import { useCreateTransaction } from '@/hooks/use-financial'
+import { useActivePaymentMethods } from '@/hooks/use-payment-methods'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ interface TransactionDialogProps {
 
 export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps) {
   const createMutation = useCreateTransaction()
+  const { data: paymentMethods = [] } = useActivePaymentMethods()
 
   const form = useForm<TransactionInput>({
     resolver: zodResolver(transactionSchema),
@@ -46,6 +48,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
       descricao: '',
       valor: '',
       data_transacao: todayISO(),
+      payment_method_id: '',
       observacoes: '',
     },
   })
@@ -59,6 +62,7 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
         descricao: '',
         valor: '',
         data_transacao: todayISO(),
+        payment_method_id: '',
         observacoes: '',
       })
     } catch (error) {
@@ -151,6 +155,32 @@ export function TransactionDialog({ open, onOpenChange }: TransactionDialogProps
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="payment_method_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Forma de pagamento</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {paymentMethods.map((pm) => (
+                        <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[12.5px] text-muted-foreground">
+                    Em Dinheiro ou Pix, com o caixa aberto, também lança na gaveta.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

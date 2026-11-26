@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, assertPermission } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { orgTransactions, orgPaymentMethods } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { orgTransactions, orgPaymentMethods, orgCashierSessions, orgCashiers, orgCashierMovements } from '@/lib/db/schema'
+import { eq, and, desc } from 'drizzle-orm'
 import { logServerError } from '@/lib/log-error'
 import { requireProPlan } from '@/lib/plan-limits'
+
+// Só dinheiro e Pix passam fisicamente pela gaveta — cartão e boleto, embora
+// entrem no extrato financeiro geral, não movimentam o caixa físico
+const CASH_DRAWER_PAYMENT_TYPES = new Set(['dinheiro', 'pix'])
 
 export async function GET() {
   try {
@@ -76,21 +80,63 @@ export async function POST(request: Request) {
 
     const valor = parseFloat(String(body.valor).replace(',', '.'))
 
-    const [row] = await db
-      .insert(orgTransactions)
-      .values({
-        organizationId:  user.organizationId,
-        tipo:            body.tipo,
-        descricao:       body.descricao,
-        valor:           String(valor),
-        dataTransacao:   body.data_transacao,
-        categoryId:      body.category_id      || null,
-        paymentMethodId: body.payment_method_id || null,
-        receivableId:    body.receivable_id     || null,
-        payableId:       body.payable_id        || null,
-        observacoes:     body.observacoes       || null,
-      })
-      .returning()
+    // Insert da transação e do movimento de caixa na mesma transação de banco —
+    // sem isso, uma falha no segundo insert deixaria o lançamento criado no
+    // extrato geral mas a gaveta física silenciosamente fora de sincronia
+    const row = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(orgTransactions)
+        .values({
+          organizationId:  user.organizationId,
+          tipo:            body.tipo,
+          descricao:       body.descricao,
+          valor:           String(valor),
+          dataTransacao:   body.data_transacao,
+          categoryId:      body.category_id      || null,
+          paymentMethodId: body.payment_method_id || null,
+          receivableId:    body.receivable_id     || null,
+          payableId:       body.payable_id        || null,
+          observacoes:     body.observacoes       || null,
+        })
+        .returning()
+
+      // Lançamento avulso em dinheiro/Pix, com caixa aberto, também debita/credita
+      // a gaveta física — sem isso o Fluxo de Caixa mostra a saída mas "Na gaveta
+      // agora" nunca reflete esse dinheiro que realmente saiu/entrou nela
+      if (body.payment_method_id && !body.receivable_id && !body.payable_id) {
+        const [paymentMethod] = await tx
+          .select({ tipo: orgPaymentMethods.tipo })
+          .from(orgPaymentMethods)
+          .where(and(eq(orgPaymentMethods.id, body.payment_method_id), eq(orgPaymentMethods.organizationId, user.organizationId)))
+          .limit(1)
+
+        if (paymentMethod && CASH_DRAWER_PAYMENT_TYPES.has(paymentMethod.tipo ?? '')) {
+          const [openSession] = await tx
+            .select({ id: orgCashierSessions.id })
+            .from(orgCashierSessions)
+            .leftJoin(orgCashiers, eq(orgCashiers.id, orgCashierSessions.caixaId))
+            .where(and(eq(orgCashierSessions.organizationId, user.organizationId), eq(orgCashierSessions.status, 'aberto')))
+            .orderBy(desc(orgCashiers.isDefault), desc(orgCashierSessions.createdAt))
+            .limit(1)
+
+          if (openSession) {
+            await tx.insert(orgCashierMovements).values({
+              organizationId:    user.organizationId,
+              sessaoId:          openSession.id,
+              tipo:              inserted.tipo,
+              descricao:         inserted.descricao,
+              valor:             String(valor),
+              referenciaId:      inserted.id,
+              referenciaTipo:    'lancamento_avulso',
+              metodoPagamentoId: body.payment_method_id,
+              usuarioId:         user.id,
+            })
+          }
+        }
+      }
+
+      return inserted
+    })
 
     return NextResponse.json({
       id:                row.id,
