@@ -17,6 +17,12 @@ export type MoveKind = 'entrada' | 'saida' | 'sangria' | 'reforco'
 
 export const MOVE_LABEL: Record<MoveKind, string> = { entrada: 'Entrada', saida: 'Saída', sangria: 'Sangria', reforco: 'Reforço' }
 export const MOVE_ICON = { entrada: ArrowUpRight, saida: ArrowDownLeft, sangria: HandCoins, reforco: PiggyBank }
+export const MOVE_HELP: Record<MoveKind, string> = {
+  entrada: 'Dinheiro que entrou na gaveta fora de uma OS — ex.: venda avulsa recebida em espécie ou Pix.',
+  saida: 'Dinheiro que saiu da gaveta para pagar algo do dia a dia — ex.: compra de material, entrega, lanche.',
+  sangria: 'Retirada de dinheiro da gaveta por segurança, sem ligação com uma despesa — ex.: levar o excedente ao banco.',
+  reforco: 'Dinheiro colocado na gaveta para troco ou reforço de caixa, sem ser uma venda.',
+}
 export const isInflow = (k: string) => k === 'entrada' || k === 'reforco'
 
 export interface Unlaunched { id: string; numero: number | null; valorTotal: string | null; formaPagamento: string | null; dataConclusao: string | null; clienteNome: string | null }
@@ -132,16 +138,25 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
         </dl>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 px-5 py-4">
-        {(Object.keys(MOVE_LABEL) as MoveKind[]).map((k) => {
-          const Icon = MOVE_ICON[k]
-          return (
-            <button key={k} type="button" className="dr-btn" onClick={() => setAdding(k)}>
-              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />{MOVE_LABEL[k]}
-            </button>
-          )
-        })}
-      </div>
+      <TooltipProvider>
+        <div className="grid grid-cols-4 gap-1.5 px-5 py-4">
+          {(Object.keys(MOVE_LABEL) as MoveKind[]).map((k) => {
+            const Icon = MOVE_ICON[k]
+            return (
+              <Tooltip key={k}>
+                <TooltipTrigger asChild>
+                  <button type="button" className="dr-btn" onClick={() => setAdding(k)}>
+                    <Icon className="h-[18px] w-[18px]" aria-hidden="true" />{MOVE_LABEL[k]}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64 border border-[#D4A85A]/40 bg-[#C8714A] text-[#FFF8F0]">
+                  {MOVE_HELP[k]}
+                </TooltipContent>
+              </Tooltip>
+            )
+          })}
+        </div>
+      </TooltipProvider>
 
       <ul className="max-h-[230px] overflow-y-auto px-5" aria-label="Movimentos de hoje">
         {moves.length === 0 && !isLoading && <li className="dr-soft py-3 text-[13px]">Nenhum movimento ainda. Os pagamentos das ordens entram aqui.</li>}
@@ -175,7 +190,14 @@ function OpenDrawer({ session }: { session: CashierSessionWithRelations }) {
         </button>
       </div>
 
-      {adding && <AddMovementDialog sessaoId={sessionId} type={adding} onClose={() => setAdding(null)} />}
+      {adding && (
+        // key força remontar o diálogo ao trocar de tipo sem passar por null
+        // (ex.: clicar em "Sangria" com o diálogo de "Saída" ainda na tela) --
+        // sem isso o useForm interno mantém o tipo antigo em defaultValues,
+        // que só é lido na primeira montagem, e o movimento é salvo com o
+        // tipo errado mesmo o diálogo mostrando o título certo
+        <AddMovementDialog key={adding} sessaoId={sessionId} type={adding} onClose={() => setAdding(null)} />
+      )}
       {closing && (
         <CloseCashierDialog
           sessao={{ id: sessionId, caixa_id: session.caixa_id, saldo_inicial: Number(session.saldo_inicial) || 0, status: session.status }}
